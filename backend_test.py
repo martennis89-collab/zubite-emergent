@@ -348,8 +348,8 @@ class ZubiteAPITester:
         if self.token:
             self.test_admin_lead_management()
         
-        # Test clinics
-        self.test_clinics_endpoints()
+        # Test cities and clinics
+        self.test_city_and_clinic_endpoints()
         
         # Test events
         self.test_events_endpoint()
