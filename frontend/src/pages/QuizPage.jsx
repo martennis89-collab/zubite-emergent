@@ -187,6 +187,10 @@ const QuizPage = () => {
         ...getUTMParams(),
         page_path: window.location.pathname
       });
+      
+      // Track quiz completion
+      trackQuizComplete(treatmentType, citySlug, lead.band, lead.score_total);
+      
       toast.success(language === 'en' ? 'Submitted successfully!' : 'Изпратено успешно!');
       navigate(getLocalizedPath(`/results/${lead.id}`));
     } catch (e) {
