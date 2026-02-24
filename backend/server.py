@@ -307,12 +307,13 @@ async def create_lead(lead_data: LeadCreate):
     score_total, band, score_breakdown = calculate_score(lead_data.treatment_type, lead_data.answers)
     
     # Create lead
-    lead = Lead(
-        **lead_data.model_dump(),
-        score_total=score_total,
-        band=band,
-        score_breakdown=score_breakdown
-    )
+    lead_dict = lead_data.model_dump()
+    lead_dict.update({
+        'score_total': score_total,
+        'band': band,
+        'score_breakdown': score_breakdown
+    })
+    lead = Lead(**lead_dict)
     
     # Convert to dict for MongoDB
     doc = lead.model_dump()
