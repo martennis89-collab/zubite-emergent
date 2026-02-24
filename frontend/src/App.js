@@ -1,6 +1,7 @@
 import "@/App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
+import { LanguageProvider } from "@/context/LanguageContext";
 
 import HomePage from "@/pages/HomePage";
 import TreatmentSelectPage from "@/pages/TreatmentSelectPage";
@@ -14,23 +15,44 @@ import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminLeads from "@/pages/admin/AdminLeads";
 import AdminLeadDetail from "@/pages/admin/AdminLeadDetail";
 
+// Wrapper component for language-enabled routes
+const AppRoutes = () => {
+  return (
+    <LanguageProvider>
+      <Routes>
+        {/* Bulgarian (default) routes */}
+        <Route path="/" element={<HomePage />} />
+        <Route path="/city/:citySlug" element={<TreatmentSelectPage />} />
+        <Route path="/city/:citySlug/:treatmentType" element={<QuizPage />} />
+        <Route path="/results/:leadId" element={<ResultsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/contact" element={<ContactPage />} />
+        
+        {/* English routes */}
+        <Route path="/en" element={<HomePage />} />
+        <Route path="/en/city/:citySlug" element={<TreatmentSelectPage />} />
+        <Route path="/en/city/:citySlug/:treatmentType" element={<QuizPage />} />
+        <Route path="/en/results/:leadId" element={<ResultsPage />} />
+        <Route path="/en/privacy" element={<PrivacyPage />} />
+        <Route path="/en/terms" element={<TermsPage />} />
+        <Route path="/en/contact" element={<ContactPage />} />
+        
+        {/* Admin routes (no translation needed) */}
+        <Route path="/admin" element={<AdminLogin />} />
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/leads" element={<AdminLeads />} />
+        <Route path="/admin/leads/:leadId" element={<AdminLeadDetail />} />
+      </Routes>
+    </LanguageProvider>
+  );
+};
+
 function App() {
   return (
     <div className="App">
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/city/:citySlug" element={<TreatmentSelectPage />} />
-          <Route path="/city/:citySlug/:treatmentType" element={<QuizPage />} />
-          <Route path="/results/:leadId" element={<ResultsPage />} />
-          <Route path="/privacy" element={<PrivacyPage />} />
-          <Route path="/terms" element={<TermsPage />} />
-          <Route path="/contact" element={<ContactPage />} />
-          <Route path="/admin" element={<AdminLogin />} />
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          <Route path="/admin/leads" element={<AdminLeads />} />
-          <Route path="/admin/leads/:leadId" element={<AdminLeadDetail />} />
-        </Routes>
+        <AppRoutes />
       </BrowserRouter>
       <Toaster position="top-right" />
     </div>
