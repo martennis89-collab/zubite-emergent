@@ -130,7 +130,7 @@ export const getQuizQuestions = (treatmentType, cityName) => {
       },
       {
         id: 'readiness',
-        question: 'Готови ли сте да инвестирате в премиум лечение?',
+        question: 'Готови ли сте да пристъпите към качествено дентално решение?',
         options: [
           { value: 'yes', label: 'Да' },
           { value: 'maybe', label: 'Възможно е' },
