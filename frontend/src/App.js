@@ -30,6 +30,8 @@ const AppRoutes = () => {
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/symptoms" element={<SymptomsPage />} />
+        <Route path="/symptoms/:symptomSlug" element={<SymptomDetailPage />} />
         
         {/* English routes */}
         <Route path="/en" element={<HomePage />} />
@@ -39,6 +41,8 @@ const AppRoutes = () => {
         <Route path="/en/privacy" element={<PrivacyPage />} />
         <Route path="/en/terms" element={<TermsPage />} />
         <Route path="/en/contact" element={<ContactPage />} />
+        <Route path="/en/symptoms" element={<SymptomsPage />} />
+        <Route path="/en/symptoms/:symptomSlug" element={<SymptomDetailPage />} />
         
         {/* Admin routes (no translation needed) */}
         <Route path="/admin" element={<AdminLogin />} />
