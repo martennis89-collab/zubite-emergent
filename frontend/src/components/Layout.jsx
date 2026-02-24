@@ -79,6 +79,7 @@ export const Header = () => {
         {isOpen && (
           <nav className="md:hidden py-4 border-t border-slate-100">
             <Link to={getLocalizedPath('/')} className="block py-2 text-sm font-medium" onClick={() => setIsOpen(false)}>{t('nav.home')}</Link>
+            <Link to={getLocalizedPath('/symptoms')} className="block py-2 text-sm font-medium" onClick={() => setIsOpen(false)}>{t('nav.symptoms')}</Link>
             <Link to={getLocalizedPath('/contact')} className="block py-2 text-sm font-medium" onClick={() => setIsOpen(false)}>{t('nav.contact')}</Link>
           </nav>
         )}
