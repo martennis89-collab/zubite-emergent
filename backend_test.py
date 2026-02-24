@@ -193,7 +193,7 @@ class ZubiteAPITester:
         return None
 
     def test_admin_lead_management(self):
-        """Test admin lead management"""
+        """Test admin lead management with city filtering"""
         print("\n=== TESTING ADMIN LEAD MANAGEMENT ===")
         
         if not self.token:
@@ -205,6 +205,12 @@ class ZubiteAPITester:
         
         # Test getting all leads
         leads_result = self.run_test("Get Admin Leads", "GET", "admin/leads", 200)
+        
+        # Test filtering by city_slug
+        self.run_test("Get Admin Leads by City", "GET", "admin/leads?city_slug=haskovo", 200)
+        
+        # Test filtering by clinic_slug
+        self.run_test("Get Admin Leads by Clinic", "GET", "admin/leads?clinic_slug=haskovo-premium-clinic", 200)
         
         if leads_result and len(leads_result) > 0:
             lead_id = leads_result[0]['id']
