@@ -77,6 +77,8 @@ Independent patient qualification and navigation platform for premium dental tre
   - API Key configured in backend/.env
   - Recipient: martennis89@gmail.com
   - Sender: onboarding@resend.dev
+- **Meta Pixel** - Lead conversion tracking (placeholder ID - replace for production)
+- **Google Ads** - Conversion tracking (placeholder ID - replace for production)
 
 ## Seeded Data
 4 Premium Clinics (one per city):
@@ -88,10 +90,9 @@ Independent patient qualification and navigation platform for premium dental tre
 Admin: admin / admin123
 
 ## Next Actions (P1)
-- [ ] Add "Симптоми" (Symptoms) section with educational pages
-- [ ] Expand treatment education content
-- [ ] Validate Meta Pixel & Google Ads tracking
-- [ ] Update privacy/contact pages with translations
+- [ ] Replace tracking placeholder IDs with real Meta Pixel ID and Google Ads Conversion ID
+- [ ] Expand treatment education content on treatment pages
+- [ ] Translate Privacy/Terms/Contact pages to English
 
 ## Backlog (P2)
 - [ ] Subdomain routing (production)
