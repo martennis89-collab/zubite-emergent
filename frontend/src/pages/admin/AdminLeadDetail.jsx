@@ -1,398 +1,152 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { getAdminLead, updateAdminLead, getAdminClinics } from '@/lib/api';
-import { formatDate, translateStatus, translateTreatment, getStatusColorClass, getBandColorClass } from '@/lib/utils';
+import { formatDate, translateStatus, translateTreatment, getStatusClass, getBandClass } from '@/lib/utils';
+import { ArrowLeft, Save, Loader2, User, Phone, Mail, MapPin, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { 
-  LayoutDashboard, 
-  Users, 
-  LogOut, 
-  ArrowLeft,
-  Save,
-  Loader2,
-  User,
-  Phone,
-  Mail,
-  MapPin,
-  Calendar,
-  FileText,
-  CheckCircle,
-  AlertTriangle,
-  XCircle,
-  Building
-} from 'lucide-react';
 
 const AdminLeadDetail = () => {
-  const navigate = useNavigate();
   const { leadId } = useParams();
+  const navigate = useNavigate();
   const [lead, setLead] = useState(null);
   const [clinics, setClinics] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState({ status: '', assigned_clinic_id: '', notes: '' });
   const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState({
-    status: '',
-    assigned_clinic_id: '',
-    notes: ''
-  });
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [leadData, clinicsData] = await Promise.all([
-          getAdminLead(leadId),
-          getAdminClinics()
-        ]);
-        setLead(leadData);
-        setClinics(clinicsData);
-        setFormData({
-          status: leadData.status || 'NEW',
-          assigned_clinic_id: leadData.assigned_clinic_id || '',
-          notes: leadData.notes || ''
-        });
-      } catch (error) {
-        console.error('Error:', error);
-        if (error.response?.status === 401) {
-          navigate('/admin');
-        } else {
-          toast.error('Грешка при зареждане');
-          navigate('/admin/leads');
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+    Promise.all([getAdminLead(leadId), getAdminClinics()])
+      .then(([l, c]) => {
+        setLead(l);
+        setClinics(c);
+        setForm({ status: l.status, assigned_clinic_id: l.assigned_clinic_id || '', notes: l.notes || '' });
+      })
+      .catch(() => navigate('/admin'));
   }, [leadId, navigate]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const updateData = { ...formData };
-      if (!updateData.assigned_clinic_id) delete updateData.assigned_clinic_id;
-      
-      const updated = await updateAdminLead(leadId, updateData);
+      const data = { ...form };
+      if (!data.assigned_clinic_id) delete data.assigned_clinic_id;
+      const updated = await updateAdminLead(leadId, data);
       setLead(updated);
-      toast.success('Промените са запазени');
-    } catch (error) {
-      console.error('Error saving:', error);
-      toast.error('Грешка при запазване');
+      toast.success('Запазено');
+    } catch {
+      toast.error('Грешка');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleMarkSentToClinic = async () => {
-    setSaving(true);
-    try {
-      const updated = await updateAdminLead(leadId, { status: 'SENT_TO_CLINIC' });
-      setLead(updated);
-      setFormData(prev => ({ ...prev, status: 'SENT_TO_CLINIC' }));
-      toast.success('Лийдът е маркиран като изпратен към клиника');
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error('Грешка при обновяване');
-    } finally {
-      setSaving(false);
-    }
-  };
+  if (!lead) return <div className="min-h-screen flex items-center justify-center">Зареждане...</div>;
 
-  const handleLogout = () => {
-    localStorage.removeItem('admin_token');
-    localStorage.removeItem('admin_user');
-    navigate('/admin');
-  };
-
-  const getBandIcon = (band) => {
-    switch (band) {
-      case 'GREEN': return <CheckCircle className="w-6 h-6 text-success" />;
-      case 'YELLOW': return <AlertTriangle className="w-6 h-6 text-warning" />;
-      case 'RED': return <XCircle className="w-6 h-6 text-destructive" />;
-      default: return null;
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-surface flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-accent" />
-      </div>
-    );
-  }
-
-  if (!lead) {
-    return (
-      <div className="min-h-screen bg-surface flex items-center justify-center">
-        <p>Лийдът не е намерен</p>
-      </div>
-    );
-  }
+  const Icon = { GREEN: CheckCircle, YELLOW: AlertTriangle, RED: XCircle }[lead.band];
 
   return (
-    <div className="min-h-screen bg-surface">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 px-4 md:px-8 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <span className="font-heading text-xl font-semibold text-primary">
-              Zubite<span className="text-accent">.bg</span>
-            </span>
-          </div>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleLogout}
-            data-testid="admin-logout-btn"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Изход
-          </Button>
-        </div>
+    <div className="min-h-screen bg-slate-50">
+      <header className="bg-white border-b px-6 py-4">
+        <span className="font-heading text-xl font-semibold">Zubite<span className="text-sky-500">.bg</span> Admin</span>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
-        {/* Back Button */}
-        <Link to="/admin/leads" className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary mb-6">
-          <ArrowLeft className="w-4 h-4" />
-          Обратно към лийдове
+      <div className="max-w-4xl mx-auto px-6 py-8">
+        <Link to="/admin/leads" className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 mb-6">
+          <ArrowLeft className="w-4 h-4" />Назад
         </Link>
 
-        {/* Lead Info Header */}
-        <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="flex items-center gap-4">
-              {getBandIcon(lead.band)}
-              <div>
-                <h1 className="text-xl font-heading font-semibold text-primary">
-                  {lead.name || 'Неизвестен'}
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  ID: {lead.id.slice(0, 8)}... | {formatDate(lead.created_at)}
-                </p>
-              </div>
+        {/* Header */}
+        <div className="bg-white rounded-xl border p-6 mb-6 flex items-center gap-4">
+          <Icon className={`w-10 h-10 ${lead.band === 'GREEN' ? 'text-emerald-500' : lead.band === 'YELLOW' ? 'text-amber-500' : 'text-red-500'}`} />
+          <div className="flex-1">
+            <h1 className="font-medium text-lg">{lead.name || 'Неизвестен'}</h1>
+            <p className="text-sm text-slate-500">{formatDate(lead.created_at)}</p>
+          </div>
+          <Badge className={getBandClass(lead.band)}>{lead.band} ({lead.score_total})</Badge>
+          <Badge className={getStatusClass(lead.status)}>{translateStatus(lead.status)}</Badge>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Contact Info */}
+          <div className="bg-white rounded-xl border p-6">
+            <h2 className="font-medium mb-4">Информация</h2>
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center gap-3"><MapPin className="w-4 h-4 text-slate-400" /><span className="capitalize">{lead.city_slug}</span></div>
+              <div className="flex items-center gap-3"><span className="text-slate-400">Лечение:</span><span>{translateTreatment(lead.treatment_type)}</span></div>
+              {lead.name && <div className="flex items-center gap-3"><User className="w-4 h-4 text-slate-400" /><span>{lead.name}</span></div>}
+              {lead.phone && <div className="flex items-center gap-3"><Phone className="w-4 h-4 text-slate-400" /><span>{lead.phone}</span></div>}
+              {lead.email && <div className="flex items-center gap-3"><Mail className="w-4 h-4 text-slate-400" /><span>{lead.email}</span></div>}
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Badge className={`${getBandColorClass(lead.band)} border text-sm`}>
-                {lead.band} ({lead.score_total} pts)
-              </Badge>
-              <Badge className={`${getStatusColorClass(lead.status)} text-sm`}>
-                {translateStatus(lead.status)}
-              </Badge>
+          </div>
+
+          {/* Actions */}
+          <div className="bg-white rounded-xl border p-6">
+            <h2 className="font-medium mb-4">Управление</h2>
+            <div className="space-y-4">
+              <div>
+                <Label className="text-sm mb-1.5 block">Статус</Label>
+                <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NEW">Нов</SelectItem>
+                    <SelectItem value="CONTACTED">Свързани</SelectItem>
+                    <SelectItem value="SENT_TO_CLINIC">Изпратен</SelectItem>
+                    <SelectItem value="WON">Спечелен</SelectItem>
+                    <SelectItem value="LOST">Загубен</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-sm mb-1.5 block">Клиника</Label>
+                <Select value={form.assigned_clinic_id || 'none'} onValueChange={v => setForm(f => ({ ...f, assigned_clinic_id: v === 'none' ? '' : v }))}>
+                  <SelectTrigger><SelectValue placeholder="Изберете" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Не е избрана</SelectItem>
+                    {clinics.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-sm mb-1.5 block">Бележки</Label>
+                <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={3} />
+              </div>
+              <Button onClick={handleSave} disabled={saving} className="w-full bg-sky-500 hover:bg-sky-600">
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4 mr-2" />Запази</>}
+              </Button>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Contact & Info */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Contact Info */}
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
-              <h2 className="text-lg font-heading font-semibold text-primary mb-4 flex items-center gap-2">
-                <User className="w-5 h-5 text-accent" />
-                Информация за контакт
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center gap-3 p-4 bg-surface rounded-lg">
-                  <User className="w-5 h-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Име</p>
-                    <p className="font-medium">{lead.name || '-'}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-4 bg-surface rounded-lg">
-                  <Phone className="w-5 h-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Телефон</p>
-                    <p className="font-medium">{lead.phone || '-'}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-4 bg-surface rounded-lg">
-                  <Mail className="w-5 h-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Имейл</p>
-                    <p className="font-medium">{lead.email || '-'}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-4 bg-surface rounded-lg">
-                  <MapPin className="w-5 h-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Град</p>
-                    <p className="font-medium">{lead.city || '-'}</p>
-                  </div>
-                </div>
+        {/* Answers */}
+        <div className="bg-white rounded-xl border p-6 mt-6">
+          <h2 className="font-medium mb-4">Отговори</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {Object.entries(lead.answers || {}).map(([k, v]) => (
+              <div key={k} className="bg-slate-50 rounded-lg p-3">
+                <p className="text-xs text-slate-500 capitalize">{k.replace(/_/g, ' ')}</p>
+                <p className="text-sm font-medium">{v}</p>
               </div>
-            </div>
-
-            {/* Quiz Answers */}
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
-              <h2 className="text-lg font-heading font-semibold text-primary mb-4 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-accent" />
-                Отговори от въпросника
-              </h2>
-              <div className="space-y-3">
-                {lead.answers && Object.entries(lead.answers).map(([key, value]) => (
-                  <div key={key} className="flex justify-between items-center p-3 bg-surface rounded-lg">
-                    <span className="text-sm text-muted-foreground capitalize">{key.replace(/_/g, ' ')}</span>
-                    <span className="font-medium text-sm">{String(value)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Score Breakdown */}
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
-              <h2 className="text-lg font-heading font-semibold text-primary mb-4">
-                Разбивка на резултата
-              </h2>
-              <div className="space-y-2">
-                {lead.score_breakdown && Object.entries(lead.score_breakdown).map(([key, value]) => (
-                  <div key={key} className="flex justify-between items-center p-3 bg-surface rounded-lg">
-                    <span className="text-sm text-muted-foreground capitalize">{key.replace(/_/g, ' ')}</span>
-                    <span className="font-semibold text-accent">+{value}</span>
-                  </div>
-                ))}
-                <div className="flex justify-between items-center p-3 bg-primary text-white rounded-lg mt-4">
-                  <span className="font-medium">Общо</span>
-                  <span className="font-bold text-lg">{lead.score_total}</span>
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
+        </div>
 
-          {/* Right Column - Actions */}
-          <div className="space-y-6">
-            {/* Status Update */}
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
-              <h2 className="text-lg font-heading font-semibold text-primary mb-4">
-                Управление
-              </h2>
-              
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Статус</Label>
-                  <Select 
-                    value={formData.status} 
-                    onValueChange={(v) => setFormData(prev => ({ ...prev, status: v }))}
-                  >
-                    <SelectTrigger data-testid="status-select">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="NEW">Нов</SelectItem>
-                      <SelectItem value="CONTACTED">Свързани</SelectItem>
-                      <SelectItem value="SENT_TO_CLINIC">Изпратен към клиника</SelectItem>
-                      <SelectItem value="WON">Спечелен</SelectItem>
-                      <SelectItem value="LOST">Загубен</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Building className="w-4 h-4" />
-                    Клиника партньор
-                  </Label>
-                  <Select 
-                    value={formData.assigned_clinic_id || 'none'} 
-                    onValueChange={(v) => setFormData(prev => ({ ...prev, assigned_clinic_id: v === 'none' ? '' : v }))}
-                  >
-                    <SelectTrigger data-testid="clinic-select">
-                      <SelectValue placeholder="Изберете клиника" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Не е избрана</SelectItem>
-                      {clinics.map(clinic => (
-                        <SelectItem key={clinic.id} value={clinic.id}>
-                          {clinic.name} ({clinic.city})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Вътрешни бележки</Label>
-                  <Textarea
-                    placeholder="Добавете бележки..."
-                    value={formData.notes}
-                    onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                    rows={4}
-                    data-testid="notes-textarea"
-                  />
-                </div>
-
-                <Button 
-                  onClick={handleSave} 
-                  className="btn-accent w-full"
-                  disabled={saving}
-                  data-testid="save-btn"
-                >
-                  {saving ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Save className="w-4 h-4 mr-2" />
-                  )}
-                  Запази промените
-                </Button>
+        {/* Score Breakdown */}
+        <div className="bg-white rounded-xl border p-6 mt-6">
+          <h2 className="font-medium mb-4">Резултат</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {Object.entries(lead.score_breakdown || {}).map(([k, v]) => (
+              <div key={k} className="bg-slate-50 rounded-lg p-3 flex justify-between">
+                <span className="text-sm text-slate-600 capitalize">{k.replace(/_/g, ' ')}</span>
+                <span className="text-sm font-semibold text-sky-600">+{v}</span>
               </div>
-            </div>
-
-            {/* Quick Action */}
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
-              <h2 className="text-lg font-heading font-semibold text-primary mb-4">
-                Бързо действие
-              </h2>
-              <Button 
-                onClick={handleMarkSentToClinic}
-                variant="outline"
-                className="w-full"
-                disabled={saving || lead.status === 'SENT_TO_CLINIC'}
-                data-testid="mark-sent-btn"
-              >
-                <Building className="w-4 h-4 mr-2" />
-                Маркирай като изпратен към клиника
-              </Button>
-            </div>
-
-            {/* UTM Info */}
-            {(lead.utm_source || lead.utm_campaign) && (
-              <div className="bg-white rounded-xl border border-slate-200 p-6">
-                <h2 className="text-lg font-heading font-semibold text-primary mb-4">
-                  Маркетинг данни
-                </h2>
-                <div className="space-y-2 text-sm">
-                  {lead.utm_source && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Source</span>
-                      <span>{lead.utm_source}</span>
-                    </div>
-                  )}
-                  {lead.utm_campaign && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Campaign</span>
-                      <span>{lead.utm_campaign}</span>
-                    </div>
-                  )}
-                  {lead.utm_adset && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Adset</span>
-                      <span>{lead.utm_adset}</span>
-                    </div>
-                  )}
-                  {lead.gclid && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">GCLID</span>
-                      <span className="truncate max-w-[120px]">{lead.gclid}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+            ))}
+          </div>
+          <div className="mt-4 bg-slate-900 text-white rounded-lg p-4 flex justify-between">
+            <span>Общо</span>
+            <span className="font-bold text-lg">{lead.score_total}</span>
           </div>
         </div>
       </div>
