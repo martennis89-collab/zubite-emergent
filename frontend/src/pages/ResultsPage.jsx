@@ -11,6 +11,7 @@ import { CITIES } from '@/lib/quizData';
 import { toast } from 'sonner';
 import { CheckCircle, AlertTriangle, XCircle, Home, Loader2, User, Phone, Mail, ArrowRight } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
+import { trackLeadConversion } from '@/lib/tracking';
 
 const ResultsPage = () => {
   const { leadId } = useParams();
