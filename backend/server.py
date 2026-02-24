@@ -144,6 +144,106 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
+# ============== EMAIL ==============
+
+TREATMENT_NAMES = {
+    "invisalign": "Инвизалайн",
+    "implants": "Зъбни импланти",
+    "full_mouth": "Пълна уста"
+}
+
+BAND_NAMES = {
+    "GREEN": "Зелен (Висок приоритет)",
+    "YELLOW": "Жълт (Среден приоритет)",
+    "RED": "Червен (Нисък приоритет)"
+}
+
+async def send_lead_notification_email(lead_data: dict):
+    """Send email notification to admin when a lead submits contact info."""
+    if not RESEND_API_KEY:
+        logger.warning("RESEND_API_KEY not configured - skipping email notification")
+        return
+    
+    city_name = CITIES.get(lead_data.get('city_slug', ''), lead_data.get('city_slug', 'N/A'))
+    treatment_name = TREATMENT_NAMES.get(lead_data.get('treatment_type', ''), lead_data.get('treatment_type', 'N/A'))
+    band = lead_data.get('band', 'N/A')
+    band_display = BAND_NAMES.get(band, band)
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); padding: 24px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">🦷 Нов лийд от Zubite.bg</h1>
+        </div>
+        
+        <div style="padding: 24px; background: #f8fafc;">
+            <div style="background: white; border-radius: 12px; padding: 20px; margin-bottom: 16px; border: 1px solid #e2e8f0;">
+                <h2 style="color: #0f172a; margin: 0 0 16px 0; font-size: 18px;">📋 Информация за лийда</h2>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b; width: 140px;">Име:</td>
+                        <td style="padding: 8px 0; color: #0f172a; font-weight: 500;">{lead_data.get('name', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Телефон:</td>
+                        <td style="padding: 8px 0; color: #0f172a; font-weight: 500;">{lead_data.get('phone', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Имейл:</td>
+                        <td style="padding: 8px 0; color: #0f172a; font-weight: 500;">{lead_data.get('email', 'N/A')}</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div style="background: white; border-radius: 12px; padding: 20px; margin-bottom: 16px; border: 1px solid #e2e8f0;">
+                <h2 style="color: #0f172a; margin: 0 0 16px 0; font-size: 18px;">📊 Резултати от теста</h2>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b; width: 140px;">Град:</td>
+                        <td style="padding: 8px 0; color: #0f172a; font-weight: 500;">{city_name}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Лечение:</td>
+                        <td style="padding: 8px 0; color: #0f172a; font-weight: 500;">{treatment_name}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Точки:</td>
+                        <td style="padding: 8px 0; color: #0f172a; font-weight: 500;">{lead_data.get('score_total', 0)} / 100</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Категория:</td>
+                        <td style="padding: 8px 0; font-weight: 500; color: {'#16a34a' if band == 'GREEN' else '#ca8a04' if band == 'YELLOW' else '#dc2626'};">{band_display}</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div style="text-align: center; padding-top: 8px;">
+                <p style="color: #64748b; font-size: 14px; margin: 0;">
+                    Вижте всички лийдове в <a href="https://zubite.bg/admin" style="color: #0ea5e9;">админ панела</a>
+                </p>
+            </div>
+        </div>
+        
+        <div style="background: #0f172a; padding: 16px; text-align: center;">
+            <p style="color: #94a3b8; font-size: 12px; margin: 0;">© 2024 Zubite.bg - Всички права запазени</p>
+        </div>
+    </div>
+    """
+    
+    params = {
+        "from": SENDER_EMAIL,
+        "to": [ADMIN_EMAIL],
+        "subject": f"🦷 Нов лийд: {lead_data.get('name', 'Без име')} - {treatment_name} ({city_name})",
+        "html": html_content
+    }
+    
+    try:
+        email_result = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"Lead notification email sent to {ADMIN_EMAIL}, email_id: {email_result.get('id')}")
+        return email_result
+    except Exception as e:
+        logger.error(f"Failed to send lead notification email: {str(e)}")
+        return None
+
 # ============== SCORING ==============
 
 def calculate_score(treatment_type: str, answers: Dict[str, Any], can_travel: bool = True) -> tuple:
