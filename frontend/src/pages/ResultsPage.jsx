@@ -50,12 +50,7 @@ const ResultsPage = () => {
       toast.success(t('results.form.sent'));
       
       // Fire tracking events for conversion
-      if (typeof window.trackMetaLead === 'function') {
-        window.trackMetaLead();
-      }
-      if (typeof window.trackGoogleAdsLead === 'function') {
-        window.trackGoogleAdsLead();
-      }
+      trackLeadConversion();
     } catch {
       toast.error(t('results.form.error'));
     } finally {
