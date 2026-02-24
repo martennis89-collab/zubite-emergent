@@ -21,9 +21,56 @@
         work correctly both with client-side routing and a non-root public URL.
         Learn how to configure a non-root public URL by running `npm run build`.
         -->
-        <title>Emergent | Fullstack App</title>
+        <title>Zubite.bg | Дентални решения</title>
         <script>window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);</script>
         <script src="https://assets.emergent.sh/scripts/emergent-main.js"></script>
+        
+        <!-- Meta Pixel Code -->
+        <script>
+            !function(f,b,e,v,n,t,s)
+            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+            n.queue=[];t=b.createElement(e);t.async=!0;
+            t.src=v;s=b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t,s)}(window, document,'script',
+            'https://connect.facebook.net/en_US/fbevents.js');
+            // Initialize with your Pixel ID (placeholder - replace with actual ID)
+            // fbq('init', 'YOUR_PIXEL_ID');
+            // fbq('track', 'PageView');
+            window.trackMetaLead = function() {
+                if (typeof fbq !== 'undefined') {
+                    fbq('track', 'Lead');
+                    console.log('Meta Pixel: Lead event tracked');
+                }
+            };
+        </script>
+        <noscript><img height="1" width="1" style="display:none"
+            src="https://www.facebook.com/tr?id=YOUR_PIXEL_ID&ev=PageView&noscript=1"
+        /></noscript>
+        <!-- End Meta Pixel Code -->
+        
+        <!-- Google Ads Conversion Tracking -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=AW-CONVERSION_ID"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            // Initialize with your Conversion ID (placeholder - replace with actual ID)
+            // gtag('config', 'AW-CONVERSION_ID');
+            window.trackGoogleAdsLead = function() {
+                if (typeof gtag !== 'undefined') {
+                    gtag('event', 'conversion', {
+                        'send_to': 'AW-CONVERSION_ID/CONVERSION_LABEL',
+                        'value': 1.0,
+                        'currency': 'BGN'
+                    });
+                    console.log('Google Ads: Conversion event tracked');
+                }
+            };
+        </script>
+        <!-- End Google Ads Conversion Tracking -->
+        
         <!--
         These two scripts have been added for the Visual Edits, please do not edit or remove them
         -->
