@@ -6,19 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { getLead, updateLeadContact } from '@/lib/api';
-import { translateTreatment, translateBand } from '@/lib/utils';
+import { translateTreatment } from '@/lib/utils';
+import { CITIES } from '@/lib/quizData';
 import { toast } from 'sonner';
-import { 
-  CheckCircle, 
-  AlertTriangle, 
-  XCircle, 
-  Phone, 
-  Mail, 
-  User, 
-  ArrowRight,
-  Home,
-  Loader2
-} from 'lucide-react';
+import { CheckCircle, AlertTriangle, XCircle, Home, Loader2, User, Phone, Mail, ArrowRight } from 'lucide-react';
 
 const ResultsPage = () => {
   const { leadId } = useParams();
@@ -26,297 +17,124 @@ const ResultsPage = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    email: '',
-    consent: false
-  });
+  const [form, setForm] = useState({ name: '', phone: '', email: '', consent: false });
 
   useEffect(() => {
-    const fetchLead = async () => {
-      try {
-        const data = await getLead(leadId);
+    getLead(leadId)
+      .then(data => {
         setLead(data);
-        if (data.name || data.phone || data.email) {
-          setSubmitted(true);
-        }
-      } catch (error) {
-        console.error('Error fetching lead:', error);
-        toast.error('Грешка при зареждане на резултатите');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchLead();
+        if (data.name || data.email) setSubmitted(true);
+      })
+      .catch(() => toast.error('Грешка при зареждане'))
+      .finally(() => setLoading(false));
   }, [leadId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!formData.consent) {
-      toast.error('Моля, дайте съгласие за обработка на данни');
+    if (!form.consent) { toast.error('Моля, дайте съгласие'); return; }
+    if (lead.band !== 'RED' && (!form.name || !form.phone || !form.email)) {
+      toast.error('Попълнете всички полета');
       return;
     }
-    
-    // Validate based on band
-    if (lead.band !== 'RED') {
-      if (!formData.name || !formData.phone || !formData.email) {
-        toast.error('Моля, попълнете всички полета');
-        return;
-      }
-    } else {
-      if (!formData.email) {
-        toast.error('Моля, въведете имейл адрес');
-        return;
-      }
+    if (lead.band === 'RED' && !form.email) {
+      toast.error('Въведете имейл');
+      return;
     }
-
     setSubmitting(true);
     try {
-      await updateLeadContact(leadId, formData);
+      await updateLeadContact(leadId, form);
       setSubmitted(true);
-      toast.success('Данните са изпратени успешно!');
-    } catch (error) {
-      console.error('Error submitting contact:', error);
-      toast.error('Възникна грешка. Моля, опитайте отново.');
+      toast.success('Изпратено!');
+    } catch {
+      toast.error('Грешка');
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) {
-    return (
-      <Layout>
-        <div className="min-h-[60vh] flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-accent" />
-        </div>
-      </Layout>
-    );
-  }
+  if (loading) return <Layout><div className="min-h-[60vh] flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-sky-500" /></div></Layout>;
+  if (!lead) return <Layout><div className="min-h-[60vh] flex items-center justify-center"><p>Не е намерено</p></div></Layout>;
 
-  if (!lead) {
-    return (
-      <Layout>
-        <div className="min-h-[60vh] flex flex-col items-center justify-center px-4">
-          <XCircle className="w-16 h-16 text-destructive mb-4" />
-          <h2 className="text-xl font-medium mb-2">Резултатите не са намерени</h2>
-          <p className="text-muted-foreground mb-6">Моля, попълнете въпросника отново.</p>
-          <Link to="/">
-            <Button className="btn-primary">
-              <Home className="w-4 h-4 mr-2" />
-              Към началото
-            </Button>
-          </Link>
-        </div>
-      </Layout>
-    );
-  }
-
-  const bandConfig = {
+  const cityName = CITIES[lead.city_slug]?.name || lead.city_slug;
+  
+  const config = {
     GREEN: {
-      icon: CheckCircle,
-      color: 'text-success',
-      bgColor: 'bg-success/10',
-      borderColor: 'border-success',
-      title: 'Одобрени сте за консултация!',
-      description: 'Поздравления! Въз основа на вашите отговори, вие сте подходящ кандидат за премиум лечение. Следващата стъпка е безплатна консултация с наш партньор-специалист.',
-      cta: 'Заяви обаждане',
+      icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200',
+      title: `Вашият профил отговаря на критериите за консултация с партньорска клиника в ${cityName}.`,
+      cta: 'Заявете обаждане'
     },
     YELLOW: {
-      icon: AlertTriangle,
-      color: 'text-warning',
-      bgColor: 'bg-warning/10',
-      borderColor: 'border-warning',
-      title: 'Нужна е допълнителна оценка',
-      description: 'Въз основа на вашите отговори, имаме нужда от допълнителна информация, за да направим точна оценка. Свържете се с нас за персонализирана консултация.',
-      cta: 'Заяви обаждане',
+      icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200',
+      title: 'Нужна е допълнителна оценка. Екипът ни ще се свърже с вас.',
+      cta: 'Заявете обаждане'
     },
     RED: {
-      icon: XCircle,
-      color: 'text-destructive',
-      bgColor: 'bg-destructive/10',
-      borderColor: 'border-destructive',
-      title: 'В момента не сте подходящи за премиум програма',
-      description: 'Въз основа на вашите отговори, този вид лечение може да не е най-подходящият за вас в момента. Получете безплатно ръководство с информация и съвети.',
-      cta: 'Получете безплатно ръководство',
-    },
-  };
-
-  const config = bandConfig[lead.band];
-  const IconComponent = config.icon;
+      icon: XCircle, color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200',
+      title: 'В момента не сте подходящ кандидат за премиум програма.',
+      cta: 'Получете информация'
+    }
+  }[lead.band];
+  
+  const Icon = config.icon;
 
   return (
     <Layout>
-      <div className="min-h-[80vh] py-12 md:py-20 bg-surface">
-        <div className="max-w-2xl mx-auto px-4">
+      <div className="py-12 md:py-20 bg-slate-50 min-h-[70vh]">
+        <div className="max-w-xl mx-auto px-4">
           {/* Result Banner */}
-          <div className={`${config.bgColor} border-2 ${config.borderColor} rounded-2xl p-8 mb-8 text-center`}>
-            <IconComponent className={`w-16 h-16 ${config.color} mx-auto mb-4`} />
-            <h1 className="text-2xl md:text-3xl font-heading font-semibold text-primary mb-4">
-              {config.title}
-            </h1>
-            <p className="text-muted-foreground mb-4">
-              {config.description}
-            </p>
-            <div className="flex flex-wrap justify-center gap-4 text-sm">
-              <span className="bg-white px-4 py-2 rounded-full">
-                <strong>Лечение:</strong> {translateTreatment(lead.treatment_type)}
+          <div className={`${config.bg} border ${config.border} rounded-2xl p-8 mb-8 text-center`}>
+            <Icon className={`w-14 h-14 ${config.color} mx-auto mb-4`} />
+            <p className="text-slate-700 mb-4">{config.title}</p>
+            <div className="flex flex-wrap justify-center gap-3 text-sm">
+              <span className="bg-white px-3 py-1.5 rounded-full border">
+                {translateTreatment(lead.treatment_type)}
               </span>
-              <span className="bg-white px-4 py-2 rounded-full">
-                <strong>Резултат:</strong> {lead.score_total} точки
+              <span className="bg-white px-3 py-1.5 rounded-full border">
+                {lead.score_total} точки
               </span>
             </div>
           </div>
 
-          {/* Contact Form or Thank You */}
+          {/* Form or Thank You */}
           {!submitted ? (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
-              <h2 className="text-xl font-heading font-semibold text-primary mb-6">
-                {lead.band === 'RED' ? 'Получете безплатно ръководство' : 'Оставете данни за контакт'}
-              </h2>
-              
-              <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+              <h2 className="text-lg font-medium text-slate-900 mb-6">{config.cta}</h2>
+              <form onSubmit={handleSubmit} className="space-y-5">
                 {lead.band !== 'RED' && (
                   <>
                     <div className="space-y-2">
-                      <Label htmlFor="name" className="flex items-center gap-2">
-                        <User className="w-4 h-4" />
-                        Име
-                      </Label>
-                      <Input
-                        id="name"
-                        type="text"
-                        placeholder="Вашето име"
-                        value={formData.name}
-                        onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                        className="h-12"
-                        data-testid="contact-name-input"
-                      />
+                      <Label className="flex items-center gap-2"><User className="w-4 h-4" />Име</Label>
+                      <Input placeholder="Вашето име" value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))} data-testid="name-input" />
                     </div>
-                    
                     <div className="space-y-2">
-                      <Label htmlFor="phone" className="flex items-center gap-2">
-                        <Phone className="w-4 h-4" />
-                        Телефон
-                      </Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        placeholder="+359 888 123 456"
-                        value={formData.phone}
-                        onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                        className="h-12"
-                        data-testid="contact-phone-input"
-                      />
+                      <Label className="flex items-center gap-2"><Phone className="w-4 h-4" />Телефон</Label>
+                      <Input placeholder="+359..." value={form.phone} onChange={e => setForm(f => ({...f, phone: e.target.value}))} data-testid="phone-input" />
                     </div>
                   </>
                 )}
-                
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="flex items-center gap-2">
-                    <Mail className="w-4 h-4" />
-                    Имейл
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="email@example.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                    className="h-12"
-                    data-testid="contact-email-input"
-                  />
+                  <Label className="flex items-center gap-2"><Mail className="w-4 h-4" />Имейл</Label>
+                  <Input type="email" placeholder="email@example.com" value={form.email} onChange={e => setForm(f => ({...f, email: e.target.value}))} data-testid="email-input" />
                 </div>
-                
                 <div className="flex items-start gap-3">
-                  <Checkbox 
-                    id="contact-consent" 
-                    checked={formData.consent}
-                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, consent: checked }))}
-                    data-testid="contact-consent-checkbox"
-                  />
-                  <Label htmlFor="contact-consent" className="text-sm leading-relaxed cursor-pointer">
-                    Съгласен/а съм личните ми данни да бъдат обработвани съгласно{' '}
-                    <a href="/privacy" target="_blank" className="text-accent underline">
-                      Политиката за поверителност
-                    </a>
-                    .
+                  <Checkbox id="consent" checked={form.consent} onCheckedChange={c => setForm(f => ({...f, consent: c}))} data-testid="consent-checkbox" />
+                  <Label htmlFor="consent" className="text-sm text-slate-600 cursor-pointer">
+                    Съгласен/а съм с <a href="/privacy" target="_blank" className="text-sky-500 underline">Политиката за поверителност</a>.
                   </Label>
                 </div>
-                
-                <Button 
-                  type="submit" 
-                  className="btn-accent w-full"
-                  disabled={submitting}
-                  data-testid="contact-submit-btn"
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Изпращане...
-                    </>
-                  ) : (
-                    <>
-                      {config.cta}
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </>
-                  )}
+                <Button type="submit" disabled={submitting} className="w-full h-11 rounded-full bg-sky-500 hover:bg-sky-600" data-testid="submit-btn">
+                  {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <>{config.cta}<ArrowRight className="w-4 h-4 ml-2" /></>}
                 </Button>
               </form>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 text-center">
-              <CheckCircle className="w-16 h-16 text-success mx-auto mb-4" />
-              <h2 className="text-xl font-heading font-semibold text-primary mb-4">
-                Благодарим ви!
-              </h2>
-              <p className="text-muted-foreground mb-6">
-                {lead.band !== 'RED' 
-                  ? 'Вашите данни са получени. Ще се свържем с вас в рамките на 24 часа за да насрочим консултация.'
-                  : 'Ще получите ръководството на посочения имейл адрес в рамките на няколко минути.'
-                }
-              </p>
-              <div className="bg-surface rounded-xl p-6 text-left">
-                <h4 className="font-medium text-primary mb-3">Какво следва?</h4>
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  {lead.band !== 'RED' ? (
-                    <>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
-                        <span>Ще получите обаждане от наш консултант</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
-                        <span>Ще насрочим безплатна консултация в удобно за вас време</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
-                        <span>Ще ви свържем с подходяща партньорска клиника</span>
-                      </li>
-                    </>
-                  ) : (
-                    <>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
-                        <span>Проверете входящата си поща (и спам папката)</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
-                        <span>Прочетете ръководството за полезни съвети</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
-                        <span>Свържете се с нас, ако имате въпроси</span>
-                      </li>
-                    </>
-                  )}
-                </ul>
-              </div>
-              <Link to="/" className="inline-block mt-6">
-                <Button variant="outline" className="h-12 px-6 rounded-full">
-                  <Home className="w-4 h-4 mr-2" />
-                  Към началото
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 text-center">
+              <CheckCircle className="w-14 h-14 text-emerald-500 mx-auto mb-4" />
+              <h2 className="text-lg font-medium text-slate-900 mb-2">Благодарим ви!</h2>
+              <p className="text-slate-500 mb-6">Ще се свържем с вас до 24 часа.</p>
+              <Link to="/">
+                <Button variant="outline" className="h-11 px-6 rounded-full">
+                  <Home className="w-4 h-4 mr-2" />Към началото
                 </Button>
               </Link>
             </div>

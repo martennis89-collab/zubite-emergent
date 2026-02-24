@@ -3,24 +3,14 @@ import axios from 'axios';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
 
-// Create axios instance
-const api = axios.create({
-  baseURL: API,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+const api = axios.create({ baseURL: API, headers: { 'Content-Type': 'application/json' } });
 
-// Add auth token to requests
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('admin_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// Handle auth errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -34,104 +24,23 @@ api.interceptors.response.use(
   }
 );
 
-// ============== PUBLIC APIs ==============
+export const seedDatabase = () => api.post('/seed').then(r => r.data);
+export const getCities = () => api.get('/cities').then(r => r.data);
+export const getCity = (slug) => api.get(`/cities/${slug}`).then(r => r.data);
+export const createLead = (data) => api.post('/leads', data).then(r => r.data);
+export const getLead = (id) => api.get(`/leads/${id}`).then(r => r.data);
+export const updateLeadContact = (id, data) => api.patch(`/leads/${id}/contact`, data).then(r => r.data);
 
-export const seedDatabase = async () => {
-  const response = await api.post('/seed');
-  return response.data;
-};
-
-export const getClinics = async () => {
-  const response = await api.get('/clinics');
-  return response.data;
-};
-
-// ============== CITY & CLINIC APIs ==============
-
-export const getCities = async () => {
-  const response = await api.get('/cities');
-  return response.data;
-};
-
-export const getCityInfo = async (citySlug) => {
-  const response = await api.get(`/cities/${citySlug}`);
-  return response.data;
-};
-
-export const getClinicBySlug = async (citySlug, clinicSlug) => {
-  const response = await api.get(`/cities/${citySlug}/clinics/${clinicSlug}`);
-  return response.data;
-};
-
-// ============== LEAD APIs ==============
-
-export const createLead = async (leadData) => {
-  const response = await api.post('/leads', leadData);
-  return response.data;
-};
-
-export const getLead = async (leadId) => {
-  const response = await api.get(`/leads/${leadId}`);
-  return response.data;
-};
-
-export const updateLeadContact = async (leadId, contactData) => {
-  const response = await api.patch(`/leads/${leadId}/contact`, contactData);
-  return response.data;
-};
-
-export const createEvent = async (eventData) => {
-  const response = await api.post('/events', eventData);
-  return response.data;
-};
-
-// ============== ADMIN APIs ==============
-
-export const adminLogin = async (username, password) => {
-  const response = await api.post('/admin/login', { username, password });
-  return response.data;
-};
-
-export const getAdminMe = async () => {
-  const response = await api.get('/admin/me');
-  return response.data;
-};
-
-export const getAdminLeads = async (filters = {}) => {
+export const adminLogin = (username, password) => api.post('/admin/login', { username, password }).then(r => r.data);
+export const getAdminMe = () => api.get('/admin/me').then(r => r.data);
+export const getAdminLeads = (filters = {}) => {
   const params = new URLSearchParams();
-  if (filters.treatment_type) params.append('treatment_type', filters.treatment_type);
-  if (filters.band) params.append('band', filters.band);
-  if (filters.status) params.append('status', filters.status);
-  if (filters.city_slug) params.append('city_slug', filters.city_slug);
-  if (filters.clinic_slug) params.append('clinic_slug', filters.clinic_slug);
-  
-  const response = await api.get(`/admin/leads?${params.toString()}`);
-  return response.data;
+  Object.entries(filters).forEach(([k, v]) => v && params.append(k, v));
+  return api.get(`/admin/leads?${params}`).then(r => r.data);
 };
-
-export const getAdminLead = async (leadId) => {
-  const response = await api.get(`/admin/leads/${leadId}`);
-  return response.data;
-};
-
-export const updateAdminLead = async (leadId, updateData) => {
-  const response = await api.patch(`/admin/leads/${leadId}`, updateData);
-  return response.data;
-};
-
-export const getAdminClinics = async () => {
-  const response = await api.get('/admin/clinics');
-  return response.data;
-};
-
-export const getAdminStats = async () => {
-  const response = await api.get('/admin/stats');
-  return response.data;
-};
-
-export const exportLeadsCSV = () => {
-  const token = localStorage.getItem('admin_token');
-  window.open(`${API}/admin/leads/export/csv?token=${token}`, '_blank');
-};
+export const getAdminLead = (id) => api.get(`/admin/leads/${id}`).then(r => r.data);
+export const updateAdminLead = (id, data) => api.patch(`/admin/leads/${id}`, data).then(r => r.data);
+export const getAdminClinics = () => api.get('/admin/clinics').then(r => r.data);
+export const getAdminStats = () => api.get('/admin/stats').then(r => r.data);
 
 export default api;
