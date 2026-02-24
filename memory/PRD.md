@@ -110,4 +110,8 @@ Admin: admin / admin123
 ## Key Files
 - `/app/frontend/src/context/LanguageContext.jsx` - Language state management
 - `/app/frontend/src/lib/translations.js` - BG/EN translations
+- `/app/frontend/src/lib/symptomsData.js` - Symptoms educational content
+- `/app/frontend/src/lib/tracking.js` - Meta Pixel and Google Ads tracking utilities
+- `/app/frontend/src/pages/SymptomsPage.jsx` - Symptoms index page
+- `/app/frontend/src/pages/SymptomDetailPage.jsx` - Individual symptom details
 - `/app/backend/server.py` - API + email notification logic
