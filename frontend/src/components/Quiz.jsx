@@ -1,19 +1,19 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, ArrowRight, Clock, CheckCircle } from 'lucide-react';
-import { createLead, createEvent } from '@/lib/api';
+import { ArrowLeft, ArrowRight, Clock, CheckCircle, Loader2 } from 'lucide-react';
+import { createLead, createEvent, getCityInfo, getClinicBySlug } from '@/lib/api';
 import { getUTMParams, hashIP, saveQuizProgress, loadQuizProgress, clearQuizProgress } from '@/lib/utils';
 import { toast } from 'sonner';
 
-export const Quiz = ({ quizData }) => {
+export const Quiz = ({ quizData, citySlug, clinicSlug = null, cityName }) => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState({});
+  const [canTravel, setCanTravel] = useState(true);
   const [consent, setConsent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -23,10 +23,12 @@ export const Quiz = ({ quizData }) => {
   
   // Load saved progress on mount
   useEffect(() => {
-    const saved = loadQuizProgress(quizType);
+    const storageKey = clinicSlug ? `${quizType}_${clinicSlug}` : `${quizType}_${citySlug}`;
+    const saved = loadQuizProgress(storageKey);
     if (saved) {
       setAnswers(saved.answers);
       setCurrentStep(saved.currentStep);
+      if (saved.canTravel !== undefined) setCanTravel(saved.canTravel);
       toast.info('Вашият прогрес е възстановен');
     }
     
@@ -34,30 +36,40 @@ export const Quiz = ({ quizData }) => {
     createEvent({
       lead_id: 'pending',
       event_type: 'quiz_started',
-      metadata: { treatment_type: quizType }
+      metadata: { treatment_type: quizType, city_slug: citySlug, clinic_slug: clinicSlug }
     }).catch(() => {});
-  }, [quizType]);
+  }, [quizType, citySlug, clinicSlug]);
   
   // Save progress on answer change
   useEffect(() => {
     if (Object.keys(answers).length > 0) {
-      saveQuizProgress(quizType, answers, currentStep);
+      const storageKey = clinicSlug ? `${quizType}_${clinicSlug}` : `${quizType}_${citySlug}`;
+      saveQuizProgress(storageKey, answers, currentStep);
     }
-  }, [answers, currentStep, quizType]);
+  }, [answers, currentStep, quizType, citySlug, clinicSlug]);
   
   const currentQuestion = questions[currentStep];
-  const isLastQuestion = currentStep === questions.length - 1;
   const isConsentStep = currentStep === questions.length;
   
+  // Replace {cityName} in question text
+  const getQuestionText = (question) => {
+    if (question.question.includes('{cityName}')) {
+      return question.question.replace('{cityName}', cityName);
+    }
+    return question.question;
+  };
+  
   const handleAnswer = (value) => {
-    setAnswers(prev => ({
-      ...prev,
-      [currentQuestion.id]: value
-    }));
+    if (currentQuestion.type === 'travel') {
+      setCanTravel(value === 'yes');
+      setAnswers(prev => ({ ...prev, [currentQuestion.id]: value }));
+    } else {
+      setAnswers(prev => ({ ...prev, [currentQuestion.id]: value }));
+    }
   };
   
   const handleNext = () => {
-    if (!isConsentStep && !answers[currentQuestion.id] && currentQuestion.type !== 'text') {
+    if (!isConsentStep && !answers[currentQuestion.id]) {
       toast.error('Моля, изберете отговор');
       return;
     }
@@ -87,15 +99,18 @@ export const Quiz = ({ quizData }) => {
       
       const leadData = {
         treatment_type: quizType,
-        city: answers.city || 'Хасково',
+        city_slug: citySlug,
+        clinic_slug: clinicSlug,
         answers,
+        can_travel: canTravel,
         ...utmParams,
         page_path: window.location.pathname,
         ip_hash: ipHash,
       };
       
       const lead = await createLead(leadData);
-      clearQuizProgress(quizType);
+      const storageKey = clinicSlug ? `${quizType}_${clinicSlug}` : `${quizType}_${citySlug}`;
+      clearQuizProgress(storageKey);
       
       toast.success('Въпросникът е изпратен успешно!');
       navigate(`/results/${lead.id}`);
@@ -119,6 +134,11 @@ export const Quiz = ({ quizData }) => {
             <Clock className="w-4 h-4" />
             <span>{estimatedTime}</span>
           </p>
+          {clinicSlug && (
+            <p className="text-sm text-accent mt-2">
+              Клиника-партньор във вашия регион
+            </p>
+          )}
         </div>
         
         {/* Progress */}
@@ -135,10 +155,10 @@ export const Quiz = ({ quizData }) => {
           {!isConsentStep ? (
             <>
               <h2 className="text-lg md:text-xl font-medium text-primary mb-6">
-                {currentQuestion.question}
+                {getQuestionText(currentQuestion)}
               </h2>
               
-              {currentQuestion.type === 'single' && (
+              {(currentQuestion.type === 'single' || currentQuestion.type === 'travel') && (
                 <div className="space-y-3">
                   {currentQuestion.options.map((option) => (
                     <button
@@ -166,17 +186,6 @@ export const Quiz = ({ quizData }) => {
                     </button>
                   ))}
                 </div>
-              )}
-              
-              {currentQuestion.type === 'text' && (
-                <Input
-                  type="text"
-                  placeholder={currentQuestion.placeholder}
-                  value={answers[currentQuestion.id] || currentQuestion.defaultValue || ''}
-                  onChange={(e) => handleAnswer(e.target.value)}
-                  className="h-12 text-lg"
-                  data-testid="text-input"
-                />
               )}
             </>
           ) : (
@@ -223,7 +232,7 @@ export const Quiz = ({ quizData }) => {
             <Button
               onClick={handleNext}
               className="btn-accent"
-              disabled={!answers[currentQuestion.id] && currentQuestion.type !== 'text'}
+              disabled={!answers[currentQuestion.id]}
               data-testid="quiz-next-btn"
             >
               Напред
@@ -237,7 +246,10 @@ export const Quiz = ({ quizData }) => {
               data-testid="quiz-submit-btn"
             >
               {isSubmitting ? (
-                'Изпращане...'
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Изпращане...
+                </>
               ) : (
                 <>
                   <CheckCircle className="w-4 h-4 mr-2" />

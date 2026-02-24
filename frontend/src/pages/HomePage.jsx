@@ -2,13 +2,25 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, CheckCircle, XCircle, Smile, Target, Stethoscope, Clock, Shield, Users } from 'lucide-react';
-import { seedDatabase } from '@/lib/api';
+import { ArrowRight, CheckCircle, XCircle, Smile, Target, Stethoscope, Clock, Shield, Users, MapPin } from 'lucide-react';
+import { seedDatabase, getCities } from '@/lib/api';
+import { useState } from 'react';
 
 const HomePage = () => {
-  // Seed database on first load
+  const [cities, setCities] = useState([]);
+
+  // Seed database and load cities on first load
   useEffect(() => {
-    seedDatabase().catch(() => {});
+    const init = async () => {
+      await seedDatabase().catch(() => {});
+      try {
+        const data = await getCities();
+        setCities(data);
+      } catch (e) {
+        console.error('Error loading cities:', e);
+      }
+    };
+    init();
   }, []);
 
   return (
@@ -29,12 +41,21 @@ const HomePage = () => {
                 отговорете на няколко въпроса и получете персонализирана оценка.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link to="/invisalign" data-testid="hero-cta-invisalign">
-                  <Button className="btn-primary w-full sm:w-auto">
-                    Започнете сега
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </Link>
+                {cities.length > 0 ? (
+                  <Link to={`/city/${cities[0].city_slug}`} data-testid="hero-cta-city">
+                    <Button className="btn-primary w-full sm:w-auto">
+                      Започнете в {cities[0].city_name}
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  </Link>
+                ) : (
+                  <Link to="/city/haskovo" data-testid="hero-cta-city">
+                    <Button className="btn-primary w-full sm:w-auto">
+                      Започнете сега
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  </Link>
+                )}
                 <a href="#how-it-works" data-testid="hero-cta-how">
                   <Button variant="outline" className="h-12 px-6 rounded-full w-full sm:w-auto">
                     Как работи?
@@ -53,24 +74,58 @@ const HomePage = () => {
         </div>
       </section>
 
+      {/* Cities Section */}
+      {cities.length > 0 && (
+        <section className="py-16 md:py-24 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-primary mb-4">Изберете вашия град</h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Намерете партньорска клиника близо до вас
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {cities.map((city) => (
+                <Link 
+                  key={city.city_slug}
+                  to={`/city/${city.city_slug}`}
+                  className="bg-surface rounded-2xl p-6 hover:shadow-md transition-all group"
+                  data-testid={`city-card-${city.city_slug}`}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
+                      <MapPin className="w-6 h-6 text-accent" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-primary">{city.city_name}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {city.clinics_count} {city.clinics_count === 1 ? 'клиника' : 'клиники'}
+                      </p>
+                    </div>
+                    <ArrowRight className="w-5 h-5 text-muted-foreground ml-auto group-hover:text-accent group-hover:translate-x-1 transition-all" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Treatment Cards */}
-      <section className="py-16 md:py-24 bg-white">
+      <section className="py-16 md:py-24 bg-surface">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-primary mb-4">Изберете вашето лечение</h2>
+            <h2 className="text-primary mb-4">Нашите лечения</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Отговорете на кратък въпросник и разберете дали сте подходящ кандидат за избраното лечение.
+              Изберете вида лечение, който ви интересува
             </p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
             {/* Invisalign Card */}
-            <Link 
-              to="/invisalign" 
-              className="treatment-card group"
-              data-testid="treatment-card-invisalign"
-            >
-              <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center mb-6 group-hover:bg-accent/20 transition-colors">
+            <div className="treatment-card" data-testid="treatment-info-invisalign">
+              <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center mb-6">
                 <Smile className="w-7 h-7 text-accent" />
               </div>
               <h3 className="text-xl font-heading font-semibold text-primary mb-3">
@@ -79,19 +134,11 @@ const HomePage = () => {
               <p className="text-muted-foreground text-sm mb-4">
                 Невидимо подреждане на зъбите с прозрачни алайнери. Дискретно и комфортно решение.
               </p>
-              <div className="flex items-center text-accent font-medium text-sm">
-                <span>Проверете дали сте подходящи</span>
-                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </Link>
+            </div>
 
             {/* Implants Card */}
-            <Link 
-              to="/implants" 
-              className="treatment-card group"
-              data-testid="treatment-card-implants"
-            >
-              <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center mb-6 group-hover:bg-accent/20 transition-colors">
+            <div className="treatment-card" data-testid="treatment-info-implants">
+              <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center mb-6">
                 <Target className="w-7 h-7 text-accent" />
               </div>
               <h3 className="text-xl font-heading font-semibold text-primary mb-3">
@@ -100,19 +147,11 @@ const HomePage = () => {
               <p className="text-muted-foreground text-sm mb-4">
                 Трайно решение за липсващи зъби. Функционалност и естетика като при естествените зъби.
               </p>
-              <div className="flex items-center text-accent font-medium text-sm">
-                <span>Проверете дали сте подходящи</span>
-                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </Link>
+            </div>
 
             {/* Full Mouth Card */}
-            <Link 
-              to="/full-mouth" 
-              className="treatment-card group"
-              data-testid="treatment-card-fullmouth"
-            >
-              <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center mb-6 group-hover:bg-accent/20 transition-colors">
+            <div className="treatment-card" data-testid="treatment-info-fullmouth">
+              <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center mb-6">
                 <Stethoscope className="w-7 h-7 text-accent" />
               </div>
               <h3 className="text-xl font-heading font-semibold text-primary mb-3">
@@ -121,17 +160,13 @@ const HomePage = () => {
               <p className="text-muted-foreground text-sm mb-4">
                 Комплексно възстановяване за цялостна промяна. За случаи с множество проблеми.
               </p>
-              <div className="flex items-center text-accent font-medium text-sm">
-                <span>Проверете дали сте подходящи</span>
-                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </Link>
+            </div>
           </div>
         </div>
       </section>
 
       {/* How It Works */}
-      <section id="how-it-works" className="py-16 md:py-24 bg-surface">
+      <section id="how-it-works" className="py-16 md:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-primary mb-4">Как работи</h2>
@@ -141,36 +176,33 @@ const HomePage = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Step 1 */}
             <div className="text-center" data-testid="how-step-1">
               <div className="w-16 h-16 rounded-full bg-accent text-white flex items-center justify-center text-2xl font-heading font-bold mx-auto mb-6">
                 1
               </div>
-              <h3 className="text-lg font-medium text-primary mb-2">Избирате лечение</h3>
+              <h3 className="text-lg font-medium text-primary mb-2">Избирате град и лечение</h3>
               <p className="text-muted-foreground text-sm">
-                Изберете от Invisalign, импланти или пълна възстановителна терапия
+                Намерете партньорска клиника във вашия град
               </p>
             </div>
 
-            {/* Step 2 */}
             <div className="text-center" data-testid="how-step-2">
               <div className="w-16 h-16 rounded-full bg-accent text-white flex items-center justify-center text-2xl font-heading font-bold mx-auto mb-6">
                 2
               </div>
               <h3 className="text-lg font-medium text-primary mb-2">Отговаряте на въпроси</h3>
               <p className="text-muted-foreground text-sm">
-                Кратък въпросник от 8-10 въпроса, отнема около 60-90 секунди
+                Кратък въпросник от 7-8 въпроса, отнема около 60-90 секунди
               </p>
             </div>
 
-            {/* Step 3 */}
             <div className="text-center" data-testid="how-step-3">
               <div className="w-16 h-16 rounded-full bg-accent text-white flex items-center justify-center text-2xl font-heading font-bold mx-auto mb-6">
                 3
               </div>
               <h3 className="text-lg font-medium text-primary mb-2">Получавате насочване</h3>
               <p className="text-muted-foreground text-sm">
-                Персонализирана оценка и възможност за консултация с партньорска клиника
+                Персонализирана оценка и възможност за консултация
               </p>
             </div>
           </div>
@@ -178,7 +210,7 @@ const HomePage = () => {
       </section>
 
       {/* For Whom Section */}
-      <section className="py-16 md:py-24 bg-white">
+      <section className="py-16 md:py-24 bg-surface">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
             {/* For Whom */}
@@ -199,10 +231,6 @@ const HomePage = () => {
                 <li className="flex items-start gap-3 text-muted-foreground">
                   <CheckCircle className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
                   <span>За хора, готови да инвестират в здравето си</span>
-                </li>
-                <li className="flex items-start gap-3 text-muted-foreground">
-                  <CheckCircle className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
-                  <span>За тези, които искат да разберат възможностите си преди консултация</span>
                 </li>
               </ul>
             </div>
@@ -226,10 +254,6 @@ const HomePage = () => {
                   <XCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
                   <span>За търсещи безплатни консултации без ангажимент</span>
                 </li>
-                <li className="flex items-start gap-3 text-muted-foreground">
-                  <XCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
-                  <span>За хора, които не са готови да инвестират в качество</span>
-                </li>
               </ul>
             </div>
           </div>
@@ -237,7 +261,7 @@ const HomePage = () => {
       </section>
 
       {/* Trust Indicators */}
-      <section className="py-16 md:py-24 bg-surface">
+      <section className="py-16 md:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
             <div className="p-6" data-testid="trust-fast">
@@ -266,12 +290,21 @@ const HomePage = () => {
           <p className="text-slate-300 mb-8 max-w-xl mx-auto">
             Отнема само 60-90 секунди. Без ангажимент, без такси – само честна оценка на вашата ситуация.
           </p>
-          <Link to="/invisalign" data-testid="cta-start-quiz">
-            <Button className="btn-accent text-lg h-14 px-10">
-              Започнете безплатна оценка
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-          </Link>
+          {cities.length > 0 ? (
+            <Link to={`/city/${cities[0].city_slug}`} data-testid="cta-start-quiz">
+              <Button className="btn-accent text-lg h-14 px-10">
+                Започнете безплатна оценка
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+            </Link>
+          ) : (
+            <Link to="/city/haskovo" data-testid="cta-start-quiz">
+              <Button className="btn-accent text-lg h-14 px-10">
+                Започнете безплатна оценка
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+            </Link>
+          )}
         </div>
       </section>
     </Layout>

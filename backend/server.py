@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, status
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -49,11 +49,15 @@ logger = logging.getLogger(__name__)
 class ClinicBase(BaseModel):
     name: str
     city: str
+    city_slug: str  # e.g., "haskovo"
+    clinic_slug: str  # e.g., "haskovo-premium-clinic"
     region: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
     is_active: bool = True
     treatments_supported: List[str] = []
+    description: Optional[str] = None
+    address: Optional[str] = None
 
 class Clinic(ClinicBase):
     model_config = ConfigDict(extra="ignore")
@@ -62,7 +66,8 @@ class Clinic(ClinicBase):
 
 class LeadBase(BaseModel):
     treatment_type: str  # invisalign, implants, full_mouth
-    city: str = "Хасково"
+    city_slug: str  # from subdomain
+    clinic_slug: Optional[str] = None  # from URL path, if present
     answers: Dict[str, Any] = {}
     score_breakdown: Dict[str, int] = {}
     utm_source: Optional[str] = None
@@ -72,6 +77,7 @@ class LeadBase(BaseModel):
     gclid: Optional[str] = None
     page_path: Optional[str] = None
     ip_hash: Optional[str] = None
+    can_travel: bool = True  # If false, cap band to YELLOW
 
 class LeadCreate(LeadBase):
     pass
@@ -125,6 +131,12 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     user: AdminUser
 
+class CityInfo(BaseModel):
+    city_slug: str
+    city_name: str
+    clinics_count: int
+    clinics: List[dict] = []
+
 
 # ============== AUTH HELPERS ==============
 
@@ -158,7 +170,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 
 # ============== SCORING LOGIC ==============
 
-def calculate_score(treatment_type: str, answers: Dict[str, Any]) -> tuple:
+def calculate_score(treatment_type: str, answers: Dict[str, Any], can_travel: bool = True) -> tuple:
     """Calculate total score and breakdown based on treatment type and answers"""
     score_breakdown = {}
     
@@ -227,9 +239,7 @@ def calculate_score(treatment_type: str, answers: Dict[str, Any]) -> tuple:
         readiness = answers.get("readiness", "no")
         score_breakdown["readiness"] = readiness_scores.get(readiness, 0)
         
-        # Q7: Travel willingness
-        travel = answers.get("travel_willingness", "no")
-        score_breakdown["travel_willingness"] = {"yes": 5, "no": 2}.get(travel, 2)
+        # Q7: Travel willingness (removed - handled via can_travel param)
         
     elif treatment_type == "full_mouth":
         # Q1: Situation description
@@ -270,6 +280,10 @@ def calculate_score(treatment_type: str, answers: Dict[str, Any]) -> tuple:
     else:
         band = "RED"
     
+    # Cap to YELLOW if user can't travel to the city
+    if not can_travel and band == "GREEN":
+        band = "YELLOW"
+    
     return total_score, band, score_breakdown
 
 
@@ -284,7 +298,63 @@ async def health():
     return {"status": "healthy"}
 
 
-# ============== CLINIC ROUTES ==============
+# ============== CITY & CLINIC ROUTES ==============
+
+@api_router.get("/cities")
+async def get_cities():
+    """Get all cities with active clinics"""
+    pipeline = [
+        {"$match": {"is_active": True}},
+        {"$group": {
+            "_id": "$city_slug",
+            "city_name": {"$first": "$city"},
+            "clinics_count": {"$sum": 1}
+        }},
+        {"$sort": {"city_name": 1}}
+    ]
+    cities = await db.clinics.aggregate(pipeline).to_list(100)
+    return [{"city_slug": c["_id"], "city_name": c["city_name"], "clinics_count": c["clinics_count"]} for c in cities]
+
+@api_router.get("/cities/{city_slug}")
+async def get_city_info(city_slug: str):
+    """Get city information and clinics"""
+    clinics = await db.clinics.find(
+        {"city_slug": city_slug, "is_active": True}, 
+        {"_id": 0}
+    ).to_list(100)
+    
+    if not clinics:
+        raise HTTPException(status_code=404, detail="City not found or no active clinics")
+    
+    return CityInfo(
+        city_slug=city_slug,
+        city_name=clinics[0]["city"],
+        clinics_count=len(clinics),
+        clinics=[{
+            "id": c["id"],
+            "name": c["name"],
+            "clinic_slug": c["clinic_slug"],
+            "treatments_supported": c.get("treatments_supported", []),
+            "address": c.get("address"),
+            "phone": c.get("phone")
+        } for c in clinics]
+    )
+
+@api_router.get("/cities/{city_slug}/clinics/{clinic_slug}")
+async def get_clinic_by_slug(city_slug: str, clinic_slug: str):
+    """Get clinic by city and clinic slug"""
+    clinic = await db.clinics.find_one(
+        {"city_slug": city_slug, "clinic_slug": clinic_slug, "is_active": True},
+        {"_id": 0}
+    )
+    
+    if not clinic:
+        raise HTTPException(status_code=404, detail="Clinic not found")
+    
+    if isinstance(clinic.get('created_at'), str):
+        clinic['created_at'] = datetime.fromisoformat(clinic['created_at'])
+    
+    return clinic
 
 @api_router.get("/clinics", response_model=List[Clinic])
 async def get_clinics():
@@ -303,17 +373,46 @@ async def get_clinic(clinic_id: str):
 
 @api_router.post("/leads", response_model=Lead)
 async def create_lead(lead_data: LeadCreate):
-    # Calculate score
-    score_total, band, score_breakdown = calculate_score(lead_data.treatment_type, lead_data.answers)
+    # Calculate score with travel consideration
+    can_travel = lead_data.can_travel
+    score_total, band, score_breakdown = calculate_score(
+        lead_data.treatment_type, 
+        lead_data.answers,
+        can_travel
+    )
     
-    # Create lead
-    lead_dict = lead_data.model_dump()
-    lead_dict.update({
-        'score_total': score_total,
-        'band': band,
-        'score_breakdown': score_breakdown
-    })
-    lead = Lead(**lead_dict)
+    # Auto-assign clinic if clinic_slug is provided
+    assigned_clinic_id = None
+    if lead_data.clinic_slug:
+        clinic = await db.clinics.find_one(
+            {"clinic_slug": lead_data.clinic_slug, "city_slug": lead_data.city_slug},
+            {"_id": 0}
+        )
+        if clinic:
+            assigned_clinic_id = clinic.get("id")
+    
+    # Create lead with explicit field assignment
+    lead = Lead(
+        id=str(uuid.uuid4()),
+        created_at=datetime.now(timezone.utc),
+        treatment_type=lead_data.treatment_type,
+        city_slug=lead_data.city_slug,
+        clinic_slug=lead_data.clinic_slug,
+        answers=lead_data.answers,
+        score_breakdown=score_breakdown,
+        score_total=score_total,
+        band=band,
+        status="NEW",
+        assigned_clinic_id=assigned_clinic_id,
+        can_travel=can_travel,
+        utm_source=lead_data.utm_source,
+        utm_campaign=lead_data.utm_campaign,
+        utm_adset=lead_data.utm_adset,
+        utm_ad=lead_data.utm_ad,
+        gclid=lead_data.gclid,
+        page_path=lead_data.page_path,
+        ip_hash=lead_data.ip_hash
+    )
     
     # Convert to dict for MongoDB
     doc = lead.model_dump()
@@ -394,7 +493,8 @@ async def get_admin_leads(
     treatment_type: Optional[str] = None,
     band: Optional[str] = None,
     status: Optional[str] = None,
-    city: Optional[str] = None,
+    city_slug: Optional[str] = None,
+    clinic_slug: Optional[str] = None,
     current_user: AdminUser = Depends(get_current_user)
 ):
     query = {}
@@ -404,8 +504,10 @@ async def get_admin_leads(
         query["band"] = band
     if status:
         query["status"] = status
-    if city:
-        query["city"] = {"$regex": city, "$options": "i"}
+    if city_slug:
+        query["city_slug"] = city_slug
+    if clinic_slug:
+        query["clinic_slug"] = clinic_slug
     
     leads = await db.leads.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
     
@@ -520,19 +622,23 @@ async def create_event(event_data: EventBase):
 async def seed_database():
     """Seed initial data"""
     # Check if already seeded
-    existing_clinic = await db.clinics.find_one({"name": "Haskovo Premium Clinic"})
+    existing_clinic = await db.clinics.find_one({"clinic_slug": "haskovo-premium-clinic"})
     if existing_clinic:
         return {"message": "Database already seeded"}
     
-    # Seed clinic
+    # Seed clinic with slugs
     clinic = Clinic(
         name="Haskovo Premium Clinic",
         city="Хасково",
+        city_slug="haskovo",
+        clinic_slug="haskovo-premium-clinic",
         region="Хасковска област",
         phone="+359 38 123 456",
         email="contact@haskovo-dental.bg",
         is_active=True,
-        treatments_supported=["invisalign", "implants", "full_mouth"]
+        treatments_supported=["invisalign", "implants", "full_mouth"],
+        description="Премиум дентална клиника в Хасково с над 15 години опит.",
+        address="ул. Пример 1, Хасково"
     )
     clinic_doc = clinic.model_dump()
     clinic_doc['created_at'] = clinic_doc['created_at'].isoformat()
@@ -572,7 +678,11 @@ async def startup_event():
     await db.leads.create_index("treatment_type")
     await db.leads.create_index("band")
     await db.leads.create_index("status")
+    await db.leads.create_index("city_slug")
+    await db.leads.create_index("clinic_slug")
     await db.clinics.create_index("id", unique=True)
+    await db.clinics.create_index("city_slug")
+    await db.clinics.create_index([("city_slug", 1), ("clinic_slug", 1)], unique=True)
     await db.events.create_index("lead_id")
     await db.admin_users.create_index("username", unique=True)
     logger.info("Database indexes created")

@@ -46,6 +46,25 @@ export const getClinics = async () => {
   return response.data;
 };
 
+// ============== CITY & CLINIC APIs ==============
+
+export const getCities = async () => {
+  const response = await api.get('/cities');
+  return response.data;
+};
+
+export const getCityInfo = async (citySlug) => {
+  const response = await api.get(`/cities/${citySlug}`);
+  return response.data;
+};
+
+export const getClinicBySlug = async (citySlug, clinicSlug) => {
+  const response = await api.get(`/cities/${citySlug}/clinics/${clinicSlug}`);
+  return response.data;
+};
+
+// ============== LEAD APIs ==============
+
 export const createLead = async (leadData) => {
   const response = await api.post('/leads', leadData);
   return response.data;
@@ -83,7 +102,8 @@ export const getAdminLeads = async (filters = {}) => {
   if (filters.treatment_type) params.append('treatment_type', filters.treatment_type);
   if (filters.band) params.append('band', filters.band);
   if (filters.status) params.append('status', filters.status);
-  if (filters.city) params.append('city', filters.city);
+  if (filters.city_slug) params.append('city_slug', filters.city_slug);
+  if (filters.clinic_slug) params.append('clinic_slug', filters.clinic_slug);
   
   const response = await api.get(`/admin/leads?${params.toString()}`);
   return response.data;

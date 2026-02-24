@@ -1,4 +1,6 @@
 // Quiz questions data for all treatment types
+// City question removed - now using city_slug from URL
+// Added travel question to all quizzes
 
 export const invisalignQuiz = {
   id: 'invisalign',
@@ -56,13 +58,6 @@ export const invisalignQuiz = {
       ],
     },
     {
-      id: 'city',
-      question: 'В кой град/район живеете?',
-      type: 'text',
-      placeholder: 'Хасково',
-      defaultValue: 'Хасково',
-    },
-    {
       id: 'readiness',
       question: 'Готови ли сте да инвестирате в премиум лечение, ако сте клинично одобрени?',
       type: 'single',
@@ -80,6 +75,15 @@ export const invisalignQuiz = {
         { value: 'today', label: 'Днес или утре', points: 6 },
         { value: '3days', label: 'До 3 дни', points: 4 },
         { value: 'week', label: 'След седмица', points: 1 },
+      ],
+    },
+    {
+      id: 'can_travel',
+      question: 'Можете ли да посетите клиника в {cityName} (до ~30 мин път)?',
+      type: 'travel',
+      options: [
+        { value: 'yes', label: 'Да, мога' },
+        { value: 'no', label: 'Не, не мога' },
       ],
     },
   ],
@@ -142,13 +146,6 @@ export const implantsQuiz = {
       ],
     },
     {
-      id: 'city',
-      question: 'В кой град/район живеете?',
-      type: 'text',
-      placeholder: 'Хасково',
-      defaultValue: 'Хасково',
-    },
-    {
       id: 'readiness',
       question: 'Готови ли сте да инвестирате в премиум лечение, ако сте клинично одобрени?',
       type: 'single',
@@ -159,12 +156,12 @@ export const implantsQuiz = {
       ],
     },
     {
-      id: 'travel_willingness',
-      question: 'Бихте ли пътували до клиника в рамките на 30 минути?',
-      type: 'single',
+      id: 'can_travel',
+      question: 'Можете ли да посетите клиника в {cityName} (до ~30 мин път)?',
+      type: 'travel',
       options: [
-        { value: 'yes', label: 'Да', points: 5 },
-        { value: 'no', label: 'Не', points: 2 },
+        { value: 'yes', label: 'Да, мога' },
+        { value: 'no', label: 'Не, не мога' },
       ],
     },
   ],
@@ -226,13 +223,6 @@ export const fullMouthQuiz = {
       ],
     },
     {
-      id: 'city',
-      question: 'В кой град/район живеете?',
-      type: 'text',
-      placeholder: 'Хасково',
-      defaultValue: 'Хасково',
-    },
-    {
       id: 'readiness',
       question: 'Готови ли сте да инвестирате в премиум лечение, ако сте клинично одобрени?',
       type: 'single',
@@ -249,6 +239,15 @@ export const fullMouthQuiz = {
       options: [
         { value: 'yes', label: 'Да', points: 5 },
         { value: 'no', label: 'Не', points: 0 },
+      ],
+    },
+    {
+      id: 'can_travel',
+      question: 'Можете ли да посетите клиника в {cityName} (до ~30 мин път)?',
+      type: 'travel',
+      options: [
+        { value: 'yes', label: 'Да, мога' },
+        { value: 'no', label: 'Не, не мога' },
       ],
     },
   ],
