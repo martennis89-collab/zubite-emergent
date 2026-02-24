@@ -11,6 +11,7 @@ import { getUTMParams } from '@/lib/utils';
 import { CITIES, TREATMENTS, getQuizQuestions } from '@/lib/quizData';
 import { toast } from 'sonner';
 import { useLanguage } from '@/context/LanguageContext';
+import { trackQuizComplete } from '@/lib/tracking';
 
 const QuizPage = () => {
   const { citySlug, treatmentType } = useParams();
