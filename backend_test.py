@@ -139,6 +139,9 @@ class ZubiteAPITester:
             print(f"   Lead created with ID: {lead_id}")
             print(f"   Score: {lead_result.get('score_total', 'N/A')}")
             print(f"   Band: {lead_result.get('band', 'N/A')}")
+            print(f"   City Slug: {lead_result.get('city_slug', 'N/A')}")
+            print(f"   Clinic Slug: {lead_result.get('clinic_slug', 'N/A')}")
+            print(f"   Can Travel: {lead_result.get('can_travel', 'N/A')}")
             
             # Test getting the lead
             self.run_test("Get Lead", "GET", f"leads/{lead_id}", 200)
@@ -152,6 +155,38 @@ class ZubiteAPITester:
             }
             
             self.run_test("Update Lead Contact", "PATCH", f"leads/{lead_id}/contact", 200, contact_data)
+            
+            # Test clinic-specific lead (auto-assigned)
+            clinic_lead_data = {
+                "treatment_type": "invisalign",
+                "city_slug": "haskovo",
+                "clinic_slug": "haskovo-premium-clinic",
+                "answers": invisalign_answers,
+                "can_travel": True,
+                "utm_source": "test",
+                "page_path": "/city/haskovo/c/haskovo-premium-clinic/invisalign"
+            }
+            
+            clinic_lead_result = self.run_test("Create Clinic-Level Invisalign Lead", "POST", "leads", 200, clinic_lead_data)
+            
+            if clinic_lead_result:
+                print(f"   Clinic Lead ID: {clinic_lead_result['id']}")
+                print(f"   Assigned Clinic ID: {clinic_lead_result.get('assigned_clinic_id', 'N/A')}")
+            
+            # Test travel restriction (should cap to YELLOW)
+            travel_restricted_data = {
+                "treatment_type": "invisalign",
+                "city_slug": "haskovo",
+                "answers": invisalign_answers,
+                "can_travel": False,
+                "utm_source": "test",
+                "page_path": "/city/haskovo/invisalign"
+            }
+            
+            travel_result = self.run_test("Create Travel-Restricted Lead", "POST", "leads", 200, travel_restricted_data)
+            
+            if travel_result:
+                print(f"   Travel Restricted Band: {travel_result.get('band', 'N/A')} (should be YELLOW or RED)")
             
             return lead_id
         
