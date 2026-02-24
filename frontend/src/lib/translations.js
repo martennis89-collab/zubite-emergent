@@ -15,7 +15,8 @@ export const translations = {
     home: {
       title: 'Изберете вашия град',
       subtitle: 'Намерете най-добрата дентална клиника във вашия регион',
-      seeOptions: 'Вижте опциите'
+      seeOptions: 'Избери',
+      tagline: 'Навигатор за дентални решения'
     },
     
     // Treatment Selection
