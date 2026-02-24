@@ -1,0 +1,152 @@
+{
+  "brand": {
+    "name": "Zubite.bg",
+    "tagline": "Навигатор за дентални решения",
+    "tone": "Professional, Premium, Calm Medical, Trust-First",
+    "archetype": "The Modernist Medical (Swiss Structure + Organic Warmth)",
+    "keywords": ["Trust", "Clarity", "Premium", "Navigator", "Health"]
+  },
+  "typography": {
+    "headings": {
+      "fontFamily": "Playfair Display, serif",
+      "weights": ["400", "600", "700"],
+      "usage": "Use for all H1-H3 headings. Letter-spacing: -0.02em. Line-height: 1.1."
+    },
+    "body": {
+      "fontFamily": "DM Sans, sans-serif",
+      "weights": ["400", "500", "700"],
+      "usage": "Use for body text, UI elements, and small labels. Line-height: 1.6."
+    },
+    "mono": {
+      "fontFamily": "JetBrains Mono, monospace",
+      "usage": "Use sparingly for technical data or small stats."
+    }
+  },
+  "colors": {
+    "palette": {
+      "primary": {
+        "DEFAULT": "#0F172A",
+        "foreground": "#F8FAFC",
+        "description": "Deep Slate - Authority & Trust"
+      },
+      "secondary": {
+        "DEFAULT": "#F1F5F9",
+        "foreground": "#0F172A",
+        "description": "Soft Slate - Backgrounds & Cards"
+      },
+      "accent": {
+        "DEFAULT": "#0EA5E9",
+        "foreground": "#FFFFFF",
+        "description": "Vivid Sky - The 'Navigator' Signal"
+      },
+      "background": "#FFFFFF",
+      "surface": "#F8FAFC",
+      "muted": "#94A3B8",
+      "border": "#E2E8F0",
+      "success": "#10B981",
+      "warning": "#F59E0B",
+      "destructive": "#EF4444"
+    },
+    "gradients": {
+      "hero": "linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 100%)",
+      "subtle": "linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%)"
+    }
+  },
+  "layout": {
+    "spacing": {
+      "container": "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
+      "section": "py-16 md:py-24 lg:py-32",
+      "element": "gap-6 md:gap-8"
+    },
+    "grid": {
+      "marketing": "grid grid-cols-1 md:grid-cols-12 gap-8",
+      "dashboard": "grid grid-cols-1 md:grid-cols-4 gap-6"
+    },
+    "radius": {
+      "default": "0.75rem",
+      "large": "1.5rem",
+      "full": "9999px"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-primary text-primary-foreground hover:bg-primary/90 h-12 px-8 rounded-full font-medium transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5",
+      "secondary": "bg-secondary text-secondary-foreground hover:bg-secondary/80 h-12 px-8 rounded-full font-medium transition-all",
+      "outline": "border-2 border-primary text-primary hover:bg-primary hover:text-white h-12 px-8 rounded-full font-medium transition-all"
+    },
+    "cards": {
+      "marketing": "bg-white border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 rounded-2xl p-8",
+      "dashboard": "bg-white border border-slate-200 shadow-sm rounded-xl p-6"
+    },
+    "inputs": {
+      "default": "h-12 bg-slate-50 border-slate-200 focus:border-accent focus:ring-accent rounded-lg px-4 transition-all"
+    }
+  },
+  "visual_enhancers": {
+    "shadows": {
+      "soft": "0 4px 20px -2px rgba(15, 23, 42, 0.05)",
+      "hover": "0 10px 25px -5px rgba(15, 23, 42, 0.1)"
+    },
+    "glass": "bg-white/80 backdrop-blur-md border border-white/20 shadow-sm",
+    "texture": "Use subtle noise overlay on solid backgrounds to reduce digital flatness."
+  },
+  "motion": {
+    "transitions": {
+      "default": "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+      "slow": "all 0.7s cubic-bezier(0.4, 0, 0.2, 1)"
+    },
+    "animations": {
+      "fadeIn": "opacity-0 animate-in fade-in duration-700",
+      "slideUp": "translate-y-4 animate-in slide-in-from-bottom-4 fade-in duration-700"
+    }
+  },
+  "images": {
+    "hero": {
+      "url": "https://images.unsplash.com/photo-1758874384753-b9672af6b063",
+      "alt": "Confident young woman smiling in natural light",
+      "usage": "Hero section main visual"
+    },
+    "clinic_bg": {
+      "url": "https://images.unsplash.com/photo-1762625570087-6d98fca29531",
+      "alt": "Modern minimalist dental clinic waiting room",
+      "usage": "Background for 'About' or 'Trust' sections"
+    },
+    "invisalign": {
+      "url": "https://images.pexels.com/photos/3845985/pexels-photo-3845985.jpeg",
+      "alt": "Clear aligner in hand",
+      "usage": "Invisalign treatment card and landing page"
+    },
+    "implants": {
+      "url": "https://images.pexels.com/photos/6502343/pexels-photo-6502343.jpeg",
+      "alt": "Clean dental implant model",
+      "usage": "Implants treatment card and landing page"
+    },
+    "full_mouth": {
+      "url": "https://images.pexels.com/photos/13871043/pexels-photo-13871043.jpeg",
+      "alt": "Senior couple smiling outdoors",
+      "usage": "Full mouth restoration treatment card and landing page"
+    },
+    "consultation": {
+      "url": "https://images.pexels.com/photos/14052564/pexels-photo-14052564.jpeg",
+      "alt": "Dentist consulting patient",
+      "usage": "How it works section"
+    }
+  },
+  "instructions_to_main_agent": [
+    "1. INSTALL FONTS: Add '@fontsource/playfair-display' and '@fontsource/dm-sans' to package.json immediately.",
+    "2. CONFIGURE TAILWIND: Update tailwind.config.js to use the specified font families and color palette. Extend the theme, do not overwrite.",
+    "3. MOBILE FIRST: Always design for mobile (375px) first, then scale up to md (768px) and lg (1024px).",
+    "4. QUIZ UI: The quiz is the core product. Make it feel like a premium app. Use large touch targets, smooth progress bars, and instant feedback.",
+    "5. ADMIN DASHBOARD: Keep it clean and data-dense. Use the 'High Density' grid mode.",
+    "6. IMAGES: Use the provided image URLs. Do not use placeholders.",
+    "7. SHADCN: Use Shadcn components for all interactive elements (Forms, Dialogs, Selects) but style them to match the 'Modernist Medical' theme.",
+    "8. DATA-TESTID: Add data-testid attributes to all interactive elements (buttons, inputs, links) for testing."
+  ],
+  "universal_guidelines": [
+    "Avoid 'AI Slop': Do not use generic centered layouts or default Shadcn styles without customization.",
+    "No Gradients on Text: Keep text legible and high-contrast.",
+    "Micro-interactions: Add hover states to everything clickable.",
+    "Spacing: Use 'p-8' or 'p-12' for section padding to create breathing room.",
+    "Accessibility: Ensure all text meets WCAG AA contrast ratios."
+  ]
+}
