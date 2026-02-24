@@ -30,25 +30,18 @@ export const Header = () => {
               Начало
             </Link>
             <Link 
-              to="/invisalign" 
-              className={`text-sm font-medium transition-colors hover:text-accent ${isActive('/invisalign') ? 'text-accent' : 'text-muted-foreground'}`}
-              data-testid="nav-invisalign"
+              to="/city/haskovo" 
+              className={`text-sm font-medium transition-colors hover:text-accent ${location.pathname.includes('/city/haskovo') ? 'text-accent' : 'text-muted-foreground'}`}
+              data-testid="nav-haskovo"
             >
-              Invisalign
+              Хасково
             </Link>
             <Link 
-              to="/implants" 
-              className={`text-sm font-medium transition-colors hover:text-accent ${isActive('/implants') ? 'text-accent' : 'text-muted-foreground'}`}
-              data-testid="nav-implants"
+              to="/contact" 
+              className={`text-sm font-medium transition-colors hover:text-accent ${isActive('/contact') ? 'text-accent' : 'text-muted-foreground'}`}
+              data-testid="nav-contact"
             >
-              Импланти
-            </Link>
-            <Link 
-              to="/full-mouth" 
-              className={`text-sm font-medium transition-colors hover:text-accent ${isActive('/full-mouth') ? 'text-accent' : 'text-muted-foreground'}`}
-              data-testid="nav-full-mouth"
-            >
-              Пълна терапия
+              Контакти
             </Link>
           </nav>
           
@@ -75,28 +68,20 @@ export const Header = () => {
                 Начало
               </Link>
               <Link 
-                to="/invisalign" 
+                to="/city/haskovo" 
                 className="text-sm font-medium py-2"
                 onClick={() => setIsMenuOpen(false)}
-                data-testid="mobile-nav-invisalign"
+                data-testid="mobile-nav-haskovo"
               >
-                Invisalign
+                Хасково
               </Link>
               <Link 
-                to="/implants" 
+                to="/contact" 
                 className="text-sm font-medium py-2"
                 onClick={() => setIsMenuOpen(false)}
-                data-testid="mobile-nav-implants"
+                data-testid="mobile-nav-contact"
               >
-                Импланти
-              </Link>
-              <Link 
-                to="/full-mouth" 
-                className="text-sm font-medium py-2"
-                onClick={() => setIsMenuOpen(false)}
-                data-testid="mobile-nav-full-mouth"
-              >
-                Пълна терапия
+                Контакти
               </Link>
             </div>
           </nav>
