@@ -225,7 +225,7 @@ class ZubiteAPITester:
         return False
 
     def test_different_quiz_types(self):
-        """Test different quiz types and scoring"""
+        """Test different quiz types and scoring with new routing"""
         print("\n=== TESTING DIFFERENT QUIZ TYPES ===")
         
         # Test Implants quiz (should get YELLOW)
@@ -236,13 +236,14 @@ class ZubiteAPITester:
             "timing": "6+",
             "importance": "price",
             "readiness": "maybe",
-            "travel_willingness": "no"
+            "can_travel": "yes"
         }
         
         implants_data = {
             "treatment_type": "implants",
-            "city": "София",
-            "answers": implants_answers
+            "city_slug": "haskovo",
+            "answers": implants_answers,
+            "can_travel": True
         }
         
         implants_result = self.run_test("Create Implants Lead", "POST", "leads", 200, implants_data)
@@ -259,13 +260,15 @@ class ZubiteAPITester:
             "timing": "not_sure",
             "importance": "price",
             "readiness": "no",
-            "complex_plan_ready": "no"
+            "complex_plan_ready": "no",
+            "can_travel": "yes"
         }
         
         full_mouth_data = {
             "treatment_type": "full_mouth",
-            "city": "Пловдив",
-            "answers": full_mouth_answers
+            "city_slug": "haskovo",
+            "answers": full_mouth_answers,
+            "can_travel": True
         }
         
         full_mouth_result = self.run_test("Create Full Mouth Lead", "POST", "leads", 200, full_mouth_data)
@@ -274,18 +277,31 @@ class ZubiteAPITester:
             print(f"   Full Mouth Score: {full_mouth_result.get('score_total', 'N/A')}")
             print(f"   Full Mouth Band: {full_mouth_result.get('band', 'N/A')}")
 
-    def test_clinics_endpoints(self):
-        """Test clinic endpoints"""
-        print("\n=== TESTING CLINIC ENDPOINTS ===")
+    def test_city_and_clinic_endpoints(self):
+        """Test new city and clinic endpoints"""
+        print("\n=== TESTING CITY AND CLINIC ENDPOINTS ===")
         
-        clinics_result = self.run_test("Get Clinics", "GET", "clinics", 200)
+        # Test getting cities
+        cities_result = self.run_test("Get Cities", "GET", "cities", 200)
         
-        if clinics_result and len(clinics_result) > 0:
-            clinic_id = clinics_result[0]['id']
-            self.run_test("Get Specific Clinic", "GET", f"clinics/{clinic_id}", 200)
-            return True
+        if cities_result and len(cities_result) > 0:
+            city_slug = cities_result[0]['city_slug']
+            print(f"   Found city: {city_slug}")
+            
+            # Test getting city info
+            city_info_result = self.run_test("Get City Info", "GET", f"cities/{city_slug}", 200)
+            
+            if city_info_result and 'clinics' in city_info_result:
+                clinics = city_info_result['clinics']
+                if len(clinics) > 0:
+                    clinic_slug = clinics[0]['clinic_slug']
+                    print(f"   Found clinic: {clinic_slug}")
+                    
+                    # Test getting clinic by slug
+                    self.run_test("Get Clinic by Slug", "GET", f"cities/{city_slug}/clinics/{clinic_slug}", 200)
         
-        return False
+        # Test legacy clinics endpoint
+        self.run_test("Get All Clinics", "GET", "clinics", 200)
 
     def test_events_endpoint(self):
         """Test event tracking"""
