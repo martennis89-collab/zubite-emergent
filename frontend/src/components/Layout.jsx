@@ -26,6 +26,9 @@ export const Header = () => {
             <Link to={getLocalizedPath('/')} className={`text-sm font-medium transition-colors ${isActive('/') ? 'text-sky-500' : 'text-slate-600 hover:text-slate-900'}`} data-testid="nav-home">
               {t('nav.home')}
             </Link>
+            <Link to={getLocalizedPath('/symptoms')} className={`text-sm font-medium transition-colors ${isActive('/symptoms') || location.pathname.includes('/symptoms/') ? 'text-sky-500' : 'text-slate-600 hover:text-slate-900'}`} data-testid="nav-symptoms">
+              {t('nav.symptoms')}
+            </Link>
             <Link to={getLocalizedPath('/contact')} className={`text-sm font-medium transition-colors ${isActive('/contact') ? 'text-sky-500' : 'text-slate-600 hover:text-slate-900'}`} data-testid="nav-contact">
               {t('nav.contact')}
             </Link>
