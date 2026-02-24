@@ -28,6 +28,14 @@ JWT_SECRET = os.environ.get('JWT_SECRET', 'zubite-bg-secret-key-2024')
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 24
 
+# Resend Email Settings
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
+SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
+ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'martennis89@gmail.com')
+
+if RESEND_API_KEY:
+    resend.api_key = RESEND_API_KEY
+
 security = HTTPBearer()
 app = FastAPI(title="Zubite.bg API")
 api_router = APIRouter(prefix="/api")
