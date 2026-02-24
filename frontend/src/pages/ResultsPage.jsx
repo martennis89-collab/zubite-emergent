@@ -47,6 +47,14 @@ const ResultsPage = () => {
       await updateLeadContact(leadId, form);
       setSubmitted(true);
       toast.success(t('results.form.sent'));
+      
+      // Fire tracking events for conversion
+      if (typeof window.trackMetaLead === 'function') {
+        window.trackMetaLead();
+      }
+      if (typeof window.trackGoogleAdsLead === 'function') {
+        window.trackGoogleAdsLead();
+      }
     } catch {
       toast.error(t('results.form.error'));
     } finally {
