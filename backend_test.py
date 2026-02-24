@@ -107,10 +107,10 @@ class ZubiteAPITester:
             return False
 
     def test_quiz_flow(self):
-        """Test complete quiz flow"""
+        """Test complete quiz flow with new routing"""
         print("\n=== TESTING QUIZ FLOW ===")
         
-        # Test Invisalign quiz
+        # Test Invisalign quiz with new routing (city level)
         invisalign_answers = {
             "seriousness": "searching",
             "timing": "0-3",
@@ -118,18 +118,21 @@ class ZubiteAPITester:
             "previous_ortho": "no",
             "pain_bite": "yes",
             "readiness": "yes",
-            "call_availability": "today"
+            "call_availability": "today",
+            "can_travel": "yes"
         }
         
         lead_data = {
             "treatment_type": "invisalign",
-            "city": "Хасково",
+            "city_slug": "haskovo",
+            "clinic_slug": None,
             "answers": invisalign_answers,
+            "can_travel": True,
             "utm_source": "test",
-            "page_path": "/invisalign"
+            "page_path": "/city/haskovo/invisalign"
         }
         
-        lead_result = self.run_test("Create Invisalign Lead", "POST", "leads", 200, lead_data)
+        lead_result = self.run_test("Create City-Level Invisalign Lead", "POST", "leads", 200, lead_data)
         
         if lead_result and 'id' in lead_result:
             lead_id = lead_result['id']
