@@ -368,6 +368,11 @@ async def update_lead_contact(lead_id: str, data: LeadContactUpdate):
     lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
     if isinstance(lead.get('created_at'), str):
         lead['created_at'] = datetime.fromisoformat(lead['created_at'])
+    
+    # Send email notification to admin (non-blocking)
+    if data.consent and (data.name or data.email):
+        asyncio.create_task(send_lead_notification_email(lead))
+    
     return lead
 
 # ============== ADMIN ==============
