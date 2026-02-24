@@ -60,6 +60,17 @@ Independent patient qualification and navigation platform for premium dental tre
 - [x] **Language Toggle** - BG | EN toggle in header (desktop & mobile)
 - [x] **Email Notifications** - Sends email to admin (martennis89@gmail.com) via Resend when leads submit contact info
 - [x] **Premium Wording** - Updated "investment readiness" question to be more premium
+- [x] **Symptoms Section** - 6 educational pages with causes, treatments, and quiz CTAs
+  - Toothache (Зъбобол)
+  - Missing Teeth (Липсващи зъби)
+  - Crooked Teeth (Криви зъби)
+  - Gum Problems (Проблеми с венците)
+  - Worn Teeth (Износени зъби)
+  - Sensitivity (Чувствителност)
+- [x] **Conversion Tracking** - Meta Pixel and Google Ads tracking integration
+  - trackQuizComplete on quiz submission
+  - trackLeadConversion on contact form submission
+  - **Note**: Placeholder IDs need to be replaced with real tracking IDs for production
 
 ## 3rd Party Integrations
 - **Resend** - Email notifications on lead submission
