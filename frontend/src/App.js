@@ -10,6 +10,8 @@ import ResultsPage from "@/pages/ResultsPage";
 import PrivacyPage from "@/pages/PrivacyPage";
 import TermsPage from "@/pages/TermsPage";
 import ContactPage from "@/pages/ContactPage";
+import SymptomsPage from "@/pages/SymptomsPage";
+import SymptomDetailPage from "@/pages/SymptomDetailPage";
 import AdminLogin from "@/pages/admin/AdminLogin";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminLeads from "@/pages/admin/AdminLeads";
