@@ -181,6 +181,11 @@ export const TREATMENT_EDUCATION = {
         { q: 'Can I get an implant immediately after extraction?', a: 'In some cases yes - this is called "immediate implantation" and depends on bone condition.' }
       ],
       
+      orthoFoundation: {
+        title: 'Why teeth alignment matters',
+        text: 'Proper distribution of chewing forces is key to long-term implant stability. In cases of malocclusion or significant tooth displacement, orthodontic treatment may be recommended before or in combination with implant therapy.'
+      },
+      
       stats: [
         { value: '98%', label: 'Success rate' },
         { value: '25+', label: 'Years durability' },
