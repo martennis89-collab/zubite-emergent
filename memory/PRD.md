@@ -85,6 +85,7 @@ Independent patient qualification and navigation platform for premium dental tre
   - Rarely visible lifestyle
   - Comfort/flexible preference
 - [x] **Balanced Education Content** - Neutral, clinical tone for both aligners and braces
+- [x] **Contact Form on Quiz Results** - Customers can submit their details directly after completing the ortho quiz to receive clinic recommendations
 
 ### Previous Features (Feb 2025)
 - [x] **Bilingual Support (BG/EN)** - URL-based routing with `/en/` prefix
