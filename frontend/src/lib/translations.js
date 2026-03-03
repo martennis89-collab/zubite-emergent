@@ -410,16 +410,16 @@ export const translations = {
     // Results Page
     results: {
       green: {
-        title: 'Your profile meets the criteria for a consultation with a partner clinic in',
-        cta: 'Request a call'
+        title: 'Thank you. We will contact you to discuss your case.',
+        cta: 'Request a Call'
       },
       yellow: {
-        title: 'Additional assessment is needed. Our team will contact you.',
-        cta: 'Request a call'
+        title: 'Thank you. We will contact you to discuss your case.',
+        cta: 'Request a Call'
       },
       red: {
-        title: 'You are not currently a suitable candidate for the premium program.',
-        cta: 'Get information'
+        title: 'Thank you. We will contact you to discuss your case.',
+        cta: 'Request a Call'
       },
       points: 'points',
       form: {
