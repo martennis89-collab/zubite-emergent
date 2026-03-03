@@ -2,80 +2,63 @@
 The user wants to extend the existing Zubite.bg application. The initial MVP was a Bulgarian-language dental lead qualification website with a city-first architecture, quiz-based lead scoring, and an admin dashboard.
 
 The new set of requirements are:
-1.  **Language Toggle:** Add bilingual support (Bulgarian/English) using URL-based routing (e.g., ).
-2.  **Email Notifications:** Send an email to an admin address upon successful lead contact form submission. The email should contain a summary of the lead's details.
-3.  **Wording Refinement:** Update the text of the investment readiness question across all quizzes to be more premium.
-4.  **Symptoms Section:** Add a new Симптоми (Symptoms) section with several educational pages, each with a CTA to the quiz flow.
-5.  **Treatment Education:** Expand the existing treatment pages with more detailed content sections.
-6.  **Tracking Validation:** Ensure Meta Pixel and Google Ads conversion tracking is correctly implemented for lead events.
+1.  **Language Toggle:** Add bilingual support (Bulgarian/English) using URL-based routing. (COMPLETED)
+2.  **Email Notifications:** Send an email to an admin address upon successful lead contact form submission. (COMPLETED)
+3.  **Wording Refinement:** Update the text of the investment readiness question. (COMPLETED)
+4.  **Symptoms Section:** Add a new Симптоми (Symptoms) section with educational pages. (COMPLETED)
+5.  **Treatment Education:** Expand the existing treatment pages with more detailed content sections. (IN PROGRESS)
+6.  **Tracking Validation:** Ensure Meta Pixel and Google Ads conversion tracking is correctly implemented. (IN PROGRESS - Stubs added, awaiting real IDs)
+7.  **UI/UX Enhancement:** Upgrade the design with subtle, premium animations and micro-interactions without changing the core layout or design system. (COMPLETED)
+8.  **Ortho Education Section:** Replace the Invisalign page with a comprehensive Aligners vs. Braces comparison guide, including two new educational quizzes. (IN PROGRESS)
 
-**CRITICAL INSTRUCTION:** Do NOT modify the existing layout, typography, spacing, color system, or page structure. All new features must be added cleanly within the current design.
-
-**User's preferred language**: The user communicates in English, but the application's primary language is **Bulgarian**. The user has requested to add **English** as a secondary language. The next agent should continue to communicate in English.
+**User's preferred language**: The user communicates in English. The application's primary language is Bulgarian, with English now added as a secondary language. The next agent should continue to communicate in English.
 
 **what currently exists?**
-A fully functional full-stack application built with React, FastAPI, and MongoDB.
-- **Frontend**: A city-first architecture where the user first selects a city (София, Пловдив, Варна, Хасково) from the home page. This leads to a treatment selection page, followed by a treatment-specific quiz.
-- **Quizzes**: Three dynamic quizzes (Invisalign, Implants, Full Mouth) with a 0-100 scoring system that categorizes leads into GREEN (≥75), YELLOW (50-74), and RED (<50) bands.
-- **Results Page**: Displays the lead's band and a conditional contact form.
-- **Backend**: FastAPI server with endpoints for managing leads and clinics. It includes logic for quiz scoring, lead assignment, and JWT-based authentication for the admin panel.
-- **Admin Panel**: A protected  route where an admin can log in, view a dashboard of leads, filter them, and see detailed information for each lead.
-- **Database**: MongoDB with  and  collections. The  collection is seeded with four active clinics, one for each supported city.
+A full-stack application (React, FastAPI, MongoDB) with a city-first user flow, dynamic lead-scoring quizzes, and an admin panel. In this session, the application was significantly enhanced with:
+-   **Bilingual Support (BG/EN):** A language toggle and URL-based routing () are fully functional.
+-   **Email Notifications:** The backend now sends an email to an admin address () via Resend upon successful lead form submission.
+-   **New Content Sections:** A Symptoms section and detailed Treatment pages have been added, all with Bulgarian and English translations.
+-   **UI Animations:** A full animation system has been integrated, adding scroll-based fade-in effects, hover interactions, and smooth transitions to improve the user experience.
+-   **Tracking Stubs:** Placeholder scripts for Meta Pixel and Google Ads have been added, with event triggers for quiz completion and lead generation.
+-   **Ortho Education Section:** A new, comprehensive Aligners vs. Braces educational guide has been created with its own quizzes, replacing the previous, simpler Invisalign page.
 
 **Last working item**:
-The agent received a new set of feature requests to extend the application. It analyzed the current codebase and initiated the first new task: setting up email notifications. It is currently waiting for the user to provide the recipient email address.
-    - Last item agent was working: Gathering user input for the admin email address needed for lead notifications.
-    - Status: BLOCKED
-    - Agent Testing Done: N/A
-    - Which testing method agent to use? NA
-    - User Testing Done: N/A
+The agent was implementing a new, comprehensive Aligners vs. Braces educational section as requested by the user. The agent created the necessary data files (), page components (, ), updated the routing, and linked it from the . Initial screenshots confirmed the new section is rendering correctly. The agent was in the process of verifying the full page content via screenshots.
+
+-   Last item agent was working: Verifying the UI and content of the newly created Aligners vs. Braces educational page.
+-   Status: IN PROGRESS
+-   Agent Testing Done: N
+-   Which testing method agent to use? frontend testing agent
+-   User Testing Done: N
 
 **All Pending/In progress Issue list**:
-There are no pending bugs or issues from the previous implementation. The agent is starting a new set of feature implementations.
+There are no known bugs or issues.
 
 **In progress Task List**:
-  - Task 1:  Gather admin email for notifications (P0)
- 
+  - Task 1: Complete and Verify Aligners vs Braces Section (P0)
+
  Task Detail:
   - Task 1: 
-     - Where to resume: The agent has used the  tool to request an email address from the user. The next action is to wait for the user's response and then proceed with the implementation of the email notification feature.
-     - What will be achieved with this? The agent will have the recipient email address required to implement the lead notification feature.
-     - Status:  BLOCKED
-     - Should Test frontend/backend/both after fix? Backend
-     - Blocked on something: User input.
+     - Where to resume: The agent has created the files and verified the top part of the page with screenshots. The next step is to verify that all content sections (comparison table, FAQ, quiz CTAs) are rendered correctly. Following that, the agent must thoroughly test the functionality of the two new quizzes (Smile Classification and Treatment Match) and ensure the entire user flow is seamless in both English and Bulgarian.
+     - What will be achieved with this? The new orthodontic educational content will be fully implemented and verified, fulfilling the user's latest and most detailed request.
+     - Status:  IN PROGRESS
+     - Should Test frontend/backend/both after fix? Frontend
+     - Blocked on something: None
 
 **Upcoming and Future Tasks**
-Upcoming Tasks:
-- **P0: Implement Email Notification on Lead Completion:**
-    - Once the user provides the email address, implement the backend logic to send an email when a lead submits the contact form.
-    - Use  to get the playbook for an email service like Resend or SendGrid.
-    - Files to modify: .
-- **P0: Implement Language Toggle (BG/EN):**
-    - Update React Router to handle  prefixes for English routes.
-    - Add a language toggle component () in .
-    - Create a context or state management solution for the language.
-    - Add a  field to the  model in .
-    - Implement translation for all user-facing strings.
-- **P1: Refine Quiz Wording:**
-    - Update the investment question text in  for all three quizzes. Ensure scoring logic remains the same.
-- **P1: Add Symptoms Education Section:**
-    - Add Симптоми to the navigation in .
-    - Create new routes in  for  and its sub-pages.
-    - Create corresponding page components with educational content and a CTA linking back to the quiz flow.
-- **P2: Expand Treatment Education Content:**
-    - Add new content sections to the existing treatment pages (, ,  were removed in favor of a dynamic . The agent will need to identify how to add this content, likely on the treatment selection page or the quiz page itself).
-- **P2: Validate Tracking:**
-    - Implement or verify the firing of Meta Pixel and Google Ads conversion events on successful lead submission (thank-you/results page). This will likely involve adding scripts to  and calling tracking functions in .
+- **P1: Finalize Tracking Validation:**
+    - The agent has implemented stubs for Meta Pixel and Google Ads.
+    - **Next Step:** The agent must ask the user to provide the real **Meta Pixel ID** and **Google Ads Conversion ID**.
+    - Once provided, update the placeholders in .
+    - Verify that the  and  events in  are firing correctly with the real IDs.
 
 **Completed work in this session**
-- **City-First Architecture Refactor:** The entire application was rebuilt to follow a new city-first user flow.
-- **Home Page:** Created  showing cards for 4 cities.
-- **Treatment Selection Page:** Created  for users to choose a treatment within a selected city.
-- **Dynamic Quiz & Results:** Refactored the quiz and results logic into  and .
-- **Backend Overhaul:** Updated  to support the new routing, database schema (removing clinic-specific slugs), and lead assignment logic.
-- **Admin Dashboard:** Updated all admin pages (, , ) to align with the new data structure.
-- **Database Seeding:** Wrote and executed logic to seed the database with 4 clinics, one for each city.
-- **End-to-End Testing:** Successfully tested the full user journey from city selection to lead submission and verified the lead data in the admin panel.
+- **Email Notifications (P0):** Implemented using Resend API to notify an admin on new lead submissions. Tested and verified via logs.
+- **Language Toggle (P0):** Successfully added bilingual (BG/EN) support across the entire application using React Context and URL-based routing.
+- **Refined Quiz Wording (P1):** Updated the investment readiness question text in .
+- **Symptoms Education Section (P1):** Added a new, fully translated Симптоми section with a main page and individual detail pages.
+- **Animation System Upgrade (User Request):** Implemented a site-wide animation system using CSS and a custom React hook () to add premium micro-interactions and scroll effects.
+- **Treatment Education Expansion (P1):** Created detailed, animated, and translated pages for each primary treatment (Invisalign, Implants, Full Mouth).
 
 **Earlier issues found/mentioned but not fixed**
    - None.
@@ -87,73 +70,73 @@ Upcoming Tasks:
 
 
 **Key Technical Concepts**
-- **Frontend**: React, React Router, Tailwind CSS, Shadcn UI
-- **Backend**: FastAPI, MongoDB (with  for async operations), Pydantic
-- **Authentication**: JWT-based custom authentication for the admin panel.
-- **Architecture**: Single Page Application (SPA) with a city-first user flow. API-driven content.
+- **Frontend**: React, React Router, Tailwind CSS, Shadcn UI, React Context API for state management.
+- **Backend**: FastAPI, MongoDB (with ), Pydantic.
+- **Authentication**: JWT-based custom auth for the admin panel.
+- **Animations**: Custom CSS transitions and keyframe animations triggered by a React hook using the  API for performance.
+- **Integrations**: Resend for transactional emails.
 
 **key DB schema**
   - **clinics**: 
   - **leads**: 
 
 **changes in tech stack**
-  - The initial user request mentioned  for the database and auth, but the agent implemented it using  and a custom  authentication system.
+  - Added  as a backend dependency for email notifications.
 
 **All files of reference**
-- : Contains all backend logic, API endpoints, and database models.
-- : Defines the application's routing structure.
-- : Central location for all quiz questions, answers, and scoring weights.
-- : Entry point for the user flow.
-- : Page for selecting treatment type.
-- : Renders the dynamic quiz based on URL parameters.
-- : Displays the quiz outcome and contact form.
-- : Main view for the admin panel.
+- : Modified to include email sending logic with Resend.
+- : Updated with new routes for symptoms, treatment details, and the new ortho section.
+- : Modified to include the Symptoms nav link and language toggle.
+- : New file for managing site-wide language state.
+- : New file containing all BG/EN string translations.
+- : New custom hook for scroll-based animations.
+- : New CSS file defining all animation classes.
+- : New page for the Aligners vs. Braces guide.
+- : New page to handle the two new orthodontic quizzes.
+- : Updated with placeholder tracking scripts.
 
 **key api endpoints**
-- : Admin login.
-- : Get the list of available cities.
-- : Submit a new lead from a quiz.
-- : Get details for a specific lead.
-- : Submit contact information for a lead.
-- : Get all leads for the admin dashboard.
-- : Get dashboard statistics.
-- : Update a lead's status or notes.
+- : This endpoint was updated to trigger an email notification upon successful submission. Other endpoints remain unchanged.
 
 **Critical Info for New Agent**
-- **Adhere to Design Constraints**: The user has been very explicit: **DO NOT** modify the existing design, layout, spacing, or colors. New features must be integrated cleanly into the current visual system.
-- **Blocked on User**: The immediate next step is blocked pending user input for the admin email address.
-- **Integration for Emails**: You will need to implement an email sending service. You must use the  tool to get instructions for integrating a service like Resend or SendGrid. Do not attempt to implement it from scratch without the playbook.
-- **Language Implementation**: The language toggle feature will require a robust implementation for managing translations. Consider using a state management context and creating JSON files for Bulgarian and English strings.
+- **Resume Verification:** Your immediate task is to finish verifying the Aligners vs. Braces page (). Check all content sections, then proceed to test the new quiz flows on .
+- **Awaiting User Input for Tracking:** The tracking feature is incomplete. You need to ask the user for their real Meta Pixel and Google Ads IDs to replace the placeholders in .
+- **Animation System:** The application now has a standardized animation system. Use the  hook and classes from  for any new animated components to maintain consistency.
+- **Code Structure:** The agent has followed a clean pattern of separating data/content (e.g., , ) from the page components. Continue this pattern.
 
 **documents and test reports created in this job**
+  -  (updated multiple times)
   - 
   - 
   - 
   - 
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Provided a detailed list of new features to extend the application: Language Toggle, Email Notifications, Wording Refinement, Symptoms Section, Treatment Education, and Tracking Validation. (PENDING IMPLEMENTATION)
-2.  **Agent**: Acknowledged the new requirements and started by exploring the codebase.
-3.  **Agent**: Decided to ask for the admin email address needed for notifications. (PENDING HUMAN RESPONSE)
+-   **Msg 243:** User provided a large, detailed request to create a new Aligners vs Braces educational section with two specific quizzes, replacing the existing Invisalign page. (IN PROGRESS)
+-   **Msg 214:** User requested to continue with the priority list, specifically focusing on P1 - Treatment Education. This was superseded by the more detailed request in Msg 243. (COMPLETED/SUPERSEDED)
+-   **Msg 154:** User requested a major UI upgrade to add animations and micro-interactions across the site, providing specific rules and goals. (COMPLETED)
+-   **Msg 91:** User instructed the agent to continue with the priority list. (ACKNOWLEDGED)
+-   **Msg 36:** User provided the Resend API key. (HANDLED)
+-   **Msg 5:** User provided the admin email (), confirmed  for emails, and approved the initial plan. (HANDLED)
 
 **Project Health Check:**
-- **Working**: The application is in a stable, working state according to the last completed set of requirements.
+-   **Working**: The core application is stable and all previously completed features are functional.
+-   **In Progress**: The new Aligners vs. Braces feature is mid-implementation.
 
 **3rd Party Integrations**
-- None currently implemented.
-- **Emergent Requirement**: An email service (e.g., Resend, SendGrid) is required for the Email Notification task. This will be a new integration.
+-   **Resend:** Actively used for sending lead notification emails. API key is configured.
+-   **Meta Pixel / Google Ads:** Placeholder integration exists. Requires user-provided keys to be functional.
 
 **Testing status**
-  - Testing agent used after significant changes: YES
+  - Testing agent used after significant changes: YES. Multiple successful test runs were executed after implementing language toggle, animations, and other features.
   - Troubleshoot agent used after agent stuck in loop: NO
   - Test files created: None
   - Known regressions: None
 
 **Credentials to test flow:**
-- **Admin User**:
-  - Email: 
-  - Password: 
-  - (As defined in )
+-   **Admin User**:
+    -   Email: 
+    -   Password: 
 
 **What agent forgot to execute**
-- Nothing has been forgotten. The agent has just received a new set of tasks and is currently blocked on the first one, waiting for user input.</analysis>
+-   The agent has not forgotten any tasks. It is actively working on the latest user request and has correctly identified the dependency on user input for the tracking IDs.</analysis>
