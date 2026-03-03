@@ -412,14 +412,14 @@ export const ORTHO_CONTENT = {
       quizzes: [
         {
           id: 'smile-classification',
-          title: 'Smile Classification',
+          title: 'Which treatment fits my lifestyle better?',
           description: 'Learn whether aligners or braces would better suit your lifestyle, goals, and complexity levels.',
           duration: '2-3 min',
           questions: 8
         },
         {
           id: 'treatment-match',
-          title: 'Treatment Match',
+          title: 'Can my case be treated with removable aligners?',
           description: 'Focused quiz on aligner eligibility — find out if you are a suitable candidate for clear aligners.',
           duration: '2 min',
           questions: 6
