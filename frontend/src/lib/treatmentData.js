@@ -284,6 +284,11 @@ export const TREATMENT_EDUCATION = {
         { q: 'What does full mouth restoration include?', a: 'May include implants, crowns, bridges, veneers, gum treatment, and orthodontics.' }
       ],
       
+      orthoFoundation: {
+        title: 'The role of orthodontics in complex restorations',
+        text: 'Complex restorations often combine orthodontics, implants, and prosthetics. Teeth alignment creates a stable functional foundation for long-term results.'
+      },
+      
       stats: [
         { value: '360°', label: 'Comprehensive approach' },
         { value: '95%', label: 'Improved quality of life' },
