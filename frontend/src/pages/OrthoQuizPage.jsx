@@ -183,6 +183,49 @@ const OrthoQuizPage = () => {
     setShowResults(true);
   };
 
+  const handleContactSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!contactForm.consent) {
+      toast.error(isEN ? 'Please accept the privacy policy' : 'Моля, приемете политиката за поверителност');
+      return;
+    }
+    
+    if (!contactForm.name || !contactForm.phone || !contactForm.email) {
+      toast.error(isEN ? 'Please fill in all fields' : 'Моля, попълнете всички полета');
+      return;
+    }
+    
+    setSubmitting(true);
+    
+    try {
+      // Create lead with quiz answers and contact info
+      const leadData = {
+        city_slug: citySlug || 'sofia',
+        treatment_type: 'orthodontics',
+        answers: {
+          quiz_type: quizType,
+          quiz_result: result,
+          ...answers
+        },
+        name: contactForm.name,
+        phone: contactForm.phone,
+        email: contactForm.email,
+        consent: contactForm.consent,
+        source: 'ortho_quiz'
+      };
+      
+      await createLead(leadData);
+      setSubmitted(true);
+      toast.success(isEN ? 'Thank you! We will contact you soon.' : 'Благодарим! Ще се свържем с вас скоро.');
+    } catch (error) {
+      console.error('Failed to submit lead:', error);
+      toast.error(isEN ? 'Something went wrong. Please try again.' : 'Нещо се обърка. Моля, опитайте отново.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const getResultContent = () => {
     if (!result) return null;
     return quizData.results[result];
