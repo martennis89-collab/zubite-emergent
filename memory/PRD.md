@@ -127,9 +127,11 @@ Admin: admin / admin123
 - `/app/frontend/src/context/LanguageContext.jsx` - Language state management
 - `/app/frontend/src/lib/translations.js` - BG/EN translations
 - `/app/frontend/src/lib/symptomsData.js` - Symptoms educational content
+- `/app/frontend/src/lib/treatmentData.js` - Treatment education content (Invisalign, Implants, Full Mouth)
 - `/app/frontend/src/lib/tracking.js` - Meta Pixel and Google Ads tracking utilities
 - `/app/frontend/src/styles/animations.css` - Animation system CSS
 - `/app/frontend/src/hooks/useScrollReveal.js` - Scroll reveal hook with IntersectionObserver
 - `/app/frontend/src/pages/SymptomsPage.jsx` - Symptoms index page
 - `/app/frontend/src/pages/SymptomDetailPage.jsx` - Individual symptom details
+- `/app/frontend/src/pages/TreatmentDetailPage.jsx` - Treatment education pages
 - `/app/backend/server.py` - API + email notification logic
