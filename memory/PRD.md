@@ -11,15 +11,25 @@ Independent patient qualification and navigation platform for premium dental tre
 **Bulgarian (default)**:
 - `/` - Home page with 4 city cards
 - `/city/{citySlug}` - Treatment selection page
-- `/city/{citySlug}/{treatmentType}` - Quiz page
+- `/city/{citySlug}/ortho` - Aligners vs Braces educational guide
+- `/city/{citySlug}/ortho/smile-classification` - Smile Classification quiz (8 questions)
+- `/city/{citySlug}/ortho/treatment-match` - Treatment Match quiz (6 questions)
+- `/city/{citySlug}/{treatmentType}` - Treatment detail and Quiz page
 - `/results/{leadId}` - Results and contact form
+- `/symptoms` - Symptoms index page
+- `/symptoms/{symptomSlug}` - Symptom detail page
 - `/privacy`, `/terms`, `/contact` - Static pages
 
 **English** (prefix `/en`):
 - `/en` - English home page
 - `/en/city/{citySlug}` - English treatment selection
-- `/en/city/{citySlug}/{treatmentType}` - English quiz
+- `/en/city/{citySlug}/ortho` - English Aligners vs Braces guide
+- `/en/city/{citySlug}/ortho/smile-classification` - English Smile Classification quiz
+- `/en/city/{citySlug}/ortho/treatment-match` - English Treatment Match quiz
+- `/en/city/{citySlug}/{treatmentType}` - English treatment detail and quiz
 - `/en/results/{leadId}` - English results page
+- `/en/symptoms` - English symptoms index
+- `/en/symptoms/{symptomSlug}` - English symptom detail
 - `/en/privacy`, `/en/terms`, `/en/contact` - English static pages
 
 **Admin** (no translation):
