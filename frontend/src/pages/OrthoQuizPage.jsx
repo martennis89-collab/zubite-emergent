@@ -279,22 +279,102 @@ const OrthoQuizPage = () => {
                   ))}
                 </ul>
               </div>
-              
-              {/* Thank you message */}
-              <p className="text-slate-500 mb-6 text-sm">
-                {isEN ? 'Thank you. We will contact you to discuss your case.' : 'Благодарим. Ще се свържем с вас, за да обсъдим вашия случай.'}
-              </p>
-              
-              {/* CTAs */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link to={getLocalizedPath('/contact')}>
-                  <Button className="btn-animate h-12 px-8 rounded-full bg-sky-500 hover:bg-sky-600">
-                    <Phone className="w-4 h-4 mr-2" />
-                    {isEN ? 'Request a Call' : 'Заяви обаждане'}
-                  </Button>
-                </Link>
-              </div>
             </div>
+            
+            {/* Contact Form or Thank You */}
+            {!submitted ? (
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 mb-8">
+                <h2 className="text-lg font-medium text-slate-900 mb-2 text-center">
+                  {isEN ? 'Get personalized clinic recommendations' : 'Получете персонализирани препоръки за клиника'}
+                </h2>
+                <p className="text-slate-500 text-sm mb-6 text-center">
+                  {isEN ? 'Leave your details and we will contact you to discuss your case' : 'Оставете вашите данни и ние ще се свържем с вас, за да обсъдим вашия случай'}
+                </p>
+                
+                <form onSubmit={handleContactSubmit} className="space-y-5">
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <User className="w-4 h-4" />
+                      {isEN ? 'Name' : 'Име'}
+                    </Label>
+                    <Input 
+                      placeholder={isEN ? 'Your name' : 'Вашето име'} 
+                      value={contactForm.name} 
+                      onChange={e => setContactForm(f => ({...f, name: e.target.value}))} 
+                      data-testid="contact-name-input"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Phone className="w-4 h-4" />
+                      {isEN ? 'Phone' : 'Телефон'}
+                    </Label>
+                    <Input 
+                      placeholder="+359..." 
+                      value={contactForm.phone} 
+                      onChange={e => setContactForm(f => ({...f, phone: e.target.value}))} 
+                      data-testid="contact-phone-input"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Mail className="w-4 h-4" />
+                      {isEN ? 'Email' : 'Имейл'}
+                    </Label>
+                    <Input 
+                      type="email" 
+                      placeholder="email@example.com" 
+                      value={contactForm.email} 
+                      onChange={e => setContactForm(f => ({...f, email: e.target.value}))} 
+                      data-testid="contact-email-input"
+                    />
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <Checkbox 
+                      id="consent" 
+                      checked={contactForm.consent} 
+                      onCheckedChange={c => setContactForm(f => ({...f, consent: c}))} 
+                      data-testid="contact-consent-checkbox"
+                    />
+                    <Label htmlFor="consent" className="text-sm text-slate-600 cursor-pointer">
+                      {isEN ? 'I agree to the' : 'Съгласен/а съм с'}{' '}
+                      <Link to={getLocalizedPath('/privacy')} target="_blank" className="text-sky-500 underline">
+                        {isEN ? 'Privacy Policy' : 'Политиката за поверителност'}
+                      </Link>
+                    </Label>
+                  </div>
+                  
+                  <Button 
+                    type="submit" 
+                    disabled={submitting} 
+                    className="w-full h-12 rounded-full bg-sky-500 hover:bg-sky-600"
+                    data-testid="contact-submit-btn"
+                  >
+                    {submitting ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Phone className="w-4 h-4 mr-2" />
+                        {isEN ? 'Request a Call' : 'Заяви обаждане'}
+                      </>
+                    )}
+                  </Button>
+                </form>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 mb-8 text-center">
+                <CheckCircle className="w-14 h-14 text-emerald-500 mx-auto mb-4" />
+                <h2 className="text-lg font-medium text-slate-900 mb-2">
+                  {isEN ? 'Thank you!' : 'Благодарим!'}
+                </h2>
+                <p className="text-slate-500 mb-6">
+                  {isEN ? 'We will contact you to discuss your case.' : 'Ще се свържем с вас, за да обсъдим вашия случай.'}
+                </p>
+              </div>
+            )}
             
             {/* Back to Education Link */}
             <div className="text-center">
