@@ -71,6 +71,9 @@ const TreatmentSelectPage = () => {
                   <div className="flex-1">
                     <h3 className="font-medium text-slate-900 mb-1">{treatment.name}</h3>
                     <p className="text-sm text-slate-500">{treatment.description}</p>
+                    <span className="text-xs text-sky-600 mt-2 inline-block">
+                      {t('common.yes') === 'Yes' ? 'Learn more about this treatment →' : 'Научете повече за това лечение →'}
+                    </span>
                   </div>
                   <ArrowRight className="treatment-arrow w-5 h-5 text-slate-400 group-hover:text-sky-500 transition-all duration-300" />
                 </Link>
