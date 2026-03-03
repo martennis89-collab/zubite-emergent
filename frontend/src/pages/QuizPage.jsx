@@ -241,31 +241,38 @@ const QuizPage = () => {
               <span>{t('quiz.question')} {Math.min(step + 1, questions.length)} {t('quiz.of')} {questions.length}</span>
               <span>{Math.round(progress)}%</span>
             </div>
-            <Progress value={progress} className="h-2" />
+            <Progress value={progress} className="h-2 progress-animated" />
           </div>
 
           {/* Question Card */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 mb-6">
+          <div 
+            className={`bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 mb-6 transition-all duration-300 ${
+              isTransitioning 
+                ? `opacity-0 ${transitionDirection === 'right' ? '-translate-x-4' : 'translate-x-4'}` 
+                : 'opacity-100 translate-x-0'
+            }`}
+          >
             {!isConsentStep ? (
               <>
                 <h2 className="text-lg font-medium text-slate-900 mb-6">{currentQ.question}</h2>
                 <div className="space-y-3">
-                  {currentQ.options.map((opt) => (
+                  {currentQ.options.map((opt, index) => (
                     <button
                       key={opt.value}
                       onClick={() => handleAnswer(opt.value)}
-                      className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
+                      className={`quiz-option w-full text-left p-4 rounded-xl border-2 transition-all duration-200 ${
                         answers[currentQ.id] === opt.value
-                          ? 'border-sky-500 bg-sky-50'
-                          : 'border-slate-200 hover:border-slate-300'
+                          ? 'border-sky-500 bg-sky-50 shadow-sm'
+                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                       }`}
+                      style={{ animationDelay: `${index * 50}ms` }}
                       data-testid={`option-${opt.value}`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                          answers[currentQ.id] === opt.value ? 'border-sky-500 bg-sky-500' : 'border-slate-300'
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
+                          answers[currentQ.id] === opt.value ? 'border-sky-500 bg-sky-500 scale-110' : 'border-slate-300'
                         }`}>
-                          {answers[currentQ.id] === opt.value && <div className="w-2 h-2 rounded-full bg-white" />}
+                          {answers[currentQ.id] === opt.value && <div className="w-2 h-2 rounded-full bg-white animate-fade-in" />}
                         </div>
                         <span className="text-slate-700">{opt.label}</span>
                       </div>
@@ -280,10 +287,10 @@ const QuizPage = () => {
                 </h2>
                 <p className="text-slate-500 text-sm">
                   {language === 'en' ? 'To continue, please confirm your consent to the ' : 'За да продължите, потвърдете съгласието си с '}
-                  <a href={getLocalizedPath('/privacy')} target="_blank" className="text-sky-500 underline">{t('results.form.privacyPolicy')}</a>.
+                  <a href={getLocalizedPath('/privacy')} target="_blank" className="text-sky-500 underline transition-colors duration-200 hover:text-sky-600">{t('results.form.privacyPolicy')}</a>.
                 </p>
                 <div className="flex items-start gap-3">
-                  <Checkbox id="consent" checked={consent} onCheckedChange={setConsent} data-testid="consent-checkbox" />
+                  <Checkbox id="consent" checked={consent} onCheckedChange={setConsent} className="checkbox-animate" data-testid="consent-checkbox" />
                   <Label htmlFor="consent" className="text-sm text-slate-600 cursor-pointer">
                     {language === 'en' 
                       ? 'I agree that my data may be processed for the purposes of this assessment.'
