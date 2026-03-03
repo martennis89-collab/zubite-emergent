@@ -85,7 +85,7 @@ const OrthoQuizPage = () => {
 
   const calculateResults = () => {
     if (quizType === 'smile-classification') {
-      // Calculate scores for aligners vs braces
+      // Calculate scores for aligners vs braces with weighted scoring
       let alignersScore = 0;
       let bracesScore = 0;
       
@@ -93,37 +93,82 @@ const OrthoQuizPage = () => {
         const answer = answers[q.id];
         const option = q.options.find(o => o.value === answer);
         if (option?.score) {
-          alignersScore += option.score.aligners || 0;
-          bracesScore += option.score.braces || 0;
+          // Base scores from data
+          let alignerPoints = option.score.aligners || 0;
+          let bracesPoints = option.score.braces || 0;
+          
+          // Weighted adjustments favoring aligners when clinically appropriate
+          // High aesthetics importance
+          if (q.id === 'importance' && (answer === 'very' || answer === 'high')) {
+            alignerPoints += 1;
+          }
+          // Removable preference
+          if (q.id === 'lifestyle' && answer === 'rarely') {
+            alignerPoints += 1;
+          }
+          // Moderate to good compliance (4-5/5)
+          if (q.id === 'compliance' && (answer === 'high' || answer === 'perfect')) {
+            alignerPoints += 1;
+          }
+          // Social/public-facing work
+          if (q.id === 'work' && answer === 'client-facing') {
+            alignerPoints += 1;
+          }
+          // Comfort and hygiene flexibility preference
+          if (q.id === 'preference' && (answer === 'comfort' || answer === 'flexible')) {
+            alignerPoints += 1;
+          }
+          
+          alignersScore += alignerPoints;
+          bracesScore += bracesPoints;
         }
       });
       
-      // Determine result
+      // Determine result with adjusted thresholds
+      // Lower threshold for aligners recommendation (was 4, now 2)
       const diff = alignersScore - bracesScore;
-      if (diff >= 4) {
+      if (diff >= 2) {
         setResult('aligners');
-      } else if (diff <= -4) {
+      } else if (diff <= -5) {
+        // Higher threshold for braces recommendation (was -4, now -5)
         setResult('braces');
       } else {
+        // Neutral cases default to 'both' which shows clinical evaluation message
         setResult('both');
       }
     } else if (quizType === 'treatment-match') {
-      // Check eligibility
+      // Check eligibility with weighted scoring
       let consultNeeded = false;
       let notEligible = false;
+      let eligibleCount = 0;
+      let consultCount = 0;
       
       questions.forEach(q => {
         const answer = answers[q.id];
         const option = q.options.find(o => o.value === answer);
-        if (option?.eligible === 'consult') consultNeeded = true;
-        if (option?.eligible === false) notEligible = true;
+        if (option?.eligible === 'consult') {
+          consultCount++;
+          consultNeeded = true;
+        } else if (option?.eligible === false) {
+          notEligible = true;
+        } else if (option?.eligible === true) {
+          eligibleCount++;
+        }
       });
       
-      if (notEligible) {
+      // Adjusted logic: only mark as notEligible if explicitly low compliance
+      // or multiple severe flags
+      const complianceAnswer = answers['commitment'];
+      const lowCompliance = complianceAnswer === 'unsure';
+      
+      if (notEligible && lowCompliance) {
+        // Only truly not eligible if they have severe flags AND low compliance
         setResult('notEligible');
-      } else if (consultNeeded) {
+      } else if (consultCount >= 2 || notEligible) {
+        // Recommend consultation if multiple consultation flags
         setResult('consult');
       } else {
+        // Default to eligible for most cases
         setResult('eligible');
       }
     }
