@@ -1,6 +1,6 @@
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
-import { Smile, Target, Stethoscope, ArrowRight, ArrowLeft, MapPin, Sparkles } from 'lucide-react';
+import { Smile, Target, Stethoscope, ArrowRight, ArrowLeft, MapPin, Sparkles, Heart, Scissors } from 'lucide-react';
 import { CITIES } from '@/lib/quizData';
 import { useLanguage } from '@/context/LanguageContext';
 import { ScrollReveal, useStaggerReveal } from '@/hooks/useScrollReveal';
@@ -9,16 +9,55 @@ const TreatmentSelectPage = () => {
   const { citySlug } = useParams();
   const { t, getLocalizedPath, getCityName, getTreatment, language } = useLanguage();
   const city = CITIES[citySlug];
-  const { containerRef, isItemRevealed } = useStaggerReveal(4, { staggerDelay: 120 });
+  const { containerRef, isItemRevealed } = useStaggerReveal(7, { staggerDelay: 100 });
   const isEN = language === 'en';
   
   if (!city) return <Navigate to={getLocalizedPath('/')} replace />;
 
-  const treatments = [
-    { key: 'ortho', icon: Sparkles, path: 'ortho', special: true },
-    { key: 'invisalign', icon: Smile, path: 'invisalign' },
-    { key: 'implants', icon: Target, path: 'implants' },
-    { key: 'full-mouth', icon: Stethoscope, path: 'full-mouth' }
+  // Initial condition options as per requirement #2
+  const conditions = [
+    { 
+      key: 'crooked', 
+      icon: Smile, 
+      path: 'ortho',
+      labelBG: 'Криви зъби',
+      labelEN: 'Crooked teeth'
+    },
+    { 
+      key: 'missing', 
+      icon: Target, 
+      path: 'implants',
+      labelBG: 'Липсващи зъби',
+      labelEN: 'Missing teeth'
+    },
+    { 
+      key: 'worn', 
+      icon: Stethoscope, 
+      path: 'full-mouth',
+      labelBG: 'Износени или счупени зъби',
+      labelEN: 'Worn or broken teeth'
+    },
+    { 
+      key: 'gaps', 
+      icon: Sparkles, 
+      path: 'ortho',
+      labelBG: 'Разстояния между зъбите',
+      labelEN: 'Gaps between teeth'
+    },
+    { 
+      key: 'aesthetics', 
+      icon: Heart, 
+      path: 'bonding',
+      labelBG: 'Естетика на усмивката (бондинг, форма, дължина)',
+      labelEN: 'Smile aesthetics (bonding, shape, length)'
+    },
+    { 
+      key: 'fullrehab', 
+      icon: Scissors, 
+      path: 'full-mouth',
+      labelBG: 'Пълна рехабилитация',
+      labelEN: 'Full rehabilitation'
+    }
   ];
 
   return (
