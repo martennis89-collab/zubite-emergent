@@ -98,6 +98,18 @@ Independent patient qualification and navigation platform for premium dental tre
   - CTA section linking to quiz
   - Full content for Invisalign, Implants, and Full Mouth Restoration
   - Bilingual content (BG/EN)
+- [x] **Aligners vs Braces Educational Section** (Dec 2025)
+  - Comprehensive comparison guide replacing simple Invisalign page
+  - Comparison table (8 categories: Visibility, Removability, Hygiene, Comfort, Complex cases, Age groups, Compliance, Doctor visits)
+  - Modern aligners capabilities section (6 capabilities)
+  - Braces advantages section (4 scenarios where braces are better)
+  - FAQ section (8 common questions with accordion)
+  - Two specialized quizzes:
+    - **Smile Classification Quiz** (8 questions) - Lifestyle-based recommendation
+    - **Treatment Match Quiz** (6 questions) - Aligner eligibility assessment
+  - Quiz results with personalized recommendations and CTAs
+  - Full bilingual support (BG/EN)
+  - Linked from TreatmentSelectPage
 
 ## 3rd Party Integrations
 - **Resend** - Email notifications on lead submission
