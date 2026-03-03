@@ -258,6 +258,80 @@ const OrthoEducationPage = () => {
         </div>
       </section>
 
+      {/* Pricing Section */}
+      {content.pricing && (
+        <section className="py-16 bg-slate-50">
+          <div className="max-w-4xl mx-auto px-4">
+            <ScrollReveal>
+              <div className="text-center mb-12">
+                <h2 className="font-heading text-2xl sm:text-3xl font-semibold text-slate-900 mb-3">
+                  {content.pricing.title}
+                </h2>
+              </div>
+            </ScrollReveal>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              {/* Aligners Pricing */}
+              <ScrollReveal delay={100}>
+                <div className="bg-white rounded-2xl border border-emerald-200 p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+                      <Sparkles className="w-5 h-5 text-emerald-600" />
+                    </div>
+                    <h3 className="font-medium text-slate-900">{content.pricing.aligners.title}</h3>
+                  </div>
+                  <ul className="space-y-2 text-sm text-slate-600">
+                    <li>{content.pricing.aligners.bulgaria}</li>
+                    <li className="font-medium text-slate-900">{content.pricing.aligners.average}</li>
+                    <li>{content.pricing.aligners.europe}</li>
+                  </ul>
+                </div>
+              </ScrollReveal>
+              
+              {/* Braces Pricing */}
+              <ScrollReveal delay={200}>
+                <div className="bg-white rounded-2xl border border-sky-200 p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-sky-100 flex items-center justify-center">
+                      <CheckCircle className="w-5 h-5 text-sky-600" />
+                    </div>
+                    <h3 className="font-medium text-slate-900">{content.pricing.braces.title}</h3>
+                  </div>
+                  <ul className="space-y-2 text-sm text-slate-600">
+                    <li>{content.pricing.braces.bulgaria}</li>
+                    <li>{content.pricing.braces.europe}</li>
+                  </ul>
+                </div>
+              </ScrollReveal>
+            </div>
+            
+            <ScrollReveal delay={300}>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-amber-800">{content.pricing.disclaimer}</p>
+              </div>
+            </ScrollReveal>
+          </div>
+        </section>
+      )}
+
+      {/* Professional Note */}
+      {content.professionalNote && (
+        <section className="py-12 bg-white">
+          <div className="max-w-3xl mx-auto px-4">
+            <ScrollReveal>
+              <div className="bg-slate-50 rounded-2xl border border-slate-200 p-6">
+                <h3 className="font-medium text-slate-900 mb-3 flex items-center gap-2">
+                  <Users className="w-5 h-5 text-sky-500" />
+                  {content.professionalNote.title}
+                </h3>
+                <p className="text-sm text-slate-600">{content.professionalNote.text}</p>
+              </div>
+            </ScrollReveal>
+          </div>
+        </section>
+      )}
+
       {/* FAQ Section */}
       <section className="py-16 bg-slate-50">
         <div className="max-w-3xl mx-auto px-4">
