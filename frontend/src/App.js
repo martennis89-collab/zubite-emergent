@@ -6,6 +6,8 @@ import { LanguageProvider } from "@/context/LanguageContext";
 import HomePage from "@/pages/HomePage";
 import TreatmentSelectPage from "@/pages/TreatmentSelectPage";
 import TreatmentDetailPage from "@/pages/TreatmentDetailPage";
+import OrthoEducationPage from "@/pages/OrthoEducationPage";
+import OrthoQuizPage from "@/pages/OrthoQuizPage";
 import QuizPage from "@/pages/QuizPage";
 import ResultsPage from "@/pages/ResultsPage";
 import PrivacyPage from "@/pages/PrivacyPage";
