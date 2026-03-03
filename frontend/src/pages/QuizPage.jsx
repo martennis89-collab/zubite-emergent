@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Navigate, Link } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Progress } from '@/components/ui/progress';
@@ -22,6 +22,8 @@ const QuizPage = () => {
   const [canTravel, setCanTravel] = useState(true);
   const [consent, setConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [transitionDirection, setTransitionDirection] = useState('right');
 
   const city = CITIES[citySlug];
   const treatmentKey = treatmentType === 'full-mouth' ? 'full-mouth' : treatmentType;
