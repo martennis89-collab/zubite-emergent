@@ -38,7 +38,7 @@ const HomePage = () => {
           </ScrollReveal>
           
           {/* City Cards */}
-          <div ref={citiesRef} className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div ref={citiesRef} className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto">
             {cities.map((city, index) => (
               <Link
                 key={city.slug}
