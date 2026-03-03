@@ -70,12 +70,12 @@ const OrthoEducationPage = () => {
           </ScrollReveal>
           
           <ScrollReveal delay={400}>
-            <Link to={city ? getLocalizedPath(`/city/${citySlug}/ortho/quiz`) : '#quizzes'}>
+            <a href="#quizzes">
               <Button className="btn-animate btn-pulse h-14 px-10 rounded-full bg-sky-500 hover:bg-sky-400 text-lg font-medium">
                 {content.hero.cta}
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
-            </Link>
+            </a>
           </ScrollReveal>
         </div>
       </section>
