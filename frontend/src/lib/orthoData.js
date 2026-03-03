@@ -807,28 +807,28 @@ export const TREATMENT_MATCH_QUIZ = {
     ],
     results: {
       eligible: {
-        title: 'You are a suitable candidate for aligners',
-        description: 'Based on your answers, clear aligner treatment appears suitable for you. The next step is consultation with an Invisalign specialist for accurate diagnosis and treatment plan.',
+        title: 'You are likely suitable for a modern clear aligner system.',
+        description: 'Final assessment is made after clinical examination.',
         nextSteps: [
-          'Schedule consultation with certified Invisalign provider',
+          'We will contact you to discuss your case',
           'You will receive 3D scan and simulation of expected results',
-          'Discuss treatment plan options and financing'
+          'Discuss treatment plan options'
         ]
       },
       consult: {
-        title: 'We recommend specialist consultation',
+        title: 'Clinical evaluation is needed for accurate assessment.',
         description: "Some of your answers require clinical evaluation. This doesn't mean you're not suitable for aligners — more detailed diagnostics from a specialist is simply needed.",
         nextSteps: [
-          'Visit an orthodontist for full clinical evaluation',
+          'We will contact you to discuss your case',
           'Discuss all options — aligners, braces, combined treatment',
           'Receive personalized plan based on your case'
         ]
       },
       notEligible: {
-        title: 'Braces may be more suitable',
-        description: 'Based on your answers, traditional braces may offer better results for your case. Orthodontist consultation will confirm the best solution.',
+        title: 'Based on your answers, a fixed orthodontic system may be a more suitable choice.',
+        description: 'Assessment by a specialist is required.',
         nextSteps: [
-          'Schedule orthodontist consultation',
+          'We will contact you to discuss your case',
           'Explore ceramic or metal braces options',
           'Get treatment plan tailored to your needs'
         ]
