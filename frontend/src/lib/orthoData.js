@@ -433,7 +433,7 @@ export const ORTHO_CONTENT = {
 export const SMILE_CLASSIFICATION_QUIZ = {
   id: 'smile-classification',
   bg: {
-    title: 'Класификация на усмивката',
+    title: 'Кое лечение пасва повече на моя начин на живот?',
     subtitle: 'Алайнери или брекети — кое подхожда на вашия начин на живот?',
     questions: [
       {
