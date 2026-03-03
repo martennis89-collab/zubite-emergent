@@ -205,8 +205,7 @@ export const translations = {
     cities: {
       sofia: 'София',
       plovdiv: 'Пловдив',
-      varna: 'Варна',
-      haskovo: 'Хасково'
+      varna: 'Варна'
     },
     
     // Footer
