@@ -316,34 +316,34 @@ export const ORTHO_CONTENT = {
     // Modern Aligners Capabilities
     modernAligners: {
       title: 'What can modern aligners do?',
-      subtitle: 'Premium systems like Invisalign treat far more than "mild cases"',
-      intro: 'The myth that aligners are only for cosmetic corrections has long been debunked. Modern premium aligner systems use advanced technology to treat a wide spectrum of orthodontic problems.',
+      subtitle: 'Modern aligner systems treat far more than "mild cases"',
+      intro: 'Modern premium aligner systems use advanced technology to treat a wide spectrum of orthodontic problems.',
       
       capabilities: [
+        {
+          title: 'Mild to severe crowding',
+          description: 'IPR (interproximal reduction) and sequential movement for all complexity levels.',
+          icon: 'crowding'
+        },
         {
           title: 'Extraction cases',
           description: 'Closing spaces after tooth extraction with precise movement control.',
           icon: 'extraction'
         },
         {
-          title: 'Bite correction',
+          title: 'Deep and open bite',
           description: 'Treatment of open, deep, and crossbite using elastics and attachments.',
           icon: 'bite'
         },
         {
-          title: 'Mixed dentition',
-          description: 'Treatment of children from age 6 with Invisalign First to guide jaw growth.',
-          icon: 'children'
-        },
-        {
-          title: 'Severe crowding',
-          description: 'IPR (interproximal reduction) and sequential movement for severe crowding.',
-          icon: 'crowding'
-        },
-        {
-          title: 'Class II and III malocclusions',
+          title: 'Class II and III (with auxiliaries)',
           description: 'Combination with elastics for skeletal discrepancy correction.',
           icon: 'class'
+        },
+        {
+          title: 'Mixed dentition (6+)',
+          description: 'Treatment of children from age 6 to guide jaw growth.',
+          icon: 'children'
         },
         {
           title: 'Rotations and tilts',
@@ -352,13 +352,23 @@ export const ORTHO_CONTENT = {
         }
       ],
       
+      successFactors: {
+        title: 'Success depends on:',
+        points: [
+          'Precise treatment planning',
+          'Quality of software and algorithms',
+          'Orthodontist experience and expertise',
+          'Material and system quality'
+        ]
+      },
+      
       disclaimer: 'Not every case is suitable for aligners. Consultation with a qualified orthodontist is mandatory to determine the best treatment.',
       
       clinicalAdvantages: {
-        title: 'Why premium systems have clinical advantages',
+        title: 'Advantages of modern systems',
         points: [
-          '3D simulation of results before treatment begins (ClinCheck)',
-          'SmartTrack material for more predictable tooth movement',
+          '3D simulation of results before treatment begins',
+          'Material for more predictable tooth movement',
           'Over 14 million treated patients and continuously improving algorithms',
           'Trained and certified specialists with access to clinical support',
           'Precision attachments for better control of complex cases'
@@ -372,22 +382,45 @@ export const ORTHO_CONTENT = {
       subtitle: 'There are cases where traditional braces offer advantages',
       points: [
         {
-          title: 'Teenagers with low compliance',
+          title: 'Low compliance level',
           description: 'If the patient cannot guarantee wearing trays 22 hours daily, fixed braces are more reliable.'
         },
         {
-          title: 'Extremely complex skeletal cases',
-          description: 'Some severe skeletal malocclusions may require combination with orthognathic surgery and fixed appliances.'
+          title: 'Preference for fixed mechanics',
+          description: 'Some patients prefer not having to remove and insert the appliance.'
+        },
+        {
+          title: 'Certain skeletal corrections',
+          description: 'Some cases require constant force, which is easier to achieve with fixed appliances.'
         },
         {
           title: 'Budget considerations',
           description: 'Traditional metal braces are usually more affordable than premium aligner systems.'
-        },
-        {
-          title: 'Certain tooth movements',
-          description: 'Vertical eruption of impacted teeth or extreme extrusions may be more effective with braces.'
         }
       ]
+    },
+    
+    // Pricing Transparency
+    pricing: {
+      title: 'Approximate prices for orthodontic treatment',
+      aligners: {
+        title: 'Clear aligners',
+        bulgaria: 'Bulgaria: 3000 – 6000 €',
+        average: 'Average complex case price: around 4000 €',
+        europe: 'Europe: 3500 – 7000 €'
+      },
+      braces: {
+        title: 'Braces',
+        bulgaria: 'Bulgaria: 1500 – 3500 €',
+        europe: 'Europe: 2000 – 5000 €'
+      },
+      disclaimer: 'Final price is determined after clinical examination and individual treatment plan.'
+    },
+    
+    // Professional Note
+    professionalNote: {
+      title: 'Who performs orthodontic treatment?',
+      text: 'Orthodontic treatment can be performed by both specialist orthodontists and general practitioners with additional training. Treatment quality depends on training, experience, and the specific clinical case.'
     },
     
     // FAQ Section
