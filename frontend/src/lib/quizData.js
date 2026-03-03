@@ -1,8 +1,7 @@
 export const CITIES = {
   sofia: { slug: 'sofia', name: 'София' },
   plovdiv: { slug: 'plovdiv', name: 'Пловдив' },
-  varna: { slug: 'varna', name: 'Варна' },
-  haskovo: { slug: 'haskovo', name: 'Хасково' }
+  varna: { slug: 'varna', name: 'Варна' }
 };
 
 export const TREATMENTS = {
