@@ -5,7 +5,7 @@ import { getTreatmentEducation } from '@/lib/treatmentData';
 import { CITIES } from '@/lib/quizData';
 import { 
   Smile, Target, Stethoscope, ArrowRight, ArrowLeft, MapPin, 
-  CheckCircle, Clock, ChevronDown, ChevronUp, Users, Award, Zap
+  CheckCircle, Clock, ChevronDown, ChevronUp, Users, Award, Zap, Heart
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollReveal, useStaggerReveal } from '@/hooks/useScrollReveal';
@@ -14,7 +14,8 @@ import { useState } from 'react';
 const iconMap = {
   Smile,
   Target,
-  Stethoscope
+  Stethoscope,
+  Heart
 };
 
 const TreatmentDetailPage = () => {
