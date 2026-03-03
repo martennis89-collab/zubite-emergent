@@ -150,10 +150,13 @@ Admin: admin / admin123
 - `/app/frontend/src/lib/translations.js` - BG/EN translations
 - `/app/frontend/src/lib/symptomsData.js` - Symptoms educational content
 - `/app/frontend/src/lib/treatmentData.js` - Treatment education content (Invisalign, Implants, Full Mouth)
+- `/app/frontend/src/lib/orthoData.js` - Aligners vs Braces educational content + quiz data
 - `/app/frontend/src/lib/tracking.js` - Meta Pixel and Google Ads tracking utilities
 - `/app/frontend/src/styles/animations.css` - Animation system CSS
 - `/app/frontend/src/hooks/useScrollReveal.js` - Scroll reveal hook with IntersectionObserver
 - `/app/frontend/src/pages/SymptomsPage.jsx` - Symptoms index page
 - `/app/frontend/src/pages/SymptomDetailPage.jsx` - Individual symptom details
 - `/app/frontend/src/pages/TreatmentDetailPage.jsx` - Treatment education pages
+- `/app/frontend/src/pages/OrthoEducationPage.jsx` - Aligners vs Braces guide page
+- `/app/frontend/src/pages/OrthoQuizPage.jsx` - Orthodontic quizzes (Smile Classification, Treatment Match)
 - `/app/backend/server.py` - API + email notification logic
