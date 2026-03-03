@@ -654,7 +654,7 @@ export const SMILE_CLASSIFICATION_QUIZ = {
 export const TREATMENT_MATCH_QUIZ = {
   id: 'treatment-match',
   bg: {
-    title: 'Подходящо лечение',
+    title: 'Може ли моят случай да се лекува със сваляеми алайнери?',
     subtitle: 'Подходящ ли сте кандидат за лечение с алайнери?',
     questions: [
       {
