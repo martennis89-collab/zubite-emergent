@@ -5,9 +5,10 @@ export const CITIES = {
 };
 
 export const TREATMENTS = {
-  invisalign: { slug: 'invisalign', name: 'Invisalign', description: 'Невидимо подреждане на зъбите' },
+  orthodontics: { slug: 'orthodontics', name: 'Ортодонтско лечение', description: 'Алайнери и брекети' },
   implants: { slug: 'implants', name: 'Зъбни импланти', description: 'Трайно решение за липсващи зъби' },
-  'full-mouth': { slug: 'full-mouth', name: 'Пълна възстановителна терапия', description: 'Комплексно възстановяване' }
+  'full-mouth': { slug: 'full-mouth', name: 'Пълна възстановителна терапия', description: 'Комплексно възстановяване' },
+  bonding: { slug: 'bonding', name: 'Естетика на усмивката', description: 'Бондинг, форма, дължина' }
 };
 
 export const getQuizQuestions = (treatmentType, cityName) => {
