@@ -541,7 +541,7 @@ export const SMILE_CLASSIFICATION_QUIZ = {
     }
   },
   en: {
-    title: 'Smile Classification',
+    title: 'Which treatment fits my lifestyle better?',
     subtitle: 'Aligners or braces — which suits your lifestyle?',
     questions: [
       {
