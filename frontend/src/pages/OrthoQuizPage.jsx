@@ -185,20 +185,17 @@ const OrthoQuizPage = () => {
                 </ul>
               </div>
               
+              {/* Thank you message */}
+              <p className="text-slate-500 mb-6 text-sm">
+                {isEN ? 'Thank you. We will contact you to discuss your case.' : 'Благодарим. Ще се свържем с вас, за да обсъдим вашия случай.'}
+              </p>
+              
               {/* CTAs */}
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                {city && (
-                  <Link to={getLocalizedPath(`/city/${citySlug}`)}>
-                    <Button className="btn-animate h-12 px-8 rounded-full bg-sky-500 hover:bg-sky-600">
-                      <Calendar className="w-4 h-4 mr-2" />
-                      {isEN ? 'Book Consultation' : 'Запазете консултация'}
-                    </Button>
-                  </Link>
-                )}
                 <Link to={getLocalizedPath('/contact')}>
-                  <Button variant="outline" className="h-12 px-8 rounded-full">
+                  <Button className="btn-animate h-12 px-8 rounded-full bg-sky-500 hover:bg-sky-600">
                     <Phone className="w-4 h-4 mr-2" />
-                    {isEN ? 'Contact Us' : 'Свържете се с нас'}
+                    {isEN ? 'Request a Call' : 'Заяви обаждане'}
                   </Button>
                 </Link>
               </div>
