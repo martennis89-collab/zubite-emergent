@@ -253,14 +253,26 @@ async def send_lead_notification_email(lead_data: dict):
 def calculate_score(treatment_type: str, answers: Dict[str, Any], can_travel: bool = True) -> tuple:
     score_breakdown = {}
     
-    if treatment_type == "invisalign":
-        score_breakdown["seriousness"] = {"searching": 15, "considering": 8, "browsing": 2}.get(answers.get("seriousness", "browsing"), 2)
-        score_breakdown["timing"] = {"0-3": 15, "3-6": 10, "6+": 5, "not_sure": 4}.get(answers.get("timing", "not_sure"), 4)
-        score_breakdown["importance"] = {"quality": 15, "comfort": 10, "price": 0}.get(answers.get("importance", "price"), 0)
-        score_breakdown["previous_ortho"] = {"yes": 6, "no": 5}.get(answers.get("previous_ortho", "no"), 5)
-        score_breakdown["bite_problem"] = {"yes": 8, "no": 5}.get(answers.get("bite_problem", "no"), 5)
-        score_breakdown["readiness"] = {"yes": 20, "maybe": 10, "no": 0}.get(answers.get("readiness", "no"), 0)
-        score_breakdown["can_visit"] = 6 if can_travel else 0
+    if treatment_type == "invisalign" or treatment_type == "orthodontics":
+        # Check if it's from the new ortho quiz (has quiz_type in answers)
+        if answers.get('quiz_type') in ['smile-classification', 'treatment-match']:
+            # For ortho quiz leads, assign a default score based on quiz result
+            quiz_result = answers.get('quiz_result', 'consult')
+            if quiz_result in ['aligners', 'eligible']:
+                score_breakdown["quiz_result"] = 75
+            elif quiz_result in ['both', 'consult']:
+                score_breakdown["quiz_result"] = 60
+            else:  # braces, notEligible
+                score_breakdown["quiz_result"] = 50
+        else:
+            # Original scoring for old quiz format
+            score_breakdown["seriousness"] = {"searching": 15, "considering": 8, "browsing": 2}.get(answers.get("seriousness", "browsing"), 2)
+            score_breakdown["timing"] = {"0-3": 15, "3-6": 10, "6+": 5, "not_sure": 4}.get(answers.get("timing", "not_sure"), 4)
+            score_breakdown["importance"] = {"quality": 15, "comfort": 10, "price": 0}.get(answers.get("importance", "price"), 0)
+            score_breakdown["previous_ortho"] = {"yes": 6, "no": 5}.get(answers.get("previous_ortho", "no"), 5)
+            score_breakdown["bite_problem"] = {"yes": 8, "no": 5}.get(answers.get("bite_problem", "no"), 5)
+            score_breakdown["readiness"] = {"yes": 20, "maybe": 10, "no": 0}.get(answers.get("readiness", "no"), 0)
+            score_breakdown["can_visit"] = 6 if can_travel else 0
         
     elif treatment_type == "implants":
         score_breakdown["missing_teeth"] = {"1-2": 10, "3-5": 12, "6+": 15}.get(answers.get("missing_teeth", "1-2"), 10)
