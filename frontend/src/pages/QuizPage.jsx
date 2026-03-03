@@ -162,16 +162,29 @@ const QuizPage = () => {
     setAnswers(prev => ({ ...prev, [currentQ.id]: value }));
   };
 
+  const transitionToStep = (newStep, direction) => {
+    setTransitionDirection(direction);
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setStep(newStep);
+      setIsTransitioning(false);
+    }, 200);
+  };
+
   const handleNext = () => {
     if (!isConsentStep && !answers[currentQ.id]) {
       toast.error(language === 'en' ? 'Please select an answer' : 'Моля, изберете отговор');
       return;
     }
-    if (step < totalSteps - 1) setStep(s => s + 1);
+    if (step < totalSteps - 1) {
+      transitionToStep(step + 1, 'right');
+    }
   };
 
   const handleBack = () => {
-    if (step > 0) setStep(s => s - 1);
+    if (step > 0) {
+      transitionToStep(step - 1, 'left');
+    }
   };
 
   const handleSubmit = async () => {
