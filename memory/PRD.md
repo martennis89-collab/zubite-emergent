@@ -9,11 +9,11 @@ Independent patient qualification and navigation platform for premium dental tre
 
 ### Routes (Bilingual)
 **Bulgarian (default)**:
-- `/` - Home page with 4 city cards
-- `/city/{citySlug}` - Treatment selection page
-- `/city/{citySlug}/ortho` - Aligners vs Braces educational guide
-- `/city/{citySlug}/ortho/smile-classification` - Smile Classification quiz (8 questions)
-- `/city/{citySlug}/ortho/treatment-match` - Treatment Match quiz (6 questions)
+- `/` - Home page with 3 city cards (Sofia, Plovdiv, Varna)
+- `/city/{citySlug}` - Condition selection page (6 options)
+- `/city/{citySlug}/ortho` - Orthodontic treatment educational guide
+- `/city/{citySlug}/ortho/smile-classification` - "Кое лечение пасва повече на моя начин на живот?" quiz (8 questions)
+- `/city/{citySlug}/ortho/treatment-match` - "Може ли моят случай да се лекува със сваляеми алайнери?" quiz (6 questions)
 - `/city/{citySlug}/{treatmentType}` - Treatment detail and Quiz page
 - `/results/{leadId}` - Results and contact form
 - `/symptoms` - Symptoms index page
@@ -22,10 +22,10 @@ Independent patient qualification and navigation platform for premium dental tre
 
 **English** (prefix `/en`):
 - `/en` - English home page
-- `/en/city/{citySlug}` - English treatment selection
-- `/en/city/{citySlug}/ortho` - English Aligners vs Braces guide
-- `/en/city/{citySlug}/ortho/smile-classification` - English Smile Classification quiz
-- `/en/city/{citySlug}/ortho/treatment-match` - English Treatment Match quiz
+- `/en/city/{citySlug}` - English condition selection
+- `/en/city/{citySlug}/ortho` - English Orthodontic guide
+- `/en/city/{citySlug}/ortho/smile-classification` - English "Which treatment fits my lifestyle better?" quiz
+- `/en/city/{citySlug}/ortho/treatment-match` - English "Can my case be treated with removable aligners?" quiz
 - `/en/city/{citySlug}/{treatmentType}` - English treatment detail and quiz
 - `/en/results/{leadId}` - English results page
 - `/en/symptoms` - English symptoms index
@@ -53,80 +53,59 @@ Independent patient qualification and navigation platform for premium dental tre
 ## What's Implemented
 
 ### Core Features
-- [x] City-first flow (4 cities: София/Sofia, Пловдив/Plovdiv, Варна/Varna, Хасково/Haskovo)
-- [x] Treatment selection (Invisalign, Implants, Full-Mouth)
-- [x] Quiz with 7 questions per treatment
-- [x] Score calculation and band assignment
-- [x] Results page with dynamic messaging
-- [x] Contact form with GDPR consent
+- [x] City-first flow (3 cities: София, Пловдив, Варна)
+- [x] Condition-based selection (6 options: Криви зъби, Липсващи зъби, Износени или счупени зъби, Разстояния между зъбите, Естетика на усмивката, Пълна рехабилитация)
+- [x] Treatment pages: Orthodontics, Implants, Full-Mouth, Bonding
+- [x] Quiz with scoring and band assignment
+- [x] Results page with unified outcome message: "Благодарим. Ще се свържем с вас, за да обсъдим вашия случай."
+- [x] Contact form with GDPR consent and "Заяви обаждане" CTA
 - [x] Admin authentication (JWT)
 - [x] Admin dashboard with stats by city/band
 - [x] Admin lead management with filters
 - [x] Lead detail with status updates
 - [x] CSV export functionality
 
-### New Features (Feb 2026)
+### Major Update (Mar 2025)
+- [x] **City Restriction** - Only 3 cities: София, Пловдив, Варна
+- [x] **Condition-Based Selection** - 6 initial condition options replacing treatment types
+- [x] **"Ортодонтско лечение" Label** - Replaced "Invisalign" throughout
+- [x] **Orthodontic Pricing Section** - Transparent pricing:
+  - Прозрачни алайнери: България 3000–6000€, Европа 3500–7000€
+  - Брекети: България 1500–3500€, Европа 2000–5000€
+- [x] **Professional Note** - About who performs orthodontic treatment
+- [x] **Orthodontic Foundation Education** - Added to Bonding, Implants, and Full-Mouth pages
+- [x] **Updated Quiz Titles**:
+  - "Кое лечение пасва повече на моя начин на живот?" (lifestyle quiz)
+  - "Може ли моят случай да се лекува със сваляеми алайнери?" (eligibility quiz)
+- [x] **Unified Quiz Outcomes** - All quizzes lead to same message: "Благодарим. Ще се свържем с вас, за да обсъдим вашия случай."
+- [x] **CTA Update** - All CTAs now use "Заяви обаждане"
+- [x] **Weighted Quiz Scoring** - Internal bias favoring aligners when:
+  - High aesthetics importance
+  - High compliance
+  - Rarely visible lifestyle
+  - Comfort/flexible preference
+- [x] **Balanced Education Content** - Neutral, clinical tone for both aligners and braces
+
+### Previous Features (Feb 2025)
 - [x] **Bilingual Support (BG/EN)** - URL-based routing with `/en/` prefix
-- [x] **Language Toggle** - BG | EN toggle in header (desktop & mobile)
-- [x] **Email Notifications** - Sends email to admin (martennis89@gmail.com) via Resend when leads submit contact info
-- [x] **Premium Wording** - Updated "investment readiness" question to be more premium
-- [x] **Symptoms Section** - 6 educational pages with causes, treatments, and quiz CTAs
-  - Toothache (Зъбобол)
-  - Missing Teeth (Липсващи зъби)
-  - Crooked Teeth (Криви зъби)
-  - Gum Problems (Проблеми с венците)
-  - Worn Teeth (Износени зъби)
-  - Sensitivity (Чувствителност)
-- [x] **Conversion Tracking** - Meta Pixel and Google Ads tracking integration
-  - trackQuizComplete on quiz submission
-  - trackLeadConversion on contact form submission
-  - **Note**: Placeholder IDs need to be replaced with real tracking IDs for production
-- [x] **Animation System** - Premium micro-interactions and scroll animations
-  - Scroll reveal with staggered card animations
-  - Hover effects (lift, shadow, scale) on cards
-  - Smooth quiz step transitions (slide left/right)
-  - Animated progress bar
-  - Navigation underline animation
-  - Button hover animations with subtle pulse on CTA
-  - Respects prefers-reduced-motion preference
-- [x] **Treatment Education Pages** - Detailed treatment information
-  - Hero section with icon, tagline, description, and stats
-  - 4 benefits with icons and descriptions
-  - 5-step treatment process timeline
-  - Ideal candidates checklist
-  - FAQ accordion with 4 Q&As per treatment
-  - CTA section linking to quiz
-  - Full content for Invisalign, Implants, and Full Mouth Restoration
-  - Bilingual content (BG/EN)
-- [x] **Aligners vs Braces Educational Section** (Dec 2025)
-  - Comprehensive comparison guide replacing simple Invisalign page
-  - Comparison table (8 categories: Visibility, Removability, Hygiene, Comfort, Complex cases, Age groups, Compliance, Doctor visits)
-  - Modern aligners capabilities section (6 capabilities)
-  - Braces advantages section (4 scenarios where braces are better)
-  - FAQ section (8 common questions with accordion)
-  - Two specialized quizzes:
-    - **Smile Classification Quiz** (8 questions) - Lifestyle-based recommendation
-    - **Treatment Match Quiz** (6 questions) - Aligner eligibility assessment
-  - Quiz results with personalized recommendations and CTAs
-  - Full bilingual support (BG/EN)
-  - Linked from TreatmentSelectPage
+- [x] **Language Toggle** - BG | EN toggle in header
+- [x] **Email Notifications** - Sends email to admin via Resend
+- [x] **Symptoms Section** - 6 educational pages
+- [x] **Animation System** - Premium micro-interactions
+- [x] **Treatment Education Pages** - Detailed information for each treatment
 
 ## 3rd Party Integrations
 - **Resend** - Email notifications on lead submission
-  - API Key configured in backend/.env
-  - Recipient: martennis89@gmail.com
-  - Sender: onboarding@resend.dev
 - **Meta Pixel** - Lead conversion tracking (placeholder ID - replace for production)
 - **Google Ads** - Conversion tracking (placeholder ID - replace for production)
 
 ## Seeded Data
-4 Premium Clinics (one per city):
+3 Premium Clinics (one per city):
 - Sofia Premium Clinic
 - Plovdiv Premium Clinic
 - Varna Premium Clinic
-- Haskovo Premium Clinic
 
-Admin: admin / admin123
+Admin: admin@zubite.bg / password
 
 ## Next Actions (P1)
 - [ ] Replace tracking placeholder IDs with real Meta Pixel ID and Google Ads Conversion ID
@@ -146,17 +125,13 @@ Admin: admin / admin123
 - Email: Resend
 
 ## Key Files
-- `/app/frontend/src/context/LanguageContext.jsx` - Language state management
+- `/app/frontend/src/lib/quizData.js` - CITIES and TREATMENTS definitions
 - `/app/frontend/src/lib/translations.js` - BG/EN translations
-- `/app/frontend/src/lib/symptomsData.js` - Symptoms educational content
-- `/app/frontend/src/lib/treatmentData.js` - Treatment education content (Invisalign, Implants, Full Mouth)
-- `/app/frontend/src/lib/orthoData.js` - Aligners vs Braces educational content + quiz data
-- `/app/frontend/src/lib/tracking.js` - Meta Pixel and Google Ads tracking utilities
-- `/app/frontend/src/styles/animations.css` - Animation system CSS
-- `/app/frontend/src/hooks/useScrollReveal.js` - Scroll reveal hook with IntersectionObserver
-- `/app/frontend/src/pages/SymptomsPage.jsx` - Symptoms index page
-- `/app/frontend/src/pages/SymptomDetailPage.jsx` - Individual symptom details
-- `/app/frontend/src/pages/TreatmentDetailPage.jsx` - Treatment education pages
-- `/app/frontend/src/pages/OrthoEducationPage.jsx` - Aligners vs Braces guide page
-- `/app/frontend/src/pages/OrthoQuizPage.jsx` - Orthodontic quizzes (Smile Classification, Treatment Match)
+- `/app/frontend/src/lib/orthoData.js` - Orthodontic content + pricing + quiz data
+- `/app/frontend/src/lib/treatmentData.js` - Treatment education content (incl. orthoFoundation sections)
+- `/app/frontend/src/pages/TreatmentSelectPage.jsx` - Condition selection page
+- `/app/frontend/src/pages/OrthoEducationPage.jsx` - Orthodontic guide with pricing
+- `/app/frontend/src/pages/OrthoQuizPage.jsx` - Quiz with weighted scoring
+- `/app/frontend/src/pages/TreatmentDetailPage.jsx` - Treatment pages with orthoFoundation
+- `/app/frontend/src/components/Layout.jsx` - Header/Footer with city restriction
 - `/app/backend/server.py` - API + email notification logic
