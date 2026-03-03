@@ -94,62 +94,25 @@ const TreatmentSelectPage = () => {
           
           {/* Treatment Cards */}
           <div ref={containerRef} className="space-y-4">
-            {treatments.map((item, index) => {
-              // Special handling for ortho education card
-              if (item.special) {
-                return (
-                  <Link
-                    key={item.path}
-                    to={getLocalizedPath(`/city/${citySlug}/${item.path}`)}
-                    className={`treatment-card group flex items-center gap-6 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 border border-slate-700 rounded-2xl p-6 transition-all duration-300 ${
-                      isItemRevealed(index) ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'
-                    }`}
-                    style={{ transitionDelay: `${index * 120}ms` }}
-                    data-testid={`treatment-${item.path}`}
-                  >
-                    <div className="treatment-icon w-14 h-14 rounded-2xl bg-sky-500/20 flex items-center justify-center flex-shrink-0 group-hover:bg-sky-500/30 transition-all duration-300">
-                      <item.icon className="w-7 h-7 text-sky-400" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-medium text-white">{isEN ? 'Aligners vs Braces' : 'Алайнери vs Брекети'}</h3>
-                        <span className="text-xs bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded-full">{isEN ? 'Guide' : 'Справочник'}</span>
-                      </div>
-                      <p className="text-sm text-slate-400">{isEN ? 'Compare orthodontic options and find the best fit for you' : 'Сравнете ортодонтските опции и открийте най-подходящата за вас'}</p>
-                      <span className="text-xs text-sky-400 mt-2 inline-block">
-                        {isEN ? 'Learn more & take the quiz →' : 'Научете повече и направете теста →'}
-                      </span>
-                    </div>
-                    <ArrowRight className="treatment-arrow w-5 h-5 text-slate-500 group-hover:text-sky-400 transition-all duration-300" />
-                  </Link>
-                );
-              }
-              
-              const treatment = getTreatment(item.key);
-              return (
-                <Link
-                  key={item.path}
-                  to={getLocalizedPath(`/city/${citySlug}/${item.path}`)}
-                  className={`treatment-card group flex items-center gap-6 bg-slate-50 hover:bg-sky-50 border border-slate-200 hover:border-sky-300 rounded-2xl p-6 transition-all duration-300 ${
-                    isItemRevealed(index) ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'
-                  }`}
-                  style={{ transitionDelay: `${index * 120}ms` }}
-                  data-testid={`treatment-${item.path}`}
-                >
-                  <div className="treatment-icon w-14 h-14 rounded-2xl bg-sky-100 flex items-center justify-center flex-shrink-0 group-hover:bg-sky-200 transition-all duration-300">
-                    <item.icon className="w-7 h-7 text-sky-600" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-medium text-slate-900 mb-1">{treatment.name}</h3>
-                    <p className="text-sm text-slate-500">{treatment.description}</p>
-                    <span className="text-xs text-sky-600 mt-2 inline-block">
-                      {isEN ? 'Learn more about this treatment →' : 'Научете повече за това лечение →'}
-                    </span>
-                  </div>
-                  <ArrowRight className="treatment-arrow w-5 h-5 text-slate-400 group-hover:text-sky-500 transition-all duration-300" />
-                </Link>
-              );
-            })}
+            {conditions.map((item, index) => (
+              <Link
+                key={`${item.key}-${index}`}
+                to={getLocalizedPath(`/city/${citySlug}/${item.path}`)}
+                className={`treatment-card group flex items-center gap-6 bg-slate-50 hover:bg-sky-50 border border-slate-200 hover:border-sky-300 rounded-2xl p-6 transition-all duration-300 ${
+                  isItemRevealed(index) ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'
+                }`}
+                style={{ transitionDelay: `${index * 100}ms` }}
+                data-testid={`condition-${item.key}`}
+              >
+                <div className="treatment-icon w-14 h-14 rounded-2xl bg-sky-100 flex items-center justify-center flex-shrink-0 group-hover:bg-sky-200 transition-all duration-300">
+                  <item.icon className="w-7 h-7 text-sky-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-medium text-slate-900 mb-1">{isEN ? item.labelEN : item.labelBG}</h3>
+                </div>
+                <ArrowRight className="treatment-arrow w-5 h-5 text-slate-400 group-hover:text-sky-500 transition-all duration-300" />
+              </Link>
+            ))}
           </div>
         </div>
       </div>
