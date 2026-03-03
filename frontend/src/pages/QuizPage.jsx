@@ -303,16 +303,32 @@ const QuizPage = () => {
 
           {/* Navigation */}
           <div className="flex justify-between gap-4">
-            <Button variant="outline" onClick={handleBack} disabled={step === 0} className="h-11 px-5 rounded-full" data-testid="back-btn">
-              <ArrowLeft className="w-4 h-4 mr-2" />{t('quiz.back')}
+            <Button 
+              variant="outline" 
+              onClick={handleBack} 
+              disabled={step === 0} 
+              className="h-11 px-5 rounded-full transition-all duration-200 hover:-translate-x-1 disabled:opacity-50" 
+              data-testid="back-btn"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2 transition-transform duration-200" />{t('quiz.back')}
             </Button>
             
             {!isConsentStep ? (
-              <Button onClick={handleNext} disabled={!answers[currentQ.id]} className="h-11 px-5 rounded-full bg-sky-500 hover:bg-sky-600" data-testid="next-btn">
-                {t('quiz.next')}<ArrowRight className="w-4 h-4 ml-2" />
+              <Button 
+                onClick={handleNext} 
+                disabled={!answers[currentQ.id]} 
+                className="btn-animate h-11 px-5 rounded-full bg-sky-500 hover:bg-sky-600 disabled:opacity-50 transition-all duration-200" 
+                data-testid="next-btn"
+              >
+                {t('quiz.next')}<ArrowRight className="w-4 h-4 ml-2 transition-transform duration-200 group-hover:translate-x-1" />
               </Button>
             ) : (
-              <Button onClick={handleSubmit} disabled={!consent || submitting} className="h-11 px-5 rounded-full bg-slate-900 hover:bg-slate-800" data-testid="submit-btn">
+              <Button 
+                onClick={handleSubmit} 
+                disabled={!consent || submitting} 
+                className="btn-animate h-11 px-5 rounded-full bg-slate-900 hover:bg-slate-800 transition-all duration-200" 
+                data-testid="submit-btn"
+              >
                 {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-2" />}
                 {t('quiz.submit')}
               </Button>
