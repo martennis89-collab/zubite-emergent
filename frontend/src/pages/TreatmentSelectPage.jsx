@@ -1,19 +1,21 @@
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
-import { Smile, Target, Stethoscope, ArrowRight, ArrowLeft, MapPin } from 'lucide-react';
+import { Smile, Target, Stethoscope, ArrowRight, ArrowLeft, MapPin, Sparkles } from 'lucide-react';
 import { CITIES } from '@/lib/quizData';
 import { useLanguage } from '@/context/LanguageContext';
 import { ScrollReveal, useStaggerReveal } from '@/hooks/useScrollReveal';
 
 const TreatmentSelectPage = () => {
   const { citySlug } = useParams();
-  const { t, getLocalizedPath, getCityName, getTreatment } = useLanguage();
+  const { t, getLocalizedPath, getCityName, getTreatment, language } = useLanguage();
   const city = CITIES[citySlug];
-  const { containerRef, isItemRevealed } = useStaggerReveal(3, { staggerDelay: 120 });
+  const { containerRef, isItemRevealed } = useStaggerReveal(4, { staggerDelay: 120 });
+  const isEN = language === 'en';
   
   if (!city) return <Navigate to={getLocalizedPath('/')} replace />;
 
   const treatments = [
+    { key: 'ortho', icon: Sparkles, path: 'ortho', special: true },
     { key: 'invisalign', icon: Smile, path: 'invisalign' },
     { key: 'implants', icon: Target, path: 'implants' },
     { key: 'full-mouth', icon: Stethoscope, path: 'full-mouth' }
