@@ -240,6 +240,23 @@ const TreatmentDetailPage = () => {
         </div>
       </section>
 
+      {/* Orthodontic Foundation Section */}
+      {treatment.orthoFoundation && (
+        <section className="py-12 bg-white">
+          <div className="max-w-3xl mx-auto px-4">
+            <ScrollReveal>
+              <div className="bg-sky-50 rounded-2xl border border-sky-200 p-6">
+                <h3 className="font-medium text-slate-900 mb-3 flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-sky-500" />
+                  {treatment.orthoFoundation.title}
+                </h3>
+                <p className="text-sm text-slate-600 leading-relaxed">{treatment.orthoFoundation.text}</p>
+              </div>
+            </ScrollReveal>
+          </div>
+        </section>
+      )}
+
       {/* CTA Section */}
       <section className="py-16 bg-white">
         <div className="max-w-3xl mx-auto px-4">
