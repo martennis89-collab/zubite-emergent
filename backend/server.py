@@ -360,6 +360,10 @@ async def create_lead(data: LeadCreate):
     doc['created_at'] = doc['created_at'].isoformat()
     await db.leads.insert_one(doc)
     
+    # Send email notification if contact info provided directly (ortho quiz flow)
+    if data.consent and (data.name or data.email):
+        asyncio.create_task(send_lead_notification_email(doc))
+    
     return lead
 
 @api_router.get("/leads/{lead_id}")
