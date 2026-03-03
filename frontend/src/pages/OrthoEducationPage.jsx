@@ -191,7 +191,7 @@ const OrthoEducationPage = () => {
           
           {/* Clinical Advantages */}
           <ScrollReveal>
-            <div className="bg-white rounded-2xl border border-slate-200 p-8">
+            <div className="bg-white rounded-2xl border border-slate-200 p-8 mb-8">
               <h3 className="font-heading text-xl font-semibold text-slate-900 mb-6 flex items-center gap-2">
                 <Star className="w-5 h-5 text-sky-500" />
                 {content.modernAligners.clinicalAdvantages.title}
@@ -206,6 +206,26 @@ const OrthoEducationPage = () => {
               </ul>
             </div>
           </ScrollReveal>
+          
+          {/* Success Factors */}
+          {content.modernAligners.successFactors && (
+            <ScrollReveal>
+              <div className="bg-white rounded-2xl border border-slate-200 p-8">
+                <h3 className="font-heading text-xl font-semibold text-slate-900 mb-6 flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-emerald-500" />
+                  {content.modernAligners.successFactors.title}
+                </h3>
+                <ul className="space-y-3">
+                  {content.modernAligners.successFactors.points.map((point, index) => (
+                    <li key={index} className="flex items-start gap-3">
+                      <Check className="w-5 h-5 text-sky-500 flex-shrink-0 mt-0.5" />
+                      <span className="text-slate-700">{point}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </ScrollReveal>
+          )}
         </div>
       </section>
 
