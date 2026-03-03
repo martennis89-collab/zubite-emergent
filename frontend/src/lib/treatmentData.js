@@ -298,6 +298,109 @@ export const TREATMENT_EDUCATION = {
       ctaTitle: 'Change your life with a new smile',
       ctaDescription: 'Take our assessment to find out if full mouth restoration is right for you.'
     }
+  },
+  
+  bonding: {
+    slug: 'bonding',
+    icon: 'Heart',
+    bg: {
+      name: 'Естетика на усмивката',
+      tagline: 'Бондинг, форма и дължина на зъбите',
+      heroDescription: 'Естетичните корекции на усмивката включват процедури като бондинг, фасети и контуриране на зъбите. Тези минимално инвазивни техники могат значително да подобрят външния вид на вашата усмивка.',
+      
+      benefits: [
+        { title: 'Минимално инвазивно', description: 'Запазва се максимално количество от естествената зъбна структура.' },
+        { title: 'Бързи резултати', description: 'Много процедури се извършват в едно посещение.' },
+        { title: 'Естествен вид', description: 'Материалите са подбрани да съответстват на цвета на вашите зъби.' },
+        { title: 'Достъпно', description: 'По-икономична алтернатива на коронките и фасетите.' }
+      ],
+      
+      process: [
+        { step: 1, title: 'Консултация', description: 'Обсъждане на вашите цели и очаквания за усмивката.' },
+        { step: 2, title: 'Планиране', description: 'Определяне на оптималния подход за вашия случай.' },
+        { step: 3, title: 'Подготовка', description: 'Минимална подготовка на зъбната повърхност.' },
+        { step: 4, title: 'Нанасяне', description: 'Прецизно нанасяне и оформяне на материала.' },
+        { step: 5, title: 'Финализиране', description: 'Полиране и проверка на захапката.' }
+      ],
+      
+      idealFor: [
+        'Корекция на малки пукнатини или счупвания',
+        'Затваряне на малки разстояния между зъбите',
+        'Подобряване на формата на зъбите',
+        'Удължаване на къси зъби',
+        'Корекция на дисколорации'
+      ],
+      
+      faqs: [
+        { q: 'Колко дълго трае бондингът?', a: 'При правилна грижа, бондингът може да издържи 5-10 години.' },
+        { q: 'Болезнена ли е процедурата?', a: 'Не, бондингът обикновено не изисква упойка и е безболезнен.' },
+        { q: 'Мога ли да ям нормално след това?', a: 'Да, но избягвайте твърди храни в първите 24 часа.' },
+        { q: 'Ще изглежда ли естествено?', a: 'Да, материалът се подбира внимателно да съответства на цвета на вашите зъби.' }
+      ],
+      
+      orthoFoundation: {
+        title: 'Защо подреждането на зъбите е важно преди естетични корекции',
+        text: 'Значителна част от населението има някаква форма на неправилна захапка или подреждане. В много случаи стабилизирането на позицията на зъбите чрез ортодонтско лечение осигурява по-дълготраен и функционален естетичен резултат преди поставяне на бондинг или други козметични корекции.'
+      },
+      
+      stats: [
+        { value: '1-2', label: 'Часа на процедура' },
+        { value: '5-10', label: 'Години издръжливост' },
+        { value: '100%', label: 'Безболезнено' }
+      ],
+      
+      ctaTitle: 'Подобрете усмивката си днес',
+      ctaDescription: 'Преминете през нашата оценка, за да разберете дали естетичните корекции са подходящи за вас.'
+    },
+    en: {
+      name: 'Smile Aesthetics',
+      tagline: 'Bonding, shape and tooth length',
+      heroDescription: 'Smile aesthetic corrections include procedures such as bonding, veneers, and tooth contouring. These minimally invasive techniques can significantly improve the appearance of your smile.',
+      
+      benefits: [
+        { title: 'Minimally invasive', description: 'Maximum preservation of natural tooth structure.' },
+        { title: 'Quick results', description: 'Many procedures are completed in one visit.' },
+        { title: 'Natural look', description: 'Materials are matched to your tooth color.' },
+        { title: 'Affordable', description: 'More economical alternative to crowns and veneers.' }
+      ],
+      
+      process: [
+        { step: 1, title: 'Consultation', description: 'Discussion of your smile goals and expectations.' },
+        { step: 2, title: 'Planning', description: 'Determining the optimal approach for your case.' },
+        { step: 3, title: 'Preparation', description: 'Minimal preparation of the tooth surface.' },
+        { step: 4, title: 'Application', description: 'Precise application and shaping of the material.' },
+        { step: 5, title: 'Finalization', description: 'Polishing and bite check.' }
+      ],
+      
+      idealFor: [
+        'Correcting small cracks or chips',
+        'Closing small gaps between teeth',
+        'Improving tooth shape',
+        'Lengthening short teeth',
+        'Correcting discolorations'
+      ],
+      
+      faqs: [
+        { q: 'How long does bonding last?', a: 'With proper care, bonding can last 5-10 years.' },
+        { q: 'Is the procedure painful?', a: 'No, bonding usually does not require anesthesia and is painless.' },
+        { q: 'Can I eat normally afterwards?', a: 'Yes, but avoid hard foods for the first 24 hours.' },
+        { q: 'Will it look natural?', a: 'Yes, the material is carefully matched to your tooth color.' }
+      ],
+      
+      orthoFoundation: {
+        title: 'Why teeth alignment matters before aesthetic corrections',
+        text: 'A significant portion of the population has some form of malocclusion or misalignment. In many cases, stabilizing tooth position through orthodontic treatment provides a more durable and functional aesthetic result before bonding or other cosmetic corrections.'
+      },
+      
+      stats: [
+        { value: '1-2', label: 'Hours per procedure' },
+        { value: '5-10', label: 'Years durability' },
+        { value: '100%', label: 'Painless' }
+      ],
+      
+      ctaTitle: 'Improve your smile today',
+      ctaDescription: 'Take our assessment to find out if aesthetic corrections are right for you.'
+    }
   }
 };
 
