@@ -15,30 +15,30 @@ export const Header = () => {
   };
   
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-100">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-100 transition-all duration-300">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16">
-          <Link to={getLocalizedPath('/')} className="font-heading text-xl font-semibold text-slate-900" data-testid="logo">
+          <Link to={getLocalizedPath('/')} className="font-heading text-xl font-semibold text-slate-900 transition-transform duration-200 hover:scale-105" data-testid="logo">
             Zubite<span className="text-sky-500">.bg</span>
           </Link>
           
           <nav className="hidden md:flex items-center gap-8">
-            <Link to={getLocalizedPath('/')} className={`text-sm font-medium transition-colors ${isActive('/') ? 'text-sky-500' : 'text-slate-600 hover:text-slate-900'}`} data-testid="nav-home">
+            <Link to={getLocalizedPath('/')} className={`nav-link-animated text-sm font-medium transition-colors duration-200 ${isActive('/') ? 'text-sky-500' : 'text-slate-600 hover:text-slate-900'}`} data-testid="nav-home">
               {t('nav.home')}
             </Link>
-            <Link to={getLocalizedPath('/symptoms')} className={`text-sm font-medium transition-colors ${isActive('/symptoms') || location.pathname.includes('/symptoms/') ? 'text-sky-500' : 'text-slate-600 hover:text-slate-900'}`} data-testid="nav-symptoms">
+            <Link to={getLocalizedPath('/symptoms')} className={`nav-link-animated text-sm font-medium transition-colors duration-200 ${isActive('/symptoms') || location.pathname.includes('/symptoms/') ? 'text-sky-500' : 'text-slate-600 hover:text-slate-900'}`} data-testid="nav-symptoms">
               {t('nav.symptoms')}
             </Link>
-            <Link to={getLocalizedPath('/contact')} className={`text-sm font-medium transition-colors ${isActive('/contact') ? 'text-sky-500' : 'text-slate-600 hover:text-slate-900'}`} data-testid="nav-contact">
+            <Link to={getLocalizedPath('/contact')} className={`nav-link-animated text-sm font-medium transition-colors duration-200 ${isActive('/contact') ? 'text-sky-500' : 'text-slate-600 hover:text-slate-900'}`} data-testid="nav-contact">
               {t('nav.contact')}
             </Link>
             
             {/* Language Toggle */}
             <div className="flex items-center gap-1 ml-4 border-l border-slate-200 pl-4" data-testid="language-toggle">
-              <Globe className="w-4 h-4 text-slate-400 mr-1" />
+              <Globe className="w-4 h-4 text-slate-400 mr-1 transition-transform duration-200 hover:rotate-12" />
               <button
                 onClick={() => setLanguage('bg')}
-                className={`text-sm font-medium px-2 py-1 rounded transition-colors ${language === 'bg' ? 'bg-sky-100 text-sky-600' : 'text-slate-500 hover:text-slate-700'}`}
+                className={`lang-toggle-btn text-sm font-medium px-2 py-1 rounded transition-all duration-200 ${language === 'bg' ? 'bg-sky-100 text-sky-600' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'}`}
                 data-testid="lang-bg"
               >
                 BG
@@ -46,7 +46,7 @@ export const Header = () => {
               <span className="text-slate-300">|</span>
               <button
                 onClick={() => setLanguage('en')}
-                className={`text-sm font-medium px-2 py-1 rounded transition-colors ${language === 'en' ? 'bg-sky-100 text-sky-600' : 'text-slate-500 hover:text-slate-700'}`}
+                className={`lang-toggle-btn text-sm font-medium px-2 py-1 rounded transition-all duration-200 ${language === 'en' ? 'bg-sky-100 text-sky-600' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'}`}
                 data-testid="lang-en"
               >
                 EN
