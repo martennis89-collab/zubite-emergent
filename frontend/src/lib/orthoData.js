@@ -620,8 +620,8 @@ export const SMILE_CLASSIFICATION_QUIZ = {
     ],
     results: {
       aligners: {
-        title: 'Aligners appear suitable for you',
-        description: 'Based on your answers, clear aligners would match your lifestyle and goals well. We recommend consultation with a qualified Invisalign specialist for confirmation.',
+        title: 'Based on your answers, a modern clear aligner system may be a suitable solution for you.',
+        description: 'Final assessment is made after clinical examination.',
         recommendations: [
           'You have sufficient discipline for the wear schedule',
           'Discretion is important for your professional or social life',
@@ -629,8 +629,8 @@ export const SMILE_CLASSIFICATION_QUIZ = {
         ]
       },
       braces: {
-        title: 'Braces may be more suitable for you',
-        description: 'Based on your answers, traditional braces would offer advantages in your case. Consultation with an orthodontist will confirm the best solution.',
+        title: 'Based on your answers, a fixed orthodontic system may be a more suitable choice.',
+        description: 'Assessment by a specialist is required.',
         recommendations: [
           'Fixed appliances work without daily discipline requirements',
           'Braces may better suit your lifestyle',
@@ -638,8 +638,8 @@ export const SMILE_CLASSIFICATION_QUIZ = {
         ]
       },
       both: {
-        title: 'Both options are suitable',
-        description: 'Your profile shows that both aligners and braces can be effective solutions. We recommend orthodontist consultation for personalized assessment.',
+        title: 'Your case requires individual clinical assessment to choose the most suitable treatment.',
+        description: 'We recommend orthodontist consultation for personalized assessment.',
         recommendations: [
           'Your case has characteristics suitable for both methods',
           'Final decision depends on clinical evaluation',
