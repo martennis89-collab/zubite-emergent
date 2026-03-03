@@ -341,12 +341,20 @@ async def create_lead(data: LeadCreate):
         band=band,
         assigned_clinic_id=assigned_clinic_id,
         can_travel=data.can_travel,
+        name=data.name,
+        phone=data.phone,
+        email=data.email,
+        consent=data.consent,
         utm_source=data.utm_source,
         utm_campaign=data.utm_campaign,
         utm_adset=data.utm_adset,
         utm_ad=data.utm_ad,
         page_path=data.page_path
     )
+    
+    # Store source in answers if provided
+    if data.source:
+        lead.answers['source'] = data.source
     
     doc = lead.model_dump()
     doc['created_at'] = doc['created_at'].isoformat()
