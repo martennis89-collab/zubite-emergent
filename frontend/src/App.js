@@ -28,6 +28,9 @@ const AppRoutes = () => {
         {/* Bulgarian (default) routes */}
         <Route path="/" element={<HomePage />} />
         <Route path="/city/:citySlug" element={<TreatmentSelectPage />} />
+        <Route path="/city/:citySlug/ortho" element={<OrthoEducationPage />} />
+        <Route path="/city/:citySlug/ortho/quiz" element={<OrthoQuizPage />} />
+        <Route path="/city/:citySlug/ortho/:quizType" element={<OrthoQuizPage />} />
         <Route path="/city/:citySlug/:treatmentType" element={<TreatmentDetailPage />} />
         <Route path="/city/:citySlug/:treatmentType/quiz" element={<QuizPage />} />
         <Route path="/results/:leadId" element={<ResultsPage />} />
@@ -36,10 +39,15 @@ const AppRoutes = () => {
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/symptoms" element={<SymptomsPage />} />
         <Route path="/symptoms/:symptomSlug" element={<SymptomDetailPage />} />
+        <Route path="/ortho" element={<OrthoEducationPage />} />
+        <Route path="/ortho/:quizType" element={<OrthoQuizPage />} />
         
         {/* English routes */}
         <Route path="/en" element={<HomePage />} />
         <Route path="/en/city/:citySlug" element={<TreatmentSelectPage />} />
+        <Route path="/en/city/:citySlug/ortho" element={<OrthoEducationPage />} />
+        <Route path="/en/city/:citySlug/ortho/quiz" element={<OrthoQuizPage />} />
+        <Route path="/en/city/:citySlug/ortho/:quizType" element={<OrthoQuizPage />} />
         <Route path="/en/city/:citySlug/:treatmentType" element={<TreatmentDetailPage />} />
         <Route path="/en/city/:citySlug/:treatmentType/quiz" element={<QuizPage />} />
         <Route path="/en/results/:leadId" element={<ResultsPage />} />
@@ -48,6 +56,8 @@ const AppRoutes = () => {
         <Route path="/en/contact" element={<ContactPage />} />
         <Route path="/en/symptoms" element={<SymptomsPage />} />
         <Route path="/en/symptoms/:symptomSlug" element={<SymptomDetailPage />} />
+        <Route path="/en/ortho" element={<OrthoEducationPage />} />
+        <Route path="/en/ortho/:quizType" element={<OrthoQuizPage />} />
         
         {/* Admin routes (no translation needed) */}
         <Route path="/admin" element={<AdminLogin />} />
