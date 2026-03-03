@@ -108,7 +108,6 @@ Admin: admin / admin123
 
 ## Next Actions (P1)
 - [ ] Replace tracking placeholder IDs with real Meta Pixel ID and Google Ads Conversion ID
-- [ ] Expand treatment education content on treatment pages
 - [ ] Translate Privacy/Terms/Contact pages to English
 
 ## Backlog (P2)
