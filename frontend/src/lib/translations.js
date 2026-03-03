@@ -23,9 +23,9 @@ export const translations = {
     treatments: {
       title: 'Изберете лечение',
       subtitle: 'в',
-      invisalign: {
-        name: 'Invisalign',
-        description: 'Невидимо подреждане на зъбите'
+      orthodontics: {
+        name: 'Ортодонтско лечение',
+        description: 'Алайнери и брекети'
       },
       implants: {
         name: 'Зъбни импланти',
@@ -34,6 +34,10 @@ export const translations = {
       'full-mouth': {
         name: 'Пълна възстановителна терапия',
         description: 'Комплексно възстановяване'
+      },
+      bonding: {
+        name: 'Естетика на усмивката',
+        description: 'Бондинг, форма, дължина'
       },
       startQuiz: 'Започни теста'
     },
