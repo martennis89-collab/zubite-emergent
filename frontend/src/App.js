@@ -5,6 +5,7 @@ import { LanguageProvider } from "@/context/LanguageContext";
 
 import HomePage from "@/pages/HomePage";
 import TreatmentSelectPage from "@/pages/TreatmentSelectPage";
+import TreatmentDetailPage from "@/pages/TreatmentDetailPage";
 import QuizPage from "@/pages/QuizPage";
 import ResultsPage from "@/pages/ResultsPage";
 import PrivacyPage from "@/pages/PrivacyPage";
@@ -25,7 +26,8 @@ const AppRoutes = () => {
         {/* Bulgarian (default) routes */}
         <Route path="/" element={<HomePage />} />
         <Route path="/city/:citySlug" element={<TreatmentSelectPage />} />
-        <Route path="/city/:citySlug/:treatmentType" element={<QuizPage />} />
+        <Route path="/city/:citySlug/:treatmentType" element={<TreatmentDetailPage />} />
+        <Route path="/city/:citySlug/:treatmentType/quiz" element={<QuizPage />} />
         <Route path="/results/:leadId" element={<ResultsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
@@ -36,7 +38,8 @@ const AppRoutes = () => {
         {/* English routes */}
         <Route path="/en" element={<HomePage />} />
         <Route path="/en/city/:citySlug" element={<TreatmentSelectPage />} />
-        <Route path="/en/city/:citySlug/:treatmentType" element={<QuizPage />} />
+        <Route path="/en/city/:citySlug/:treatmentType" element={<TreatmentDetailPage />} />
+        <Route path="/en/city/:citySlug/:treatmentType/quiz" element={<QuizPage />} />
         <Route path="/en/results/:leadId" element={<ResultsPage />} />
         <Route path="/en/privacy" element={<PrivacyPage />} />
         <Route path="/en/terms" element={<TermsPage />} />
