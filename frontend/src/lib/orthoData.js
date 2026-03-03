@@ -745,7 +745,7 @@ export const TREATMENT_MATCH_QUIZ = {
     }
   },
   en: {
-    title: 'Treatment Match',
+    title: 'Can my case be treated with removable aligners?',
     subtitle: 'Are you a suitable candidate for aligner treatment?',
     questions: [
       {
