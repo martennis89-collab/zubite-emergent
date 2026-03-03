@@ -437,8 +437,7 @@ export const translations = {
     cities: {
       sofia: 'Sofia',
       plovdiv: 'Plovdiv',
-      varna: 'Varna',
-      haskovo: 'Haskovo'
+      varna: 'Varna'
     },
     
     // Footer
