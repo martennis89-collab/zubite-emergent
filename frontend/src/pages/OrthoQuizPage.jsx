@@ -27,6 +27,9 @@ const OrthoQuizPage = () => {
   const [transitionDirection, setTransitionDirection] = useState('right');
   const [showResults, setShowResults] = useState(false);
   const [result, setResult] = useState(null);
+  const [contactForm, setContactForm] = useState({ name: '', phone: '', email: '', consent: false });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   
   const city = CITIES[citySlug];
   const cityName = city ? getCityName(citySlug) : '';
