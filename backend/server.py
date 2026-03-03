@@ -57,9 +57,14 @@ class Clinic(BaseModel):
 
 class LeadCreate(BaseModel):
     city_slug: str
-    treatment_type: str  # invisalign, implants, full_mouth
+    treatment_type: str  # orthodontics, implants, full_mouth, bonding
     answers: Dict[str, Any] = {}
     can_travel: bool = True
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    consent: bool = False
+    source: Optional[str] = None  # quiz source identifier
     utm_source: Optional[str] = None
     utm_campaign: Optional[str] = None
     utm_adset: Optional[str] = None
