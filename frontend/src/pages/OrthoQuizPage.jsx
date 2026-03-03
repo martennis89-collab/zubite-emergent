@@ -6,11 +6,15 @@ import { getSmileClassificationQuiz, getTreatmentMatchQuiz } from '@/lib/orthoDa
 import { CITIES } from '@/lib/quizData';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   ArrowLeft, ArrowRight, CheckCircle, Loader2, 
-  Smile, Target, AlertCircle, Calendar, Phone
+  Smile, Target, AlertCircle, Phone, User, Mail
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { createLead } from '@/lib/api';
 
 const OrthoQuizPage = () => {
   const { citySlug, quizType } = useParams();
