@@ -124,8 +124,7 @@ class TokenResponse(BaseModel):
 CITIES = {
     "sofia": "София",
     "plovdiv": "Пловдив", 
-    "varna": "Варна",
-    "haskovo": "Хасково"
+    "varna": "Варна"
 }
 
 # ============== AUTH ==============
