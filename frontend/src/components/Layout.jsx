@@ -113,7 +113,6 @@ export const Footer = () => {
               <Link to={getLocalizedPath('/city/sofia')} className="block hover:text-white">{t('cities.sofia')}</Link>
               <Link to={getLocalizedPath('/city/plovdiv')} className="block hover:text-white">{t('cities.plovdiv')}</Link>
               <Link to={getLocalizedPath('/city/varna')} className="block hover:text-white">{t('cities.varna')}</Link>
-              <Link to={getLocalizedPath('/city/haskovo')} className="block hover:text-white">{t('cities.haskovo')}</Link>
             </div>
           </div>
         </div>
