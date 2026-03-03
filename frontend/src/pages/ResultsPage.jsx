@@ -89,10 +89,10 @@ const ResultsPage = () => {
       <div className="py-12 md:py-20 bg-slate-50 min-h-[70vh]">
         <div className="max-w-xl mx-auto px-4">
           {/* Result Banner */}
-          <div className={`${config.bg} border ${config.border} rounded-2xl p-8 mb-8 text-center`}>
-            <Icon className={`w-14 h-14 ${config.color} mx-auto mb-4`} />
-            <p className="text-slate-700 mb-4">{config.title}</p>
-            <div className="flex flex-wrap justify-center gap-3 text-sm">
+          <div className={`result-card ${config.bg} border ${config.border} rounded-2xl p-8 mb-8 text-center`}>
+            <Icon className={`result-icon w-14 h-14 ${config.color} mx-auto mb-4`} />
+            <p className="text-slate-700 mb-4 animate-fade-in-up" style={{ animationDelay: '300ms', animationFillMode: 'both' }}>{config.title}</p>
+            <div className="flex flex-wrap justify-center gap-3 text-sm animate-fade-in-up" style={{ animationDelay: '400ms', animationFillMode: 'both' }}>
               <span className="bg-white px-3 py-1.5 rounded-full border">
                 {treatmentInfo.name}
               </span>
