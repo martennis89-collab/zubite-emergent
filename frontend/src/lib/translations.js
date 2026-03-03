@@ -259,9 +259,9 @@ export const translations = {
     treatments: {
       title: 'Choose treatment',
       subtitle: 'in',
-      invisalign: {
-        name: 'Invisalign',
-        description: 'Invisible teeth alignment'
+      orthodontics: {
+        name: 'Orthodontic Treatment',
+        description: 'Aligners and braces'
       },
       implants: {
         name: 'Dental Implants',
@@ -270,6 +270,10 @@ export const translations = {
       'full-mouth': {
         name: 'Full Mouth Restoration',
         description: 'Comprehensive restoration'
+      },
+      bonding: {
+        name: 'Smile Aesthetics',
+        description: 'Bonding, shape, length'
       },
       startQuiz: 'Start assessment'
     },
