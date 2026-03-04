@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, use, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Header } from '@/components/Header'
@@ -8,38 +8,37 @@ import { Footer } from '@/components/Footer'
 import { CITIES, TREATMENTS, getQuizQuestions } from '@/lib/data'
 import { createLead } from '@/lib/api'
 import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react'
-import { notFound } from 'next/navigation'
 
 interface QuizPageProps {
   params: Promise<{ citySlug: string; treatmentType: string }>
 }
 
 export default function QuizPage({ params }: QuizPageProps) {
-  const [resolvedParams, setResolvedParams] = useState<{ citySlug: string; treatmentType: string } | null>(null)
+  const resolvedParams = use(params)
+  const { citySlug, treatmentType } = resolvedParams
+  
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [showContactForm, setShowContactForm] = useState(false)
   const [contactData, setContactData] = useState({ name: '', phone: '', email: '', consent: false })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [isClient, setIsClient] = useState(false)
   const router = useRouter()
   
-  // Resolve params
-  if (!resolvedParams) {
-    params.then(p => setResolvedParams(p))
-    return (
-      <main className="min-h-screen bg-[#0f172a] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-sky-400 animate-spin" />
-      </main>
-    )
-  }
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
   
-  const { citySlug, treatmentType } = resolvedParams
   const city = CITIES[citySlug as keyof typeof CITIES]
   const treatment = TREATMENTS[treatmentType as keyof typeof TREATMENTS]
   
   if (!city || !treatment) {
-    notFound()
+    return (
+      <main className="min-h-screen bg-[#0f172a] flex items-center justify-center">
+        <div className="text-white">Страницата не беше намерена</div>
+      </main>
+    )
   }
   
   const questions = getQuizQuestions(treatmentType, city.name)
@@ -93,6 +92,14 @@ export default function QuizPage({ params }: QuizPageProps) {
       setError('Възникна грешка. Моля, опитайте отново.')
       setIsSubmitting(false)
     }
+  }
+  
+  if (!isClient) {
+    return (
+      <main className="min-h-screen bg-[#0f172a] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-sky-400 animate-spin" />
+      </main>
+    )
   }
   
   return (
