@@ -536,9 +536,7 @@ async def seed():
     
     return {"message": "Seeded successfully"}
 
-app.include_router(api_router)
-
-# Add SEO routes directly to api_router for /api/seo/* access
+# SEO routes - must be before include_router
 @api_router.get("/seo/", response_class=HTMLResponse)
 async def serve_homepage_bg():
     file_path = STATIC_DIR / "index.html"
@@ -581,13 +579,14 @@ async def serve_ortho_page_en(city_slug: str):
         return FileResponse(file_path, media_type="text/html")
     raise HTTPException(status_code=404, detail="Page not found")
 
-# Static files mount for CSS/JS
 @api_router.get("/seo/static/{file_path:path}")
 async def serve_static_file(file_path: str):
     full_path = STATIC_DIR / file_path
     if full_path.exists() and full_path.is_file():
         return FileResponse(full_path)
     raise HTTPException(status_code=404, detail="File not found")
+
+app.include_router(api_router)
 
 app.add_middleware(
     CORSMiddleware,
