@@ -597,52 +597,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount static files for CSS/JS
+# Mount static files for CSS/JS (for direct app access)
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
-
-# Static HTML routes for SEO
-@app.get("/seo/", response_class=HTMLResponse)
-async def serve_homepage_bg():
-    file_path = STATIC_DIR / "index.html"
-    if file_path.exists():
-        return FileResponse(file_path)
-    raise HTTPException(status_code=404, detail="Page not found")
-
-@app.get("/seo/en/", response_class=HTMLResponse)
-async def serve_homepage_en():
-    file_path = STATIC_DIR / "en" / "index.html"
-    if file_path.exists():
-        return FileResponse(file_path)
-    raise HTTPException(status_code=404, detail="Page not found")
-
-@app.get("/seo/city/{city_slug}/", response_class=HTMLResponse)
-async def serve_city_page_bg(city_slug: str):
-    file_path = STATIC_DIR / "city" / city_slug / "index.html"
-    if file_path.exists():
-        return FileResponse(file_path)
-    raise HTTPException(status_code=404, detail="Page not found")
-
-@app.get("/seo/en/city/{city_slug}/", response_class=HTMLResponse)
-async def serve_city_page_en(city_slug: str):
-    file_path = STATIC_DIR / "en" / "city" / city_slug / "index.html"
-    if file_path.exists():
-        return FileResponse(file_path)
-    raise HTTPException(status_code=404, detail="Page not found")
-
-@app.get("/seo/city/{city_slug}/ortho/", response_class=HTMLResponse)
-async def serve_ortho_page_bg(city_slug: str):
-    file_path = STATIC_DIR / "city" / city_slug / "ortho" / "index.html"
-    if file_path.exists():
-        return FileResponse(file_path)
-    raise HTTPException(status_code=404, detail="Page not found")
-
-@app.get("/seo/en/city/{city_slug}/ortho/", response_class=HTMLResponse)
-async def serve_ortho_page_en(city_slug: str):
-    file_path = STATIC_DIR / "en" / "city" / city_slug / "ortho" / "index.html"
-    if file_path.exists():
-        return FileResponse(file_path)
-    raise HTTPException(status_code=404, detail="Page not found")
 
 @app.on_event("startup")
 async def startup():
