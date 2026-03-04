@@ -21,6 +21,11 @@
       "static/chunks/main-app.js",
       "static/chunks/app/city/[citySlug]/[treatmentType]/page.js"
     ],
+    "/city/[citySlug]/[treatmentType]/quiz/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/city/[citySlug]/[treatmentType]/quiz/page.js"
+    ],
     "/_not-found/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
