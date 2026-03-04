@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, use, useEffect } from 'react'
 import Link from 'next/link'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
@@ -23,12 +23,14 @@ interface Lead {
 }
 
 export default function ResultsPage({ params }: ResultsPageProps) {
+  const { leadId } = use(params)
+  
   const [lead, setLead] = useState<Lead | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   
   useEffect(() => {
-    params.then(async ({ leadId }) => {
+    const fetchLead = async () => {
       try {
         const data = await getLead(leadId)
         setLead(data)
@@ -37,8 +39,10 @@ export default function ResultsPage({ params }: ResultsPageProps) {
       } finally {
         setLoading(false)
       }
-    })
-  }, [params])
+    }
+    
+    fetchLead()
+  }, [leadId])
   
   if (loading) {
     return (

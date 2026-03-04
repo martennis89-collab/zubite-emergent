@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, use, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Header } from '@/components/Header'
@@ -70,23 +70,20 @@ const ORTHO_QUESTIONS = [
 ]
 
 export default function OrthoQuizPage({ params }: OrthoQuizPageProps) {
-  const [quizType, setQuizType] = useState<string | null>(null)
+  const { quizType } = use(params)
+  
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [showContactForm, setShowContactForm] = useState(false)
   const [contactData, setContactData] = useState({ name: '', phone: '', email: '', consent: false })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [isClient, setIsClient] = useState(false)
   const router = useRouter()
   
-  if (!quizType) {
-    params.then(p => setQuizType(p.quizType))
-    return (
-      <main className="min-h-screen bg-[#0f172a] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-sky-400 animate-spin" />
-      </main>
-    )
-  }
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
   
   const currentQ = ORTHO_QUESTIONS[currentQuestion]
   const progress = ((currentQuestion + 1) / ORTHO_QUESTIONS.length) * 100
@@ -138,6 +135,14 @@ export default function OrthoQuizPage({ params }: OrthoQuizPageProps) {
       setError('Възникна грешка. Моля, опитайте отново.')
       setIsSubmitting(false)
     }
+  }
+  
+  if (!isClient) {
+    return (
+      <main className="min-h-screen bg-[#0f172a] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-sky-400 animate-spin" />
+      </main>
+    )
   }
   
   return (

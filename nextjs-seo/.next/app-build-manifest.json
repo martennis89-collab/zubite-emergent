@@ -36,6 +36,16 @@
       "static/chunks/main-app.js",
       "static/chunks/app/ortho/page.js"
     ],
+    "/ortho/[quizType]/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/ortho/[quizType]/page.js"
+    ],
+    "/en/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/en/page.js"
+    ],
     "/_not-found/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
