@@ -5,5 +5,6 @@
   "/city/[citySlug]/ortho/page": "app/city/[citySlug]/ortho/page.js",
   "/ortho/page": "app/ortho/page.js",
   "/ortho/[quizType]/page": "app/ortho/[quizType]/page.js",
-  "/en/page": "app/en/page.js"
+  "/en/page": "app/en/page.js",
+  "/city/[citySlug]/[treatmentType]/quiz/page": "app/city/[citySlug]/[treatmentType]/quiz/page.js"
 }
