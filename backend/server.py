@@ -538,6 +538,57 @@ async def seed():
 
 app.include_router(api_router)
 
+# Add SEO routes directly to api_router for /api/seo/* access
+@api_router.get("/seo/", response_class=HTMLResponse)
+async def serve_homepage_bg():
+    file_path = STATIC_DIR / "index.html"
+    if file_path.exists():
+        return FileResponse(file_path, media_type="text/html")
+    raise HTTPException(status_code=404, detail="Page not found")
+
+@api_router.get("/seo/en/", response_class=HTMLResponse)
+async def serve_homepage_en():
+    file_path = STATIC_DIR / "en" / "index.html"
+    if file_path.exists():
+        return FileResponse(file_path, media_type="text/html")
+    raise HTTPException(status_code=404, detail="Page not found")
+
+@api_router.get("/seo/city/{city_slug}/", response_class=HTMLResponse)
+async def serve_city_page_bg(city_slug: str):
+    file_path = STATIC_DIR / "city" / city_slug / "index.html"
+    if file_path.exists():
+        return FileResponse(file_path, media_type="text/html")
+    raise HTTPException(status_code=404, detail="Page not found")
+
+@api_router.get("/seo/en/city/{city_slug}/", response_class=HTMLResponse)
+async def serve_city_page_en(city_slug: str):
+    file_path = STATIC_DIR / "en" / "city" / city_slug / "index.html"
+    if file_path.exists():
+        return FileResponse(file_path, media_type="text/html")
+    raise HTTPException(status_code=404, detail="Page not found")
+
+@api_router.get("/seo/city/{city_slug}/ortho/", response_class=HTMLResponse)
+async def serve_ortho_page_bg(city_slug: str):
+    file_path = STATIC_DIR / "city" / city_slug / "ortho" / "index.html"
+    if file_path.exists():
+        return FileResponse(file_path, media_type="text/html")
+    raise HTTPException(status_code=404, detail="Page not found")
+
+@api_router.get("/seo/en/city/{city_slug}/ortho/", response_class=HTMLResponse)
+async def serve_ortho_page_en(city_slug: str):
+    file_path = STATIC_DIR / "en" / "city" / city_slug / "ortho" / "index.html"
+    if file_path.exists():
+        return FileResponse(file_path, media_type="text/html")
+    raise HTTPException(status_code=404, detail="Page not found")
+
+# Static files mount for CSS/JS
+@api_router.get("/seo/static/{file_path:path}")
+async def serve_static_file(file_path: str):
+    full_path = STATIC_DIR / file_path
+    if full_path.exists() and full_path.is_file():
+        return FileResponse(full_path)
+    raise HTTPException(status_code=404, detail="File not found")
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
