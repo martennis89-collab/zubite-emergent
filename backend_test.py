@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 
 class ZubiteAPITester:
-    def __init__(self, base_url="https://smile-matcher-1.preview.emergentagent.com"):
+    def __init__(self, base_url="https://zubite-nextjs.preview.emergentagent.com"):
         self.base_url = base_url
         self.token = None
         self.tests_run = 0
