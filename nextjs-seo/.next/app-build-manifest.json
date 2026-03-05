@@ -1,9 +1,9 @@
 {
   "pages": {
-    "/orthodontics/page": [
+    "/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/orthodontics/page.js"
+      "static/chunks/app/page.js"
     ],
     "/layout": [
       "static/chunks/webpack.js",
@@ -11,90 +11,30 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
-    "/page": [
+    "/cosmetic-dentistry/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/page.js"
+      "static/chunks/app/cosmetic-dentistry/page.js"
+    ],
+    "/orthodontics/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/orthodontics/page.js"
     ],
     "/implants/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/implants/page.js"
     ],
-    "/aligners-vs-braces/page": [
+    "/sleep-airway/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/aligners-vs-braces/page.js"
-    ],
-    "/[city]/[treatment]/quiz/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/[city]/[treatment]/quiz/page.js"
-    ],
-    "/[city]/[treatment]/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/[city]/[treatment]/page.js"
-    ],
-    "/cosmetic-dentistry/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/cosmetic-dentistry/page.js"
+      "static/chunks/app/sleep-airway/page.js"
     ],
     "/tmj/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/tmj/page.js"
-    ],
-    "/terms/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/terms/page.js"
-    ],
-    "/privacy/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/privacy/page.js"
-    ],
-    "/symptoms/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/symptoms/page.js"
-    ],
-    "/symptoms/[symptomSlug]/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/symptoms/[symptomSlug]/page.js"
-    ],
-    "/orthodontics/quiz/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/orthodontics/quiz/page.js"
-    ],
-    "/implants/quiz/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/implants/quiz/page.js"
-    ],
-    "/cosmetic-dentistry/quiz/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/cosmetic-dentistry/quiz/page.js"
-    ],
-    "/tmj/quiz/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/tmj/quiz/page.js"
-    ],
-    "/sleep-airway/quiz/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/sleep-airway/quiz/page.js"
-    ],
-    "/aligners-comparison/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/aligners-comparison/page.js"
     ]
   }
 }

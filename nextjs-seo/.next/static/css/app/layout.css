@@ -682,6 +682,9 @@ h3{
 .ml-2{
   margin-left: 0.5rem;
 }
+.ml-auto{
+  margin-left: auto;
+}
 .mt-0\.5{
   margin-top: 0.125rem;
 }
@@ -702,9 +705,6 @@ h3{
 }
 .mt-8{
   margin-top: 2rem;
-}
-.ml-auto{
-  margin-left: auto;
 }
 .block{
   display: block;
@@ -1393,11 +1393,11 @@ h3{
 .pt-4{
   padding-top: 1rem;
 }
-.pt-8{
-  padding-top: 2rem;
-}
 .pt-6{
   padding-top: 1.5rem;
+}
+.pt-8{
+  padding-top: 2rem;
 }
 .text-left{
   text-align: left;
@@ -1424,6 +1424,10 @@ h3{
   font-size: 3rem;
   line-height: 1;
 }
+.text-base{
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
 .text-lg{
   font-size: 1.125rem;
   line-height: 1.75rem;
@@ -1439,10 +1443,6 @@ h3{
 .text-xs{
   font-size: 0.75rem;
   line-height: 1rem;
-}
-.text-base{
-  font-size: 1rem;
-  line-height: 1.5rem;
 }
 .font-bold{
   font-weight: 700;
@@ -1489,6 +1489,10 @@ h3{
 .text-amber-700{
   --tw-text-opacity: 1;
   color: rgb(180 83 9 / var(--tw-text-opacity, 1));
+}
+.text-amber-800{
+  --tw-text-opacity: 1;
+  color: rgb(146 64 14 / var(--tw-text-opacity, 1));
 }
 .text-emerald-500{
   --tw-text-opacity: 1;
@@ -1542,9 +1546,6 @@ h3{
   --tw-text-opacity: 1;
   color: rgb(186 230 253 / var(--tw-text-opacity, 1));
 }
-.text-sky-200\/80{
-  color: rgb(186 230 253 / 0.8);
-}
 .text-sky-400{
   --tw-text-opacity: 1;
   color: rgb(56 189 248 / var(--tw-text-opacity, 1));
@@ -1588,10 +1589,6 @@ h3{
 .text-white{
   --tw-text-opacity: 1;
   color: rgb(255 255 255 / var(--tw-text-opacity, 1));
-}
-.text-amber-800{
-  --tw-text-opacity: 1;
-  color: rgb(146 64 14 / var(--tw-text-opacity, 1));
 }
 .antialiased{
   -webkit-font-smoothing: antialiased;
@@ -2130,6 +2127,11 @@ h3{
   color: rgb(14 165 233 / var(--tw-text-opacity, 1));
 }
 
+.hover\:text-sky-600:hover{
+  --tw-text-opacity: 1;
+  color: rgb(2 132 199 / var(--tw-text-opacity, 1));
+}
+
 .hover\:text-sky-700:hover{
   --tw-text-opacity: 1;
   color: rgb(3 105 161 / var(--tw-text-opacity, 1));
@@ -2143,11 +2145,6 @@ h3{
 .hover\:text-slate-900:hover{
   --tw-text-opacity: 1;
   color: rgb(15 23 42 / var(--tw-text-opacity, 1));
-}
-
-.hover\:text-sky-600:hover{
-  --tw-text-opacity: 1;
-  color: rgb(2 132 199 / var(--tw-text-opacity, 1));
 }
 
 .hover\:underline:hover{
