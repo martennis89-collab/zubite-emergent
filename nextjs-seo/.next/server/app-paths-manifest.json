@@ -7,5 +7,6 @@
   "/tmj/page": "app/tmj/page.js",
   "/tmj/quiz/page": "app/tmj/quiz/page.js",
   "/implants/page": "app/implants/page.js",
-  "/sleep-airway/quiz/page": "app/sleep-airway/quiz/page.js"
+  "/sleep-airway/quiz/page": "app/sleep-airway/quiz/page.js",
+  "/aligners-vs-braces/page": "app/aligners-vs-braces/page.js"
 }
