@@ -1,8 +1,9 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
   "/[city]/[treatment]/quiz/page": "app/[city]/[treatment]/quiz/page.js",
   "/invisalign-price/page": "app/invisalign-price/page.js",
   "/page": "app/page.js",
   "/orthodontics/page": "app/orthodontics/page.js",
-  "/[city]/[treatment]/page": "app/[city]/[treatment]/page.js"
+  "/[city]/[treatment]/page": "app/[city]/[treatment]/page.js",
+  "/admin/page": "app/admin/page.js",
+  "/admin/dashboard/page": "app/admin/dashboard/page.js"
 }
