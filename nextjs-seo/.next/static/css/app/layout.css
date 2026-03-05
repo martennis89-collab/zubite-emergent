@@ -529,6 +529,9 @@ video {
 .top-1\/2 {
   top: 50%;
 }
+.top-full {
+  top: 100%;
+}
 .z-50 {
   z-index: 50;
 }
@@ -693,6 +696,9 @@ video {
 .w-3 {
   width: 0.75rem;
 }
+.w-56 {
+  width: 14rem;
+}
 .max-w-2xl {
   max-width: 42rem;
 }
@@ -726,6 +732,10 @@ video {
 }
 .-translate-y-1\/2 {
   --tw-translate-y: -50%;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+.rotate-180 {
+  --tw-rotate: 180deg;
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
 @keyframes fadeIn {
@@ -1218,6 +1228,11 @@ video {
 .opacity-0 {
   opacity: 0;
 }
+.shadow-xl {
+  --tw-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --tw-shadow-colored: 0 20px 25px -5px var(--tw-shadow-color), 0 8px 10px -6px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
 .blur-3xl {
   --tw-blur: blur(64px);
   filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
@@ -1413,6 +1428,10 @@ a {
 
 .hover\:bg-slate-800\/30:hover {
   background-color: rgb(30 41 59 / 0.3);
+}
+
+.hover\:bg-slate-800\/50:hover {
+  background-color: rgb(30 41 59 / 0.5);
 }
 
 .hover\:text-sky-300:hover {

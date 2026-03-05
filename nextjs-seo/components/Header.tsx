@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
-import { Menu, X, Globe } from 'lucide-react'
+import { Menu, X, ChevronDown } from 'lucide-react'
 
 interface HeaderProps {
   lang?: 'bg' | 'en'
@@ -11,102 +11,104 @@ interface HeaderProps {
 
 export function Header({ lang = 'bg' }: HeaderProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [treatmentsOpen, setTreatmentsOpen] = useState(false)
   const pathname = usePathname()
   
   const isActive = (path: string) => {
-    const currentPath = pathname.replace(/^\/en/, '') || '/'
-    return currentPath === path
+    return pathname === path || pathname.startsWith(path + '/')
   }
   
-  const getLocalizedPath = (path: string) => {
-    return lang === 'en' ? `/en${path}` : path
-  }
-  
-  const t = {
-    home: lang === 'en' ? 'Home' : 'Начало',
-    symptoms: lang === 'en' ? 'Symptoms' : 'Симптоми',
-    contact: lang === 'en' ? 'Contact' : 'Контакти',
-  }
+  const treatments = [
+    { slug: 'orthodontics', name: 'Ортодонтия' },
+    { slug: 'implants', name: 'Зъбни импланти' },
+    { slug: 'cosmetic-dentistry', name: 'Естетична стоматология' },
+    { slug: 'sleep-airway', name: 'Сънна апнея' },
+    { slug: 'tmj', name: 'TMJ / Челюстни стави' },
+  ]
   
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <Link href={getLocalizedPath('/')} className="font-serif text-2xl font-semibold text-white" data-testid="logo">
+          <Link href="/" className="font-serif text-2xl font-semibold text-white" data-testid="logo">
             Zubite<span className="text-sky-400">.bg</span>
           </Link>
           
-          <nav className="hidden md:flex items-center gap-8">
+          <nav className="hidden md:flex items-center gap-6">
             <Link 
-              href={getLocalizedPath('/')} 
-              className={`text-sm font-medium transition-colors ${isActive('/') ? 'text-sky-400' : 'text-slate-300 hover:text-white'}`}
+              href="/" 
+              className={`text-sm font-medium transition-colors ${pathname === '/' ? 'text-sky-400' : 'text-slate-300 hover:text-white'}`}
               data-testid="nav-home"
             >
-              {t.home}
+              Начало
             </Link>
+            
+            {/* Treatments Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setTreatmentsOpen(!treatmentsOpen)}
+                className={`text-sm font-medium transition-colors flex items-center gap-1 ${
+                  treatments.some(t => isActive(`/${t.slug}`)) ? 'text-sky-400' : 'text-slate-300 hover:text-white'
+                }`}
+                data-testid="nav-treatments"
+              >
+                Лечения
+                <ChevronDown className={`w-4 h-4 transition-transform ${treatmentsOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {treatmentsOpen && (
+                <div className="absolute top-full left-0 mt-2 w-56 glass rounded-xl shadow-xl py-2 z-50">
+                  {treatments.map((treatment) => (
+                    <Link
+                      key={treatment.slug}
+                      href={`/${treatment.slug}`}
+                      className={`block px-4 py-2 text-sm transition-colors ${
+                        isActive(`/${treatment.slug}`) ? 'text-sky-400 bg-sky-500/10' : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
+                      }`}
+                      onClick={() => setTreatmentsOpen(false)}
+                    >
+                      {treatment.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+            
             <Link 
-              href={getLocalizedPath('/symptoms')} 
-              className={`text-sm font-medium transition-colors ${isActive('/symptoms') || pathname.includes('/symptoms/') ? 'text-sky-400' : 'text-slate-300 hover:text-white'}`}
-              data-testid="nav-symptoms"
-            >
-              {t.symptoms}
-            </Link>
-            <Link 
-              href={getLocalizedPath('/contact')} 
+              href="/contact" 
               className={`text-sm font-medium transition-colors ${isActive('/contact') ? 'text-sky-400' : 'text-slate-300 hover:text-white'}`}
               data-testid="nav-contact"
             >
-              {t.contact}
+              Контакти
             </Link>
-            
-            {/* Language Toggle */}
-            <div className="flex items-center gap-2 ml-4 border-l border-slate-700 pl-4">
-              <Globe className="w-4 h-4 text-slate-400" />
-              <Link
-                href={pathname.replace(/^\/en/, '') || '/'}
-                className={`text-sm font-medium px-2 py-1 rounded transition-colors ${lang === 'bg' ? 'bg-sky-500/20 text-sky-400' : 'text-slate-400 hover:text-white'}`}
-                data-testid="lang-bg"
-              >
-                BG
-              </Link>
-              <span className="text-slate-600">|</span>
-              <Link
-                href={`/en${pathname.replace(/^\/en/, '') || '/'}`}
-                className={`text-sm font-medium px-2 py-1 rounded transition-colors ${lang === 'en' ? 'bg-sky-500/20 text-sky-400' : 'text-slate-400 hover:text-white'}`}
-                data-testid="lang-en"
-              >
-                EN
-              </Link>
-            </div>
           </nav>
           
-          <div className="md:hidden flex items-center gap-2">
-            {/* Mobile Language Toggle */}
-            <div className="flex items-center gap-1 mr-2">
-              <Link
-                href={pathname.replace(/^\/en/, '') || '/'}
-                className={`text-xs font-medium px-1.5 py-0.5 rounded ${lang === 'bg' ? 'bg-sky-500/20 text-sky-400' : 'text-slate-400'}`}
-              >
-                BG
-              </Link>
-              <Link
-                href={`/en${pathname.replace(/^\/en/, '') || '/'}`}
-                className={`text-xs font-medium px-1.5 py-0.5 rounded ${lang === 'en' ? 'bg-sky-500/20 text-sky-400' : 'text-slate-400'}`}
-              >
-                EN
-              </Link>
-            </div>
+          {/* Mobile menu button */}
+          <div className="md:hidden">
             <button className="p-2 text-white" onClick={() => setIsOpen(!isOpen)} data-testid="mobile-menu">
               {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
         
+        {/* Mobile menu */}
         {isOpen && (
           <nav className="md:hidden py-4 border-t border-slate-700">
-            <Link href={getLocalizedPath('/')} className="block py-2 text-sm font-medium text-slate-300" onClick={() => setIsOpen(false)}>{t.home}</Link>
-            <Link href={getLocalizedPath('/symptoms')} className="block py-2 text-sm font-medium text-slate-300" onClick={() => setIsOpen(false)}>{t.symptoms}</Link>
-            <Link href={getLocalizedPath('/contact')} className="block py-2 text-sm font-medium text-slate-300" onClick={() => setIsOpen(false)}>{t.contact}</Link>
+            <Link href="/" className="block py-2 text-sm font-medium text-slate-300" onClick={() => setIsOpen(false)}>Начало</Link>
+            <div className="py-2">
+              <span className="text-xs uppercase text-slate-500 tracking-wider">Лечения</span>
+              {treatments.map((treatment) => (
+                <Link
+                  key={treatment.slug}
+                  href={`/${treatment.slug}`}
+                  className="block py-2 pl-4 text-sm font-medium text-slate-300"
+                  onClick={() => setIsOpen(false)}
+                >
+                  {treatment.name}
+                </Link>
+              ))}
+            </div>
+            <Link href="/contact" className="block py-2 text-sm font-medium text-slate-300" onClick={() => setIsOpen(false)}>Контакти</Link>
           </nav>
         )}
       </div>
