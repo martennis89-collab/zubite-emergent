@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Menu, X, ChevronDown } from 'lucide-react'
 
 interface HeaderProps {
@@ -12,7 +12,16 @@ interface HeaderProps {
 export function Header({ lang = 'bg' }: HeaderProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [treatmentsOpen, setTreatmentsOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   const pathname = usePathname()
+  
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10)
+    }
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
   
   const isActive = (path: string) => {
     return pathname === path || pathname.startsWith(path + '/')
@@ -27,17 +36,25 @@ export function Header({ lang = 'bg' }: HeaderProps) {
   ]
   
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 glass">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      scrolled ? 'bg-white/95 backdrop-blur-sm shadow-sm' : 'bg-white'
+    }`}>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16">
-          <Link href="/" className="font-serif text-2xl font-semibold text-white" data-testid="logo">
-            Zubite<span className="text-sky-400">.bg</span>
+          <Link 
+            href="/" 
+            className="font-serif text-2xl font-semibold text-slate-900 transition-transform hover:scale-105" 
+            data-testid="logo"
+          >
+            Zubite<span className="text-sky-500">.bg</span>
           </Link>
           
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden md:flex items-center gap-8">
             <Link 
               href="/" 
-              className={`text-sm font-medium transition-colors ${pathname === '/' ? 'text-sky-400' : 'text-slate-300 hover:text-white'}`}
+              className={`text-sm font-medium transition-colors nav-link-animated ${
+                pathname === '/' ? 'text-sky-500' : 'text-slate-600 hover:text-slate-900'
+              }`}
               data-testid="nav-home"
             >
               Начало
@@ -47,23 +64,26 @@ export function Header({ lang = 'bg' }: HeaderProps) {
             <div className="relative">
               <button
                 onClick={() => setTreatmentsOpen(!treatmentsOpen)}
+                onBlur={() => setTimeout(() => setTreatmentsOpen(false), 150)}
                 className={`text-sm font-medium transition-colors flex items-center gap-1 ${
-                  treatments.some(t => isActive(`/${t.slug}`)) ? 'text-sky-400' : 'text-slate-300 hover:text-white'
+                  treatments.some(t => isActive(`/${t.slug}`)) ? 'text-sky-500' : 'text-slate-600 hover:text-slate-900'
                 }`}
                 data-testid="nav-treatments"
               >
                 Лечения
-                <ChevronDown className={`w-4 h-4 transition-transform ${treatmentsOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${treatmentsOpen ? 'rotate-180' : ''}`} />
               </button>
               
               {treatmentsOpen && (
-                <div className="absolute top-full left-0 mt-2 w-56 glass rounded-xl shadow-xl py-2 z-50">
+                <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-100 py-2 z-50 animate-fade-in">
                   {treatments.map((treatment) => (
                     <Link
                       key={treatment.slug}
                       href={`/${treatment.slug}`}
-                      className={`block px-4 py-2 text-sm transition-colors ${
-                        isActive(`/${treatment.slug}`) ? 'text-sky-400 bg-sky-500/10' : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
+                      className={`block px-4 py-2.5 text-sm transition-colors ${
+                        isActive(`/${treatment.slug}`) 
+                          ? 'text-sky-500 bg-sky-50' 
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                       }`}
                       onClick={() => setTreatmentsOpen(false)}
                     >
@@ -75,8 +95,20 @@ export function Header({ lang = 'bg' }: HeaderProps) {
             </div>
             
             <Link 
+              href="/symptoms" 
+              className={`text-sm font-medium transition-colors nav-link-animated ${
+                isActive('/symptoms') ? 'text-sky-500' : 'text-slate-600 hover:text-slate-900'
+              }`}
+              data-testid="nav-symptoms"
+            >
+              Симптоми
+            </Link>
+            
+            <Link 
               href="/contact" 
-              className={`text-sm font-medium transition-colors ${isActive('/contact') ? 'text-sky-400' : 'text-slate-300 hover:text-white'}`}
+              className={`text-sm font-medium transition-colors nav-link-animated ${
+                isActive('/contact') ? 'text-sky-500' : 'text-slate-600 hover:text-slate-900'
+              }`}
               data-testid="nav-contact"
             >
               Контакти
@@ -85,7 +117,11 @@ export function Header({ lang = 'bg' }: HeaderProps) {
           
           {/* Mobile menu button */}
           <div className="md:hidden">
-            <button className="p-2 text-white" onClick={() => setIsOpen(!isOpen)} data-testid="mobile-menu">
+            <button 
+              className="p-2 text-slate-600 hover:text-slate-900 transition-colors" 
+              onClick={() => setIsOpen(!isOpen)} 
+              data-testid="mobile-menu"
+            >
               {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
@@ -93,22 +129,41 @@ export function Header({ lang = 'bg' }: HeaderProps) {
         
         {/* Mobile menu */}
         {isOpen && (
-          <nav className="md:hidden py-4 border-t border-slate-700">
-            <Link href="/" className="block py-2 text-sm font-medium text-slate-300" onClick={() => setIsOpen(false)}>Начало</Link>
-            <div className="py-2">
-              <span className="text-xs uppercase text-slate-500 tracking-wider">Лечения</span>
+          <nav className="md:hidden py-4 border-t border-slate-100 animate-fade-in-down">
+            <Link 
+              href="/" 
+              className="block py-3 text-sm font-medium text-slate-600 hover:text-slate-900" 
+              onClick={() => setIsOpen(false)}
+            >
+              Начало
+            </Link>
+            <div className="py-3 border-t border-slate-100">
+              <span className="text-xs uppercase text-slate-400 tracking-wider">Лечения</span>
               {treatments.map((treatment) => (
                 <Link
                   key={treatment.slug}
                   href={`/${treatment.slug}`}
-                  className="block py-2 pl-4 text-sm font-medium text-slate-300"
+                  className="block py-2.5 pl-4 text-sm font-medium text-slate-600 hover:text-slate-900"
                   onClick={() => setIsOpen(false)}
                 >
                   {treatment.name}
                 </Link>
               ))}
             </div>
-            <Link href="/contact" className="block py-2 text-sm font-medium text-slate-300" onClick={() => setIsOpen(false)}>Контакти</Link>
+            <Link 
+              href="/symptoms" 
+              className="block py-3 text-sm font-medium text-slate-600 hover:text-slate-900 border-t border-slate-100" 
+              onClick={() => setIsOpen(false)}
+            >
+              Симптоми
+            </Link>
+            <Link 
+              href="/contact" 
+              className="block py-3 text-sm font-medium text-slate-600 hover:text-slate-900 border-t border-slate-100" 
+              onClick={() => setIsOpen(false)}
+            >
+              Контакти
+            </Link>
           </nav>
         )}
       </div>
