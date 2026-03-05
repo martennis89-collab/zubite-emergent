@@ -1,8 +1,25 @@
 import Link from 'next/link'
+import { Metadata } from 'next'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
-import { MapPin, ArrowRight, Shield, Clock, Users, ChevronRight, Star, CheckCircle, Smile, Target, Heart, Stethoscope, Moon, Bone } from 'lucide-react'
+import { MapPin, ArrowRight, Shield, Clock, Users, ChevronRight, Star, CheckCircle, Smile, Target, Heart, Moon, Bone } from 'lucide-react'
 import { TREATMENTS, CITIES } from '@/lib/data'
+
+export const metadata: Metadata = {
+  title: 'Zubite.bg | Навигатор за дентални решения в България',
+  description: 'Отговорете на няколко въпроса и получете препоръка за подходящо дентално лечение, ориентировъчни цени и 2–3 опции за клиники според вашия случай.',
+  alternates: {
+    canonical: 'https://zubite.bg/',
+  },
+  openGraph: {
+    title: 'Zubite.bg | Навигатор за дентални решения',
+    description: 'Персонализирани препоръки за дентално лечение — ортодонтия, импланти, естетика и още. Ориентировъчни цени и опции за клиники.',
+    url: 'https://zubite.bg/',
+    siteName: 'Zubite.bg',
+    locale: 'bg_BG',
+    type: 'website',
+  },
+}
 
 const treatmentList = Object.values(TREATMENTS)
 const cityList = Object.values(CITIES)
