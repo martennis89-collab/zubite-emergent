@@ -29,7 +29,7 @@ export const metadata: Metadata = {
 // Trust cards for hero
 const TRUST_CARDS = [
   { icon: Info, title: 'Информация и ориентировъчни цени' },
-  { icon: Grid3X3, title: 'Различни методи за възстановяване' },
+  { icon: LayoutGrid, title: 'Различни методи за възстановяване' },
   { icon: Users, title: 'Помощ при избор на специалист' }
 ]
 
