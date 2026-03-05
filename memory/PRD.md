@@ -1,138 +1,140 @@
-# Zubite.bg - Dental Lead Qualification Platform
+# Zubite.bg - Product Requirements Document
 
-## Overview
-Independent patient qualification and navigation platform for premium dental treatments in Bulgaria. Now with bilingual support (Bulgarian/English).
-
-**Tagline**: "Навигатор за дентални решения" / "Navigator for dental solutions"
-
-## Architecture
-
-### Routes (Bilingual)
-**Bulgarian (default)**:
-- `/` - Home page with 3 city cards (Sofia, Plovdiv, Varna)
-- `/city/{citySlug}` - Condition selection page (6 options)
-- `/city/{citySlug}/ortho` - Orthodontic treatment educational guide
-- `/city/{citySlug}/ortho/smile-classification` - "Кое лечение пасва повече на моя начин на живот?" quiz (8 questions)
-- `/city/{citySlug}/ortho/treatment-match` - "Може ли моят случай да се лекува със сваляеми алайнери?" quiz (6 questions)
-- `/city/{citySlug}/{treatmentType}` - Treatment detail and Quiz page
-- `/results/{leadId}` - Results and contact form
-- `/symptoms` - Symptoms index page
-- `/symptoms/{symptomSlug}` - Symptom detail page
-- `/privacy`, `/terms`, `/contact` - Static pages
-
-**English** (prefix `/en`):
-- `/en` - English home page
-- `/en/city/{citySlug}` - English condition selection
-- `/en/city/{citySlug}/ortho` - English Orthodontic guide
-- `/en/city/{citySlug}/ortho/smile-classification` - English "Which treatment fits my lifestyle better?" quiz
-- `/en/city/{citySlug}/ortho/treatment-match` - English "Can my case be treated with removable aligners?" quiz
-- `/en/city/{citySlug}/{treatmentType}` - English treatment detail and quiz
-- `/en/results/{leadId}` - English results page
-- `/en/symptoms` - English symptoms index
-- `/en/symptoms/{symptomSlug}` - English symptom detail
-- `/en/privacy`, `/en/terms`, `/en/contact` - English static pages
-
-**Admin** (no translation):
-- `/admin` - Admin login
-- `/admin/dashboard` - Admin stats dashboard
-- `/admin/leads` - Lead management with filters
-- `/admin/leads/{leadId}` - Lead detail page
-
-### Database (MongoDB)
-- **clinics**: id, name, city_slug, city_name, treatments_supported, is_active
-- **leads**: id, city_slug, treatment_type, score_total, band, status, assigned_clinic_id, name, phone, email, consent, answers (jsonb), score_breakdown (jsonb)
-- **admin_users**: id, username, password_hash
-
-### Scoring System
-- Score range: 0-100
-- GREEN: ≥75 (auto-assign clinic)
-- YELLOW: 50-74
-- RED: <50
-- can_travel=false caps to YELLOW
-
-## What's Implemented
-
-### Core Features
-- [x] City-first flow (3 cities: София, Пловдив, Варна)
-- [x] Condition-based selection (6 options: Криви зъби, Липсващи зъби, Износени или счупени зъби, Разстояния между зъбите, Естетика на усмивката, Пълна рехабилитация)
-- [x] Treatment pages: Orthodontics, Implants, Full-Mouth, Bonding
-- [x] Quiz with scoring and band assignment
-- [x] Results page with unified outcome message: "Благодарим. Ще се свържем с вас, за да обсъдим вашия случай."
-- [x] Contact form with GDPR consent and "Заяви обаждане" CTA
-- [x] Admin authentication (JWT)
-- [x] Admin dashboard with stats by city/band
-- [x] Admin lead management with filters
-- [x] Lead detail with status updates
-- [x] CSV export functionality
-
-### Major Update (Mar 2025)
-- [x] **City Restriction** - Only 3 cities: София, Пловдив, Варна
-- [x] **Condition-Based Selection** - 6 initial condition options replacing treatment types
-- [x] **"Ортодонтско лечение" Label** - Replaced "Invisalign" throughout
-- [x] **Orthodontic Pricing Section** - Transparent pricing:
-  - Прозрачни алайнери: България 3000–6000€, Европа 3500–7000€
-  - Брекети: България 1500–3500€, Европа 2000–5000€
-- [x] **Professional Note** - About who performs orthodontic treatment
-- [x] **Orthodontic Foundation Education** - Added to Bonding, Implants, and Full-Mouth pages
-- [x] **Updated Quiz Titles**:
-  - "Кое лечение пасва повече на моя начин на живот?" (lifestyle quiz)
-  - "Може ли моят случай да се лекува със сваляеми алайнери?" (eligibility quiz)
-- [x] **Unified Quiz Outcomes** - All quizzes lead to same message: "Благодарим. Ще се свържем с вас, за да обсъдим вашия случай."
-- [x] **CTA Update** - All CTAs now use "Заяви обаждане"
-- [x] **Weighted Quiz Scoring** - Internal bias favoring aligners when:
-  - High aesthetics importance
-  - High compliance
-  - Rarely visible lifestyle
-  - Comfort/flexible preference
-- [x] **Balanced Education Content** - Neutral, clinical tone for both aligners and braces
-- [x] **Contact Form on Quiz Results** - Customers can submit their details directly after completing the ortho quiz to receive clinic recommendations
-
-### Previous Features (Feb 2025)
-- [x] **Bilingual Support (BG/EN)** - URL-based routing with `/en/` prefix
-- [x] **Language Toggle** - BG | EN toggle in header
-- [x] **Email Notifications** - Sends email to admin via Resend
-- [x] **Symptoms Section** - 6 educational pages
-- [x] **Animation System** - Premium micro-interactions
-- [x] **Treatment Education Pages** - Detailed information for each treatment
-
-## 3rd Party Integrations
-- **Resend** - Email notifications on lead submission
-- **Meta Pixel** - Lead conversion tracking (placeholder ID - replace for production)
-- **Google Ads** - Conversion tracking (placeholder ID - replace for production)
-
-## Seeded Data
-3 Premium Clinics (one per city):
-- Sofia Premium Clinic
-- Plovdiv Premium Clinic
-- Varna Premium Clinic
-
-Admin: admin@zubite.bg / password
-
-## Next Actions (P1)
-- [ ] Replace tracking placeholder IDs with real Meta Pixel ID and Google Ads Conversion ID
-- [ ] Translate Privacy/Terms/Contact pages to English
-
-## Backlog (P2)
-- [ ] Subdomain routing (production)
-- [ ] Analytics integration
-- [ ] Multi-admin support
-- [ ] Lead assignment rules customization
+## Project Overview
+Zubite.bg is a dental solutions navigator platform that helps Bulgarian users find the right dental treatment and connect with verified clinics in their city.
 
 ## Tech Stack
-- Frontend: React 18, TailwindCSS, shadcn/ui
-- Backend: FastAPI, Motor (async MongoDB)
-- Auth: JWT
-- Database: MongoDB
-- Email: Resend
+- **Frontend**: Next.js 15 (App Router) with TypeScript
+- **Backend**: FastAPI with MongoDB
+- **Styling**: Tailwind CSS with custom dark theme
+- **Email**: Resend for lead notifications
 
-## Key Files
-- `/app/frontend/src/lib/quizData.js` - CITIES and TREATMENTS definitions
-- `/app/frontend/src/lib/translations.js` - BG/EN translations
-- `/app/frontend/src/lib/orthoData.js` - Orthodontic content + pricing + quiz data
-- `/app/frontend/src/lib/treatmentData.js` - Treatment education content (incl. orthoFoundation sections)
-- `/app/frontend/src/pages/TreatmentSelectPage.jsx` - Condition selection page
-- `/app/frontend/src/pages/OrthoEducationPage.jsx` - Orthodontic guide with pricing
-- `/app/frontend/src/pages/OrthoQuizPage.jsx` - Quiz with weighted scoring
-- `/app/frontend/src/pages/TreatmentDetailPage.jsx` - Treatment pages with orthoFoundation
-- `/app/frontend/src/components/Layout.jsx` - Header/Footer with city restriction
-- `/app/backend/server.py` - API + email notification logic
+## Current Architecture
+
+```
+/app/
+├── backend/
+│   ├── .env                # MongoDB, Resend API keys
+│   ├── requirements.txt
+│   └── server.py           # FastAPI app with all endpoints
+├── nextjs-seo/             # NEW: Next.js SEO-optimized frontend
+│   ├── app/
+│   │   ├── page.tsx        # Homepage (SSR)
+│   │   ├── layout.tsx      # Root layout with SEO metadata
+│   │   ├── city/[citySlug]/
+│   │   │   ├── page.tsx    # City treatment selection
+│   │   │   ├── ortho/      # Ortho education redirect
+│   │   │   └── [treatmentType]/
+│   │   │       ├── page.tsx     # Treatment detail
+│   │   │       └── quiz/page.tsx # Quiz flow (client)
+│   │   ├── ortho/          # Orthodontic education
+│   │   │   ├── page.tsx    # Aligners vs Braces
+│   │   │   └── [quizType]/ # Quiz variations
+│   │   ├── results/[leadId]/ # Quiz results
+│   │   ├── symptoms/       # Symptom pages
+│   │   ├── admin/          # Admin panel
+│   │   ├── en/             # English version
+│   │   ├── privacy/
+│   │   ├── terms/
+│   │   └── contact/
+│   ├── components/
+│   │   ├── Header.tsx
+│   │   └── Footer.tsx
+│   ├── lib/
+│   │   ├── api.ts          # API client
+│   │   ├── data.ts         # Cities, treatments, quiz questions
+│   │   └── utils.ts
+│   └── .env.local
+├── frontend/               # DEPRECATED: Old React SPA (kept for reference)
+└── memory/
+    └── PRD.md
+```
+
+## Key Features
+
+### Implemented ✅
+1. **SEO-Optimized Homepage** - Server-rendered with full meta tags, hreflang, Open Graph
+2. **City Selection** - Sofia, Plovdiv, Varna
+3. **Treatment Types** - Orthodontics, Implants, Full-mouth, Bonding
+4. **Interactive Quizzes** - Client-side with progress tracking
+5. **Contact Form** - At end of each quiz flow
+6. **Lead Creation** - Automatic scoring and band assignment
+7. **Email Notifications** - Via Resend to admin
+8. **Admin Panel** - Login, dashboard, leads management
+9. **Bilingual Support** - Bulgarian (default) + English
+10. **Responsive Design** - Mobile-first dark theme
+
+### API Endpoints
+- `POST /api/leads` - Create lead with contact info
+- `GET /api/leads/{id}` - Get lead details
+- `PUT /api/leads/{id}/contact` - Update lead contact
+- `POST /api/admin/login` - Admin authentication
+- `GET /api/admin/stats` - Dashboard statistics
+- `GET /api/admin/leads` - List all leads
+- `GET /api/admin/leads/{id}` - Lead detail
+
+### Database Schema
+**leads collection:**
+```json
+{
+  "id": "string",
+  "created_at": "datetime",
+  "city_slug": "sofia|plovdiv|varna",
+  "treatment_type": "orthodontics|implants|full-mouth|bonding",
+  "answers": {},
+  "score_total": "number",
+  "band": "A|B|C",
+  "name": "string",
+  "phone": "string",
+  "email": "string",
+  "consent": "boolean",
+  "source": "nextjs_quiz|ortho_quiz"
+}
+```
+
+## Migration Summary (Dec 2025)
+- Migrated entire frontend from React SPA to Next.js 15
+- All public pages are now server-side rendered for SEO
+- Interactive components (quizzes, admin) remain as client components
+- Proper routing with App Router dynamic routes
+- Language toggle between BG/EN
+
+## Pending/Future Tasks
+
+### P1 - High Priority
+- [ ] Add Meta Pixel ID for tracking (user needs to provide)
+- [ ] Add Google Ads Conversion ID (user needs to provide)
+- [ ] Build production bundle (`next build`) for deployment
+
+### P2 - Medium Priority  
+- [ ] Migrate remaining English pages with full i18n
+- [ ] Add more symptom detail pages
+- [ ] Clinic listing/management in admin
+
+### P3 - Future Enhancements
+- [ ] SEO sitemap generation
+- [ ] Google Analytics integration
+- [ ] SMS notifications via Twilio
+- [ ] Multi-clinic assignment logic
+
+## Admin Credentials
+- Email: `admin@zubite.bg`
+- Password: `password`
+
+## Environment Variables
+
+### Backend (.env)
+```
+MONGO_URL=mongodb://localhost:27017
+DB_NAME=test_database
+RESEND_API_KEY=<provided>
+SENDER_EMAIL=onboarding@resend.dev
+```
+
+### Frontend (.env.local)
+```
+NEXT_PUBLIC_API_URL=https://zubite-nextjs.preview.emergentagent.com/api
+```
+
+---
+*Last updated: December 2025*
