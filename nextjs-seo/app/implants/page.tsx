@@ -73,7 +73,7 @@ const IMPLANT_TYPES = [
     description: 'Мостова конструкция върху два или повече импланта.' 
   },
   { 
-    icon: Grid3X3, 
+    icon: LayoutGrid, 
     title: 'All-on-4 / All-on-6', 
     description: 'Пълно възстановяване на челюст върху 4-6 импланта.' 
   },
