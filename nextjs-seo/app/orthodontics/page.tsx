@@ -429,26 +429,10 @@ export default function OrthodonticsPage() {
         </div>
       </section>
 
-      {/* CTA Section */}
+      {/* CTA Section - Aligners vs Braces Quiz */}
       <section className="py-16 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
-          <div className="bg-gradient-to-br from-sky-500 to-sky-600 rounded-3xl p-8 md:p-12 text-center text-white">
-            <Award className="w-12 h-12 mx-auto mb-4 opacity-90" />
-            <h2 className="font-serif text-2xl md:text-3xl font-semibold mb-4">
-              Кой метод е подходящ за вас?
-            </h2>
-            <p className="text-sky-100 mb-8 max-w-lg mx-auto">
-              Направете нашата кратка оценка, за да разберете дали алайнери или брекети са по-подходящи за вашия случай.
-            </p>
-            <Link 
-              href="/sofia/orthodontics/quiz"
-              className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-10 rounded-full bg-white text-sky-600 font-medium hover:bg-sky-50"
-              data-testid="start-quiz-cta"
-            >
-              Направете безплатна оценка
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-          </div>
+          <AlignersVsBracesQuiz />
         </div>
       </section>
 
