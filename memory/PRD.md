@@ -9,132 +9,135 @@ Zubite.bg is a dental solutions navigator platform that helps Bulgarian users fi
 - **Styling**: Tailwind CSS with custom dark theme
 - **Email**: Resend for lead notifications
 
-## Current Architecture
+## Current Architecture (Treatment-First)
 
 ```
-/app/
-├── backend/
-│   ├── .env                # MongoDB, Resend API keys
-│   ├── requirements.txt
-│   └── server.py           # FastAPI app with all endpoints
-├── nextjs-seo/             # NEW: Next.js SEO-optimized frontend
-│   ├── app/
-│   │   ├── page.tsx        # Homepage (SSR)
-│   │   ├── layout.tsx      # Root layout with SEO metadata
-│   │   ├── city/[citySlug]/
-│   │   │   ├── page.tsx    # City treatment selection
-│   │   │   ├── ortho/      # Ortho education redirect
-│   │   │   └── [treatmentType]/
-│   │   │       ├── page.tsx     # Treatment detail
-│   │   │       └── quiz/page.tsx # Quiz flow (client)
-│   │   ├── ortho/          # Orthodontic education
-│   │   │   ├── page.tsx    # Aligners vs Braces
-│   │   │   └── [quizType]/ # Quiz variations
-│   │   ├── results/[leadId]/ # Quiz results
-│   │   ├── symptoms/       # Symptom pages
-│   │   ├── admin/          # Admin panel
-│   │   ├── en/             # English version
-│   │   ├── privacy/
-│   │   ├── terms/
-│   │   └── contact/
-│   ├── components/
-│   │   ├── Header.tsx
-│   │   └── Footer.tsx
-│   ├── lib/
-│   │   ├── api.ts          # API client
-│   │   ├── data.ts         # Cities, treatments, quiz questions
-│   │   └── utils.ts
-│   └── .env.local
-├── frontend/               # DEPRECATED: Old React SPA (kept for reference)
-└── memory/
-    └── PRD.md
+/app/nextjs-seo/
+├── app/
+│   ├── page.tsx                    # Homepage (treatment-first)
+│   ├── layout.tsx                  # Root layout with JSON-LD
+│   ├── sitemap.ts                  # Dynamic sitemap
+│   │
+│   ├── orthodontics/page.tsx       # Treatment pages (canonical)
+│   ├── implants/page.tsx
+│   ├── cosmetic-dentistry/page.tsx
+│   ├── sleep-airway/page.tsx
+│   ├── tmj/page.tsx
+│   │
+│   ├── [city]/[treatment]/         # City-specific pages
+│   │   ├── page.tsx                # City landing with FAQs, clinics, pricing
+│   │   └── quiz/page.tsx           # Quiz flow
+│   │
+│   ├── results/[leadId]/           # Quiz results
+│   ├── admin/                      # Admin panel
+│   ├── privacy/, terms/, contact/  # Static pages
+│   └── symptoms/                   # Symptoms guide
+│
+├── components/
+│   ├── Header.tsx                  # Nav with treatments dropdown
+│   └── Footer.tsx                  # Footer with treatment links
+│
+├── lib/
+│   ├── api.ts                      # API client
+│   ├── data.ts                     # Cities, treatments, FAQs, pricing
+│   ├── schema.ts                   # JSON-LD generators
+│   └── utils.ts
+│
+└── public/
+    ├── og/                         # OG images for social sharing
+    └── robots.txt
 ```
+
+## URL Structure
+
+### Primary Routes (Treatment-First)
+- `/` - Homepage with treatment selection
+- `/orthodontics` - Orthodontics main page (canonical)
+- `/implants` - Dental implants main page (canonical)
+- `/cosmetic-dentistry` - Cosmetic dentistry main page (canonical)
+- `/sleep-airway` - Sleep apnea main page (canonical)
+- `/tmj` - TMJ main page (canonical)
+
+### City-Specific Routes
+- `/sofia/orthodontics` - City + treatment page
+- `/plovdiv/implants` - etc.
+- `/varna/cosmetic-dentistry` - etc.
+
+Each city page includes:
+- City-specific intro paragraph
+- Partner clinics list (mock data)
+- Local FAQ (5+ questions)
+- Pricing ranges (marked "ориентировъчни")
+- Link back to canonical treatment page
+
+### Supported Cities
+- sofia (София)
+- plovdiv (Пловдив)
+- varna (Варна)
+
+## SEO Implementation
+
+### JSON-LD Schema
+- **Sitewide (layout.tsx)**: Organization, WebSite
+- **Per page**: BreadcrumbList, FAQPage (from FAQ data)
+- **City pages**: LocalBusiness/Dentist
+
+### OG Images
+All OG/Twitter images use production URLs:
+- `https://zubite.bg/og/og-home.jpg`
+- `https://zubite.bg/og/og-orthodontics.jpg`
+- `https://zubite.bg/og/og-implants.jpg`
+- `https://zubite.bg/og/og-cosmetic.jpg`
+- `https://zubite.bg/og/og-sleep.jpg`
+- `https://zubite.bg/og/og-tmj.jpg`
+
+### Sitemap & Robots
+- `/sitemap.xml` - Generated dynamically with all routes
+- `/robots.txt` - Allows indexing, disallows admin/quiz/results
+
+### Hreflang
+- Removed EN hreflang alternates (EN pages not built)
 
 ## Key Features
 
 ### Implemented ✅
-1. **SEO-Optimized Homepage** - Server-rendered with full meta tags, hreflang, Open Graph
-2. **City Selection** - Sofia, Plovdiv, Varna
-3. **Treatment Types** - Orthodontics, Implants, Full-mouth, Bonding
-4. **Interactive Quizzes** - Client-side with progress tracking
-5. **Contact Form** - At end of each quiz flow
-6. **Lead Creation** - Automatic scoring and band assignment
-7. **Email Notifications** - Via Resend to admin
+1. **Treatment-First Architecture** - Primary routes are treatments
+2. **5 Treatment Pages** - Orthodontics, Implants, Cosmetic, Sleep, TMJ
+3. **15 City-Treatment Pages** - 3 cities × 5 treatments
+4. **SEO-Optimized** - JSON-LD, OG images, sitemap, robots.txt
+5. **City-Specific Content** - FAQs, clinics, pricing per city
+6. **Interactive Quizzes** - Client-side with contact forms
+7. **Lead Management** - Creation, scoring, email notifications
 8. **Admin Panel** - Login, dashboard, leads management
-9. **Bilingual Support** - Bulgarian (default) + English
-10. **Responsive Design** - Mobile-first dark theme
 
-### API Endpoints
-- `POST /api/leads` - Create lead with contact info
-- `GET /api/leads/{id}` - Get lead details
-- `PUT /api/leads/{id}/contact` - Update lead contact
-- `POST /api/admin/login` - Admin authentication
-- `GET /api/admin/stats` - Dashboard statistics
-- `GET /api/admin/leads` - List all leads
-- `GET /api/admin/leads/{id}` - Lead detail
-
-### Database Schema
-**leads collection:**
-```json
-{
-  "id": "string",
-  "created_at": "datetime",
-  "city_slug": "sofia|plovdiv|varna",
-  "treatment_type": "orthodontics|implants|full-mouth|bonding",
-  "answers": {},
-  "score_total": "number",
-  "band": "A|B|C",
-  "name": "string",
-  "phone": "string",
-  "email": "string",
-  "consent": "boolean",
-  "source": "nextjs_quiz|ortho_quiz"
-}
-```
-
-## Migration Summary (Dec 2025)
-- Migrated entire frontend from React SPA to Next.js 15
-- All public pages are now server-side rendered for SEO
-- Interactive components (quizzes, admin) remain as client components
-- Proper routing with App Router dynamic routes
-- Language toggle between BG/EN
+## API Endpoints
+- `POST /api/leads` - Create lead
+- `GET /api/leads/{id}` - Get lead
+- `POST /api/admin/login` - Admin auth
+- `GET /api/admin/stats` - Dashboard stats
+- `GET /api/admin/leads` - List leads
 
 ## Pending/Future Tasks
 
 ### P1 - High Priority
-- [ ] Add Meta Pixel ID for tracking (user needs to provide)
-- [ ] Add Google Ads Conversion ID (user needs to provide)
-- [ ] Build production bundle (`next build`) for deployment
+- [ ] Replace placeholder OG images with real designs
+- [ ] Add Meta Pixel ID for tracking
+- [ ] Add Google Ads Conversion ID
+- [ ] Build production bundle
 
-### P2 - Medium Priority  
-- [ ] Migrate remaining English pages with full i18n
-- [ ] Add more symptom detail pages
-- [ ] Clinic listing/management in admin
+### P2 - Medium Priority
+- [ ] Add more clinic data (real partnerships)
+- [ ] Implement Google Analytics
+- [ ] Add appointment scheduling
 
-### P3 - Future Enhancements
-- [ ] SEO sitemap generation
-- [ ] Google Analytics integration
-- [ ] SMS notifications via Twilio
-- [ ] Multi-clinic assignment logic
+### P3 - Future
+- [ ] English translation
+- [ ] More cities
+- [ ] Blog/content section
 
 ## Admin Credentials
 - Email: `admin@zubite.bg`
 - Password: `password`
-
-## Environment Variables
-
-### Backend (.env)
-```
-MONGO_URL=mongodb://localhost:27017
-DB_NAME=test_database
-RESEND_API_KEY=<provided>
-SENDER_EMAIL=onboarding@resend.dev
-```
-
-### Frontend (.env.local)
-```
-NEXT_PUBLIC_API_URL=https://zubite-nextjs.preview.emergentagent.com/api
-```
 
 ---
 *Last updated: December 2025*
