@@ -11,41 +11,6 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
-    "/city/[citySlug]/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/city/[citySlug]/page.js"
-    ],
-    "/city/[citySlug]/[treatmentType]/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/city/[citySlug]/[treatmentType]/page.js"
-    ],
-    "/city/[citySlug]/[treatmentType]/quiz/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/city/[citySlug]/[treatmentType]/quiz/page.js"
-    ],
-    "/city/[citySlug]/ortho/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/city/[citySlug]/ortho/page.js"
-    ],
-    "/ortho/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/ortho/page.js"
-    ],
-    "/ortho/[quizType]/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/ortho/[quizType]/page.js"
-    ],
-    "/en/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/en/page.js"
-    ],
     "/symptoms/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",

@@ -1,7 +1,4 @@
 {
   "/page": "app/page.js",
-  "/ortho/page": "app/ortho/page.js",
-  "/ortho/[quizType]/page": "app/ortho/[quizType]/page.js",
-  "/symptoms/page": "app/symptoms/page.js",
-  "/city/[citySlug]/[treatmentType]/quiz/page": "app/city/[citySlug]/[treatmentType]/quiz/page.js"
+  "/symptoms/page": "app/symptoms/page.js"
 }
