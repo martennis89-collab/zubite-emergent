@@ -1533,6 +1533,10 @@ h3{
   --tw-text-opacity: 1;
   color: rgb(255 255 255 / var(--tw-text-opacity, 1));
 }
+.text-sky-700{
+  --tw-text-opacity: 1;
+  color: rgb(3 105 161 / var(--tw-text-opacity, 1));
+}
 .antialiased{
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -2005,6 +2009,10 @@ h3{
 
 .symptom-icon {
   transition: transform 0.3s ease-out;
+}
+
+.last\:border-0:last-child{
+  border-width: 0px;
 }
 
 .hover\:-translate-x-1:hover{
