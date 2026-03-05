@@ -1,0 +1,273 @@
+import { Metadata } from 'next'
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
+import { Header } from '@/components/Header'
+import { Footer } from '@/components/Footer'
+import { CITIES, TREATMENTS, CITY_CLINICS, CITY_FAQS, CITY_PRICING } from '@/lib/data'
+import { generateBreadcrumbSchema, generateFAQSchema, generateLocalBusinessSchema } from '@/lib/schema'
+import { MapPin, Star, ArrowRight, ChevronDown, Building } from 'lucide-react'
+
+interface PageProps {
+  params: Promise<{ city: string; treatment: string }>
+}
+
+export async function generateStaticParams() {
+  const params = []
+  for (const city of Object.keys(CITIES)) {
+    for (const treatment of Object.keys(TREATMENTS)) {
+      params.push({ city, treatment })
+    }
+  }
+  return params
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { city, treatment } = await params
+  const cityData = CITIES[city as keyof typeof CITIES]
+  const treatmentData = TREATMENTS[treatment as keyof typeof TREATMENTS]
+  
+  if (!cityData || !treatmentData) {
+    return { title: 'Not Found' }
+  }
+  
+  const title = `${treatmentData.name} в ${cityData.name} | Клиники и Цени | Zubite.bg`
+  const description = `Намерете най-добрите клиники за ${treatmentData.name.toLowerCase()} в ${cityData.name}. Ориентировъчни цени, FAQ и партньорски клиники.`
+  
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: `https://zubite.bg/${city}/${treatment}`,
+    },
+    openGraph: {
+      title,
+      description,
+      url: `https://zubite.bg/${city}/${treatment}`,
+      images: [{ url: treatmentData.ogImage, width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [treatmentData.ogImage],
+    },
+  }
+}
+
+export default async function CityTreatmentPage({ params }: PageProps) {
+  const { city, treatment } = await params
+  const cityData = CITIES[city as keyof typeof CITIES]
+  const treatmentData = TREATMENTS[treatment as keyof typeof TREATMENTS]
+  
+  if (!cityData || !treatmentData) {
+    notFound()
+  }
+  
+  const clinics = CITY_CLINICS[city]?.filter(c => c.specialties.includes(treatment)) || []
+  const faqs = CITY_FAQS[city]?.[treatment] || []
+  const pricing = CITY_PRICING[city]?.[treatment]
+  
+  const breadcrumbs = generateBreadcrumbSchema([
+    { name: 'Начало', url: 'https://zubite.bg' },
+    { name: treatmentData.name, url: `https://zubite.bg/${treatment}` },
+    { name: cityData.name, url: `https://zubite.bg/${city}/${treatment}` }
+  ])
+  
+  const faqSchema = faqs.length > 0 ? generateFAQSchema(faqs) : null
+  const localBusinessSchema = generateLocalBusinessSchema(city, cityData.name, treatment, treatmentData.name)
+  
+  return (
+    <main className="min-h-screen bg-[#0f172a]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }}
+      />
+      {faqSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+      )}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}
+      />
+      
+      <Header />
+      
+      {/* Hero */}
+      <section className="pt-24 pb-12 md:pt-32 md:pb-16">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <nav className="text-sm text-slate-400 mb-6">
+            <Link href="/" className="hover:text-white">Начало</Link>
+            <span className="mx-2">/</span>
+            <Link href={`/${treatment}`} className="hover:text-white">{treatmentData.name}</Link>
+            <span className="mx-2">/</span>
+            <span className="text-sky-400">{cityData.name}</span>
+          </nav>
+          
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 text-sky-400 mb-4">
+              <MapPin className="w-5 h-5" />
+              <span className="font-medium">{cityData.name}</span>
+            </div>
+            <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-white leading-tight mb-6">
+              {treatmentData.name} в {cityData.name}
+            </h1>
+            <p className="text-xl text-slate-400 max-w-2xl mx-auto">
+              Намерете най-добрите клиники за {treatmentData.name.toLowerCase()} в {cityData.name}. 
+              Проверени специалисти, прозрачни цени и отзиви от пациенти.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              href={`/${city}/${treatment}/quiz`}
+              className="btn-primary px-8 py-4 rounded-full text-white font-medium inline-flex items-center justify-center gap-2"
+              data-testid="start-quiz"
+            >
+              Заяви обаждане
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+            <Link
+              href={`/${treatment}`}
+              className="btn-secondary px-8 py-4 rounded-full text-white font-medium inline-flex items-center justify-center gap-2"
+            >
+              ← Обратно към {treatmentData.name}
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* City-specific intro */}
+      <section className="py-12 border-t border-slate-800">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="glass rounded-2xl p-8">
+            <h2 className="font-serif text-2xl font-semibold text-white mb-4">
+              {treatmentData.name} в {cityData.name} - Какво трябва да знаете
+            </h2>
+            <p className="text-slate-300 leading-relaxed">
+              {cityData.name} предлага множество опции за {treatmentData.name.toLowerCase()} с различни ценови категории и специализации. 
+              Нашите партньорски клиники в {cityData.name} са внимателно подбрани въз основа на квалификация, опит и отзиви от пациенти.
+              {cityData.slug === 'sofia' && ' Като столица, София има най-голямата концентрация на специалисти и най-новите технологии.'}
+              {cityData.slug === 'plovdiv' && ' Пловдив предлага отлично съотношение цена-качество с опитни специалисти.'}
+              {cityData.slug === 'varna' && ' Варна е известна с добрите условия за медицински туризъм и конкурентни цени.'}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Partner Clinics */}
+      {clinics.length > 0 && (
+        <section className="section-padding bg-slate-900/50">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="font-serif text-2xl font-semibold text-white mb-8 text-center">
+              Партньорски клиники в {cityData.name}
+            </h2>
+            <div className="space-y-4">
+              {clinics.map((clinic, index) => (
+                <div key={index} className="glass rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-full bg-sky-500/20 flex items-center justify-center flex-shrink-0">
+                      <Building className="w-6 h-6 text-sky-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-white text-lg">{clinic.name}</h3>
+                      <p className="text-slate-400">{clinic.address}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 text-yellow-400">
+                    <Star className="w-4 h-4 fill-yellow-400" />
+                    <span className="font-medium">{clinic.rating}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Pricing */}
+      {pricing && (
+        <section className="section-padding">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="font-serif text-2xl font-semibold text-white mb-8 text-center">
+              Ориентировъчни цени в {cityData.name}
+            </h2>
+            <div className="glass rounded-2xl p-8 text-center">
+              <div className="text-4xl font-bold text-sky-400 mb-2">
+                {pricing.min.toLocaleString()} - {pricing.max.toLocaleString()} лв
+              </div>
+              <p className="text-slate-400">{pricing.note}</p>
+              <p className="text-sm text-slate-500 mt-4">
+                * Цените са ориентировъчни и могат да варират според клиниката и конкретния случай
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* FAQ */}
+      {faqs.length > 0 && (
+        <section className="section-padding bg-slate-900/30">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="font-serif text-2xl font-semibold text-white mb-8 text-center">
+              Често задавани въпроси за {treatmentData.name} в {cityData.name}
+            </h2>
+            <div className="space-y-4">
+              {faqs.map((faq, index) => (
+                <details key={index} className="glass rounded-xl group">
+                  <summary className="p-6 cursor-pointer flex items-center justify-between text-white font-medium list-none">
+                    {faq.q}
+                    <ChevronDown className="w-5 h-5 text-slate-400 group-open:rotate-180 transition-transform" />
+                  </summary>
+                  <div className="px-6 pb-6 text-slate-300">
+                    {faq.a}
+                  </div>
+                </details>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Other Cities */}
+      <section className="section-padding">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="font-serif text-2xl font-semibold text-white mb-8 text-center">
+            {treatmentData.name} в други градове
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {Object.values(CITIES).filter(c => c.slug !== city).map((otherCity) => (
+              <Link
+                key={otherCity.slug}
+                href={`/${otherCity.slug}/${treatment}`}
+                className="card-hover glass rounded-2xl p-6 text-center group"
+              >
+                <MapPin className="w-6 h-6 text-sky-400 mx-auto mb-2" />
+                <h3 className="font-medium text-white">{otherCity.name}</h3>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Back to main treatment page */}
+      <section className="py-12 border-t border-slate-800">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <p className="text-slate-400 mb-4">
+            Търсите информация за {treatmentData.name.toLowerCase()} в цяла България?
+          </p>
+          <Link
+            href={`/${treatment}`}
+            className="text-sky-400 hover:text-sky-300 font-medium inline-flex items-center gap-2"
+          >
+            ← Обратно към {treatmentData.name}
+          </Link>
+        </div>
+      </section>
+
+      <Footer />
+    </main>
+  )
+}
