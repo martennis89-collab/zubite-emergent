@@ -703,6 +703,9 @@ h3{
 .mt-8{
   margin-top: 2rem;
 }
+.ml-auto{
+  margin-left: auto;
+}
 .block{
   display: block;
 }
@@ -1389,6 +1392,9 @@ h3{
 }
 .pt-8{
   padding-top: 2rem;
+}
+.pt-6{
+  padding-top: 1.5rem;
 }
 .text-left{
   text-align: left;
@@ -2123,6 +2129,11 @@ h3{
 .hover\:text-slate-900:hover{
   --tw-text-opacity: 1;
   color: rgb(15 23 42 / var(--tw-text-opacity, 1));
+}
+
+.hover\:text-sky-600:hover{
+  --tw-text-opacity: 1;
+  color: rgb(2 132 199 / var(--tw-text-opacity, 1));
 }
 
 .hover\:underline:hover{
