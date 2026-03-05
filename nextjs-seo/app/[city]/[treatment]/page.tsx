@@ -3,19 +3,19 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
-import { CITIES, TREATMENTS, CITY_CLINICS, CITY_FAQS } from '@/lib/data'
+import { CITIES, TREATMENTS, CITY_FAQS } from '@/lib/data'
 import { 
-  TREATMENT_PRICES, 
   PRICE_DISCLAIMER, 
-  ORTHODONTICS_COMPLEX_NOTE,
+  ALIGNERS_COMPLEX_NOTE,
   EDUCATIONAL_DISCLAIMER,
-  formatPrice,
   getTreatmentPrices,
   WHEN_TO_SEEK_SPECIALIST,
-  TREATMENT_EXPLANATIONS
+  TREATMENT_EXPLANATIONS,
+  HOW_WE_SELECT_CLINICS,
+  WHAT_YOU_GET
 } from '@/lib/pricing'
 import { generateBreadcrumbSchema, generateFAQSchema, generateLocalBusinessSchema } from '@/lib/schema'
-import { MapPin, Star, ArrowRight, ArrowLeft, Building, Award, CheckCircle, AlertCircle } from 'lucide-react'
+import { MapPin, ArrowRight, ArrowLeft, Award, CheckCircle, AlertCircle, ClipboardCheck, Gift } from 'lucide-react'
 import { FAQAccordion } from '@/components/FAQAccordion'
 
 interface PageProps {
@@ -41,8 +41,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: 'Not Found' }
   }
   
-  const title = `${treatmentData.name} в ${cityData.name} | Цени, Клиники и Оценка | Zubite.bg`
-  const description = `${treatmentData.name} в ${cityData.name}: ориентировъчни цени, кога да потърсите специалист, партньорски клиники и безплатна оценка. Информацията е образователна.`
+  const title = `${treatmentData.name} в ${cityData.name} | Цени и Оценка | Zubite.bg`
+  const description = `${treatmentData.name} в ${cityData.name}: ориентировъчни цени (EUR), кога да потърсите специалист и безплатна оценка. ${EDUCATIONAL_DISCLAIMER}`
   
   return {
     title,
@@ -68,7 +68,6 @@ export default async function CityTreatmentPage({ params }: PageProps) {
     notFound()
   }
   
-  const clinics = CITY_CLINICS[city]?.filter(c => c.specialties.includes(treatment)) || []
   const faqs = CITY_FAQS[city]?.[treatment] || []
   const prices = getTreatmentPrices(treatment)
   const whenToSeek = WHEN_TO_SEEK_SPECIALIST[treatment] || []
@@ -122,7 +121,7 @@ export default async function CityTreatmentPage({ params }: PageProps) {
               {treatmentData.name} в {cityData.name}
             </h1>
             <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-              Ориентировъчни цени, кога да потърсите специалист и партньорски клиники за {treatmentData.name.toLowerCase()} в {cityData.name}.
+              Ориентировъчни цени, кога да потърсите специалист и безплатна оценка за {treatmentData.name.toLowerCase()} в {cityData.name}.
             </p>
           </div>
 
@@ -178,7 +177,7 @@ export default async function CityTreatmentPage({ params }: PageProps) {
         </section>
       )}
 
-      {/* Pricing Section - Using centralized config */}
+      {/* Pricing Section - EUR primary, BGN secondary */}
       {prices.length > 0 && (
         <section className="py-16 bg-white">
           <div className="max-w-4xl mx-auto px-4 sm:px-6">
@@ -192,10 +191,10 @@ export default async function CityTreatmentPage({ params }: PageProps) {
                     <div>
                       <p className="text-sky-100 text-sm mb-1">{price.note}</p>
                       <div className="text-2xl md:text-3xl font-bold">
-                        {price.minBGN.toLocaleString('bg-BG')} – {price.maxBGN.toLocaleString('bg-BG')} лв.
+                        €{price.minEUR.toLocaleString('bg-BG')} – €{price.maxEUR.toLocaleString('bg-BG')}
                       </div>
                       <div className="text-sky-200 text-sm mt-1">
-                        (≈ €{price.minEUR.toLocaleString('bg-BG')} – €{price.maxEUR.toLocaleString('bg-BG')})
+                        (≈ {price.minBGN.toLocaleString('bg-BG')} – {price.maxBGN.toLocaleString('bg-BG')} лв.)
                       </div>
                     </div>
                   </div>
@@ -207,7 +206,7 @@ export default async function CityTreatmentPage({ params }: PageProps) {
               <div className="mt-4 p-4 bg-amber-50 rounded-xl border border-amber-200">
                 <div className="flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-amber-800 text-sm">{ORTHODONTICS_COMPLEX_NOTE}</p>
+                  <p className="text-amber-800 text-sm">{ALIGNERS_COMPLEX_NOTE}</p>
                 </div>
               </div>
             )}
@@ -219,35 +218,55 @@ export default async function CityTreatmentPage({ params }: PageProps) {
         </section>
       )}
 
-      {/* Partner Clinics */}
-      {clinics.length > 0 && (
-        <section className="py-16 bg-slate-50">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6">
-            <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-8 text-center">
-              Партньорски клиники в {cityData.name}
-            </h2>
-            <div className="space-y-4">
-              {clinics.map((clinic, index) => (
-                <div key={index} className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 card-hover-subtle">
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-full bg-sky-100 flex items-center justify-center flex-shrink-0">
-                      <Building className="w-6 h-6 text-sky-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-slate-900 text-lg">{clinic.name}</h3>
-                      <p className="text-slate-500">{clinic.address}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 text-amber-500">
-                    <Star className="w-4 h-4 fill-amber-400" />
-                    <span className="font-medium">{clinic.rating}</span>
-                  </div>
+      {/* How We Select Clinics - replaces fake clinic list */}
+      <section className="py-12 bg-slate-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* How we select */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center">
+                  <ClipboardCheck className="w-5 h-5 text-sky-600" />
                 </div>
-              ))}
+                <h3 className="font-serif text-lg font-semibold text-slate-900">
+                  {HOW_WE_SELECT_CLINICS.title}
+                </h3>
+              </div>
+              <p className="text-slate-600 text-sm mb-4">
+                {HOW_WE_SELECT_CLINICS.description}
+              </p>
+              <ul className="space-y-2">
+                {HOW_WE_SELECT_CLINICS.criteria.map((item, idx) => (
+                  <li key={idx} className="flex items-start gap-2 text-sm text-slate-600">
+                    <CheckCircle className="w-4 h-4 text-sky-500 flex-shrink-0 mt-0.5" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            
+            {/* What you get */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+                  <Gift className="w-5 h-5 text-emerald-600" />
+                </div>
+                <h3 className="font-serif text-lg font-semibold text-slate-900">
+                  {WHAT_YOU_GET.title}
+                </h3>
+              </div>
+              <ul className="space-y-2">
+                {WHAT_YOU_GET.items.map((item, idx) => (
+                  <li key={idx} className="flex items-start gap-2 text-sm text-slate-600">
+                    <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
-        </section>
-      )}
+        </div>
+      </section>
 
       {/* FAQ */}
       {faqs.length > 0 && (
@@ -277,6 +296,13 @@ export default async function CityTreatmentPage({ params }: PageProps) {
             </Link>
             {treatment === 'orthodontics' && (
               <>
+                <Link
+                  href="/aligners-comparison"
+                  className="bg-white rounded-xl border border-slate-200 p-4 hover:border-sky-300 transition-colors flex items-center gap-3"
+                >
+                  <ArrowRight className="w-4 h-4 text-sky-500" />
+                  <span className="text-slate-700">Сравнение на марки алайнери</span>
+                </Link>
                 <Link
                   href="/aligners-vs-braces"
                   className="bg-white rounded-xl border border-slate-200 p-4 hover:border-sky-300 transition-colors flex items-center gap-3"
@@ -339,7 +365,7 @@ export default async function CityTreatmentPage({ params }: PageProps) {
               Готови ли сте да започнете?
             </h2>
             <p className="text-sky-100 mb-8 max-w-lg mx-auto">
-              Преминете нашата кратка оценка и получете препоръка за подходящи клиники в {cityData.name}.
+              Преминете нашата кратка оценка и получете препоръка за подходящи опции в {cityData.name}.
             </p>
             <Link 
               href={`/${treatment}/quiz`}
