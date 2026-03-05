@@ -1,85 +1,99 @@
 import Link from 'next/link'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
-import { MapPin, ArrowRight, Shield, Clock, Users, ChevronRight, Star, CheckCircle } from 'lucide-react'
+import { MapPin, ArrowRight, Shield, Clock, Users, ChevronRight, Star, CheckCircle, Smile, Target, Heart, Stethoscope, Moon, Bone } from 'lucide-react'
 import { TREATMENTS, CITIES } from '@/lib/data'
 
 const treatmentList = Object.values(TREATMENTS)
 const cityList = Object.values(CITIES)
 
+// Icon mapping for treatments
+const treatmentIcons: Record<string, React.ElementType> = {
+  orthodontics: Smile,
+  implants: Target,
+  'cosmetic-dentistry': Heart,
+  'sleep-airway': Moon,
+  tmj: Bone
+}
+
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-[#0f172a]">
+    <main className="min-h-screen bg-white">
       <Header />
 
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 md:pt-40 md:pb-32 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-sky-500/10 via-transparent to-transparent" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-sky-500/5 rounded-full blur-3xl" />
-        
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-sky-400 font-medium text-sm tracking-wider uppercase mb-4 animate-fade-in">
+      <section className="pt-28 pb-20 md:pt-36 md:pb-28 bg-white overflow-hidden">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+          <p className="text-sky-500 font-medium text-sm tracking-wide uppercase mb-4 animate-fade-in">
             Навигатор за дентални решения
           </p>
-          <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-semibold text-white leading-tight mb-6 animate-fade-in-up">
-            Намерете идеалното<br />
-            <span className="gradient-text">дентално решение</span>
+          <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight mb-6 animate-fade-in-up">
+            Намерете идеалното<br />дентално решение
           </h1>
-          <p className="text-lg text-slate-400 max-w-2xl mx-auto mb-12 animate-fade-in-up animate-delay-100">
+          <p className="text-lg text-slate-600 max-w-2xl mx-auto mb-12 animate-fade-in-up animate-delay-100">
             Изберете типа лечение и открийте най-добрите клиники за вашия случай
           </p>
         </div>
       </section>
 
-      {/* Primary CTA - Treatment Selection */}
-      <section className="section-padding bg-slate-900/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Treatment Selection */}
+      <section className="py-16 bg-slate-50 border-y border-slate-100">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
-            <h2 className="font-serif text-3xl sm:text-4xl font-semibold text-white mb-4">
+            <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-slate-900 mb-4">
               Какъв проблем искате да решите?
             </h2>
-            <p className="text-slate-400 max-w-2xl mx-auto">
+            <p className="text-slate-500 max-w-2xl mx-auto">
               Изберете типа лечение, за да научите повече и да намерите подходяща клиника
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {treatmentList.map((treatment, index) => (
-              <Link
-                key={treatment.slug}
-                href={`/${treatment.slug}`}
-                className="card-hover group glass rounded-2xl p-6 animate-fade-in-up"
-                style={{ animationDelay: `${index * 100}ms` }}
-                data-testid={`treatment-${treatment.slug}`}
-              >
-                <div className="text-4xl mb-4">{treatment.icon}</div>
-                <h3 className="font-medium text-white text-xl mb-2">{treatment.name}</h3>
-                <p className="text-slate-400 mb-4">{treatment.description}</p>
-                <div className="flex items-center text-sky-400 text-sm font-medium group-hover:text-sky-300 transition-colors">
-                  <span>Научи повече</span>
-                  <ChevronRight className="w-4 h-4 ml-1 transition-transform duration-300 group-hover:translate-x-1" />
-                </div>
-              </Link>
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {treatmentList.map((treatment, index) => {
+              const IconComponent = treatmentIcons[treatment.slug] || Smile
+              return (
+                <Link
+                  key={treatment.slug}
+                  href={`/${treatment.slug}`}
+                  className="treatment-card group bg-white hover:bg-sky-50 border border-slate-200 hover:border-sky-300 rounded-2xl p-6 transition-all duration-300 animate-fade-in-up"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                  data-testid={`treatment-${treatment.slug}`}
+                >
+                  <div className="treatment-icon w-14 h-14 rounded-xl bg-sky-100 flex items-center justify-center mb-4">
+                    <IconComponent className="w-7 h-7 text-sky-600" />
+                  </div>
+                  <h3 className="font-medium text-slate-900 text-lg mb-2">{treatment.name}</h3>
+                  <p className="text-slate-500 text-sm mb-4">{treatment.description}</p>
+                  <div className="flex items-center text-sky-500 text-sm font-medium group-hover:text-sky-600 transition-colors">
+                    <span>Научи повече</span>
+                    <ChevronRight className="w-4 h-4 ml-1 treatment-arrow" />
+                  </div>
+                </Link>
+              )
+            })}
           </div>
         </div>
       </section>
 
       {/* Trust Indicators */}
-      <section className="py-16 border-y border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-16 bg-white">
+        <div className="max-w-4xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
             {[
               { icon: Clock, title: '60-90 секунди', desc: 'Бърза оценка' },
               { icon: Shield, title: 'Защита на данни', desc: 'GDPR съответствие' },
               { icon: Users, title: 'Партньорски клиники', desc: 'Проверени специалисти' }
             ].map((item, index) => (
-              <div key={index} className="animate-fade-in" style={{ animationDelay: `${index * 150}ms` }}>
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-sky-500/10 mb-4">
-                  <item.icon className="w-6 h-6 text-sky-400" />
+              <div 
+                key={index} 
+                className="animate-fade-in" 
+                style={{ animationDelay: `${index * 150}ms` }}
+              >
+                <div className="icon-hover inline-block">
+                  <item.icon className="w-8 h-8 text-sky-500 mx-auto mb-3" />
                 </div>
-                <h4 className="font-medium text-white mb-1">{item.title}</h4>
-                <p className="text-sm text-slate-400">{item.desc}</p>
+                <h4 className="font-medium text-slate-900 mb-1">{item.title}</h4>
+                <p className="text-sm text-slate-500">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -87,61 +101,59 @@ export default function HomePage() {
       </section>
 
       {/* How It Works */}
-      <section className="section-padding">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="font-serif text-3xl sm:text-4xl font-semibold text-white mb-4">
-              Как работи
-            </h2>
-            <p className="text-slate-400 max-w-2xl mx-auto">
-              Три прости стъпки до вашето дентално решение
-            </p>
-          </div>
-
+      <section className="py-16 bg-white">
+        <div className="max-w-4xl mx-auto px-4">
+          <h2 className="font-serif text-2xl font-semibold text-slate-900 text-center mb-12">
+            Как работи
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               { n: '1', t: 'Изберете лечение', d: 'Определете типа дентална грижа, от която се нуждаете' },
               { n: '2', t: 'Преминете оценка', d: 'Отговорете на кратък въпросник за вашия случай' },
               { n: '3', t: 'Получете препоръка', d: 'Свържете се с подходяща клиника във вашия град' }
             ].map((step, index) => (
-              <div key={step.n} className="text-center animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
-                <div className="w-16 h-16 rounded-full bg-gradient-to-r from-sky-500 to-sky-600 text-white flex items-center justify-center text-2xl font-bold mx-auto mb-6 glow">
+              <div 
+                key={step.n} 
+                className="text-center animate-fade-in-up" 
+                style={{ animationDelay: `${index * 150}ms` }}
+              >
+                <div className="icon-hover w-12 h-12 rounded-full bg-sky-500 text-white flex items-center justify-center text-xl font-bold mx-auto mb-4">
                   {step.n}
                 </div>
-                <h3 className="font-medium text-white text-lg mb-3">{step.t}</h3>
-                <p className="text-slate-400">{step.d}</p>
+                <h3 className="font-medium text-slate-900 mb-2">{step.t}</h3>
+                <p className="text-sm text-slate-500">{step.d}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Secondary - City Selection */}
-      <section className="section-padding bg-slate-900/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-white mb-4">
+      {/* City Selection */}
+      <section className="py-16 bg-slate-50 border-y border-slate-100">
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="text-center mb-10">
+            <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-4">
               Или изберете по град
             </h2>
-            <p className="text-slate-400">
+            <p className="text-slate-500">
               Вижте налични клиники и специалисти във вашия град
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto">
             {cityList.map((city, index) => (
               <Link
                 key={city.slug}
                 href={`/${city.slug}/orthodontics`}
-                className="card-hover group glass rounded-2xl p-6 text-center animate-fade-in-up"
+                className="city-card group bg-white hover:bg-sky-50 border border-slate-200 hover:border-sky-300 rounded-2xl p-6 text-center animate-fade-in-up"
                 style={{ animationDelay: `${index * 100}ms` }}
                 data-testid={`city-${city.slug}`}
               >
-                <div className="w-12 h-12 rounded-full bg-sky-500/20 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-300">
-                  <MapPin className="w-5 h-5 text-sky-400" />
+                <div className="city-icon w-12 h-12 rounded-full bg-sky-100 flex items-center justify-center mx-auto mb-4">
+                  <MapPin className="w-5 h-5 text-sky-600" />
                 </div>
-                <h3 className="font-medium text-white">{city.name}</h3>
-                <div className="flex items-center justify-center gap-1 mt-2 text-sm text-sky-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <h3 className="font-medium text-slate-900">{city.name}</h3>
+                <div className="flex items-center justify-center gap-1 mt-2 text-sm text-sky-500 opacity-0 group-hover:opacity-100 transition-all duration-300">
                   <span>Разгледай</span>
                   <ArrowRight className="w-3 h-3" />
                 </div>
@@ -152,10 +164,10 @@ export default function HomePage() {
       </section>
 
       {/* Testimonials */}
-      <section className="section-padding">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="font-serif text-3xl sm:text-4xl font-semibold text-white mb-4">
+      <section className="py-16 bg-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-12">
+            <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-slate-900 mb-4">
               Доверени от хиляди пациенти
             </h2>
           </div>
@@ -166,20 +178,24 @@ export default function HomePage() {
               { name: 'Георги П.', city: 'Пловдив', text: 'Бързо и лесно намерих специалист за зъбни импланти. Препоръчвам!' },
               { name: 'Елена Д.', city: 'Варна', text: 'Професионално обслужване и отлични резултати. Много съм доволна!' }
             ].map((testimonial, index) => (
-              <div key={index} className="glass rounded-2xl p-6 animate-fade-in-up" style={{ animationDelay: `${index * 100}ms` }}>
+              <div 
+                key={index} 
+                className="bg-slate-50 rounded-2xl border border-slate-100 p-6 animate-fade-in-up" 
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
                 <div className="flex items-center gap-1 mb-4">
                   {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
                   ))}
                 </div>
-                <p className="text-slate-300 mb-4">&ldquo;{testimonial.text}&rdquo;</p>
+                <p className="text-slate-600 mb-4">&ldquo;{testimonial.text}&rdquo;</p>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-sky-500/20 flex items-center justify-center text-sky-400 font-medium">
+                  <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 font-medium">
                     {testimonial.name.charAt(0)}
                   </div>
                   <div>
-                    <p className="text-white font-medium">{testimonial.name}</p>
-                    <p className="text-sm text-slate-400">{testimonial.city}</p>
+                    <p className="text-slate-900 font-medium">{testimonial.name}</p>
+                    <p className="text-sm text-slate-500">{testimonial.city}</p>
                   </div>
                 </div>
               </div>
@@ -189,19 +205,19 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="section-padding">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="glass rounded-3xl p-12 glow">
-            <h2 className="font-serif text-3xl sm:text-4xl font-semibold text-white mb-4">
+      <section className="py-16 bg-white">
+        <div className="max-w-3xl mx-auto px-4">
+          <div className="bg-gradient-to-br from-sky-500 to-sky-600 rounded-3xl p-10 md:p-12 text-center text-white">
+            <h2 className="font-serif text-2xl md:text-3xl font-semibold mb-4">
               Готови ли сте да започнете?
             </h2>
-            <p className="text-slate-400 mb-8 max-w-xl mx-auto">
+            <p className="text-sky-100 mb-8 max-w-lg mx-auto">
               Изберете вашето лечение и направете първата стъпка към перфектната усмивка
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 href="/orthodontics"
-                className="btn-primary px-8 py-4 rounded-full text-white font-medium inline-flex items-center justify-center gap-2"
+                className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full bg-white text-sky-600 font-medium hover:bg-sky-50"
                 data-testid="cta-ortho"
               >
                 <CheckCircle className="w-5 h-5" />
@@ -209,7 +225,7 @@ export default function HomePage() {
               </Link>
               <Link
                 href="/implants"
-                className="btn-secondary px-8 py-4 rounded-full text-white font-medium inline-flex items-center justify-center gap-2"
+                className="inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full border-2 border-white/30 text-white font-medium hover:bg-white/10 transition-colors"
                 data-testid="cta-implants"
               >
                 <CheckCircle className="w-5 h-5" />
