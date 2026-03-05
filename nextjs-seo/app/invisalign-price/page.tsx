@@ -262,7 +262,7 @@ export default function InvisalignPricePage() {
               Направете безплатна оценка и разберете каква е точната цена за вашия случай.
             </p>
             <Link 
-              href="/sofia/orthodontics/quiz"
+              href="/orthodontics/quiz"
               className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full bg-white text-sky-600 font-medium hover:bg-sky-50"
             >
               Безплатна оценка

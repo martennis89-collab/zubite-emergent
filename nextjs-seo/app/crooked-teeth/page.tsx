@@ -99,7 +99,7 @@ export default function CrookedTeethPage() {
             методи за изправяне. Намерете най-подходящото решение за вас.
           </p>
           <Link
-            href="/sofia/orthodontics/quiz"
+            href="/orthodontics/quiz"
             className="btn-primary inline-flex items-center justify-center gap-2 h-14 px-8"
           >
             Безплатна оценка
@@ -253,7 +253,7 @@ export default function CrookedTeethPage() {
               Направете безплатна оценка и разберете кой метод е най-подходящ за вашия случай.
             </p>
             <Link 
-              href="/sofia/orthodontics/quiz"
+              href="/orthodontics/quiz"
               className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full bg-white text-sky-600 font-medium hover:bg-sky-50"
             >
               Безплатна оценка
