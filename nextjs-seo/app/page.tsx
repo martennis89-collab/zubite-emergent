@@ -30,8 +30,11 @@ export default function HomePage() {
           <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight mb-6 animate-fade-in-up">
             Намерете идеалното<br />дентално решение
           </h1>
-          <p className="text-lg text-slate-600 max-w-2xl mx-auto mb-12 animate-fade-in-up animate-delay-100">
-            Изберете типа лечение и открийте най-добрите клиники за вашия случай
+          <p className="text-lg text-slate-600 max-w-2xl mx-auto mb-4 animate-fade-in-up animate-delay-100">
+            Отговорете на няколко въпроса и ще получите препоръка за подходящо лечение, ориентировъчни цени и 2–3 опции за клиники според вашия случай.
+          </p>
+          <p className="text-base text-slate-500 max-w-xl mx-auto mb-12 animate-fade-in-up animate-delay-100">
+            Не сме директория. Екипът ни ви насочва към правилния специалист според вашия конкретен случай.
           </p>
         </div>
       </section>
