@@ -18,7 +18,7 @@ Zubite.bg is a dental solutions navigator platform that helps Bulgarian users fi
 │   ├── layout.tsx                  # Root layout with JSON-LD
 │   ├── sitemap.ts                  # Dynamic sitemap
 │   │
-│   ├── orthodontics/page.tsx       # Treatment pages (canonical)
+│   ├── orthodontics/page.tsx       # Treatment pages (canonical) - NOW WITH ALIGNERS VS BRACES QUIZ
 │   ├── implants/page.tsx
 │   ├── cosmetic-dentistry/page.tsx
 │   ├── sleep-airway/page.tsx
@@ -33,11 +33,11 @@ Zubite.bg is a dental solutions navigator platform that helps Bulgarian users fi
 │   │   ├── dashboard/page.tsx      # Leads dashboard with filters
 │   │   └── leads/[id]/page.tsx     # Lead detail page
 │   │
-│   ├── aligners-vs-braces/         # SEO comparison page
-│   ├── invisalign-price/           # SEO pricing page
-│   ├── what-is-invisalign/         # SEO educational page
-│   ├── implant-price/              # SEO pricing page
-│   ├── crooked-teeth/              # SEO symptom page
+│   ├── aligners-vs-braces/         # SEO comparison page ✅ CONTENT COMPLETE
+│   ├── invisalign-price/           # SEO pricing page ✅ CONTENT COMPLETE
+│   ├── what-is-invisalign/         # SEO educational page ✅ CONTENT COMPLETE
+│   ├── implant-price/              # SEO pricing page ✅ CONTENT COMPLETE
+│   ├── crooked-teeth/              # SEO symptom page ✅ CONTENT COMPLETE
 │   │
 │   ├── privacy/, terms/, contact/  # Static pages
 │   └── symptoms/                   # Symptoms guide
@@ -45,7 +45,8 @@ Zubite.bg is a dental solutions navigator platform that helps Bulgarian users fi
 ├── components/
 │   ├── Header.tsx                  # Nav with treatments dropdown
 │   ├── Footer.tsx                  # Footer with treatment links
-│   └── FAQAccordion.tsx            # Reusable FAQ component
+│   ├── FAQAccordion.tsx            # Reusable FAQ component
+│   └── AlignersVsBracesQuiz.tsx    # NEW: Interactive quiz for aligners vs braces
 │
 ├── lib/
 │   ├── api.ts                      # API client
@@ -62,13 +63,13 @@ Zubite.bg is a dental solutions navigator platform that helps Bulgarian users fi
 
 ### Primary Routes (Treatment-First)
 - `/` - Homepage with treatment selection
-- `/orthodontics` - Orthodontics main page (canonical)
+- `/orthodontics` - Orthodontics main page (canonical) - **NOW WITH ALIGNERS VS BRACES QUIZ**
 - `/implants` - Dental implants main page (canonical)
 - `/cosmetic-dentistry` - Cosmetic dentistry main page (canonical)
 - `/sleep-airway` - Sleep apnea main page (canonical)
 - `/tmj` - TMJ main page (canonical)
 
-### SEO Content Pages (Topic Clusters)
+### SEO Content Pages (Topic Clusters) - ALL CONTENT COMPLETE ✅
 - `/aligners-vs-braces` - Comparison page (high-intent)
 - `/invisalign-price` - Price guide page (very high-intent)
 - `/what-is-invisalign` - Educational page
@@ -95,18 +96,28 @@ Each city page includes:
 
 ## Quiz System
 
-### Scoring Logic
+### Main Quiz (City/Treatment specific)
+- Located at `/{city}/{treatment}/quiz`
 - Points calculated based on answers (seriousness, timing, importance, readiness)
 - **Green (>=70 pts)**: "Отличен кандидат!" - Highly suitable
 - **Yellow (>=40 pts)**: "Необходима е допълнителна информация" - Needs consultation
 - **Red (<40 pts)**: "Може да има по-добри опции" - Alternative needed
 
-### Quiz Flow
-1. User completes 5 questions
-2. Score calculated automatically
-3. Colored outcome displayed (green/yellow/red)
-4. "Request a Call" option appears
-5. Contact form submission creates lead in database
+### NEW: Aligners vs Braces Quiz ✅
+- Located on `/orthodontics` page as interactive component
+- 5 questions with weighted scoring:
+  1. Problem severity
+  2. Visibility importance
+  3. Self-discipline level
+  4. Eating/lifestyle preferences
+  5. Budget considerations
+- **Recommendation outcomes**:
+  - **Aligners** (alignerScore > braceScore + 20): Green band
+  - **Braces** (braceScore > alignerScore + 20): Green band
+  - **Either** (balanced scores): Yellow band
+- Score visualization shows aligner vs brace point comparison
+- Contact form for consultation request
+- Leads stored with `source: 'aligners_vs_braces_quiz'`
 
 ## Admin Panel
 
@@ -138,13 +149,14 @@ Each city page includes:
 1. **Treatment-First Architecture** - Primary routes are treatments
 2. **5 Treatment Pages** - Orthodontics, Implants, Cosmetic, Sleep, TMJ
 3. **15+ City-Treatment Pages** - 3 cities × 5 treatments + Haskovo
-4. **SEO Topic Clusters** - Comparison, pricing, educational pages
+4. **SEO Topic Clusters** - Comparison, pricing, educational pages (ALL CONTENT COMPLETE)
 5. **Light Theme UI** - White background, sky-blue accents, serif headings
 6. **Quiz with Outcome Colors** - Green/yellow/red suitability indicator
-7. **Request a Call** - Form appears after quiz completion
-8. **Admin Dashboard** - Password-protected with lead management
-9. **SEO-Optimized** - JSON-LD, OG images, sitemap, robots.txt
-10. **City-Specific Content** - FAQs, clinics, pricing per city
+7. **NEW: Aligners vs Braces Quiz** - Interactive quiz on /orthodontics page
+8. **Request a Call** - Form appears after quiz completion
+9. **Admin Dashboard** - Password-protected with lead management
+10. **SEO-Optimized** - JSON-LD, OG images, sitemap, robots.txt
+11. **City-Specific Content** - FAQs, clinics, pricing per city
 
 ## Target SEO Keywords
 
@@ -167,10 +179,6 @@ Each city page includes:
 
 ## Pending/Future Tasks
 
-### P0 - In Progress
-- [ ] More SEO content pages (bonding-vs-veneers, hollywood-smile)
-- [ ] Additional symptom pages
-
 ### P1 - High Priority
 - [ ] Replace placeholder OG images with real designs
 - [ ] Add Meta Pixel ID for tracking
@@ -189,3 +197,4 @@ Each city page includes:
 
 ---
 *Last updated: December 2025*
+*Latest change: Added Aligners vs Braces Quiz to /orthodontics page*
