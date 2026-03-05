@@ -81,10 +81,15 @@
       "static/chunks/main-app.js",
       "static/chunks/app/cosmetic-dentistry/quiz/page.js"
     ],
-    "/_not-found/page": [
+    "/tmj/quiz/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/_not-found/page.js"
+      "static/chunks/app/tmj/quiz/page.js"
+    ],
+    "/sleep-airway/quiz/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/sleep-airway/quiz/page.js"
     ]
   }
 }
