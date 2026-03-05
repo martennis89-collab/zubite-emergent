@@ -11,108 +11,121 @@ Zubite.bg is a dental solutions navigator platform that helps Bulgarian users fi
 
 ## Recent Updates (December 2025)
 
-### SEO & Content Optimization
-- **Homepage Copy Update**: New hero subheadline emphasizing recommendations + prices + 2-3 clinic options
-- **Trust Statements**: Replaced fake testimonials with genuine trust indicators
-- **Centralized Pricing**: Single source of truth in `/app/nextjs-seo/lib/pricing.ts`
-- **Content-Rich City Pages**: Added explanation sections, "when to seek specialist" bullets, internal links
-- **Price Format**: BGN primary with EUR in parentheses (€1 ≈ 2.00 лв display approximation)
+### Content Restructure
+- **Removed fake clinics**: Replaced example clinic lists with "Как подбираме опции за клиники" and "Какво ще получите" sections
+- **Brand Comparison**: Added Invisalign vs Spark vs Angel Aligner comparison to orthodontics page
+- **New SEO Page**: Created `/aligners-comparison` page with comprehensive brand comparison
+- **Updated Trust Statements**: Replaced fake testimonials with genuine trust indicators
+- **Homepage Copy**: Added line about comparing aligner brands
 
-### Pricing Ranges (from centralized config)
-| Treatment | BGN | EUR |
+### Pricing System (EUR Primary, BGN Secondary)
+| Treatment | EUR | BGN |
 |-----------|-----|-----|
-| Ортодонтия (Алайнери) | 3,000 – 12,000 лв. | €1,500 – €6,000 |
-| Ортодонтия (Брекети) | 2,000 – 8,000 лв. | €1,000 – €4,000 |
-| Имплант (1 зъб) | 1,600 – 4,000 лв. | €800 – €2,000 |
-| All-on-4/6 (една челюст) | 12,000 – 40,000+ лв. | €6,000 – €20,000+ |
-| Фасети (на зъб) | 500 – 1,800 лв. | €250 – €900 |
-| Бондинг (на зъб) | 160 – 500 лв. | €80 – €250 |
-| Избелване | 300 – 800 лв. | €150 – €400 |
-| TMJ терапия | 400 – 3,000 лв. | €200 – €1,500 |
-| Сънна апнея | 1,000 – 5,000 лв. | €500 – €2,500 |
+| Алайнери | €1,500 – €6,000 | ≈ 3,000 – 12,000 лв. |
+| Брекети | €1,000 – €4,000 | ≈ 2,000 – 8,000 лв. |
+| Имплант (1 зъб) | €800 – €2,000 | ≈ 1,600 – 4,000 лв. |
+| All-on-4/6 | €6,000 – €20,000+ | ≈ 12,000 – 40,000+ лв. |
+| Фасети (на зъб) | €250 – €900 | ≈ 500 – 1,800 лв. |
+| Бондинг (на зъб) | €80 – €250 | ≈ 160 – 500 лв. |
+| Избелване | €150 – €400 | ≈ 300 – 800 лв. |
+| TMJ терапия | €200 – €1,500 | ≈ 400 – 3,000 лв. |
+| Сънна апнея | €500 – €2,500 | ≈ 1,000 – 5,000 лв. |
+
+### Key Disclaimers
+- **Price**: "Цените са ориентировъчни и зависят от сложност, план и клиника."
+- **Brand**: "Най-важният фактор е опитът на ортодонта и правилната диагноза. Марката сама по себе си не гарантира резултат."
+- **Educational**: "Информацията е образователна и не замества преглед."
+- **Aligners Complex**: "При много сложни случаи при топ специалисти може да достигне горната граница."
 
 ## Current Architecture
 
 ```
 /app/nextjs-seo/
 ├── app/
-│   ├── page.tsx                    # Homepage with updated copy & trust statements
-│   ├── layout.tsx                  # Root layout with JSON-LD
-│   ├── sitemap.ts                  # Dynamic sitemap
+│   ├── page.tsx                    # Homepage with updated trust statements
+│   ├── layout.tsx, sitemap.ts
 │   │
 │   ├── orthodontics/
-│   │   ├── page.tsx                # Treatment page with Aligners vs Braces Quiz
-│   │   └── quiz/page.tsx           # Treatment-first quiz with city selection
+│   │   ├── page.tsx                # With brand comparison section
+│   │   └── quiz/page.tsx
 │   ├── implants/, cosmetic-dentistry/, sleep-airway/, tmj/
 │   │
-│   ├── [city]/[treatment]/         # Content-rich city+treatment pages
-│   │   ├── page.tsx                # With explanation, when to seek, pricing, FAQs, internal links
-│   │   └── quiz/page.tsx
+│   ├── aligners-comparison/        # NEW: Brand comparison SEO page
+│   │   └── page.tsx
 │   │
-│   ├── admin/                      # Password-protected admin panel
-│   ├── aligners-vs-braces/, invisalign-price/, etc.  # SEO pages
+│   ├── [city]/[treatment]/         # Content-rich city+treatment pages
+│   │   └── page.tsx                # No fake clinics, has "what you get" section
+│   │
+│   ├── admin/
+│   ├── aligners-vs-braces/, invisalign-price/, etc.
 │   └── ...
 │
 ├── components/
-│   ├── TreatmentQuiz.tsx           # Quiz with city selection
-│   ├── AlignersVsBracesQuiz.tsx    # Interactive quiz
+│   ├── TreatmentQuiz.tsx, AlignersVsBracesQuiz.tsx
 │   └── ...
 │
 ├── lib/
-│   ├── pricing.ts                  # NEW: Centralized pricing config (single source of truth)
-│   ├── data.ts                     # Cities, treatments, FAQs
-│   ├── api.ts, schema.ts, utils.ts
+│   ├── pricing.ts                  # Centralized pricing (EUR primary, BGN secondary)
+│   │                               # Includes ALIGNER_BRANDS, HOW_WE_SELECT_CLINICS,
+│   │                               # WHAT_YOU_GET, and all disclaimers
+│   ├── data.ts, api.ts, schema.ts
 │
 └── public/
 ```
 
+## Aligner Brands Comparison
+
+### Invisalign
+- Suitable cases: Mild to complex (depends on plan and doctor)
+- Comfort: High comfort, thin material (may vary)
+- Aesthetics: Nearly invisible
+- Availability: Widely available in Bulgaria
+- Price: €2,000 – €6,000 (≈ 4,000 – 12,000 лв.)
+
+### Spark
+- Suitable cases: Mild to moderate (depends on plan and doctor)
+- Comfort: High comfort, clearer material (may vary)
+- Aesthetics: Nearly invisible
+- Availability: Growing availability in Bulgaria
+- Price: €1,800 – €5,000 (≈ 3,600 – 10,000 лв.)
+
+### Angel Aligner
+- Suitable cases: Mild to moderate (depends on plan and doctor)
+- Comfort: Good comfort (may vary)
+- Aesthetics: Nearly invisible
+- Availability: Available in select clinics
+- Price: €1,500 – €4,000 (≈ 3,000 – 8,000 лв.)
+
 ## Quiz Flow
 
 ### Treatment-First Quiz
-1. **City Selection**: User selects their city (Sofia, Plovdiv, Varna)
+1. **City Selection**: User selects their city
 2. **Quiz Questions**: 5 questions about intent, timing, priorities
-3. **Result**: Green/Yellow/Red outcome with link to city-specific page
-4. **Contact Form**: Request a call (optional)
+3. **Result**: Green/Yellow/Red outcome
+4. **Contact Form**: Request a call
 
-### Aligners vs Braces Quiz (on /orthodontics)
+### Aligners vs Braces Quiz
 - 5 questions with weighted scoring
-- Recommends: Aligners, Braces, or Either (needs consultation)
+- Recommends: Aligners, Braces, or Either
 
 ## SEO Strategy
 
-### Content Structure
-- **Homepage**: Treatment selection + trust statements
-- **Treatment Pages**: Overview + Aligners vs Braces quiz (orthodontics)
-- **City+Treatment Pages**: Explanation, when to seek, pricing, FAQs, internal links
-- **Topic Clusters**: /aligners-vs-braces, /invisalign-price, /crooked-teeth, etc.
+### Content Pages
+- **Homepage**: Treatment selection + trust statements + brand mention
+- **Treatment Pages**: Overview + brand comparison (orthodontics)
+- **City+Treatment Pages**: Explanation, when to seek, pricing (EUR), "what you get", FAQs
+- **Topic Clusters**: /aligners-comparison, /aligners-vs-braces, /invisalign-price, etc.
 
 ### Metadata
 - Unique `<title>` and `<meta description>` per page
-- Canonical URLs: `https://zubite.bg/...`
+- Canonical URLs
 - JSON-LD: Organization, WebSite, BreadcrumbList, FAQPage
-
-### Disclaimers
-- **Price**: "Цените са ориентировъчни и зависят от сложност, план и клиника."
-- **Educational**: "Информацията е образователна и не замества преглед."
-- **Orthodontics Complex**: "При много сложни случаи с висока сложност и лечение при топ специалисти, цената може да достигне горната граница."
 
 ## Admin Panel
 
 ### Credentials
 - **Email**: `admin@zubite.bg`
 - **Password**: `password`
-
-### Features
-- Dashboard with stats
-- Lead list with filters
-- Lead detail view
-- Status management
-
-## API Endpoints
-- `POST /api/leads` - Create lead
-- `POST /api/admin/login` - Admin auth
-- `GET /api/admin/leads` - List leads
-- `GET /api/admin/leads/{id}` - Get lead detail
 
 ## Pending/Future Tasks
 
@@ -122,15 +135,14 @@ Zubite.bg is a dental solutions navigator platform that helps Bulgarian users fi
 
 ### P2 - Medium Priority
 - [ ] Replace placeholder OG images
-- [ ] Add real clinic data (partnerships)
+- [ ] Add real clinic partnerships
 - [ ] Google Analytics integration
 
 ### P3 - Future
 - [ ] English translation (`/en/...` routes)
-- [ ] More cities (Burgas, Stara Zagora, etc.)
+- [ ] More cities
 - [ ] Blog/content section
-- [ ] User reviews system
 
 ---
 *Last updated: December 2025*
-*Latest changes: SEO content optimization, centralized pricing, trust statements, content-rich city pages*
+*Latest changes: EUR primary pricing, brand comparison, removed fake clinics, added "what you get" sections*
