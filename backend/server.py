@@ -524,12 +524,12 @@ async def seed():
         doc['created_at'] = doc['created_at'].isoformat()
         await db.clinics.insert_one(doc)
     
-    admin_exists = await db.admin_users.find_one({"username": "admin"})
+    admin_exists = await db.admin_users.find_one({"username": "admin@zubite.bg"})
     if not admin_exists:
         await db.admin_users.insert_one({
             "id": str(uuid.uuid4()),
-            "username": "admin",
-            "password_hash": hash_password("admin123"),
+            "username": "admin@zubite.bg",
+            "password_hash": hash_password("password"),
             "role": "admin",
             "created_at": datetime.now(timezone.utc).isoformat()
         })
