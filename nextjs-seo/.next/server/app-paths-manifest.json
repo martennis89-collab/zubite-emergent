@@ -1,7 +1,5 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
   "/page": "app/page.js",
-  "/city/[citySlug]/page": "app/city/[citySlug]/page.js",
   "/ortho/page": "app/ortho/page.js",
   "/ortho/[quizType]/page": "app/ortho/[quizType]/page.js",
   "/symptoms/page": "app/symptoms/page.js",
