@@ -862,6 +862,9 @@ h3{
 .max-w-none{
   max-width: none;
 }
+.max-w-xl{
+  max-width: 36rem;
+}
 .flex-1{
   flex: 1 1 0%;
 }
@@ -1436,6 +1439,10 @@ h3{
 .text-xs{
   font-size: 0.75rem;
   line-height: 1rem;
+}
+.text-base{
+  font-size: 1rem;
+  line-height: 1.5rem;
 }
 .font-bold{
   font-weight: 700;
