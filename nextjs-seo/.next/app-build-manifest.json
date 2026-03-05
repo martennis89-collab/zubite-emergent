@@ -1,35 +1,15 @@
 {
   "pages": {
-    "/[city]/[treatment]/quiz/page": [
+    "/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/[city]/[treatment]/quiz/page.js"
+      "static/chunks/app/page.js"
     ],
     "/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
-    ],
-    "/admin/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/admin/page.js"
-    ],
-    "/aligners-vs-braces/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/aligners-vs-braces/page.js"
-    ],
-    "/invisalign-price/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/invisalign-price/page.js"
-    ],
-    "/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/page.js"
     ],
     "/orthodontics/page": [
       "static/chunks/webpack.js",
@@ -41,25 +21,45 @@
       "static/chunks/main-app.js",
       "static/chunks/app/[city]/[treatment]/page.js"
     ],
+    "/[city]/[treatment]/quiz/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/[city]/[treatment]/quiz/page.js"
+    ],
+    "/admin/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/admin/page.js"
+    ],
     "/admin/dashboard/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/admin/dashboard/page.js"
     ],
-    "/implant-price/page": [
+    "/aligners-vs-braces/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/implant-price/page.js"
+      "static/chunks/app/aligners-vs-braces/page.js"
     ],
-    "/what-is-invisalign/page": [
+    "/implants/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/what-is-invisalign/page.js"
+      "static/chunks/app/implants/page.js"
     ],
-    "/crooked-teeth/page": [
+    "/cosmetic-dentistry/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/crooked-teeth/page.js"
+      "static/chunks/app/cosmetic-dentistry/page.js"
+    ],
+    "/tmj/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/tmj/page.js"
+    ],
+    "/sleep-airway/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/sleep-airway/page.js"
     ]
   }
 }
