@@ -166,21 +166,21 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Testimonials */}
+      {/* Trust Statements */}
       <section className="py-16 bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
             <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-slate-900 mb-4">
-              Доверени от хиляди пациенти
+              Защо да изберете Zubite
             </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              { name: 'Мария И.', city: 'София', text: 'Благодарение на Zubite намерих перфектната клиника за моето ортодонтско лечение.' },
-              { name: 'Георги П.', city: 'Пловдив', text: 'Бързо и лесно намерих специалист за зъбни импланти. Препоръчвам!' },
-              { name: 'Елена Д.', city: 'Варна', text: 'Професионално обслужване и отлични резултати. Много съм доволна!' }
-            ].map((testimonial, index) => (
+              { title: 'Персонализирани препоръки', text: 'Препоръки според вашия случай — не според реклама.' },
+              { title: 'Прозрачни цени', text: 'Ориентировъчни цени преди да говорите с клиника.' },
+              { title: 'Ясен път напред', text: 'По-ясен път: симптом → лечение → опции за клиники.' }
+            ].map((item, index) => (
               <div 
                 key={index} 
                 className="bg-slate-50 rounded-2xl border border-slate-100 p-6 animate-fade-in-up" 
@@ -191,14 +191,13 @@ export default function HomePage() {
                     <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
                   ))}
                 </div>
-                <p className="text-slate-600 mb-4">&ldquo;{testimonial.text}&rdquo;</p>
+                <p className="text-slate-600 mb-4">{item.text}</p>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 font-medium">
-                    {testimonial.name.charAt(0)}
+                    <CheckCircle className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-slate-900 font-medium">{testimonial.name}</p>
-                    <p className="text-sm text-slate-500">{testimonial.city}</p>
+                    <p className="text-slate-900 font-medium">{item.title}</p>
                   </div>
                 </div>
               </div>
