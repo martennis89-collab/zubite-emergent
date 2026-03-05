@@ -90,6 +90,11 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/sleep-airway/quiz/page.js"
+    ],
+    "/aligners-comparison/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/aligners-comparison/page.js"
     ]
   }
 }
