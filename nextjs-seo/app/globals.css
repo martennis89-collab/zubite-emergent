@@ -8,30 +8,7 @@
   :root {
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 199 89% 48%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.75rem;
-  }
-}
-
-@layer base {
-  * {
-    @apply border-border;
   }
   
   html {
@@ -216,15 +193,6 @@
   @apply bg-sky-600;
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(14, 165, 233, 0.3);
-}
-
-/* Accent button */
-.btn-accent {
-  @apply h-12 px-6 rounded-full bg-sky-500 text-white font-medium transition-all duration-200;
-}
-
-.btn-accent:hover {
-  @apply bg-sky-600;
 }
 
 /* ====================================
@@ -454,4 +422,25 @@
 
 .faq-open .faq-answer {
   max-height: 500px;
+}
+
+/* ====================================
+   SYMPTOM CARD
+   ==================================== */
+
+.symptom-card {
+  transition: transform 0.25s ease-out, box-shadow 0.25s ease-out, border-color 0.25s ease-out, background-color 0.25s ease-out;
+}
+
+.symptom-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.1);
+}
+
+.symptom-card:hover .symptom-icon {
+  transform: scale(1.1);
+}
+
+.symptom-icon {
+  transition: transform 0.3s ease-out;
 }
