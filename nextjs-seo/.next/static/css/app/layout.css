@@ -1115,6 +1115,10 @@ h3{
 .border-white\/30{
   border-color: rgb(255 255 255 / 0.3);
 }
+.border-sky-300{
+  --tw-border-opacity: 1;
+  border-color: rgb(125 211 252 / var(--tw-border-opacity, 1));
+}
 .bg-\[\#0f172a\]{
   --tw-bg-opacity: 1;
   background-color: rgb(15 23 42 / var(--tw-bg-opacity, 1));
@@ -1322,6 +1326,14 @@ h3{
 .py-8{
   padding-top: 2rem;
   padding-bottom: 2rem;
+}
+.px-2{
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+.py-0\.5{
+  padding-top: 0.125rem;
+  padding-bottom: 0.125rem;
 }
 .pb-12{
   padding-bottom: 3rem;
