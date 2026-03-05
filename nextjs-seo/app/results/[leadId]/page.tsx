@@ -1,15 +1,12 @@
 'use client'
 
-import { useState, use, useEffect } from 'react'
+import { useState, useEffect } from 'react'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { getLead } from '@/lib/api'
 import { CheckCircle, Loader2, Home } from 'lucide-react'
-
-interface ResultsPageProps {
-  params: Promise<{ leadId: string }>
-}
 
 interface Lead {
   id: string
@@ -22,8 +19,9 @@ interface Lead {
   email?: string
 }
 
-export default function ResultsPage({ params }: ResultsPageProps) {
-  const { leadId } = use(params)
+export default function ResultsPage() {
+  const params = useParams()
+  const leadId = params.leadId as string
   
   const [lead, setLead] = useState<Lead | null>(null)
   const [loading, setLoading] = useState(true)

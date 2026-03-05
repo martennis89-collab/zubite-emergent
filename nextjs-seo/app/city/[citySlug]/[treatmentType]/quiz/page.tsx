@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, use, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
@@ -9,13 +9,10 @@ import { CITIES, TREATMENTS, getQuizQuestions } from '@/lib/data'
 import { createLead } from '@/lib/api'
 import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react'
 
-interface QuizPageProps {
-  params: Promise<{ citySlug: string; treatmentType: string }>
-}
-
-export default function QuizPage({ params }: QuizPageProps) {
-  const resolvedParams = use(params)
-  const { citySlug, treatmentType } = resolvedParams
+export default function QuizPage() {
+  const params = useParams()
+  const citySlug = params.citySlug as string
+  const treatmentType = params.treatmentType as string
   
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
@@ -32,6 +29,14 @@ export default function QuizPage({ params }: QuizPageProps) {
   
   const city = CITIES[citySlug as keyof typeof CITIES]
   const treatment = TREATMENTS[treatmentType as keyof typeof TREATMENTS]
+  
+  if (!isClient) {
+    return (
+      <main className="min-h-screen bg-[#0f172a] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-sky-400 animate-spin" />
+      </main>
+    )
+  }
   
   if (!city || !treatment) {
     return (
@@ -92,14 +97,6 @@ export default function QuizPage({ params }: QuizPageProps) {
       setError('Възникна грешка. Моля, опитайте отново.')
       setIsSubmitting(false)
     }
-  }
-  
-  if (!isClient) {
-    return (
-      <main className="min-h-screen bg-[#0f172a] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-sky-400 animate-spin" />
-      </main>
-    )
   }
   
   return (

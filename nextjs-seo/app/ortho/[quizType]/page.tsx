@@ -1,16 +1,12 @@
 'use client'
 
-import { useState, use, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { createLead } from '@/lib/api'
 import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react'
-
-interface OrthoQuizPageProps {
-  params: Promise<{ quizType: string }>
-}
 
 const ORTHO_QUESTIONS = [
   {
@@ -69,8 +65,9 @@ const ORTHO_QUESTIONS = [
   }
 ]
 
-export default function OrthoQuizPage({ params }: OrthoQuizPageProps) {
-  const { quizType } = use(params)
+export default function OrthoQuizPage() {
+  const params = useParams()
+  const quizType = params.quizType as string
   
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
