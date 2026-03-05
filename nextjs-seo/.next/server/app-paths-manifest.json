@@ -3,7 +3,7 @@
   "/page": "app/page.js",
   "/[city]/[treatment]/page": "app/[city]/[treatment]/page.js",
   "/orthodontics/quiz/page": "app/orthodontics/quiz/page.js",
-  "/implants/quiz/page": "app/implants/quiz/page.js",
   "/cosmetic-dentistry/quiz/page": "app/cosmetic-dentistry/quiz/page.js",
-  "/cosmetic-dentistry/page": "app/cosmetic-dentistry/page.js"
+  "/cosmetic-dentistry/page": "app/cosmetic-dentistry/page.js",
+  "/tmj/page": "app/tmj/page.js"
 }
