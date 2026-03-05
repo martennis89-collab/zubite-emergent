@@ -3,5 +3,6 @@
   "/page": "app/page.js",
   "/[city]/[treatment]/page": "app/[city]/[treatment]/page.js",
   "/orthodontics/quiz/page": "app/orthodontics/quiz/page.js",
-  "/aligners-comparison/page": "app/aligners-comparison/page.js"
+  "/aligners-comparison/page": "app/aligners-comparison/page.js",
+  "/sitemap.xml/[[...__metadata_id__]]/route": "app/sitemap.xml/[[...__metadata_id__]]/route.js"
 }
