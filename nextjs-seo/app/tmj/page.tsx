@@ -118,12 +118,12 @@ export default function TMJPage() {
           {/* Quick CTA */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mt-10">
             <Link
-              href="/sofia/tmj"
+              href="/sofia/tmj/quiz"
               className="btn-primary inline-flex items-center justify-center gap-2 h-14 px-8"
-              data-testid="cta-sofia"
+              data-testid="cta-quiz"
             >
-              <MapPin className="w-5 h-5" />
-              Специалисти в София
+              <Bone className="w-5 h-5" />
+              Направете безплатна оценка
             </Link>
             <Link
               href="#treatments"
@@ -293,11 +293,11 @@ export default function TMJPage() {
               Преминете през нашата кратка оценка, за да разберете кое лечение е подходящо за вас.
             </p>
             <Link 
-              href="/sofia/tmj"
+              href="/sofia/tmj/quiz"
               className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-10 rounded-full bg-white text-sky-600 font-medium hover:bg-sky-50"
               data-testid="start-quiz-cta"
             >
-              Започнете оценката
+              Направете безплатна оценка
               <ArrowRight className="w-5 h-5" />
             </Link>
           </div>
