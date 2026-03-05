@@ -20,6 +20,11 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/symptoms/[symptomSlug]/page.js"
+    ],
+    "/orthodontics/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/orthodontics/page.js"
     ]
   }
 }
