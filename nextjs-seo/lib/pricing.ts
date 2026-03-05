@@ -1,11 +1,11 @@
 // Centralized pricing configuration - Single source of truth
-// All prices in BGN with EUR equivalent (€1 ≈ 2.00 лв for display)
+// EUR primary, BGN secondary (€1 ≈ 2.00 лв for display approximation)
 
 export interface PriceRange {
-  minBGN: number
-  maxBGN: number
   minEUR: number
   maxEUR: number
+  minBGN: number
+  maxBGN: number
   note?: string
 }
 
@@ -13,78 +13,78 @@ export interface TreatmentPricing {
   [key: string]: PriceRange
 }
 
-// Core pricing data - BGN primary, EUR secondary
+// Core pricing data - EUR primary, BGN secondary
 export const TREATMENT_PRICES: TreatmentPricing = {
   // Orthodontics
   'orthodontics-aligners': {
-    minBGN: 3000,
-    maxBGN: 12000,
     minEUR: 1500,
     maxEUR: 6000,
-    note: 'Invisalign и други прозрачни алайнери'
+    minBGN: 3000,
+    maxBGN: 12000,
+    note: 'Прозрачни алайнери (Invisalign, Spark, Angel Aligner и др.)'
   },
   'orthodontics-braces': {
-    minBGN: 2000,
-    maxBGN: 8000,
     minEUR: 1000,
     maxEUR: 4000,
+    minBGN: 2000,
+    maxBGN: 8000,
     note: 'Метални и керамични брекети'
   },
   
   // Implants
   'implant-single': {
-    minBGN: 1600,
-    maxBGN: 4000,
     minEUR: 800,
     maxEUR: 2000,
+    minBGN: 1600,
+    maxBGN: 4000,
     note: 'Един зъб (имплант + корона)'
   },
   'implant-all-on-4': {
-    minBGN: 12000,
-    maxBGN: 40000,
     minEUR: 6000,
     maxEUR: 20000,
+    minBGN: 12000,
+    maxBGN: 40000,
     note: 'All-on-4 / All-on-6 (една челюст)'
   },
   
   // Cosmetic Dentistry
   'veneers': {
-    minBGN: 500,
-    maxBGN: 1800,
     minEUR: 250,
     maxEUR: 900,
+    minBGN: 500,
+    maxBGN: 1800,
     note: 'На зъб (порцеланови фасети)'
   },
   'bonding': {
-    minBGN: 160,
-    maxBGN: 500,
     minEUR: 80,
     maxEUR: 250,
+    minBGN: 160,
+    maxBGN: 500,
     note: 'На зъб (композитен бондинг)'
   },
   'whitening': {
-    minBGN: 300,
-    maxBGN: 800,
     minEUR: 150,
     maxEUR: 400,
+    minBGN: 300,
+    maxBGN: 800,
     note: 'Професионално избелване'
   },
   
   // TMJ
   'tmj-therapy': {
-    minBGN: 400,
-    maxBGN: 3000,
     minEUR: 200,
     maxEUR: 1500,
+    minBGN: 400,
+    maxBGN: 3000,
     note: 'Шини и TMJ терапия'
   },
   
   // Sleep Apnea
   'sleep-apnea': {
-    minBGN: 1000,
-    maxBGN: 5000,
     minEUR: 500,
     maxEUR: 2500,
+    minBGN: 1000,
+    maxBGN: 5000,
     note: 'Орални апарати за сънна апнея'
   }
 }
@@ -92,34 +92,28 @@ export const TREATMENT_PRICES: TreatmentPricing = {
 // Price disclaimer - must appear under every price block
 export const PRICE_DISCLAIMER = 'Цените са ориентировъчни и зависят от сложност, план и клиника.'
 
-// Orthodontics special note
-export const ORTHODONTICS_COMPLEX_NOTE = 'При много сложни случаи с висока сложност и лечение при топ специалисти, цената може да достигне горната граница.'
+// Orthodontics special note for aligners
+export const ALIGNERS_COMPLEX_NOTE = 'При много сложни случаи при топ специалисти може да достигне горната граница.'
+
+// Brand comparison disclaimer
+export const BRAND_COMPARISON_DISCLAIMER = 'Най-важният фактор е опитът на ортодонта и правилната диагноза. Марката сама по себе си не гарантира резултат.'
 
 // Educational disclaimer
 export const EDUCATIONAL_DISCLAIMER = 'Информацията е образователна и не замества преглед.'
 
-// Helper function to format price with BGN primary, EUR secondary
+// Helper function to format price with EUR primary, BGN secondary
 export function formatPrice(price: PriceRange): string {
-  const bgnMin = price.minBGN.toLocaleString('bg-BG')
-  const bgnMax = price.maxBGN.toLocaleString('bg-BG')
-  const eurMin = price.minEUR.toLocaleString('bg-BG')
-  const eurMax = price.maxEUR.toLocaleString('bg-BG')
-  
-  return `${bgnMin} – ${bgnMax} лв. (≈ €${eurMin} – €${eurMax})`
-}
-
-// Helper to format just BGN
-export function formatPriceBGN(price: PriceRange): string {
-  const bgnMin = price.minBGN.toLocaleString('bg-BG')
-  const bgnMax = price.maxBGN.toLocaleString('bg-BG')
-  return `${bgnMin} – ${bgnMax} лв.`
+  return `€${price.minEUR.toLocaleString('bg-BG')} – €${price.maxEUR.toLocaleString('bg-BG')} (≈ ${price.minBGN.toLocaleString('bg-BG')} – ${price.maxBGN.toLocaleString('bg-BG')} лв.)`
 }
 
 // Helper to format just EUR
 export function formatPriceEUR(price: PriceRange): string {
-  const eurMin = price.minEUR.toLocaleString('bg-BG')
-  const eurMax = price.maxEUR.toLocaleString('bg-BG')
-  return `≈ €${eurMin} – €${eurMax}`
+  return `€${price.minEUR.toLocaleString('bg-BG')} – €${price.maxEUR.toLocaleString('bg-BG')}`
+}
+
+// Helper to format just BGN
+export function formatPriceBGN(price: PriceRange): string {
+  return `≈ ${price.minBGN.toLocaleString('bg-BG')} – ${price.maxBGN.toLocaleString('bg-BG')} лв.`
 }
 
 // Get prices for a treatment type
@@ -148,6 +142,77 @@ export function getTreatmentPrices(treatmentSlug: string): PriceRange[] {
     default:
       return []
   }
+}
+
+// Aligner brand comparison data
+export interface AlignerBrand {
+  name: string
+  slug: string
+  suitableCases: string
+  comfort: string
+  aesthetics: string
+  availability: string
+  orthodontistControl: string
+  priceRange: string
+  priceBGN: string
+}
+
+export const ALIGNER_BRANDS: AlignerBrand[] = [
+  {
+    name: 'Invisalign',
+    slug: 'invisalign',
+    suitableCases: 'Леки до сложни случаи (зависи от плана и лекаря)',
+    comfort: 'Висок комфорт, тънък материал (може да варира)',
+    aesthetics: 'Почти невидими',
+    availability: 'Широко разпространен в България',
+    orthodontistControl: 'Пълен контрол от ортодонта, дигитално планиране',
+    priceRange: '€2 000 – €6 000',
+    priceBGN: '≈ 4 000 – 12 000 лв.'
+  },
+  {
+    name: 'Spark',
+    slug: 'spark',
+    suitableCases: 'Леки до средни случаи (зависи от плана и лекаря)',
+    comfort: 'Висок комфорт, по-ясен материал (може да варира)',
+    aesthetics: 'Почти невидими',
+    availability: 'Нарастваща наличност в България',
+    orthodontistControl: 'Пълен контрол от ортодонта, дигитално планиране',
+    priceRange: '€1 800 – €5 000',
+    priceBGN: '≈ 3 600 – 10 000 лв.'
+  },
+  {
+    name: 'Angel Aligner',
+    slug: 'angel-aligner',
+    suitableCases: 'Леки до средни случаи (зависи от плана и лекаря)',
+    comfort: 'Добър комфорт (може да варира)',
+    aesthetics: 'Почти невидими',
+    availability: 'Налични в избрани клиники',
+    orthodontistControl: 'Пълен контрол от ортодонта, дигитално планиране',
+    priceRange: '€1 500 – €4 000',
+    priceBGN: '≈ 3 000 – 8 000 лв.'
+  }
+]
+
+// How we select clinic options - replaces fake clinic lists
+export const HOW_WE_SELECT_CLINICS = {
+  title: 'Как подбираме опции за клиники',
+  description: 'Работим само с клиники, които отговарят на нашите критерии за качество и прозрачност. Не класираме и не препоръчваме конкретна клиника като "най-добра" — изборът зависи от вашия случай и предпочитания.',
+  criteria: [
+    'Проверена квалификация на специалистите',
+    'Прозрачно ценообразуване',
+    'Положителна обратна връзка от пациенти'
+  ]
+}
+
+// What you will get section
+export const WHAT_YOU_GET = {
+  title: 'Какво ще получите',
+  items: [
+    'Препоръка за подходящ тип лечение според вашия случай',
+    'Ориентировъчни цени преди да говорите с клиника',
+    '2–3 опции за клиники, които отговарят на критериите ни',
+    'Възможност за безплатна консултация'
+  ]
 }
 
 // When to seek specialist - common content for city pages
@@ -209,7 +274,7 @@ export const TREATMENT_EXPLANATIONS: Record<string, { intro: string; paragraphs:
   orthodontics: {
     intro: 'Ортодонтията е специализиран клон на денталната медицина, който се занимава с диагностика, превенция и корекция на неправилно позиционирани зъби и челюсти.',
     paragraphs: [
-      'Съвременната ортодонтия предлага разнообразие от методи за изправяне на зъбите — от традиционните метални брекети до почти невидимите прозрачни алайнери като Invisalign. Изборът на метод зависи от конкретния проблем, възрастта на пациента и личните предпочитания.',
+      'Съвременната ортодонтия предлага разнообразие от методи за изправяне на зъбите — от традиционните метални брекети до почти невидимите прозрачни алайнери като Invisalign, Spark и Angel Aligner. Изборът на метод зависи от конкретния проблем, възрастта на пациента и личните предпочитания.',
       'Ортодонтското лечение не е само козметично — правилната захапка подобрява функцията на дъвчене, улеснява хигиената и предотвратява бъдещи проблеми като износване на емайла, заболявания на венците и челюстни дисфункции.',
       'Лечението обикновено продължава между 12 и 24 месеца, но леките случаи могат да се коригират и за 6 месеца. След приключване на активното лечение се носи ретейнер за запазване на резултата.'
     ]
@@ -247,3 +312,76 @@ export const TREATMENT_EXPLANATIONS: Record<string, { intro: string; paragraphs:
     ]
   }
 }
+
+// Aligners vs Braces comparison
+export const ALIGNERS_VS_BRACES = {
+  aligners: {
+    title: 'Алайнери (прозрачни)',
+    pros: [
+      'Почти невидими',
+      'Свалят се при хранене и хигиена',
+      'По-малко дискомфорт (може да варира)',
+      'По-лесна орална хигиена',
+      'По-малко посещения при лекаря (може да варира)'
+    ],
+    cons: [
+      'Изискват дисциплина (22+ часа носене)',
+      'Не са подходящи за всички случаи',
+      'Могат да се изгубят или счупят',
+      'Обикновено по-висока цена'
+    ]
+  },
+  braces: {
+    title: 'Брекети',
+    pros: [
+      'Подходящи за всички случаи',
+      'Не изискват самодисциплина',
+      'Постоянно действие 24/7',
+      'Обикновено по-ниска цена',
+      'По-предвидими резултати при сложни случаи'
+    ],
+    cons: [
+      'Видими (освен лингвалните)',
+      'Ограничения в храната',
+      'По-трудна хигиена',
+      'Може да причинят дискомфорт',
+      'По-чести посещения при лекаря'
+    ]
+  }
+}
+
+// FAQs for aligners comparison page
+export const ALIGNERS_FAQS = [
+  {
+    q: 'Коя марка алайнери е най-добра?',
+    a: 'Няма универсално "най-добра" марка. Резултатът зависи преди всичко от опита на ортодонта и правилната диагноза. Invisalign, Spark и Angel Aligner са качествени системи с доказана ефективност.'
+  },
+  {
+    q: 'Каква е разликата в цената между марките?',
+    a: 'Invisalign обикновено е в диапазона €2 000 – €6 000, Spark €1 800 – €5 000, Angel Aligner €1 500 – €4 000. Цените зависят от сложността на случая и клиниката.'
+  },
+  {
+    q: 'Мога ли да избера марката сам?',
+    a: 'Можете да изразите предпочитание, но ортодонтът ще препоръча системата, която е най-подходяща за вашия конкретен случай.'
+  },
+  {
+    q: 'Колко време трае лечението с алайнери?',
+    a: 'Обикновено между 6 и 24 месеца, в зависимост от сложността. Леките случаи могат да се завършат за 6-12 месеца.'
+  },
+  {
+    q: 'Болезнено ли е носенето на алайнери?',
+    a: 'Може да има лек дискомфорт при смяна на нов алайнер, но обикновено отминава за 1-2 дни. Повечето пациенти свикват бързо.'
+  },
+  {
+    q: 'Какво се случва след лечението?',
+    a: 'След приключване на активното лечение се носи ретейнер (фиксиран или подвижен), за да се запази резултатът.'
+  },
+  {
+    q: 'Подходящи ли са алайнерите за деца?',
+    a: 'Да, има специални системи за тийнейджъри. За по-малки деца обикновено се препоръчват други методи, определени от ортодонта.'
+  },
+  {
+    q: 'Покрива ли здравната каса алайнерите?',
+    a: 'Обикновено не. Ортодонтското лечение рядко се покрива от НЗОК. Много клиники предлагат разсрочено плащане.'
+  }
+]
