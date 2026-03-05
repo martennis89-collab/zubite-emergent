@@ -1,0 +1,18 @@
+# Robots.txt for Zubite.bg
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://zubite.bg/sitemap.xml
+
+# Disallow admin pages
+Disallow: /admin
+Disallow: /admin/*
+
+# Disallow quiz pages (dynamic content)
+Disallow: /*/quiz
+Disallow: /*/*/quiz
+
+# Disallow results pages (private)
+Disallow: /results
+Disallow: /results/*
