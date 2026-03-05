@@ -9,162 +9,110 @@ Zubite.bg is a dental solutions navigator platform that helps Bulgarian users fi
 - **Styling**: Tailwind CSS with light theme (white/sky-blue accents)
 - **Email**: Resend for lead notifications
 
-## Current Architecture (Treatment-First)
+## Recent Updates (December 2025)
+
+### SEO & Content Optimization
+- **Homepage Copy Update**: New hero subheadline emphasizing recommendations + prices + 2-3 clinic options
+- **Trust Statements**: Replaced fake testimonials with genuine trust indicators
+- **Centralized Pricing**: Single source of truth in `/app/nextjs-seo/lib/pricing.ts`
+- **Content-Rich City Pages**: Added explanation sections, "when to seek specialist" bullets, internal links
+- **Price Format**: BGN primary with EUR in parentheses (€1 ≈ 2.00 лв display approximation)
+
+### Pricing Ranges (from centralized config)
+| Treatment | BGN | EUR |
+|-----------|-----|-----|
+| Ортодонтия (Алайнери) | 3,000 – 12,000 лв. | €1,500 – €6,000 |
+| Ортодонтия (Брекети) | 2,000 – 8,000 лв. | €1,000 – €4,000 |
+| Имплант (1 зъб) | 1,600 – 4,000 лв. | €800 – €2,000 |
+| All-on-4/6 (една челюст) | 12,000 – 40,000+ лв. | €6,000 – €20,000+ |
+| Фасети (на зъб) | 500 – 1,800 лв. | €250 – €900 |
+| Бондинг (на зъб) | 160 – 500 лв. | €80 – €250 |
+| Избелване | 300 – 800 лв. | €150 – €400 |
+| TMJ терапия | 400 – 3,000 лв. | €200 – €1,500 |
+| Сънна апнея | 1,000 – 5,000 лв. | €500 – €2,500 |
+
+## Current Architecture
 
 ```
 /app/nextjs-seo/
 ├── app/
-│   ├── page.tsx                    # Homepage (treatment-first)
+│   ├── page.tsx                    # Homepage with updated copy & trust statements
 │   ├── layout.tsx                  # Root layout with JSON-LD
 │   ├── sitemap.ts                  # Dynamic sitemap
 │   │
 │   ├── orthodontics/
 │   │   ├── page.tsx                # Treatment page with Aligners vs Braces Quiz
-│   │   └── quiz/page.tsx           # NEW: Treatment-first quiz with city selection
-│   ├── implants/
-│   │   ├── page.tsx
-│   │   └── quiz/page.tsx
-│   ├── cosmetic-dentistry/
-│   │   ├── page.tsx
-│   │   └── quiz/page.tsx
-│   ├── sleep-airway/
-│   │   ├── page.tsx
-│   │   └── quiz/page.tsx
-│   ├── tmj/
-│   │   ├── page.tsx
-│   │   └── quiz/page.tsx
+│   │   └── quiz/page.tsx           # Treatment-first quiz with city selection
+│   ├── implants/, cosmetic-dentistry/, sleep-airway/, tmj/
 │   │
-│   ├── [city]/[treatment]/         # City-specific pages (after user selects city)
-│   │   ├── page.tsx                # City landing with FAQs, clinics, pricing
-│   │   └── quiz/page.tsx           # Legacy city-specific quiz (still works)
+│   ├── [city]/[treatment]/         # Content-rich city+treatment pages
+│   │   ├── page.tsx                # With explanation, when to seek, pricing, FAQs, internal links
+│   │   └── quiz/page.tsx
 │   │
 │   ├── admin/                      # Password-protected admin panel
-│   │   ├── page.tsx                # Login page
-│   │   ├── dashboard/page.tsx      # Leads dashboard with filters
-│   │   └── leads/[id]/page.tsx     # Lead detail page
-│   │
-│   ├── aligners-vs-braces/         # SEO comparison page ✅
-│   ├── invisalign-price/           # SEO pricing page ✅
-│   ├── what-is-invisalign/         # SEO educational page ✅
-│   ├── implant-price/              # SEO pricing page ✅
-│   ├── crooked-teeth/              # SEO symptom page ✅
-│   │
-│   ├── privacy/, terms/, contact/  # Static pages
-│   └── symptoms/                   # Symptoms guide
+│   ├── aligners-vs-braces/, invisalign-price/, etc.  # SEO pages
+│   └── ...
 │
 ├── components/
-│   ├── Header.tsx                  # Nav with treatments dropdown
-│   ├── Footer.tsx                  # Footer with treatment links
-│   ├── FAQAccordion.tsx            # Reusable FAQ component
-│   ├── AlignersVsBracesQuiz.tsx    # Interactive quiz on /orthodontics page
-│   └── TreatmentQuiz.tsx           # NEW: Shared quiz component with city selection
+│   ├── TreatmentQuiz.tsx           # Quiz with city selection
+│   ├── AlignersVsBracesQuiz.tsx    # Interactive quiz
+│   └── ...
 │
 ├── lib/
-│   ├── api.ts                      # API client
-│   ├── data.ts                     # Cities, treatments, FAQs, pricing
-│   ├── schema.ts                   # JSON-LD generators
-│   └── utils.ts
+│   ├── pricing.ts                  # NEW: Centralized pricing config (single source of truth)
+│   ├── data.ts                     # Cities, treatments, FAQs
+│   ├── api.ts, schema.ts, utils.ts
 │
 └── public/
-    ├── og/                         # OG images for social sharing
-    └── robots.txt
 ```
 
-## Quiz Flow (NEW: Treatment-First)
+## Quiz Flow
 
-### Quiz Routes
-- `/orthodontics/quiz` - Orthodontics quiz
-- `/implants/quiz` - Implants quiz
-- `/cosmetic-dentistry/quiz` - Cosmetic dentistry quiz
-- `/sleep-airway/quiz` - Sleep apnea quiz
-- `/tmj/quiz` - TMJ quiz
+### Treatment-First Quiz
+1. **City Selection**: User selects their city (Sofia, Plovdiv, Varna)
+2. **Quiz Questions**: 5 questions about intent, timing, priorities
+3. **Result**: Green/Yellow/Red outcome with link to city-specific page
+4. **Contact Form**: Request a call (optional)
 
-### Quiz Flow
-1. **Step 1: City Selection** - User sees "В кой град търсите лечение?" (Which city are you looking for treatment?)
-   - Options: София (Sofia), Пловдив (Plovdiv), Варна (Varna)
-2. **Step 2: Quiz Questions** - 5 questions about seriousness, timing, importance, readiness, etc.
-   - City indicator shown at top with "Промени" (Change) button
-3. **Step 3: Quiz Result** - Green/Yellow/Red outcome based on score
-   - Link to city-specific page (e.g., `/plovdiv/orthodontics`)
-4. **Step 4: Contact Form** (optional) - Request a call form
-5. **Step 5: Success** - Confirmation with link to city page
+### Aligners vs Braces Quiz (on /orthodontics)
+- 5 questions with weighted scoring
+- Recommends: Aligners, Braces, or Either (needs consultation)
 
-### Scoring Logic
-- Points calculated based on answers (seriousness, timing, importance, readiness)
-- **Green (>=70 pts)**: "Отличен кандидат!" - Highly suitable
-- **Yellow (>=40 pts)**: "Необходима е допълнителна информация" - Needs consultation
-- **Red (<40 pts)**: "Може да има по-добри опции" - Alternative needed
+## SEO Strategy
 
-### Aligners vs Braces Quiz (on /orthodontics page)
-- Interactive component embedded on orthodontics page
-- 5 questions with weighted scoring for aligners vs braces
-- Recommendation: Aligners, Braces, or Either (needs consultation)
-- Score visualization showing point comparison
+### Content Structure
+- **Homepage**: Treatment selection + trust statements
+- **Treatment Pages**: Overview + Aligners vs Braces quiz (orthodontics)
+- **City+Treatment Pages**: Explanation, when to seek, pricing, FAQs, internal links
+- **Topic Clusters**: /aligners-vs-braces, /invisalign-price, /crooked-teeth, etc.
 
-## URL Structure
+### Metadata
+- Unique `<title>` and `<meta description>` per page
+- Canonical URLs: `https://zubite.bg/...`
+- JSON-LD: Organization, WebSite, BreadcrumbList, FAQPage
 
-### Primary Routes (Treatment-First)
-- `/` - Homepage with treatment selection
-- `/orthodontics` - Orthodontics main page (with embedded Aligners vs Braces Quiz)
-- `/implants` - Dental implants main page
-- `/cosmetic-dentistry` - Cosmetic dentistry main page
-- `/sleep-airway` - Sleep apnea main page
-- `/tmj` - TMJ main page
-
-### Quiz Routes (Treatment-First with City Selection)
-- `/orthodontics/quiz` → City selection → Quiz questions → Result with city page link
-- `/implants/quiz` → Same flow
-- etc.
-
-### City-Specific Routes (accessed after quiz completion)
-- `/sofia/orthodontics` - City + treatment page
-- `/plovdiv/implants` - etc.
-- `/varna/cosmetic-dentistry` - etc.
-
-### Supported Cities
-- sofia (София)
-- plovdiv (Пловдив)
-- varna (Варна)
-- haskovo (Хасково)
+### Disclaimers
+- **Price**: "Цените са ориентировъчни и зависят от сложност, план и клиника."
+- **Educational**: "Информацията е образователна и не замества преглед."
+- **Orthodontics Complex**: "При много сложни случаи с висока сложност и лечение при топ специалисти, цената може да достигне горната граница."
 
 ## Admin Panel
 
-### Features
-- Password-protected login (`/admin`)
-- Dashboard with stats cards (`/admin/dashboard`)
-- Lead filtering by band/city/treatment
-- Search functionality
-- CSV export
-- Lead detail view with status management
-
 ### Credentials
-- **Username**: `admin@zubite.bg`
+- **Email**: `admin@zubite.bg`
 - **Password**: `password`
+
+### Features
+- Dashboard with stats
+- Lead list with filters
+- Lead detail view
+- Status management
 
 ## API Endpoints
 - `POST /api/leads` - Create lead
-- `GET /api/leads/{id}` - Get lead
 - `POST /api/admin/login` - Admin auth
-- `GET /api/admin/stats` - Dashboard stats
-- `GET /api/admin/leads` - List leads with filters
+- `GET /api/admin/leads` - List leads
 - `GET /api/admin/leads/{id}` - Get lead detail
-- `PATCH /api/admin/leads/{id}` - Update lead status/notes
-- `GET /api/admin/leads/export/csv` - Export leads
-
-## Key Features
-
-### Implemented ✅
-1. **Treatment-First Architecture** - Primary routes are treatments
-2. **Treatment-First Quiz with City Selection** - Users choose city before quiz
-3. **5 Treatment Pages** - Orthodontics, Implants, Cosmetic, Sleep, TMJ
-4. **15+ City-Treatment Pages** - 3 cities × 5 treatments + Haskovo
-5. **SEO Topic Clusters** - All content pages complete
-6. **Light Theme UI** - White background, sky-blue accents, serif headings
-7. **Quiz with Outcome Colors** - Green/yellow/red suitability indicator
-8. **Aligners vs Braces Quiz** - Interactive quiz on /orthodontics page
-9. **Request a Call** - Form appears after quiz completion
-10. **Admin Dashboard** - Password-protected with lead management
-11. **SEO-Optimized** - JSON-LD, OG images, sitemap, robots.txt
 
 ## Pending/Future Tasks
 
@@ -173,17 +121,16 @@ Zubite.bg is a dental solutions navigator platform that helps Bulgarian users fi
 - [ ] Add Google Ads Conversion ID
 
 ### P2 - Medium Priority
-- [ ] Replace placeholder OG images with real designs
+- [ ] Replace placeholder OG images
 - [ ] Add real clinic data (partnerships)
-- [ ] Implement Google Analytics
-- [ ] Add appointment scheduling
+- [ ] Google Analytics integration
 
 ### P3 - Future
 - [ ] English translation (`/en/...` routes)
-- [ ] More cities
+- [ ] More cities (Burgas, Stara Zagora, etc.)
 - [ ] Blog/content section
 - [ ] User reviews system
 
 ---
 *Last updated: December 2025*
-*Latest change: Implemented treatment-first quiz flow with city selection*
+*Latest changes: SEO content optimization, centralized pricing, trust statements, content-rich city pages*
