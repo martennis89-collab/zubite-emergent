@@ -11,12 +11,27 @@ Zubite.bg is a dental solutions navigator platform that helps Bulgarian users fi
 
 ## Recent Updates (December 2025)
 
-### Content Restructure
-- **Removed fake clinics**: Replaced example clinic lists with "Как подбираме опции за клиники" and "Какво ще получите" sections
-- **Brand Comparison**: Added Invisalign vs Spark vs Angel Aligner comparison to orthodontics page
-- **New SEO Page**: Created `/aligners-comparison` page with comprehensive brand comparison
-- **Updated Trust Statements**: Replaced fake testimonials with genuine trust indicators
-- **Homepage Copy**: Added line about comparing aligner brands
+### Orthodontics Page Restructure
+New page structure following SEO → Quiz → Request a Call flow:
+
+1. **HERO**: H1 "Алайнери или брекети? Намерете правилното ортодонтско лечение"
+   - CTA: "Виж дали си подходящ за алайнери" → /orthodontics/quiz
+2. **HOW IT WORKS**: 3 steps (Answer questions → Get recommendation → Help choosing specialist)
+3. **ALIGNERS VS BRACES**: Comparison cards with pros/cons
+4. **ALIGNER BRANDS**: Invisalign, Spark, Angel Aligner comparison
+5. **PRICES**: EUR primary, BGN secondary
+6. **COMMON ORTHODONTIC PROBLEMS**: SEO section (криви зъби, струпани зъби, etc.)
+7. **CHILDREN ORTHODONTICS**: When to see orthodontist (age ~7)
+8. **DECISION SECTION**: Quiz benefits explanation
+9. **FAQ**: 6 specified questions
+10. **FINAL CTA**: Start quiz
+
+**Removed**: Clinics, rankings, city pages from main content
+
+### Brand Comparison (Subtle Pro-Invisalign)
+- Invisalign, Spark, Angel Aligner compared neutrally
+- Disclaimer: "Най-важният фактор е опитът на ортодонта и правилната диагноза. Марката сама по себе си не гарантира резултат."
+- No claims of brand superiority
 
 ### Pricing System (EUR Primary, BGN Secondary)
 | Treatment | EUR | BGN |
@@ -25,105 +40,79 @@ Zubite.bg is a dental solutions navigator platform that helps Bulgarian users fi
 | Брекети | €1,000 – €4,000 | ≈ 2,000 – 8,000 лв. |
 | Имплант (1 зъб) | €800 – €2,000 | ≈ 1,600 – 4,000 лв. |
 | All-on-4/6 | €6,000 – €20,000+ | ≈ 12,000 – 40,000+ лв. |
-| Фасети (на зъб) | €250 – €900 | ≈ 500 – 1,800 лв. |
-| Бондинг (на зъб) | €80 – €250 | ≈ 160 – 500 лв. |
-| Избелване | €150 – €400 | ≈ 300 – 800 лв. |
-| TMJ терапия | €200 – €1,500 | ≈ 400 – 3,000 лв. |
-| Сънна апнея | €500 – €2,500 | ≈ 1,000 – 5,000 лв. |
 
 ### Key Disclaimers
 - **Price**: "Цените са ориентировъчни и зависят от сложност, план и клиника."
-- **Brand**: "Най-важният фактор е опитът на ортодонта и правилната диагноза. Марката сама по себе си не гарантира резултат."
+- **Brand**: "Най-важният фактор е опитът на ортодонта и правилната диагноза."
 - **Educational**: "Информацията е образователна и не замества преглед."
-- **Aligners Complex**: "При много сложни случаи при топ специалисти може да достигне горната граница."
+
+## Target Audience
+- Adults considering orthodontic treatment
+- Parents of children with orthodontic issues
+
+## Page Goal
+SEO → Quiz → Request a Call
+- Primary CTA everywhere: Start Quiz
+- Do NOT show: clinics, rankings, city pages in main content
 
 ## Current Architecture
 
 ```
 /app/nextjs-seo/
 ├── app/
-│   ├── page.tsx                    # Homepage with updated trust statements
-│   ├── layout.tsx, sitemap.ts
-│   │
+│   ├── page.tsx                    # Homepage
 │   ├── orthodontics/
-│   │   ├── page.tsx                # With brand comparison section
-│   │   └── quiz/page.tsx
-│   ├── implants/, cosmetic-dentistry/, sleep-airway/, tmj/
-│   │
-│   ├── aligners-comparison/        # NEW: Brand comparison SEO page
-│   │   └── page.tsx
-│   │
-│   ├── [city]/[treatment]/         # Content-rich city+treatment pages
-│   │   └── page.tsx                # No fake clinics, has "what you get" section
-│   │
-│   ├── admin/
-│   ├── aligners-vs-braces/, invisalign-price/, etc.
+│   │   ├── page.tsx                # NEW: Restructured orthodontics page
+│   │   └── quiz/page.tsx           # Quiz with city selection
+│   ├── aligners-comparison/        # Brand comparison SEO page
+│   ├── [city]/[treatment]/         # City+treatment pages
 │   └── ...
 │
 ├── components/
-│   ├── TreatmentQuiz.tsx, AlignersVsBracesQuiz.tsx
+│   ├── TreatmentQuiz.tsx
+│   ├── FAQAccordion.tsx
 │   └── ...
 │
 ├── lib/
-│   ├── pricing.ts                  # Centralized pricing (EUR primary, BGN secondary)
-│   │                               # Includes ALIGNER_BRANDS, HOW_WE_SELECT_CLINICS,
-│   │                               # WHAT_YOU_GET, and all disclaimers
+│   ├── pricing.ts                  # Centralized pricing (EUR primary)
 │   ├── data.ts, api.ts, schema.ts
 │
 └── public/
 ```
 
-## Aligner Brands Comparison
+## SEO Keywords (Natural Usage)
+- ортодонт
+- брекети
+- алайнер
+- invisalign
+- цена
+- криви зъби
+- неправилна захапка
 
-### Invisalign
-- Suitable cases: Mild to complex (depends on plan and doctor)
-- Comfort: High comfort, thin material (may vary)
-- Aesthetics: Nearly invisible
-- Availability: Widely available in Bulgaria
-- Price: €2,000 – €6,000 (≈ 4,000 – 12,000 лв.)
+## Common Orthodontic Problems (SEO)
+1. Криви зъби
+2. Струпани зъби (crowding)
+3. Неправилна захапка
+4. Дълбока захапка (overbite)
+5. Кръстосана захапка (crossbite)
 
-### Spark
-- Suitable cases: Mild to moderate (depends on plan and doctor)
-- Comfort: High comfort, clearer material (may vary)
-- Aesthetics: Nearly invisible
-- Availability: Growing availability in Bulgaria
-- Price: €1,800 – €5,000 (≈ 3,600 – 10,000 лв.)
-
-### Angel Aligner
-- Suitable cases: Mild to moderate (depends on plan and doctor)
-- Comfort: Good comfort (may vary)
-- Aesthetics: Nearly invisible
-- Availability: Available in select clinics
-- Price: €1,500 – €4,000 (≈ 3,000 – 8,000 лв.)
+## Children Orthodontics
+- First visit: ~7 years old
+- Symptoms to watch:
+  - Mouth breathing
+  - Crowding
+  - Bite problems
+  - Difficulty chewing
+  - Early/late loss of baby teeth
+  - Thumb sucking after age 5
 
 ## Quiz Flow
-
-### Treatment-First Quiz
-1. **City Selection**: User selects their city
-2. **Quiz Questions**: 5 questions about intent, timing, priorities
-3. **Result**: Green/Yellow/Red outcome
-4. **Contact Form**: Request a call
-
-### Aligners vs Braces Quiz
-- 5 questions with weighted scoring
-- Recommends: Aligners, Braces, or Either
-
-## SEO Strategy
-
-### Content Pages
-- **Homepage**: Treatment selection + trust statements + brand mention
-- **Treatment Pages**: Overview + brand comparison (orthodontics)
-- **City+Treatment Pages**: Explanation, when to seek, pricing (EUR), "what you get", FAQs
-- **Topic Clusters**: /aligners-comparison, /aligners-vs-braces, /invisalign-price, etc.
-
-### Metadata
-- Unique `<title>` and `<meta description>` per page
-- Canonical URLs
-- JSON-LD: Organization, WebSite, BreadcrumbList, FAQPage
+1. City Selection
+2. 5 Quiz Questions
+3. Result (Green/Yellow/Red)
+4. Contact Form (optional)
 
 ## Admin Panel
-
-### Credentials
 - **Email**: `admin@zubite.bg`
 - **Password**: `password`
 
@@ -136,13 +125,11 @@ Zubite.bg is a dental solutions navigator platform that helps Bulgarian users fi
 ### P2 - Medium Priority
 - [ ] Replace placeholder OG images
 - [ ] Add real clinic partnerships
-- [ ] Google Analytics integration
 
 ### P3 - Future
 - [ ] English translation (`/en/...` routes)
 - [ ] More cities
-- [ ] Blog/content section
 
 ---
 *Last updated: December 2025*
-*Latest changes: EUR primary pricing, brand comparison, removed fake clinics, added "what you get" sections*
+*Latest changes: Orthodontics page restructure (SEO → Quiz → Request a Call flow)*
