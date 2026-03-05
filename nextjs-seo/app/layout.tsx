@@ -77,7 +77,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
         />
       </head>
-      <body className="font-inter antialiased">
+      <body className="antialiased">
         {children}
       </body>
     </html>
