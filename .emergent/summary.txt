@@ -1,86 +1,57 @@
 <analysis>**original_problem_statement:**
-The user initially requested to extend the existing Zubite.bg application with several features, including language toggles, email notifications, and new content sections.
+The user's initial goal was to enhance an existing React-based application, . This evolved into a series of major refactors. The user's most recent requests were:
+1.  **Full Migration to Next.js:** Rebuild the entire public-facing site as a production-ready, SEO-optimized static site using Next.js (App Router). This was completed.
+2.  **Architecture Change (Treatment-First):** Restructure the site's URLs from a city-first () to a treatment-first () architecture. This was also completed.
+3.  **LATEST REQUEST: Restore Original UI Design:** The user now wants to revert the visual/UI design (colors, layouts, quiz logic, content sections) back to the style of the original React application, while keeping the new Next.js foundation and treatment-first URL structure.
 
-In this session, the user provided a new set of requirements focused on refining the existing content and logic:
-1.  **Text & Logic Updates:** A comprehensive list of 11 text and logic updates, including changing button labels, expanding quiz options, adding educational content to various sections (bonding, implants, full restoration), adding a pricing transparency block, updating quiz titles, and unifying the final call-to-action (CTA) to Заяви обаждане (Request a call).
-2.  **Weighted Quiz Logic:** Update the orthodontic quiz scoring to subtly favor aligner recommendations based on user answers, while maintaining a neutral tone in the UI.
-3.  **City Restriction:** Limit the city selector in the UI and backend logic to only София, Пловдив, and Варна.
-4.  **Contact Form on Quiz End:** Add a contact form at the end of each quiz flow so users can submit their details for a callback.
-5.  **Bug Fixes:**
-    *   Fix the Направете теста (Take the test) button on the Ortho education page, which was linking to a non-existent page.
-    *   Center the three city cards on the homepage.
-6.  **Full Rebuild in Next.js (LATEST REQUEST):** Rebuild the public-facing homepage as a production-ready, SEO-optimized static site using Next.js (App Router), following a specific design aesthetic similar to emergent.sh. The React SPA should be kept for the admin panel and quiz funnels.
-
-**User's preferred language**: The user communicates in English.
+**User's preferred language**: English
 
 **what currently exists?**
-The project currently has three co-existing frontend implementations in different states:
-1.  **React SPA (Original):** A fully functional full-stack application with a React frontend, FastAPI backend, and MongoDB. It includes quizzes, an admin panel, and bilingual support. Most of the text and logic updates from the latest user request have been applied to this version.
-2.  **Static HTML/CSS/JS (Intermediate Step):** A set of static HTML pages was generated and served via the FastAPI backend to address SEO concerns. This was a temporary step and is now superseded by the Next.js requirement. The files exist in .
-3.  **Next.js Project (New):** A new Next.js project has been scaffolded in the  directory. The setup process was interrupted and is incomplete. The agent was in the middle of manually creating configuration files (, , etc.) after  failed.
+A fully functional Next.js application is located in . It uses the App Router and has a treatment-first URL architecture (e.g., , ). The UI currently has a minimalist, dark-themed design that was implemented during the last refactor. The original React SPA, which serves as the design reference, is still present in the  directory but is no longer in use. The FastAPI backend is in .
 
 **Last working item**:
--   Last item agent was working: Manually setting up a new Next.js project in the  directory to fulfill the user's request for an SEO-optimized homepage. The agent had created the , installed dependencies, and was creating the necessary configuration files (, , , etc.).
--   Status: IN PROGRESS
+-   Last item agent was working: The agent was preparing to implement the user's latest request: restoring the original visual design. It had just begun investigating the old React application files () to understand the original design patterns, colors, component structures, and quiz logic before starting the modifications on the Next.js project.
+-   Status: NOT STARTED
 -   Agent Testing Done: N
--   Which testing method agent to use? manual testing by curl
+-   Which testing method agent to use? Frontend testing agent
 -   User Testing Done: N
 
 **All Pending/In progress Issue list**:
-  - Issue 1: The Next.js project setup in  is incomplete and was failing. (P0)
-
-  Issues Detail:
-  - Issue 1: 
-     - Attempted fixes: The agent tried running [2K[1G[36m?[39m [1mWhat is your project named?[22m [90m›[39m [90mmy-app[39m78, which failed. It then pivoted to setting up the project manually by creating , installing dependencies (, , , ), and creating config files. The setup is still not complete or verified to be working.
-     - Next debug checklist:
-        1.  Verify the  in  is correct.
-        2.  Ensure all dependencies are correctly installed by running yarn install v1.22.22
-[1/4] Resolving packages...
-[2/4] Fetching packages...
-[3/4] Linking dependencies...
-[4/4] Building fresh packages...
-success Saved lockfile.
-Done in 0.11s. inside .
-        3.  Check the validity of , , and .
-        4.  Create the basic  and  files to see if the development server can be started (yarn run v1.22.22
-info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.).
-        5.  Address any errors from the yarn run v1.22.22
-info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command. command.
-     - Why fix this issue and what will be achieved with the fix? This is the user's latest and highest-priority request. Fixing this will allow the agent to start building the new SEO-optimized homepage.
-     - Status:  IN PROGRESS
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? Frontend
-     - Blocked on other issue: None
+There are no outstanding bugs or issues. The current work is a new feature/design request.
 
 **In progress Task List**:
-  - Task 1:  Build the production-ready SEO homepage in Next.js (P0)
+  - Task 1:  Restore Original UI and Logic to the Next.js App (P0)
 
  Task Detail:
   - Task 1: 
-     - Where to resume: After successfully setting up the Next.js project, the agent must start creating the components and pages as specified in the user's detailed prompt. This includes the Hero section, Problem Identification cards, Treatment Options, and so on, following the specified  design style.
-     - What will be achieved with this? A new, server-side rendered, SEO-optimized homepage for Zubite.bg that will replace the current React-based one.
-     - Status:  NOT STARTED (The setup is still in progress)
+     - Where to resume: The agent must begin modifying the Next.js project in  to match the visual style and content structure of the old React app. The plan is to:
+        1.  Update  to a light theme with the original color palette (white/light gray backgrounds, slate text, sky-blue accents).
+        2.  Rebuild the layouts of the homepage, treatment pages, and symptoms pages to include the detailed content sections from the original app (e.g., Benefits, Process, FAQs, Statistics).
+        3.  Re-implement the multi-step quiz UI and its complex scoring logic, as the current version is a placeholder.
+        4.  Implement the scroll-reveal animations that were part of the original design.
+     - What will be achieved with this? The Next.js application will have the user-preferred visual design and detailed content while retaining the benefits of the new SEO-friendly architecture.
+     - Status:  NOT STARTED
      - Should Test frontend/backend/both after fix? Frontend
-     - Blocked on something: The incomplete Next.js project setup.
+     - Blocked on something: None.
 
 **Upcoming and Future Tasks**
-- **P1: Finalize Tracking Validation:**
-    - The agent has implemented stubs for Meta Pixel and Google Ads in the React SPA.
-    - **Next Step:** The agent must ask the user to provide the real **Meta Pixel ID** and **Google Ads Conversion ID**. This should be done after the Next.js migration is stable.
-- **P2: Migrate Remaining Pages to Next.js:** After the homepage is complete, the user might want to migrate other public-facing pages (Treatment pages, Symptoms, etc.) to Next.js for consistent SEO benefits.
-- **P2: Admin Panel - Translate Terms/Contact pages to English:** The admin panel functionality is not fully translated.
+*   **P1: Implement Tracking Pixels:** Ask the user to provide the **Meta Pixel ID** and **Google Ads Conversion ID** and integrate them into the Next.js .
+*   **P2: Build Full Admin Panel:** The admin routes () are currently placeholders. They need to be fully implemented to allow viewing leads and managing site content.
+*   **P3: Build English Language Version:** The  for the English version was removed because the pages don't exist. This task involves creating the content for and building the  routes.
+*   **P4: Codebase Cleanup:** Once the Next.js app is fully approved by the user, the entire  directory should be deleted to remove obsolete code.
 
 **Completed work in this session**
-- **Aligners vs Braces Section:** Completed implementation and verification (manual and testing agent) of the comprehensive orthodontic educational section.
-- **Contact Form on Quiz Results:** Added a contact form to the end of all quiz flows (both the new ortho quiz and the existing treatment quizzes) to capture user details. Verified lead creation and email notification.
-- **Text & Logic Overhaul:**
-    - Implemented all 11 text/logic updates, including changing CTAs, adding educational content across treatment pages, and adding a pricing section.
-    - Implemented the weighted scoring logic for the orthodontic quizzes.
-- **City Restriction:** Restricted cities to Sofia, Plovdiv, and Varna across the UI (Homepage, Footer) and backend logic.
-- **Bug Fixes:**
-    - Fixed the Направете теста button link on the .
-    - Centered the 3 city cards on the .
-- **Static Site Generation Attempt:** Created a static HTML/CSS version of the site and configured the FastAPI backend to serve it. This work is now superseded by the Next.js request.
+- **Full Migration to Next.js:** The legacy React SPA was successfully replaced with a new Next.js application, including project setup, dependency installation, and supervisor configuration.
+- **Architectural Refactor to Treatment-First:**
+    - The entire site structure was changed from city-centric to treatment-centric (e.g., , ).
+    - New top-level and city-specific treatment pages were created.
+    - All navigation (Header, Footer) and internal links were updated to the new structure.
+- **SEO & Technical Enhancements:**
+    - Implemented JSON-LD schemas (Organization, WebSite, BreadcrumbList, FAQPage).
+    - Corrected  URLs and added placeholder images.
+    - Generated a dynamic  and a  file.
+    - Fixed a rendering bug in Next.js 15 client components related to dynamic route params.
+- **Initial UI/UX:** A temporary dark-themed, minimalist UI was implemented across the new Next.js site.
 
 **Earlier issues found/mentioned but not fixed**
    - None.
@@ -92,68 +63,58 @@ info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this comm
 
 
 **Key Technical Concepts**
-- **Frontend**: React, React Router, Tailwind CSS (for the original SPA). Now transitioning to **Next.js (App Router)** for public-facing pages.
-- **Backend**: FastAPI, MongoDB (with ), Pydantic.
-- **State Management**: React Context API.
-- **Integrations**: Resend (for emails).
+- **Frontend**: Next.js (App Router), React (Server and Client Components), Tailwind CSS.
+- **Backend**: FastAPI, MongoDB (using ).
+- **SEO**: Server-Side Rendering (SSR), JSON-LD, Dynamic Sitemaps, Open Graph protocol.
+- **Environment**: The Next.js development server is managed by . API requests are proxied to the backend.
 
 **key DB schema**
-  - **leads**:  (The  field was added to track leads from ).
+  - **leads**: 
 
 **changes in tech stack**
-  - The user has mandated a shift from a pure React SPA to a **Next.js** application for the public-facing homepage to improve SEO.
+  - The frontend has been completely migrated from a React SPA (Create React App) to a Next.js (App Router) application.
 
 **All files of reference**
-- : The new root directory for the Next.js project. The agent's immediate focus should be here.
-- : Modified to include a full contact form at the end of the quiz.
-- : Verified to have a working contact form for other treatment quizzes.
-- : Heavily modified with new quiz logic, educational text, pricing info, and professional notes.
-- : Updated with new educational sections for implants, full mouth restoration, and a new bonding treatment.
-- : Modified to center the 3 city cards.
-- : Modified to serve static files from  (this logic may now be obsolete) and to correctly handle lead creation from the new quiz contact form.
+- **Files to Modify:**
+    - The majority of work will be within , specifically in the , , and  directories.
+- **Files for Reference:**
+    - The original design patterns, component structures, and logic can be found in . Key files include , , , and .
 
 **Areas that need refactoring**:
--   The coexistence of three frontend approaches (React SPA, static HTML, Next.js) is unsustainable. The agent's goal is to build out the Next.js version and eventually deprecate the corresponding pages in the React SPA and the entire  directory.
--   The FastAPI backend is currently configured to serve both the React app and the (now obsolete) static pages. This routing logic should be reviewed and simplified once the Next.js site is deployed and served.
+-   The  directory is obsolete and should be removed once the Next.js UI restoration is complete and verified.
+-   The current Next.js pages are monolithic. They should be broken down into smaller, reusable components as the original, more complex UI is rebuilt.
 
 **key api endpoints**
-- : This endpoint was updated to handle direct contact info submission (, , ) from the new quiz forms and to trigger an email notification.
-- : This existing endpoint continues to be used by the generic  to update a lead with contact info.
+- : Creates a new lead. Handled by the FastAPI backend and proxied via Next.js.
 
 **Critical Info for New Agent**
--   **PIVOT TO NEXT.JS:** The user's highest priority is rebuilding the homepage in Next.js for SEO. All previous work on the React SPA homepage and the static HTML generation should be considered complete or deprecated. Your primary mission is to get the Next.js project in  running and then build the homepage according to the user's detailed specifications.
--   **MANUAL SETUP:**  is unreliable in this environment. You must continue with the manual setup process. Focus on creating a minimal  and  to verify the dev server works before building out features.
--   **KEEP REACT APP FOR NOW:** Do not delete the existing React app (). The user's request was to keep it for the admin panel and quiz funnels. The new Next.js homepage will need to link to the quiz flows, which still reside in the React app.
+-   **Your primary task is a UI/UX overhaul, not an architectural one.** The goal is to make the new Next.js site look and feel like the old React site. Do not change the treatment-first URL structure.
+-   **Use the old app as a blueprint.** Refer to the files in  to understand the target design, component layout, and business logic (especially for the quiz). You will need to translate this from the old React patterns to modern Next.js/App Router conventions.
+-   **Work incrementally.** Start with global styles (theme, colors, fonts), then move to the homepage layout, then treatment pages, and finally the interactive quiz.
+-   **Do not delete the  directory** until the user has fully approved the restored design in the Next.js application.
 
 **documents and test reports created in this job**
-  -  (updated multiple times)
   - 
 
 **Last 10 User Messages and any pending HUMAN messages** 
-- **User asked to rebuild the site in SEO-optimized HTML+CSS+JS.** The agent agreed and started the process. (SUPERSEDED)
-- **User confirmed choices for the static site build.** (SUPERSEDED)
-- **User asked to build a production-ready SEO homepage in Next.js**, providing extremely detailed requirements for structure, content, SEO, and design. (IN PROGRESS)
-- **Agent acknowledged the Next.js request and started the project setup.** (IN PROGRESS)
-- **User reported bugs:** Направете теста button not working and homepage cities not centered. (COMPLETED)
-- **Agent fixed the button link and centered the cities.** (COMPLETED)
-- **User requested to add a contact form at the end of each quiz.** (COMPLETED)
-- **Agent implemented the contact form on the ortho quiz results page.** (COMPLETED)
-- **User approved the enhancement to add the contact form to all other quiz flows.** (COMPLETED)
-- **Agent confirmed the contact form was already present and working on the generic results page for other quizzes.** (COMPLETED)
+- **User:** Requested to bring back the previous design, structure and logic but keep the Next.js foundation. (COMPLETED - Acknowledged)
+- **Agent:** Asked for clarification on which previous design to restore. (COMPLETED - Acknowledged)
+- **User:** Clarified the request: restore only the visual/UI design (colors, layouts, quiz logic, symptoms pages) from before the redesign. Keep the new treatment-first architecture. (COMPLETED - Acknowledged)
+- **Agent:** Confirmed understanding and began exploring the old React files to gather design requirements. (IN PROGRESS)
 
 **Project Health Check:**
--   **Broken**: The new  project is not yet functional. This is the highest priority.
--   **Working**: The original React SPA is functional with all the recent text/logic updates and bug fixes applied.
+-   **Working**: The Next.js application is live and functional with the new treatment-first URL structure. All pages are served correctly.
+-   **Mocked**: The UI is a minimalist placeholder. The detailed content sections, original quiz logic, and admin panel functionality are missing and need to be rebuilt.
 
 **3rd Party Integrations**
--   **Resend:** Actively used for sending lead notification emails.
--   **Meta Pixel / Google Ads:** Placeholder integration exists in the React SPA. Awaiting user-provided keys.
+-   **Resend:** Used for sending lead notification emails from the backend.
+-   **Meta Pixel / Google Ads:** Awaiting API keys from the user for full implementation.
 
 **Testing status**
-  - Testing agent used after significant changes: YES, after completing the Aligners vs Braces feature.
+  - Testing agent used after significant changes: NO (since the last architectural refactor).
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: None
-  - Known regressions: None
+  - Test files created: []
+  - Known regressions: None.
 
 **Credentials to test flow:**
 -   **Admin User**:
@@ -161,5 +122,4 @@ info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this comm
     -   Password: 
 
 **What agent forgot to execute**
-- The agent has not yet asked the user for the **Meta Pixel ID** and **Google Ads Conversion ID** as it was prioritizing the major rebuild request. This should be a follow-up task.
-- The Next.js project setup is incomplete.</analysis>
+-   The agent has not yet started implementing the UI restoration task. It correctly identified the necessary first steps (investigating the old codebase) but has not yet written or modified any files for this new request.</analysis>
