@@ -357,6 +357,76 @@ export default function OrthodonticsPage() {
         </div>
       </section>
 
+      {/* Brand Comparison Section */}
+      <section className="py-16 bg-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-4 text-center">
+            Сравнение на основните марки алайнери
+          </h2>
+          <p className="text-slate-600 text-center mb-10 max-w-2xl mx-auto">
+            Invisalign, Spark и Angel Aligner са популярни системи в България. Ето обективно сравнение.
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {ALIGNER_BRANDS.map((brand) => (
+              <div key={brand.slug} className="bg-slate-50 rounded-2xl border border-slate-200 p-6">
+                <h3 className="font-serif text-xl font-semibold text-slate-900 mb-4 text-center">
+                  {brand.name}
+                </h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Подходящи случаи</p>
+                    <p className="text-sm text-slate-700">{brand.suitableCases}</p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Типичен комфорт</p>
+                    <p className="text-sm text-slate-700">{brand.comfort}</p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Наличност в България</p>
+                    <p className="text-sm text-slate-700">{brand.availability}</p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Ортодонтски контрол</p>
+                    <p className="text-sm text-slate-700">{brand.orthodontistControl}</p>
+                  </div>
+                  
+                  <div className="pt-4 border-t border-slate-200">
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Цена</p>
+                    <p className="font-semibold text-sky-600">{brand.priceRange}</p>
+                    <p className="text-xs text-slate-400">{brand.priceBGN}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {/* Brand Comparison Disclaimer */}
+          <div className="mt-8 p-4 bg-amber-50 rounded-xl border border-amber-200">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <p className="text-amber-800 text-sm">{BRAND_COMPARISON_DISCLAIMER}</p>
+            </div>
+          </div>
+          
+          <p className="text-sm text-slate-500 text-center mt-4">{PRICE_DISCLAIMER}</p>
+          
+          <div className="text-center mt-6">
+            <Link
+              href="/aligners-comparison"
+              className="text-sky-600 font-medium hover:text-sky-700 inline-flex items-center gap-2"
+            >
+              Вижте пълното сравнение на марки
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* Invisalign Highlight */}
       <section className="py-16 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
