@@ -1,3 +1,8 @@
 {
-  "/orthodontics/page": "app/orthodontics/page.js"
+  "/_not-found/page": "app/_not-found/page.js",
+  "/orthodontics/page": "app/orthodontics/page.js",
+  "/page": "app/page.js",
+  "/[city]/[treatment]/quiz/page": "app/[city]/[treatment]/quiz/page.js",
+  "/[city]/[treatment]/page": "app/[city]/[treatment]/page.js",
+  "/tmj/page": "app/tmj/page.js"
 }
