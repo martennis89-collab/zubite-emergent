@@ -2,62 +2,155 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
-import { TREATMENTS, CITIES } from '@/lib/data'
-import { generateBreadcrumbSchema } from '@/lib/schema'
-import { CheckCircle, ArrowRight, ArrowLeft, MapPin, Users, Award, Target } from 'lucide-react'
+import { TREATMENTS } from '@/lib/data'
+import { TREATMENT_PRICES, PRICE_DISCLAIMER, EDUCATIONAL_DISCLAIMER } from '@/lib/pricing'
+import { generateBreadcrumbSchema, generateFAQSchema } from '@/lib/schema'
+import { CheckCircle, ArrowRight, ArrowLeft, Target, Info, Shield, Users, AlertCircle, Bone, Crown, Grid3X3, Anchor } from 'lucide-react'
 import { FAQAccordion } from '@/components/FAQAccordion'
+import { LeadCaptureForm } from '@/components/LeadCaptureForm'
 
 const treatment = TREATMENTS.implants
 
 export const metadata: Metadata = {
-  title: `${treatment.fullName} | Трайно решение | Zubite.bg`,
-  description: `${treatment.description}. Научете за зъбни импланти в България - цени, методи, процес. Straumann, Nobel Biocare и други марки.`,
+  title: 'Зъбни импланти | Информация, цени и лечение | Zubite.bg',
+  description: 'Научете какво представляват зъбните импланти, какви са ориентировъчните цени и кога това лечение е подходящо.',
+  keywords: 'зъбни импланти, имплант цена, липсващ зъб, импланти България, All-on-4, Straumann, Nobel Biocare',
   alternates: {
     canonical: 'https://zubite.bg/implants',
   },
   openGraph: {
-    title: `${treatment.fullName} | Zubite.bg`,
-    description: treatment.description,
+    title: 'Зъбни импланти | Информация, цени и лечение | Zubite.bg',
+    description: 'Научете какво представляват зъбните импланти, какви са ориентировъчните цени и кога това лечение е подходящо.',
     url: 'https://zubite.bg/implants',
     images: [{ url: treatment.ogImage, width: 1200, height: 630 }],
   },
 }
 
-const BENEFITS = [
-  { title: 'Изглеждат естествено', description: 'Коронката върху импланта е неразличима от естествените ви зъби.' },
-  { title: 'Функционират като истински', description: 'Дъвчете, говорете и се усмихвайте с пълна увереност.' },
-  { title: 'Дълготрайни', description: 'При правилна грижа имплантите могат да издържат цял живот.' },
-  { title: 'Защитават костта', description: 'Предотвратяват загубата на костна тъкан, която настъпва при липсващи зъби.' }
+// Trust cards for hero
+const TRUST_CARDS = [
+  { icon: Info, title: 'Информация и ориентировъчни цени' },
+  { icon: Grid3X3, title: 'Различни методи за възстановяване' },
+  { icon: Users, title: 'Помощ при избор на специалист' }
 ]
 
-const PROCESS = [
-  { step: 1, title: 'Диагностика', description: 'CBCT сканиране и подробна оценка на костната плътност и структура.' },
-  { step: 2, title: 'Планиране', description: '3D планиране на позицията на импланта за оптимален резултат.' },
-  { step: 3, title: 'Хирургия', description: 'Поставяне на титановия имплант в челюстната кост под местна упойка.' },
-  { step: 4, title: 'Остеоинтеграция', description: '3-6 месеца за срастване на импланта с костта.' },
-  { step: 5, title: 'Коронка', description: 'Поставяне на индивидуално изработена керамична коронка.' }
+// How Zubite works steps
+const HOW_IT_WORKS = [
+  { 
+    step: '1', 
+    title: 'Оценка или обаждане', 
+    description: 'Отговаряте на кратка оценка или заявявате обаждане.' 
+  },
+  { 
+    step: '2', 
+    title: 'Информация и цени', 
+    description: 'Получавате информация за възможните лечения и ориентировъчни цени.' 
+  },
+  { 
+    step: '3', 
+    title: 'Избор на специалист', 
+    description: 'По желание: нашият екип ви свързва с подходящ специалист.' 
+  }
 ]
 
-const IDEAL_FOR = [
-  'Хора с един или повече липсващи зъби',
-  'Тези, които искат постоянно решение',
-  'Хора с достатъчна костна плътност',
-  'Некомфортни с подвижни протези',
-  'Тези, които искат да запазят здравината на съседните зъби'
+// When implants are used
+const WHEN_IMPLANTS_USED = [
+  { title: 'Липсващ един зъб', description: 'Единичен имплант замества липсващия зъб без да се засягат съседните.' },
+  { title: 'Липсващи няколко зъба', description: 'Мостова конструкция върху импланти възстановява няколко съседни зъба.' },
+  { title: 'Нестабилни протези', description: 'Импланти стабилизират подвижните протези и подобряват комфорта.' },
+  { title: 'Пълна липса на зъби', description: 'All-on-4 или All-on-6 концепцията възстановява цяла челюст.' }
 ]
 
+// Types of implant treatments
+const IMPLANT_TYPES = [
+  { 
+    icon: Crown, 
+    title: 'Единичен имплант', 
+    description: 'Заместване на един липсващ зъб с имплант и коронка.' 
+  },
+  { 
+    icon: Bone, 
+    title: 'Имплант мост', 
+    description: 'Мостова конструкция върху два или повече импланта.' 
+  },
+  { 
+    icon: Grid3X3, 
+    title: 'All-on-4 / All-on-6', 
+    description: 'Пълно възстановяване на челюст върху 4-6 импланта.' 
+  },
+  { 
+    icon: Anchor, 
+    title: 'Стабилизиране на протези', 
+    description: 'Импланти за закрепване на подвижни протези.' 
+  }
+]
+
+// Implant systems
+const IMPLANT_SYSTEMS = [
+  'Straumann',
+  'Nobel Biocare',
+  'Osstem',
+  'Megagen'
+]
+
+// Prices (EUR primary, BGN secondary)
+const IMPLANT_PRICES = [
+  { 
+    title: 'Единичен имплант', 
+    eurMin: 700, 
+    eurMax: 2000, 
+    bgnMin: 1400, 
+    bgnMax: 4000 
+  },
+  { 
+    title: 'Имплант + корона', 
+    eurMin: 1200, 
+    eurMax: 3000, 
+    bgnMin: 2400, 
+    bgnMax: 6000 
+  },
+  { 
+    title: 'All-on-4', 
+    eurMin: 5000, 
+    eurMax: 9000, 
+    bgnMin: 10000, 
+    bgnMax: 18000 
+  }
+]
+
+// Factors to consider
+const FACTORS_TO_CONSIDER = [
+  { title: 'Състояние на венците', description: 'Здравите венци са важни за успеха на импланта.' },
+  { title: 'Наличие на достатъчно кост', description: 'В някои случаи може да е необходима костна аугментация.' },
+  { title: 'Общо здравословно състояние', description: 'Някои заболявания могат да повлияят на заздравяването.' },
+  { title: 'Навици', description: 'Пушенето и бруксизмът могат да намалят успеваемостта.' }
+]
+
+// FAQ
 const FAQS = [
-  { q: 'Болезнена ли е процедурата?', a: 'Процедурата се извършва под местна упойка и е безболезнена. След операцията може да има лек дискомфорт за няколко дни, който се контролира с обезболяващи.' },
-  { q: 'Колко дълго траят имплантите?', a: 'При правилна хигиена и редовни прегледи, имплантите могат да издържат повече от 25 години или дори цял живот.' },
-  { q: 'Какво ако нямам достатъчно кост?', a: 'Възможни са процедури за костна аугментация преди поставяне на импланта. Това добавя 3-6 месеца към общото време за лечение.' },
-  { q: 'Мога ли да поставя имплант веднага след изваждане на зъб?', a: 'В някои случаи да - това се нарича "незабавна имплантация" и зависи от състоянието на костта и меките тъкани.' },
-  { q: 'Какви марки импланти се използват?', a: 'Клиниките работят с водещи марки като Straumann, Nobel Biocare, Osstem и др. Изборът зависи от вашия случай и бюджет.' }
-]
-
-const STATS = [
-  { value: '98%', label: 'Успеваемост' },
-  { value: '25+', label: 'Години издръжливост' },
-  { value: '#1', label: 'Избор на стоматолозите' }
+  { 
+    q: 'Колко време издържат имплантите?', 
+    a: 'При правилна грижа и редовни прегледи, имплантите могат да издържат повече от 20-25 години. В много случаи те са решение за цял живот.' 
+  },
+  { 
+    q: 'Болезнена ли е процедурата?', 
+    a: 'Процедурата се извършва под местна упойка. Обикновено пациентите изпитват минимален дискомфорт по време на манипулацията. След процедурата може да има лек дискомфорт за няколко дни, който в повечето случаи се контролира с обезболяващи.' 
+  },
+  { 
+    q: 'Колко време продължава лечението?', 
+    a: 'Общата продължителност зависи от случая. Обикновено отнема 3-6 месеца за срастване на импланта с костта (остеоинтеграция). При подходящи условия е възможно незабавно натоварване с временни зъби.' 
+  },
+  { 
+    q: 'Може ли всеки да постави импланти?', 
+    a: 'Повечето възрастни са подходящи кандидати. Необходима е оценка на костната плътност, състоянието на венците и общото здраве. Някои състояния като неконтролиран диабет или тежко пушене могат да повлияят на успеваемостта.' 
+  },
+  { 
+    q: 'Каква е цената на имплант в България?', 
+    a: 'Ориентировъчните цени варират: единичен имплант €700-€2000, с корона €1200-€3000, All-on-4 €5000-€9000. Цената зависи от сложността на случая, използваната система и клиниката. Точна оферта се получава след преглед.' 
+  },
+  { 
+    q: 'Какво става ако нямам достатъчно кост?', 
+    a: 'При недостатъчна кост са възможни процедури за костна аугментация или синус лифт. Това добавя време към лечението, но позволява поставяне на импланти в повечето случаи.' 
+  }
 ]
 
 export default function ImplantsPage() {
@@ -65,6 +158,8 @@ export default function ImplantsPage() {
     { name: 'Начало', url: 'https://zubite.bg' },
     { name: 'Зъбни импланти', url: 'https://zubite.bg/implants' }
   ])
+  
+  const faqSchema = generateFAQSchema(FAQS)
 
   return (
     <main className="min-h-screen bg-white">
@@ -72,9 +167,13 @@ export default function ImplantsPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
       <Header />
       
-      {/* Hero Section */}
+      {/* SECTION 1 — HERO */}
       <section className="pt-24 pb-16 md:pt-32 md:pb-20 bg-gradient-to-b from-white to-slate-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <Link 
@@ -86,105 +185,45 @@ export default function ImplantsPage() {
             <span>Всички лечения</span>
           </Link>
           
-          <div className="flex flex-col md:flex-row md:items-start gap-6 mb-8">
-            <div className="w-20 h-20 rounded-2xl bg-sky-100 flex items-center justify-center flex-shrink-0 icon-hover">
+          <div className="text-center">
+            <div className="w-20 h-20 rounded-2xl bg-sky-100 flex items-center justify-center mx-auto mb-6 icon-hover">
               <Target className="w-10 h-10 text-sky-600" />
             </div>
             
-            <div className="flex-1">
-              <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-slate-900 mb-2">
-                {treatment.fullName}
-              </h1>
-              <p className="text-lg text-sky-600 font-medium mb-4">Трайно решение за липсващи зъби</p>
-              <p className="text-slate-600 leading-relaxed">
-                Зъбните импланти са златен стандарт за заместване на липсващи зъби. Титановият имплант се интегрира с костта 
-                и служи като здрава основа за коронка, която изглежда и функционира като естествен зъб.
-              </p>
-            </div>
-          </div>
-          
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-4 mt-8">
-            {STATS.map((stat, index) => (
-              <div key={index} className="bg-white rounded-xl border border-slate-200 p-4 text-center card-hover-subtle">
-                <div className="text-2xl font-bold text-sky-600 mb-1">{stat.value}</div>
-                <div className="text-sm text-slate-500">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-          
-          {/* Quick CTA */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mt-10">
-            <Link
-              href="/implants/quiz"
-              className="btn-primary inline-flex items-center justify-center gap-2 h-14 px-8"
-              data-testid="cta-quiz"
-            >
-              <Target className="w-5 h-5" />
-              Направете безплатна оценка
-            </Link>
-            <Link
-              href="#methods"
-              className="inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full border border-slate-300 text-slate-700 font-medium hover:bg-slate-50 transition-colors"
-            >
-              <ArrowRight className="w-5 h-5" />
-              Методи и цени
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Benefits Section */}
-      <section className="py-16 bg-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-8 text-center">
-            Предимства
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {BENEFITS.map((benefit, index) => (
-              <div 
-                key={index}
-                className="bg-slate-50 rounded-2xl p-6 border border-slate-200 card-hover-subtle"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                    <CheckCircle className="w-5 h-5 text-emerald-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-slate-900 mb-1">{benefit.title}</h3>
-                    <p className="text-sm text-slate-500">{benefit.description}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Process Section */}
-      <section className="py-16 bg-slate-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-8 text-center">
-            Процес на лечение
-          </h2>
-          
-          <div className="relative">
-            <div className="hidden md:block absolute left-8 top-0 bottom-0 w-0.5 bg-sky-200" />
+            <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-slate-900 mb-4">
+              Зъбни импланти – трайно решение за липсващи зъби
+            </h1>
             
-            <div className="space-y-6">
-              {PROCESS.map((step, index) => (
-                <div key={index} className="relative flex gap-6">
-                  <div className="hidden md:flex w-16 h-16 rounded-full bg-sky-500 text-white items-center justify-center text-xl font-bold flex-shrink-0 z-10">
-                    {step.step}
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto mb-8">
+              Научете как работят зъбните импланти, какви са ориентировъчните цени и кога това лечение е подходящо.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10">
+              <a
+                href="#lead-form"
+                className="btn-primary inline-flex items-center justify-center gap-2 h-14 px-8"
+                data-testid="hero-cta-primary"
+              >
+                Заяви обаждане
+                <ArrowRight className="w-5 h-5" />
+              </a>
+              <Link
+                href="/implants/quiz"
+                className="inline-flex items-center justify-center gap-2 h-14 px-8 rounded-xl border-2 border-slate-200 text-slate-700 font-medium hover:border-sky-300 hover:bg-sky-50 transition-colors"
+                data-testid="hero-cta-secondary"
+              >
+                Направи бърза оценка
+              </Link>
+            </div>
+            
+            {/* Trust Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {TRUST_CARDS.map((card, index) => (
+                <div key={index} className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center flex-shrink-0">
+                    <card.icon className="w-5 h-5 text-sky-600" />
                   </div>
-                  <div className="flex-1 bg-white rounded-2xl border border-slate-200 p-6 card-hover-subtle">
-                    <div className="md:hidden w-10 h-10 rounded-full bg-sky-500 text-white flex items-center justify-center text-lg font-bold mb-3">
-                      {step.step}
-                    </div>
-                    <h3 className="font-medium text-slate-900 mb-2">{step.title}</h3>
-                    <p className="text-sm text-slate-500">{step.description}</p>
-                  </div>
+                  <span className="text-sm text-slate-700 text-left">{card.title}</span>
                 </div>
               ))}
             </div>
@@ -192,88 +231,156 @@ export default function ImplantsPage() {
         </div>
       </section>
 
-      {/* Methods & Pricing */}
-      <section id="methods" className="py-16 bg-white">
+      {/* SECTION 2 — HOW ZUBITE WORKS */}
+      <section className="py-16 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-8 text-center">
-            Методи и ориентировъчни цени
+          <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-10 text-center">
+            Как работи Zubite.bg
           </h2>
-          <div className="space-y-4">
-            {[
-              { name: 'Единичен имплант + коронка', desc: 'Пълно решение за един липсващ зъб', price: '1,500 - 3,500 лв' },
-              { name: 'Мост върху импланти', desc: 'За няколко съседни липсващи зъби', price: '3,000 - 7,000 лв' },
-              { name: 'All-on-4', desc: 'Пълна челюст върху 4 импланта', price: '8,000 - 15,000 лв' },
-              { name: 'All-on-6', desc: 'Пълна челюст върху 6 импланта', price: '10,000 - 20,000 лв' }
-            ].map((method, index) => (
-              <div key={index} className="bg-slate-50 rounded-2xl border border-slate-200 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <h3 className="font-medium text-slate-900 text-lg">{method.name}</h3>
-                  <p className="text-slate-500">{method.desc}</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {HOW_IT_WORKS.map((item, index) => (
+              <div 
+                key={index} 
+                className="text-center animate-fade-in-up" 
+                style={{ animationDelay: `${index * 150}ms` }}
+              >
+                <div className="icon-hover w-12 h-12 rounded-full bg-sky-500 text-white flex items-center justify-center text-xl font-bold mx-auto mb-4">
+                  {item.step}
                 </div>
-                <div className="text-sky-600 font-semibold whitespace-nowrap">
-                  {method.price}
+                <h3 className="font-medium text-slate-900 mb-2">{item.title}</h3>
+                <p className="text-sm text-slate-500">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 3 — WHEN IMPLANTS ARE USED */}
+      <section className="py-16 bg-slate-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
+          <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-4 text-center">
+            Кога се използват импланти
+          </h2>
+          <p className="text-slate-600 text-center mb-10 max-w-2xl mx-auto">
+            Имплантите заместват корена на естествения зъб и служат като основа за коронка, мост или протеза.
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {WHEN_IMPLANTS_USED.map((item, index) => (
+              <div key={index} className="bg-white rounded-2xl border border-slate-200 p-6">
+                <h3 className="font-medium text-slate-900 mb-2">{item.title}</h3>
+                <p className="text-sm text-slate-600">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 4 — TYPES OF IMPLANT TREATMENTS */}
+      <section className="py-16 bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
+          <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-10 text-center">
+            Видове имплантни лечения
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {IMPLANT_TYPES.map((item, index) => (
+              <div key={index} className="bg-slate-50 rounded-2xl border border-slate-200 p-6 flex gap-4">
+                <div className="w-12 h-12 rounded-xl bg-sky-100 flex items-center justify-center flex-shrink-0">
+                  <item.icon className="w-6 h-6 text-sky-600" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-slate-900 mb-1">{item.title}</h3>
+                  <p className="text-sm text-slate-600">{item.description}</p>
                 </div>
               </div>
             ))}
           </div>
-          <p className="text-sm text-slate-400 text-center mt-6">
-            * Цените са ориентировъчни и варират според клиниката, марката на импланта и сложността на случая
+        </div>
+      </section>
+
+      {/* SECTION 5 — IMPLANT SYSTEMS */}
+      <section className="py-16 bg-slate-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
+          <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-4 text-center">
+            Импланти системи
+          </h2>
+          <p className="text-slate-600 text-center mb-8 max-w-2xl mx-auto">
+            Съществуват различни системи за зъбни импланти. Изборът зависи от конкретния случай и препоръката на специалиста.
+          </p>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            {IMPLANT_SYSTEMS.map((system, index) => (
+              <div key={index} className="bg-white rounded-xl border border-slate-200 p-4 text-center">
+                <span className="text-slate-700 font-medium">{system}</span>
+              </div>
+            ))}
+          </div>
+          
+          <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <p className="text-amber-800 text-sm">
+                Успехът на имплантологичното лечение зависи основно от правилната диагностика и клинично планиране, а не само от марката на импланта.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 6 — INDICATIVE PRICES */}
+      <section className="py-16 bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
+          <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-8 text-center">
+            Ориентировъчни цени
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {IMPLANT_PRICES.map((price, index) => (
+              <div key={index} className="bg-gradient-to-br from-sky-500 to-sky-600 rounded-2xl p-6 text-white text-center">
+                <h3 className="font-medium text-lg mb-3 text-sky-100">{price.title}</h3>
+                <div className="text-2xl font-bold mb-1">
+                  €{price.eurMin.toLocaleString('bg-BG')} – €{price.eurMax.toLocaleString('bg-BG')}
+                </div>
+                <div className="text-sky-200 text-sm">
+                  (≈ {price.bgnMin.toLocaleString('bg-BG')} – {price.bgnMax.toLocaleString('bg-BG')} лв.)
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          <p className="text-sm text-slate-500 text-center mt-6">
+            Цените са ориентировъчни и зависят от сложността на случая, използваната система и клиниката.
           </p>
         </div>
       </section>
 
-      {/* Ideal For Section */}
-      <section className="py-16 bg-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-8 text-center">
-            Подходящо за
-          </h2>
-          
-          <div className="bg-sky-50 rounded-2xl border border-sky-200 p-8">
-            <div className="flex items-center gap-3 mb-6">
-              <Users className="w-6 h-6 text-sky-600" />
-              <span className="font-medium text-slate-900">
-                Това лечение е идеално за:
-              </span>
-            </div>
-            <ul className="space-y-3">
-              {IDEAL_FOR.map((item, index) => (
-                <li key={index} className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-sky-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-slate-700">{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      {/* City Links */}
+      {/* SECTION 7 — BEFORE YOU CHOOSE IMPLANTS */}
       <section className="py-16 bg-slate-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-8 text-center">
-            Намерете клиника по град
+          <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-4 text-center">
+            Преди да изберете импланти
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {Object.values(CITIES).map((city) => (
-              <Link
-                key={city.slug}
-                href={`/${city.slug}/implants`}
-                className="city-card group bg-white hover:bg-sky-50 border border-slate-200 hover:border-sky-300 rounded-2xl p-6 text-center"
-                data-testid={`city-${city.slug}`}
-              >
-                <div className="city-icon w-12 h-12 rounded-full bg-sky-100 flex items-center justify-center mx-auto mb-3">
-                  <MapPin className="w-5 h-5 text-sky-600" />
+          <p className="text-slate-600 text-center mb-8 max-w-2xl mx-auto">
+            Преди поставяне на импланти е необходима оценка на няколко фактора:
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {FACTORS_TO_CONSIDER.map((factor, index) => (
+              <div key={index} className="bg-white rounded-xl border border-slate-200 p-4 flex items-start gap-3">
+                <CheckCircle className="w-5 h-5 text-sky-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="font-medium text-slate-900 mb-1">{factor.title}</h3>
+                  <p className="text-sm text-slate-600">{factor.description}</p>
                 </div>
-                <h3 className="font-medium text-slate-900">{city.name}</h3>
-                <p className="text-sm text-slate-500 mt-1">Импланти в {city.name}</p>
-              </Link>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* FAQ Section */}
+      {/* SECTION 8 — FAQ */}
       <section className="py-16 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
           <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-8 text-center">
@@ -284,28 +391,55 @@ export default function ImplantsPage() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-16 bg-white">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6">
-          <div className="bg-gradient-to-br from-sky-500 to-sky-600 rounded-3xl p-8 md:p-12 text-center text-white">
-            <Award className="w-12 h-12 mx-auto mb-4 opacity-90" />
-            <h2 className="font-serif text-2xl md:text-3xl font-semibold mb-4">
-              Възстановете усмивката си
-            </h2>
-            <p className="text-sky-100 mb-8 max-w-lg mx-auto">
-              Преминете през нашата кратка оценка, за да разберете дали зъбните импланти са подходящи за вас.
-            </p>
-            <Link 
-              href="/implants/quiz"
-              className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-10 rounded-full bg-white text-sky-600 font-medium hover:bg-sky-50"
-              data-testid="start-quiz-cta"
-            >
-              Направете безплатна оценка
-              <ArrowRight className="w-5 h-5" />
-            </Link>
+      {/* SECTION 9 — FINAL CTA with Lead Form */}
+      <section id="lead-form" className="py-16 bg-slate-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+            <div>
+              <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-4">
+                Направете първата стъпка
+              </h2>
+              <p className="text-slate-600 mb-6">
+                Ако не сте сигурни дали имплантите са подходящото решение, нашият екип може да ви помогне да разберете възможностите.
+              </p>
+              
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-sky-500 flex-shrink-0 mt-0.5" />
+                  <span className="text-slate-600">Безплатна първоначална консултация</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-sky-500 flex-shrink-0 mt-0.5" />
+                  <span className="text-slate-600">Ориентировъчна информация за цени</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-sky-500 flex-shrink-0 mt-0.5" />
+                  <span className="text-slate-600">Насочване към подходящ специалист</span>
+                </div>
+              </div>
+              
+              <div className="mt-6">
+                <Link
+                  href="/implants/quiz"
+                  className="text-sky-600 font-medium hover:text-sky-700 inline-flex items-center gap-2"
+                >
+                  Или направете бърза оценка
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </div>
+            
+            <LeadCaptureForm treatmentType="implants" source="implants_page" />
           </div>
         </div>
       </section>
+
+      {/* Educational Disclaimer */}
+      <div className="py-4 bg-white text-center">
+        <p className="text-xs text-slate-400 max-w-2xl mx-auto px-4">
+          {EDUCATIONAL_DISCLAIMER}
+        </p>
+      </div>
 
       <Footer />
     </main>
