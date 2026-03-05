@@ -11,49 +11,73 @@ Zubite.bg is a dental solutions navigator platform that helps Bulgarian users fi
 
 ## Recent Updates (December 2025)
 
-### Orthodontics Page Restructure
-New page structure following SEO → Quiz → Request a Call flow:
+### Implants Page Restructure
+New page structure following Educate → Qualify → Capture Lead flow:
 
-1. **HERO**: H1 "Алайнери или брекети? Намерете правилното ортодонтско лечение"
-   - CTA: "Виж дали си подходящ за алайнери" → /orthodontics/quiz
-2. **HOW IT WORKS**: 3 steps (Answer questions → Get recommendation → Help choosing specialist)
-3. **ALIGNERS VS BRACES**: Comparison cards with pros/cons
-4. **ALIGNER BRANDS**: Invisalign, Spark, Angel Aligner comparison
-5. **PRICES**: EUR primary, BGN secondary
-6. **COMMON ORTHODONTIC PROBLEMS**: SEO section (криви зъби, струпани зъби, etc.)
-7. **CHILDREN ORTHODONTICS**: When to see orthodontist (age ~7)
-8. **DECISION SECTION**: Quiz benefits explanation
-9. **FAQ**: 6 specified questions
-10. **FINAL CTA**: Start quiz
+1. **HERO**: H1 "Зъбни импланти – трайно решение за липсващи зъби"
+   - Primary CTA: "Заяви обаждане" → #lead-form
+   - Secondary CTA: "Направи бърза оценка" → /implants/quiz
+   - 3 Trust cards
+2. **HOW ZUBITE WORKS**: 3 steps (Оценка/обаждане → Информация/цени → Избор на специалист)
+3. **WHEN IMPLANTS ARE USED**: 4 use cases
+4. **TYPES OF IMPLANT TREATMENTS**: 4 cards (Единичен, Мост, All-on-4/6, Стабилизиране)
+5. **IMPLANT SYSTEMS**: Straumann, Nobel Biocare, Osstem, Megagen + disclaimer
+6. **INDICATIVE PRICES**: EUR primary, BGN secondary
+7. **BEFORE YOU CHOOSE IMPLANTS**: 4 factors to consider
+8. **FAQ**: 6 questions
+9. **LEAD FORM**: Full capture form
 
-**Removed**: Clinics, rankings, city pages from main content
-
-### Brand Comparison (Subtle Pro-Invisalign)
-- Invisalign, Spark, Angel Aligner compared neutrally
-- Disclaimer: "Най-важният фактор е опитът на ортодонта и правилната диагноза. Марката сама по себе си не гарантира резултат."
-- No claims of brand superiority
+### Lead Capture Form Component
+New reusable component `/app/nextjs-seo/components/LeadCaptureForm.tsx`:
+- Fields: Име, Телефон*, Град, Какъв проблем имате, Consent checkbox
+- Submits to /api/leads endpoint
+- Success message: "Благодарим! Нашият екип ще се свърже с вас скоро."
+- Sends email notification + stores in dashboard
 
 ### Pricing System (EUR Primary, BGN Secondary)
+
+#### Implants
+| Treatment | EUR | BGN |
+|-----------|-----|-----|
+| Единичен имплант | €700 – €2,000 | ≈ 1,400 – 4,000 лв. |
+| Имплант + корона | €1,200 – €3,000 | ≈ 2,400 – 6,000 лв. |
+| All-on-4 | €5,000 – €9,000 | ≈ 10,000 – 18,000 лв. |
+
+#### Orthodontics
 | Treatment | EUR | BGN |
 |-----------|-----|-----|
 | Алайнери | €1,500 – €6,000 | ≈ 3,000 – 12,000 лв. |
 | Брекети | €1,000 – €4,000 | ≈ 2,000 – 8,000 лв. |
-| Имплант (1 зъб) | €800 – €2,000 | ≈ 1,600 – 4,000 лв. |
-| All-on-4/6 | €6,000 – €20,000+ | ≈ 12,000 – 40,000+ лв. |
 
-### Key Disclaimers
-- **Price**: "Цените са ориентировъчни и зависят от сложност, план и клиника."
-- **Brand**: "Най-важният фактор е опитът на ортодонта и правилната диагноза."
-- **Educational**: "Информацията е образователна и не замества преглед."
+### Tone Guidelines
+**Lifestyle premium but medically responsible:**
+- ❌ Avoid: "100% безболезнено", "гарантиран резултат"
+- ✅ Use: "обикновено", "в повечето случаи", "според случая"
 
-## Target Audience
-- Adults considering orthodontic treatment
-- Parents of children with orthodontic issues
+## Page Structures
 
-## Page Goal
-SEO → Quiz → Request a Call
-- Primary CTA everywhere: Start Quiz
-- Do NOT show: clinics, rankings, city pages in main content
+### /orthodontics (SEO → Quiz → Request a Call)
+1. Hero: H1 "Алайнери или брекети?"
+2. How It Works (3 steps)
+3. Aligners vs Braces (comparison cards)
+4. Aligner Brands (Invisalign, Spark, Angel Aligner)
+5. Prices (EUR/BGN)
+6. Common Orthodontic Problems (SEO)
+7. Children Orthodontics
+8. Decision Section
+9. FAQ
+10. Final CTA
+
+### /implants (Educate → Qualify → Capture Lead)
+1. Hero: H1 "Зъбни импланти – трайно решение за липсващи зъби"
+2. How Zubite Works (3 steps)
+3. When Implants Used (4 use cases)
+4. Types of Implant Treatments (4 cards)
+5. Implant Systems (Straumann, Nobel Biocare, Osstem, Megagen)
+6. Indicative Prices (EUR/BGN)
+7. Before You Choose Implants (4 factors)
+8. FAQ (6 questions)
+9. Lead Form
 
 ## Current Architecture
 
@@ -62,14 +86,18 @@ SEO → Quiz → Request a Call
 ├── app/
 │   ├── page.tsx                    # Homepage
 │   ├── orthodontics/
-│   │   ├── page.tsx                # NEW: Restructured orthodontics page
-│   │   └── quiz/page.tsx           # Quiz with city selection
+│   │   ├── page.tsx                # Orthodontics page (SEO → Quiz)
+│   │   └── quiz/page.tsx
+│   ├── implants/
+│   │   ├── page.tsx                # Implants page (Educate → Qualify → Lead)
+│   │   └── quiz/page.tsx
 │   ├── aligners-comparison/        # Brand comparison SEO page
 │   ├── [city]/[treatment]/         # City+treatment pages
 │   └── ...
 │
 ├── components/
 │   ├── TreatmentQuiz.tsx
+│   ├── LeadCaptureForm.tsx         # NEW: Reusable lead form
 │   ├── FAQAccordion.tsx
 │   └── ...
 │
@@ -80,37 +108,12 @@ SEO → Quiz → Request a Call
 └── public/
 ```
 
-## SEO Keywords (Natural Usage)
-- ортодонт
-- брекети
-- алайнер
-- invisalign
-- цена
-- криви зъби
-- неправилна захапка
-
-## Common Orthodontic Problems (SEO)
-1. Криви зъби
-2. Струпани зъби (crowding)
-3. Неправилна захапка
-4. Дълбока захапка (overbite)
-5. Кръстосана захапка (crossbite)
-
-## Children Orthodontics
-- First visit: ~7 years old
-- Symptoms to watch:
-  - Mouth breathing
-  - Crowding
-  - Bite problems
-  - Difficulty chewing
-  - Early/late loss of baby teeth
-  - Thumb sucking after age 5
-
-## Quiz Flow
-1. City Selection
-2. 5 Quiz Questions
-3. Result (Green/Yellow/Red)
-4. Contact Form (optional)
+## Lead Flow
+1. User fills form (Име, Телефон*, Град, Problem, Consent)
+2. Form submits to POST /api/leads
+3. Lead stored in MongoDB
+4. Email notification sent via Resend
+5. Visible in admin dashboard at /admin/dashboard
 
 ## Admin Panel
 - **Email**: `admin@zubite.bg`
@@ -132,4 +135,4 @@ SEO → Quiz → Request a Call
 
 ---
 *Last updated: December 2025*
-*Latest changes: Orthodontics page restructure (SEO → Quiz → Request a Call flow)*
+*Latest changes: Implants page restructure with lead capture form*
