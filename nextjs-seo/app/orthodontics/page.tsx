@@ -6,6 +6,7 @@ import { TREATMENTS, CITIES } from '@/lib/data'
 import { generateBreadcrumbSchema } from '@/lib/schema'
 import { CheckCircle, ArrowRight, ArrowLeft, MapPin, Clock, Shield, Users, Award, Smile, Target, Heart, Zap } from 'lucide-react'
 import { FAQAccordion } from '@/components/FAQAccordion'
+import { AlignersVsBracesQuiz } from '@/components/AlignersVsBracesQuiz'
 
 const treatment = TREATMENTS.orthodontics
 
