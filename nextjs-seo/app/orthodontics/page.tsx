@@ -2,123 +2,138 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
-import { TREATMENTS, CITIES } from '@/lib/data'
-import { ALIGNER_BRANDS, BRAND_COMPARISON_DISCLAIMER, PRICE_DISCLAIMER } from '@/lib/pricing'
-import { generateBreadcrumbSchema } from '@/lib/schema'
-import { CheckCircle, ArrowRight, ArrowLeft, MapPin, Clock, Shield, Users, Award, Smile, Target, Heart, Zap, AlertCircle } from 'lucide-react'
+import { TREATMENTS } from '@/lib/data'
+import { ALIGNER_BRANDS, BRAND_COMPARISON_DISCLAIMER, PRICE_DISCLAIMER, TREATMENT_PRICES, EDUCATIONAL_DISCLAIMER } from '@/lib/pricing'
+import { generateBreadcrumbSchema, generateFAQSchema } from '@/lib/schema'
+import { CheckCircle, ArrowRight, ArrowLeft, XCircle, AlertCircle, Smile, Eye, HelpCircle, ClipboardList, Users, Baby } from 'lucide-react'
 import { FAQAccordion } from '@/components/FAQAccordion'
-import { AlignersVsBracesQuiz } from '@/components/AlignersVsBracesQuiz'
 
 const treatment = TREATMENTS.orthodontics
 
 export const metadata: Metadata = {
-  title: `Ортодонтия в България | Брекети, Алайнери, Invisalign | Zubite.bg`,
-  description: `Защо ортодонтското лечение е основата на здравата усмивка. Научете кога е нужна ортодонтия, сравнете алайнери и брекети, и намерете подходящото лечение.`,
-  keywords: 'ортодонтия, ортодонт София, криви зъби лечение, лечение на захапка, алайнери, брекети, Invisalign, алайнери или брекети',
+  title: `Алайнери или Брекети? | Ортодонтия в България | Zubite.bg`,
+  description: `Разберете дали алайнери или брекети са подходящи за вас. Сравнете Invisalign, Spark, Angel Aligner. Цени в EUR, безплатна оценка и препоръка за ортодонт.`,
+  keywords: 'ортодонт, брекети, алайнер, invisalign, цена, криви зъби, неправилна захапка, ортодонтия България',
   alternates: {
     canonical: 'https://zubite.bg/orthodontics',
   },
   openGraph: {
-    title: `Ортодонтия | Брекети и Алайнери | Zubite.bg`,
-    description: 'Защо ортодонтското лечение е основата на здравата усмивка. Сравнете методите и намерете подходящия за вас.',
+    title: `Алайнери или Брекети? | Ортодонтия | Zubite.bg`,
+    description: 'Отговорете на кратък тест и разберете кой метод е подходящ за вас. Сравнение на марки алайнери и цени.',
     url: 'https://zubite.bg/orthodontics',
     images: [{ url: treatment.ogImage, width: 1200, height: 630 }],
   },
 }
 
-const WHY_ORTHO_FIRST = [
+// How it works steps
+const HOW_IT_WORKS = [
   { 
-    title: 'Основа за други лечения', 
-    description: 'Правилната позиция на зъбите е предпоставка за успешни импланти, коронки и естетични процедури. Ортодонтията подготвя устата за всичко останало.',
-    icon: Target
+    step: '1', 
+    title: 'Отговорете на въпроси', 
+    description: 'Кратък тест за вашия случай — проблеми, предпочитания и очаквания.' 
   },
   { 
-    title: 'Превенция на проблеми', 
-    description: 'Неправилната захапка води до износване на емайла, проблеми с TMJ ставата и дори главоболие. Ортодонтията предотвратява тези усложнения.',
-    icon: Shield
+    step: '2', 
+    title: 'Получете препоръка', 
+    description: 'Разберете дали алайнери или брекети са по-подходящи за вас.' 
   },
   { 
-    title: 'По-лесна хигиена', 
-    description: 'Правилно подредените зъби се чистят много по-лесно. Това намалява риска от кариеси и заболявания на венците.',
-    icon: Heart
-  },
-  { 
-    title: 'Дълготрайни резултати', 
-    description: 'За разлика от козметичните процедури, ортодонтското лечение решава проблема от корена и дава трайни резултати.',
-    icon: Zap
+    step: '3', 
+    title: 'Помощ при избор на специалист', 
+    description: 'По желание — насочване към подходящ ортодонт за вашия случай.' 
   }
 ]
 
-const TREATMENT_OPTIONS = [
+// Aligners vs Braces comparison
+const ALIGNERS_VS_BRACES = {
+  aligners: {
+    title: 'Алайнери (прозрачни)',
+    pros: [
+      'Почти невидими — дискретно лечение',
+      'Свалят се при хранене и хигиена',
+      'По-лесна орална хигиена',
+      'По-малък дискомфорт (обикновено)',
+      'Виртуален преглед на резултата преди старт'
+    ],
+    cons: [
+      'Изискват дисциплина — носене 20-22 часа',
+      'Не са подходящи за всички случаи',
+      'Обикновено по-висока цена'
+    ]
+  },
+  braces: {
+    title: 'Брекети',
+    pros: [
+      'Подходящи за всички случаи',
+      'Не изискват самодисциплина',
+      'Работят 24/7 без прекъсване',
+      'По-ниска цена при повечето варианти',
+      'Дълга история и доказана ефективност'
+    ],
+    cons: [
+      'Видими (освен лингвалните)',
+      'Ограничения в храната',
+      'По-трудна хигиена',
+      'По-чести посещения при ортодонт'
+    ]
+  }
+}
+
+// Common orthodontic problems for SEO
+const ORTHO_PROBLEMS = [
   {
-    name: 'Invisalign (Прозрачни алайнери)',
-    description: 'Най-напредналата система за изправяне на зъби в света. Подходяща от 6-годишна възраст до най-сложните случаи при възрастни.',
-    features: ['Почти невидими', 'Свалящи се за хранене', '3D планиране с ClinCheck', 'От First (6г.) до сложни случаи'],
-    price: '4,000 - 8,000 лв',
-    duration: '6-24 месеца',
-    best_for: 'Всички възрасти, от леки до много сложни случаи',
-    highlighted: true
+    title: 'Криви зъби',
+    description: 'Зъбите не са подредени правилно и нарушават естетиката на усмивката. Криви зъби могат да затруднят хигиената и да доведат до кариеси.',
+    treatable: 'Лечими с алайнери или брекети'
   },
   {
-    name: 'Керамични брекети',
-    description: 'По-дискретен вариант на фиксираните брекети. Изработени от материал, близък до цвета на зъбите.',
-    features: ['По-естетични от металните', 'Ефективни за сложни случаи', 'Фиксирани - работят 24/7'],
-    price: '3,000 - 5,000 лв',
-    duration: '12-24 месеца',
-    best_for: 'Възрастни, които искат по-дискретен вариант'
+    title: 'Струпани зъби (crowding)',
+    description: 'Недостатъчно място в челюстта води до препокриване на зъбите. Често срещан проблем при деца и възрастни.',
+    treatable: 'Лечими с алайнери или брекети'
   },
   {
-    name: 'Метални брекети',
-    description: 'Класическият и доказан метод за ортодонтско лечение. Най-ефективни при тежки случаи.',
-    features: ['Най-достъпна цена', 'Доказана ефективност', 'Подходящи за всички случаи'],
-    price: '2,000 - 3,500 лв',
-    duration: '12-36 месеца',
-    best_for: 'Деца, тийнейджъри и сложни случаи'
+    title: 'Неправилна захапка',
+    description: 'Горните и долните зъби не се срещат правилно. Може да причини проблеми при дъвчене и износване на емайла.',
+    treatable: 'Лечима с алайнери или брекети'
   },
   {
-    name: 'Лингвални брекети',
-    description: 'Брекети, поставени от вътрешната страна на зъбите. Напълно невидими отвън.',
-    features: ['100% невидими', 'Ефективни за сложни случаи', 'Изискват адаптация'],
-    price: '5,000 - 10,000 лв',
-    duration: '18-36 месеца',
-    best_for: 'Възрастни с висока нужда от дискретност'
+    title: 'Дълбока захапка (overbite)',
+    description: 'Горните зъби покриват прекалено долните. Може да причини износване на зъбите и проблеми с челюстната става.',
+    treatable: 'Лечима с алайнери или брекети'
+  },
+  {
+    title: 'Кръстосана захапка (crossbite)',
+    description: 'Някои горни зъби захапват зад долните. Може да причини асиметрия на лицето и проблеми при дъвчене.',
+    treatable: 'Лечима с алайнери или брекети'
   }
 ]
 
-const COMPARISON_TABLE = [
-  { feature: 'Видимост', aligners: 'Почти невидими', braces: 'Видими' },
-  { feature: 'Комфорт', aligners: 'Много комфортни', braces: 'Адаптация 1-2 седмици' },
-  { feature: 'Хранене', aligners: 'Без ограничения', braces: 'Избягване на твърди храни' },
-  { feature: 'Хигиена', aligners: 'Лесна - свалят се', braces: 'По-трудна' },
-  { feature: 'Сложни случаи', aligners: 'Да (с Invisalign)', braces: 'Да' },
-  { feature: 'Деца', aligners: 'От 6г. (Invisalign First)', braces: 'От 10-12г.' },
-  { feature: 'Посещения', aligners: 'На 6-8 седмици', braces: 'На 4-6 седмици' },
-]
-
-const WHO_NEEDS_ORTHO = [
-  'Криви или накривени зъби',
-  'Разстояния между зъбите (диастема)',
-  'Препокриване на зъбите (crowding)',
-  'Неправилна захапка (overbite, underbite, crossbite)',
-  'Проблеми с дъвченето или говора',
-  'Подготовка за импланти или естетични процедури',
-  'TMJ проблеми, свързани със захапката',
-  'Хъркане и сънна апнея (в някои случаи)'
-]
-
+// FAQ questions as specified
 const FAQS = [
-  { q: 'На каква възраст може да се започне ортодонтско лечение?', a: 'С Invisalign First - от 6-годишна възраст. Традиционните брекети обикновено се поставят между 10-14 години. При възрастни няма горна граница - все повече хора над 40 и 50 избират да изправят зъбите си.' },
-  { q: 'Трябва ли ми ортодонтия преди други дентални процедури?', a: 'В много случаи - да. Правилната позиция на зъбите е основа за успешни импланти, мостове, коронки и естетични процедури. Вашият дентален специалист ще ви посъветва.' },
-  { q: 'Invisalign или брекети - кое е по-добре?', a: 'Зависи от вашия случай и предпочитания. Invisalign е най-напредналата система и може да лекува от 6-годишна възраст до много сложни случаи. Брекетите са по-достъпни и не изискват дисциплина за носене.' },
-  { q: 'Колко време трае ортодонтското лечение?', a: 'Обикновено 12-24 месеца за повечето случаи. Леките корекции с алайнери могат да се завършат за 6-12 месеца. Сложните случаи могат да отнемат до 36 месеца.' },
-  { q: 'Болезнено ли е ортодонтското лечение?', a: 'Може да има лек дискомфорт в първите дни след поставяне или при смяна на шини/затягане. Това е нормално и преминава бързо.' },
-  { q: 'Какво става след свалянето на брекетите/алайнерите?', a: 'Носите ретейнер, за да запазите резултата. Първоначално целодневно, след това само през нощта. Ретейнерът е ключов за дълготрайния успех.' }
-]
-
-const STATS = [
-  { value: '70%', label: 'от хората имат нужда от ортодонтия' },
-  { value: '14M+', label: 'лекувани с Invisalign' },
-  { value: '6+', label: 'години минимална възраст' }
+  { 
+    q: 'Алайнерите по-добри ли са от брекетите?', 
+    a: 'Няма еднозначен отговор — зависи от вашия случай и предпочитания. Алайнерите са по-дискретни и комфортни, но изискват дисциплина. Брекетите са подходящи за всички случаи и не зависят от това колко редовно ги носите. Най-важното е правилната диагноза от опитен ортодонт.' 
+  },
+  { 
+    q: 'Колко време трае ортодонтското лечение?', 
+    a: 'Обикновено 12-24 месеца за повечето случаи. Леките корекции могат да се завършат за 6-12 месеца. Сложните случаи могат да отнемат до 36 месеца. Продължителността зависи от индивидуалния план, определен от ортодонта.' 
+  },
+  { 
+    q: 'Болезнено ли е ортодонтското лечение?', 
+    a: 'Може да има лек дискомфорт в първите дни след поставяне на брекети или при смяна на алайнер. Това е нормално и преминава бързо. Съвременните методи са много по-комфортни от преди.' 
+  },
+  { 
+    q: 'Кога децата трябва да посетят ортодонт?', 
+    a: 'Препоръчва се първи преглед около 7-годишна възраст. При симптоми като дишане през устата, струпани зъби или проблеми със захапката — по-рано. Ранната оценка позволява превантивно лечение, ако е необходимо.' 
+  },
+  { 
+    q: 'Колко струват алайнерите?', 
+    a: 'Ориентировъчно €1 500 – €6 000 (≈ 3 000 – 12 000 лв.), в зависимост от сложността на случая и избраната система. Точната цена се определя след клиничен преглед и план за лечение.' 
+  },
+  { 
+    q: 'Коя марка алайнери е най-добра?', 
+    a: 'Няма универсално "най-добра" марка. Invisalign, Spark и Angel Aligner са качествени системи. Най-важният фактор е опитът на ортодонта и правилната диагноза, а не самата марка.' 
+  }
 ]
 
 export default function OrthodonticsPage() {
@@ -126,6 +141,11 @@ export default function OrthodonticsPage() {
     { name: 'Начало', url: 'https://zubite.bg' },
     { name: 'Ортодонтия', url: 'https://zubite.bg/orthodontics' }
   ])
+  
+  const faqSchema = generateFAQSchema(FAQS)
+  
+  const alignersPrice = TREATMENT_PRICES['orthodontics-aligners']
+  const bracesPrice = TREATMENT_PRICES['orthodontics-braces']
 
   return (
     <main className="min-h-screen bg-white">
@@ -133,9 +153,13 @@ export default function OrthodonticsPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
       <Header />
       
-      {/* Hero Section */}
+      {/* 1. HERO Section */}
       <section className="pt-24 pb-16 md:pt-32 md:pb-20 bg-gradient-to-b from-white to-slate-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <Link 
@@ -147,224 +171,172 @@ export default function OrthodonticsPage() {
             <span>Всички лечения</span>
           </Link>
           
-          <div className="flex flex-col md:flex-row md:items-start gap-6 mb-8">
-            <div className="w-20 h-20 rounded-2xl bg-sky-100 flex items-center justify-center flex-shrink-0 icon-hover">
+          <div className="text-center">
+            <div className="w-20 h-20 rounded-2xl bg-sky-100 flex items-center justify-center mx-auto mb-6 icon-hover">
               <Smile className="w-10 h-10 text-sky-600" />
             </div>
             
-            <div className="flex-1">
-              <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-slate-900 mb-2">
-                Ортодонтия
-              </h1>
-              <p className="text-lg text-sky-600 font-medium mb-4">Основата на здравата и красива усмивка</p>
-              <p className="text-slate-600 leading-relaxed">
-                Ортодонтията не е само за изправяне на криви зъби. Това е специалност, която коригира 
-                позицията на зъбите и захапката, създавайки основата за цялостното дентално здраве. 
-                Често е първата стъпка преди други дентални процедури.
-              </p>
-            </div>
-          </div>
-          
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-4 mt-8">
-            {STATS.map((stat, index) => (
-              <div key={index} className="bg-white rounded-xl border border-slate-200 p-4 text-center card-hover-subtle">
-                <div className="text-2xl font-bold text-sky-600 mb-1">{stat.value}</div>
-                <div className="text-sm text-slate-500">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-          
-          {/* Quick CTA */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mt-10">
+            <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-slate-900 mb-4">
+              Алайнери или брекети?<br />Намерете правилното ортодонтско лечение
+            </h1>
+            
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto mb-8">
+              Отговорете на кратък тест и получете препоръка за подходящо лечение, ориентировъчна цена и следваща стъпка.
+            </p>
+            
             <Link
               href="/orthodontics/quiz"
               className="btn-primary inline-flex items-center justify-center gap-2 h-14 px-8"
-              data-testid="cta-quiz"
+              data-testid="hero-cta-quiz"
             >
               <Smile className="w-5 h-5" />
-              Разберете кой метод е за вас
-            </Link>
-            <Link
-              href="#comparison"
-              className="inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full border border-slate-300 text-slate-700 font-medium hover:bg-slate-50 transition-colors"
-            >
-              <ArrowRight className="w-5 h-5" />
-              Алайнери vs Брекети
+              Виж дали си подходящ за алайнери
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Why Orthodontics First */}
+      {/* 2. HOW IT WORKS Section */}
       <section className="py-16 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-4 text-center">
-            Защо ортодонтията е основата на денталното здраве?
+          <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-10 text-center">
+            Как работи
           </h2>
-          <p className="text-slate-600 text-center mb-10 max-w-2xl mx-auto">
-            Много пациенти се нуждаят от ортодонтско лечение преди импланти, коронки или естетични процедури. 
-            Правилната позиция на зъбите е предпоставка за успеха на всички други лечения.
-          </p>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {WHY_ORTHO_FIRST.map((item, index) => (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {HOW_IT_WORKS.map((item, index) => (
               <div 
-                key={index}
-                className="bg-slate-50 rounded-2xl p-6 border border-slate-200 card-hover-subtle"
+                key={index} 
+                className="text-center animate-fade-in-up" 
+                style={{ animationDelay: `${index * 150}ms` }}
               >
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-sky-100 flex items-center justify-center flex-shrink-0">
-                    <item.icon className="w-6 h-6 text-sky-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-slate-900 mb-2">{item.title}</h3>
-                    <p className="text-sm text-slate-500">{item.description}</p>
-                  </div>
+                <div className="icon-hover w-12 h-12 rounded-full bg-sky-500 text-white flex items-center justify-center text-xl font-bold mx-auto mb-4">
+                  {item.step}
                 </div>
+                <h3 className="font-medium text-slate-900 mb-2">{item.title}</h3>
+                <p className="text-sm text-slate-500">{item.description}</p>
               </div>
             ))}
           </div>
+          
+          <div className="text-center mt-10">
+            <Link
+              href="/orthodontics/quiz"
+              className="btn-primary inline-flex items-center justify-center gap-2 h-12 px-6"
+              data-testid="how-it-works-cta"
+            >
+              Започни теста
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
         </div>
       </section>
 
-      {/* Who Needs Orthodontics */}
-      <section className="py-16 bg-slate-50">
+      {/* 3. ALIGNERS VS BRACES Section */}
+      <section id="comparison" className="py-16 bg-slate-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-8 text-center">
-            Кога е нужна ортодонтия?
+          <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-4 text-center">
+            Алайнери vs Брекети
           </h2>
+          <p className="text-slate-600 text-center mb-10 max-w-2xl mx-auto">
+            Двата основни метода за ортодонтско лечение имат различни характеристики. Изборът зависи от вашия случай и предпочитания.
+          </p>
           
-          <div className="bg-white rounded-2xl border border-slate-200 p-8">
-            <div className="grid md:grid-cols-2 gap-4">
-              {WHO_NEEDS_ORTHO.map((item, index) => (
-                <div key={index} className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-sky-500 flex-shrink-0 mt-0.5" />
-                  <span className="text-slate-700">{item}</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Aligners Card */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center">
+                  <Eye className="w-5 h-5 text-sky-600" />
                 </div>
-              ))}
+                <h3 className="font-serif text-lg font-semibold text-slate-900">
+                  {ALIGNERS_VS_BRACES.aligners.title}
+                </h3>
+              </div>
+              
+              <div className="mb-4">
+                <p className="text-sm font-medium text-emerald-600 mb-2">Предимства:</p>
+                <ul className="space-y-2">
+                  {ALIGNERS_VS_BRACES.aligners.pros.map((item, idx) => (
+                    <li key={idx} className="flex items-start gap-2 text-sm text-slate-600">
+                      <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              
+              <div>
+                <p className="text-sm font-medium text-red-600 mb-2">Недостатъци:</p>
+                <ul className="space-y-2">
+                  {ALIGNERS_VS_BRACES.aligners.cons.map((item, idx) => (
+                    <li key={idx} className="flex items-start gap-2 text-sm text-slate-600">
+                      <XCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            
+            {/* Braces Card */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
+                  <Smile className="w-5 h-5 text-slate-600" />
+                </div>
+                <h3 className="font-serif text-lg font-semibold text-slate-900">
+                  {ALIGNERS_VS_BRACES.braces.title}
+                </h3>
+              </div>
+              
+              <div className="mb-4">
+                <p className="text-sm font-medium text-emerald-600 mb-2">Предимства:</p>
+                <ul className="space-y-2">
+                  {ALIGNERS_VS_BRACES.braces.pros.map((item, idx) => (
+                    <li key={idx} className="flex items-start gap-2 text-sm text-slate-600">
+                      <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              
+              <div>
+                <p className="text-sm font-medium text-red-600 mb-2">Недостатъци:</p>
+                <ul className="space-y-2">
+                  {ALIGNERS_VS_BRACES.braces.cons.map((item, idx) => (
+                    <li key={idx} className="flex items-start gap-2 text-sm text-slate-600">
+                      <XCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
           
-          <div className="mt-8 text-center">
-            <p className="text-slate-600 mb-4">Не сте сигурни дали имате нужда от ортодонтия?</p>
+          <div className="text-center mt-8">
+            <p className="text-slate-500 mb-4">Не сте сигурни кой метод е за вас?</p>
             <Link
               href="/orthodontics/quiz"
               className="text-sky-600 font-medium hover:text-sky-700 inline-flex items-center gap-2"
             >
-              Направете безплатна оценка
+              Направете теста и разберете
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Treatment Options */}
-      <section className="py-16 bg-white">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-4 text-center">
-            Методи за ортодонтско лечение
-          </h2>
-          <p className="text-slate-600 text-center mb-10 max-w-2xl mx-auto">
-            Днес имате избор между няколко ефективни метода. Всеки има своите предимства.
-          </p>
-          
-          <div className="grid md:grid-cols-2 gap-6">
-            {TREATMENT_OPTIONS.map((option, index) => (
-              <div 
-                key={index} 
-                className={`rounded-2xl border-2 p-6 ${
-                  option.highlighted 
-                    ? 'border-sky-500 bg-sky-50' 
-                    : 'border-slate-200 bg-white'
-                }`}
-              >
-                {option.highlighted && (
-                  <div className="bg-sky-500 text-white text-xs font-medium px-3 py-1 rounded-full inline-block mb-3">
-                    Най-напреднала система
-                  </div>
-                )}
-                <h3 className="font-medium text-xl text-slate-900 mb-2">{option.name}</h3>
-                <p className="text-slate-500 text-sm mb-4">{option.description}</p>
-                
-                <div className="space-y-2 mb-4">
-                  {option.features.map((feature, i) => (
-                    <div key={i} className="flex items-center gap-2 text-sm text-slate-600">
-                      <CheckCircle className="w-4 h-4 text-emerald-500" />
-                      {feature}
-                    </div>
-                  ))}
-                </div>
-                
-                <div className="flex items-center justify-between pt-4 border-t border-slate-200">
-                  <div>
-                    <span className="text-sm text-slate-500">Цена:</span>
-                    <span className="ml-2 font-medium text-sky-600">{option.price}</span>
-                  </div>
-                  <div>
-                    <span className="text-sm text-slate-500">Време:</span>
-                    <span className="ml-2 text-slate-700">{option.duration}</span>
-                  </div>
-                </div>
-                
-                <div className="mt-4 bg-slate-100 rounded-lg p-3">
-                  <span className="text-sm text-slate-600">
-                    <strong>Подходящ за:</strong> {option.best_for}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Aligners vs Braces Comparison */}
-      <section id="comparison" className="py-16 bg-slate-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-4 text-center">
-            Алайнери vs Брекети: Бързо сравнение
-          </h2>
-          <p className="text-slate-600 text-center mb-8 max-w-2xl mx-auto">
-            Двата основни типа ортодонтско лечение имат различни характеристики. 
-            Ето кратко сравнение, което ще ви помогне да разберете разликите.
-          </p>
-          
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden mb-8">
-            <div className="grid grid-cols-3 bg-slate-50 border-b border-slate-200">
-              <div className="p-4 font-medium text-slate-500">Характеристика</div>
-              <div className="p-4 font-medium text-sky-600 text-center">Алайнери (Invisalign)</div>
-              <div className="p-4 font-medium text-slate-700 text-center">Брекети</div>
-            </div>
-            
-            {COMPARISON_TABLE.map((row, index) => (
-              <div key={index} className="grid grid-cols-3 border-b border-slate-100 last:border-0">
-                <div className="p-4 text-slate-700">{row.feature}</div>
-                <div className="p-4 text-center text-sky-700 bg-sky-50/50">{row.aligners}</div>
-                <div className="p-4 text-center text-slate-600">{row.braces}</div>
-              </div>
-            ))}
-          </div>
-          
-          <div className="text-center">
-            <Link
-              href="/aligners-vs-braces"
-              className="text-sky-600 font-medium hover:text-sky-700 inline-flex items-center gap-2"
-            >
-              Прочетете пълното сравнение
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Brand Comparison Section */}
+      {/* 4. ALIGNER BRANDS Section */}
       <section className="py-16 bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-4 text-center">
-            Сравнение на основните марки алайнери
+            Марки алайнери
           </h2>
           <p className="text-slate-600 text-center mb-10 max-w-2xl mx-auto">
-            Invisalign, Spark и Angel Aligner са популярни системи в България. Ето обективно сравнение.
+            Invisalign, Spark и Angel Aligner са популярни системи в България. Ето кратко сравнение.
           </p>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -381,18 +353,8 @@ export default function OrthodonticsPage() {
                   </div>
                   
                   <div>
-                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Типичен комфорт</p>
-                    <p className="text-sm text-slate-700">{brand.comfort}</p>
-                  </div>
-                  
-                  <div>
                     <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Наличност в България</p>
                     <p className="text-sm text-slate-700">{brand.availability}</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Ортодонтски контрол</p>
-                    <p className="text-sm text-slate-700">{brand.orthodontistControl}</p>
                   </div>
                   
                   <div className="pt-4 border-t border-slate-200">
@@ -405,92 +367,175 @@ export default function OrthodonticsPage() {
             ))}
           </div>
           
-          {/* Brand Comparison Disclaimer */}
+          {/* Brand Disclaimer */}
           <div className="mt-8 p-4 bg-amber-50 rounded-xl border border-amber-200">
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
               <p className="text-amber-800 text-sm">{BRAND_COMPARISON_DISCLAIMER}</p>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* 5. PRICES Section */}
+      <section className="py-16 bg-slate-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
+          <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-8 text-center">
+            Ориентировъчни цени
+          </h2>
           
-          <p className="text-sm text-slate-500 text-center mt-4">{PRICE_DISCLAIMER}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Aligners Price */}
+            <div className="bg-gradient-to-br from-sky-500 to-sky-600 rounded-2xl p-6 text-white">
+              <div className="flex items-center gap-3 mb-4">
+                <Eye className="w-6 h-6 text-sky-200" />
+                <h3 className="font-medium text-lg">Алайнери</h3>
+              </div>
+              <div className="text-3xl font-bold mb-1">
+                €{alignersPrice.minEUR.toLocaleString('bg-BG')} – €{alignersPrice.maxEUR.toLocaleString('bg-BG')}
+              </div>
+              <div className="text-sky-200 text-sm">
+                (≈ {alignersPrice.minBGN.toLocaleString('bg-BG')} – {alignersPrice.maxBGN.toLocaleString('bg-BG')} лв.)
+              </div>
+            </div>
+            
+            {/* Braces Price */}
+            <div className="bg-gradient-to-br from-slate-600 to-slate-700 rounded-2xl p-6 text-white">
+              <div className="flex items-center gap-3 mb-4">
+                <Smile className="w-6 h-6 text-slate-300" />
+                <h3 className="font-medium text-lg">Брекети</h3>
+              </div>
+              <div className="text-3xl font-bold mb-1">
+                €{bracesPrice.minEUR.toLocaleString('bg-BG')} – €{bracesPrice.maxEUR.toLocaleString('bg-BG')}
+              </div>
+              <div className="text-slate-300 text-sm">
+                (≈ {bracesPrice.minBGN.toLocaleString('bg-BG')} – {bracesPrice.maxBGN.toLocaleString('bg-BG')} лв.)
+              </div>
+            </div>
+          </div>
           
-          <div className="text-center mt-6">
-            <Link
-              href="/aligners-comparison"
-              className="text-sky-600 font-medium hover:text-sky-700 inline-flex items-center gap-2"
-            >
-              Вижте пълното сравнение на марки
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+          <p className="text-sm text-slate-500 text-center mt-6">
+            {PRICE_DISCLAIMER} Точната цена се определя след клиничен преглед.
+          </p>
+        </div>
+      </section>
+
+      {/* 6. COMMON ORTHODONTIC PROBLEMS Section (SEO) */}
+      <section className="py-16 bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
+          <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-4 text-center">
+            Чести ортодонтски проблеми
+          </h2>
+          <p className="text-slate-600 text-center mb-10 max-w-2xl mx-auto">
+            Ортодонтското лечение може да коригира различни проблеми с подреждането на зъбите и захапката.
+          </p>
+          
+          <div className="space-y-4">
+            {ORTHO_PROBLEMS.map((problem, index) => (
+              <div key={index} className="bg-slate-50 rounded-2xl border border-slate-200 p-6">
+                <h3 className="font-medium text-lg text-slate-900 mb-2">{problem.title}</h3>
+                <p className="text-slate-600 text-sm mb-3">{problem.description}</p>
+                <div className="flex items-center gap-2 text-sm text-sky-600">
+                  <CheckCircle className="w-4 h-4" />
+                  <span>{problem.treatable}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Invisalign Highlight */}
-      <section className="py-16 bg-white">
+      {/* 7. CHILDREN ORTHODONTICS Section */}
+      <section className="py-16 bg-slate-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <div className="bg-gradient-to-br from-sky-500 to-sky-600 rounded-3xl p-8 md:p-10 text-white">
-            <div className="flex flex-col md:flex-row md:items-center gap-6">
-              <div className="flex-1">
-                <h2 className="font-serif text-2xl font-semibold mb-4">
-                  Invisalign: Най-напредналата система в света
-                </h2>
-                <p className="text-sky-100 mb-4">
-                  С над 14 милиона лекувани пациенти, Invisalign е световен лидер в прозрачната ортодонтия. 
-                  Системата използва патентована SmartTrack технология и 3D планиране с ClinCheck.
-                </p>
-                <ul className="space-y-2 text-sky-100">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-sky-200" />
-                    <span>Invisalign First - от 6-годишна възраст</span>
+          <div className="flex flex-col md:flex-row gap-8 items-start">
+            <div className="w-16 h-16 rounded-2xl bg-sky-100 flex items-center justify-center flex-shrink-0">
+              <Baby className="w-8 h-8 text-sky-600" />
+            </div>
+            
+            <div className="flex-1">
+              <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-4">
+                Ортодонтия при деца
+              </h2>
+              <p className="text-slate-600 mb-6">
+                Препоръчва се първи преглед при ортодонт около 7-годишна възраст. Ранната оценка позволява навременно лечение, ако е необходимо.
+              </p>
+              
+              <h3 className="font-medium text-slate-900 mb-3">Кога да заведете детето на преглед:</h3>
+              <div className="bg-white rounded-xl border border-slate-200 p-4">
+                <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <li className="flex items-start gap-2 text-sm text-slate-600">
+                    <CheckCircle className="w-4 h-4 text-sky-500 flex-shrink-0 mt-0.5" />
+                    <span>Дишане през устата</span>
                   </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-sky-200" />
-                    <span>Лечение на сложни случаи при възрастни</span>
+                  <li className="flex items-start gap-2 text-sm text-slate-600">
+                    <CheckCircle className="w-4 h-4 text-sky-500 flex-shrink-0 mt-0.5" />
+                    <span>Струпани или криви зъби</span>
                   </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-sky-200" />
-                    <span>Виртуална визуализация на резултата преди старт</span>
+                  <li className="flex items-start gap-2 text-sm text-slate-600">
+                    <CheckCircle className="w-4 h-4 text-sky-500 flex-shrink-0 mt-0.5" />
+                    <span>Проблеми със захапката</span>
+                  </li>
+                  <li className="flex items-start gap-2 text-sm text-slate-600">
+                    <CheckCircle className="w-4 h-4 text-sky-500 flex-shrink-0 mt-0.5" />
+                    <span>Затруднения при дъвчене</span>
+                  </li>
+                  <li className="flex items-start gap-2 text-sm text-slate-600">
+                    <CheckCircle className="w-4 h-4 text-sky-500 flex-shrink-0 mt-0.5" />
+                    <span>Рано или късно падане на млечни зъби</span>
+                  </li>
+                  <li className="flex items-start gap-2 text-sm text-slate-600">
+                    <CheckCircle className="w-4 h-4 text-sky-500 flex-shrink-0 mt-0.5" />
+                    <span>Смучене на палец след 5г.</span>
                   </li>
                 </ul>
-              </div>
-              <div className="text-center md:text-right">
-                <div className="text-5xl font-bold mb-2">14M+</div>
-                <div className="text-sky-200">лекувани пациенти</div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* City Links */}
-      <section className="py-16 bg-slate-50">
+      {/* 8. DECISION Section */}
+      <section className="py-16 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-8 text-center">
-            Намерете ортодонт по град
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {Object.values(CITIES).map((city) => (
-              <Link
-                key={city.slug}
-                href={`/${city.slug}/orthodontics`}
-                className="city-card group bg-white hover:bg-sky-50 border border-slate-200 hover:border-sky-300 rounded-2xl p-6 text-center"
-                data-testid={`city-${city.slug}`}
-              >
-                <div className="city-icon w-12 h-12 rounded-full bg-sky-100 flex items-center justify-center mx-auto mb-3">
-                  <MapPin className="w-5 h-5 text-sky-600" />
-                </div>
-                <h3 className="font-medium text-slate-900">{city.name}</h3>
-                <p className="text-sm text-slate-500 mt-1">Ортодонтия в {city.name}</p>
-              </Link>
-            ))}
+          <div className="bg-gradient-to-br from-sky-500 to-sky-600 rounded-3xl p-8 md:p-10 text-white text-center">
+            <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center mx-auto mb-6">
+              <ClipboardList className="w-8 h-8 text-white" />
+            </div>
+            
+            <h2 className="font-serif text-2xl md:text-3xl font-semibold mb-4">
+              Какво ще научите от теста
+            </h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-8 text-left">
+              <div className="bg-white/10 rounded-xl p-4">
+                <h3 className="font-medium mb-2">Подходящо лечение</h3>
+                <p className="text-sky-100 text-sm">Дали алайнери или брекети са по-подходящи за вашия случай.</p>
+              </div>
+              <div className="bg-white/10 rounded-xl p-4">
+                <h3 className="font-medium mb-2">Сложност на случая</h3>
+                <p className="text-sky-100 text-sm">Обща оценка на сложността и очаквана продължителност.</p>
+              </div>
+              <div className="bg-white/10 rounded-xl p-4">
+                <h3 className="font-medium mb-2">Ориентировъчна цена</h3>
+                <p className="text-sky-100 text-sm">Какво да очаквате като бюджет за лечението.</p>
+              </div>
+            </div>
+            
+            <Link
+              href="/orthodontics/quiz"
+              className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-10 rounded-full bg-white text-sky-600 font-medium hover:bg-sky-50"
+              data-testid="decision-cta-quiz"
+            >
+              Започни теста
+              <ArrowRight className="w-5 h-5" />
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section className="py-16 bg-white">
+      {/* 9. FAQ Section */}
+      <section className="py-16 bg-slate-50">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
           <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-8 text-center">
             Често задавани въпроси
@@ -500,10 +545,29 @@ export default function OrthodonticsPage() {
         </div>
       </section>
 
-      {/* CTA Section - Aligners vs Braces Quiz */}
+      {/* FINAL CTA Section */}
       <section className="py-16 bg-white">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6">
-          <AlignersVsBracesQuiz />
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
+          <Smile className="w-16 h-16 text-sky-500 mx-auto mb-6" />
+          <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-4">
+            Готови ли сте да разберете кой метод е за вас?
+          </h2>
+          <p className="text-slate-600 mb-8 max-w-lg mx-auto">
+            Отговорете на няколко въпроса и получете персонализирана препоръка за вашето ортодонтско лечение.
+          </p>
+          <Link
+            href="/orthodontics/quiz"
+            className="btn-primary inline-flex items-center justify-center gap-2 h-14 px-8"
+            data-testid="final-cta-quiz"
+          >
+            <Smile className="w-5 h-5" />
+            Виж дали си подходящ за алайнери
+          </Link>
+          
+          {/* Disclaimer */}
+          <p className="text-xs text-slate-400 mt-8">
+            {EDUCATIONAL_DISCLAIMER}
+          </p>
         </div>
       </section>
 
