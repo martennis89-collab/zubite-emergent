@@ -1,5 +1,5 @@
 {
   "/[city]/[treatment]/quiz/page": "app/[city]/[treatment]/quiz/page.js",
-  "/aligners-vs-braces/page": "app/aligners-vs-braces/page.js",
-  "/invisalign-price/page": "app/invisalign-price/page.js"
+  "/invisalign-price/page": "app/invisalign-price/page.js",
+  "/page": "app/page.js"
 }
