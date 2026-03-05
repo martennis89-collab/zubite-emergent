@@ -5,5 +5,6 @@
   "/orthodontics/page": "app/orthodontics/page.js",
   "/[city]/[treatment]/page": "app/[city]/[treatment]/page.js",
   "/admin/page": "app/admin/page.js",
-  "/admin/dashboard/page": "app/admin/dashboard/page.js"
+  "/admin/dashboard/page": "app/admin/dashboard/page.js",
+  "/aligners-vs-braces/page": "app/aligners-vs-braces/page.js"
 }
