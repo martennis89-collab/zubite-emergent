@@ -41,6 +41,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // SEO content pages (high value)
   const seoContentPages: MetadataRoute.Sitemap = [
     {
+      url: `${baseUrl}/aligners-comparison`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.95,
+    },
+    {
       url: `${baseUrl}/aligners-vs-braces`,
       lastModified: new Date(),
       changeFrequency: 'monthly' as const,
