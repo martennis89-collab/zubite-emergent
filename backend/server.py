@@ -412,7 +412,11 @@ async def update_lead_contact(lead_id: str, data: LeadContactUpdate):
 @api_router.post("/admin/login", response_model=TokenResponse)
 async def admin_login(data: AdminLogin):
     user = await db.admin_users.find_one({"username": data.username}, {"_id": 0})
-    if not user or not verify_password(data.password, user["password_hash"]):
+    print(f"Login attempt for: {data.username}, user found: {user is not None}")
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if not verify_password(data.password, user["password_hash"]):
+        print(f"Password verification failed for {data.username}")
         raise HTTPException(status_code=401, detail="Invalid credentials")
     token = create_token(user["id"], user["username"])
     return TokenResponse(access_token=token, user=AdminUser(id=user["id"], username=user["username"]))
