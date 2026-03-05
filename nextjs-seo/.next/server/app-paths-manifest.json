@@ -4,5 +4,6 @@
   "/ortho/page": "app/ortho/page.js",
   "/ortho/[quizType]/page": "app/ortho/[quizType]/page.js",
   "/symptoms/page": "app/symptoms/page.js",
-  "/symptoms/[symptomSlug]/page": "app/symptoms/[symptomSlug]/page.js"
+  "/symptoms/[symptomSlug]/page": "app/symptoms/[symptomSlug]/page.js",
+  "/city/[citySlug]/[treatmentType]/quiz/page": "app/city/[citySlug]/[treatmentType]/quiz/page.js"
 }
