@@ -20,6 +20,11 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/aligners-vs-braces/page.js"
+    ],
+    "/invisalign-price/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/invisalign-price/page.js"
     ]
   }
 }
