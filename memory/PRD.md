@@ -6,7 +6,7 @@ Zubite.bg is a dental solutions navigator platform that helps Bulgarian users fi
 ## Tech Stack
 - **Frontend**: Next.js 15 (App Router) with TypeScript
 - **Backend**: FastAPI with MongoDB
-- **Styling**: Tailwind CSS with custom dark theme
+- **Styling**: Tailwind CSS with light theme (white/sky-blue accents)
 - **Email**: Resend for lead notifications
 
 ## Current Architecture (Treatment-First)
@@ -26,16 +26,26 @@ Zubite.bg is a dental solutions navigator platform that helps Bulgarian users fi
 │   │
 │   ├── [city]/[treatment]/         # City-specific pages
 │   │   ├── page.tsx                # City landing with FAQs, clinics, pricing
-│   │   └── quiz/page.tsx           # Quiz flow
+│   │   └── quiz/page.tsx           # Quiz flow with outcome display
 │   │
-│   ├── results/[leadId]/           # Quiz results
-│   ├── admin/                      # Admin panel
+│   ├── admin/                      # Password-protected admin panel
+│   │   ├── page.tsx                # Login page
+│   │   ├── dashboard/page.tsx      # Leads dashboard with filters
+│   │   └── leads/[id]/page.tsx     # Lead detail page
+│   │
+│   ├── aligners-vs-braces/         # SEO comparison page
+│   ├── invisalign-price/           # SEO pricing page
+│   ├── what-is-invisalign/         # SEO educational page
+│   ├── implant-price/              # SEO pricing page
+│   ├── crooked-teeth/              # SEO symptom page
+│   │
 │   ├── privacy/, terms/, contact/  # Static pages
 │   └── symptoms/                   # Symptoms guide
 │
 ├── components/
 │   ├── Header.tsx                  # Nav with treatments dropdown
-│   └── Footer.tsx                  # Footer with treatment links
+│   ├── Footer.tsx                  # Footer with treatment links
+│   └── FAQAccordion.tsx            # Reusable FAQ component
 │
 ├── lib/
 │   ├── api.ts                      # API client
@@ -58,6 +68,13 @@ Zubite.bg is a dental solutions navigator platform that helps Bulgarian users fi
 - `/sleep-airway` - Sleep apnea main page (canonical)
 - `/tmj` - TMJ main page (canonical)
 
+### SEO Content Pages (Topic Clusters)
+- `/aligners-vs-braces` - Comparison page (high-intent)
+- `/invisalign-price` - Price guide page (very high-intent)
+- `/what-is-invisalign` - Educational page
+- `/implant-price` - Implant pricing guide
+- `/crooked-teeth` - Symptom/problem page
+
 ### City-Specific Routes
 - `/sofia/orthodontics` - City + treatment page
 - `/plovdiv/implants` - etc.
@@ -65,79 +82,110 @@ Zubite.bg is a dental solutions navigator platform that helps Bulgarian users fi
 
 Each city page includes:
 - City-specific intro paragraph
-- Partner clinics list (mock data)
+- Partner clinics list
 - Local FAQ (5+ questions)
-- Pricing ranges (marked "ориентировъчни")
-- Link back to canonical treatment page
+- Pricing ranges
+- Quiz link
 
 ### Supported Cities
 - sofia (София)
 - plovdiv (Пловдив)
 - varna (Варна)
+- haskovo (Хасково)
 
-## SEO Implementation
+## Quiz System
 
-### JSON-LD Schema
-- **Sitewide (layout.tsx)**: Organization, WebSite
-- **Per page**: BreadcrumbList, FAQPage (from FAQ data)
-- **City pages**: LocalBusiness/Dentist
+### Scoring Logic
+- Points calculated based on answers (seriousness, timing, importance, readiness)
+- **Green (>=70 pts)**: "Отличен кандидат!" - Highly suitable
+- **Yellow (>=40 pts)**: "Необходима е допълнителна информация" - Needs consultation
+- **Red (<40 pts)**: "Може да има по-добри опции" - Alternative needed
 
-### OG Images
-All OG/Twitter images use production URLs:
-- `https://zubite.bg/og/og-home.jpg`
-- `https://zubite.bg/og/og-orthodontics.jpg`
-- `https://zubite.bg/og/og-implants.jpg`
-- `https://zubite.bg/og/og-cosmetic.jpg`
-- `https://zubite.bg/og/og-sleep.jpg`
-- `https://zubite.bg/og/og-tmj.jpg`
+### Quiz Flow
+1. User completes 5 questions
+2. Score calculated automatically
+3. Colored outcome displayed (green/yellow/red)
+4. "Request a Call" option appears
+5. Contact form submission creates lead in database
 
-### Sitemap & Robots
-- `/sitemap.xml` - Generated dynamically with all routes
-- `/robots.txt` - Allows indexing, disallows admin/quiz/results
+## Admin Panel
 
-### Hreflang
-- Removed EN hreflang alternates (EN pages not built)
+### Features
+- Password-protected login (`/admin`)
+- Dashboard with stats cards (`/admin/dashboard`)
+- Lead filtering by band/city/treatment
+- Search functionality
+- CSV export
+- Lead detail view with status management
 
-## Key Features
-
-### Implemented ✅
-1. **Treatment-First Architecture** - Primary routes are treatments
-2. **5 Treatment Pages** - Orthodontics, Implants, Cosmetic, Sleep, TMJ
-3. **15 City-Treatment Pages** - 3 cities × 5 treatments
-4. **SEO-Optimized** - JSON-LD, OG images, sitemap, robots.txt
-5. **City-Specific Content** - FAQs, clinics, pricing per city
-6. **Interactive Quizzes** - Client-side with contact forms
-7. **Lead Management** - Creation, scoring, email notifications
-8. **Admin Panel** - Login, dashboard, leads management
+### Credentials
+- **Username**: `admin@zubite.bg`
+- **Password**: `password`
 
 ## API Endpoints
 - `POST /api/leads` - Create lead
 - `GET /api/leads/{id}` - Get lead
 - `POST /api/admin/login` - Admin auth
 - `GET /api/admin/stats` - Dashboard stats
-- `GET /api/admin/leads` - List leads
+- `GET /api/admin/leads` - List leads with filters
+- `GET /api/admin/leads/{id}` - Get lead detail
+- `PATCH /api/admin/leads/{id}` - Update lead status/notes
+- `GET /api/admin/leads/export/csv` - Export leads
+
+## Key Features
+
+### Implemented ✅
+1. **Treatment-First Architecture** - Primary routes are treatments
+2. **5 Treatment Pages** - Orthodontics, Implants, Cosmetic, Sleep, TMJ
+3. **15+ City-Treatment Pages** - 3 cities × 5 treatments + Haskovo
+4. **SEO Topic Clusters** - Comparison, pricing, educational pages
+5. **Light Theme UI** - White background, sky-blue accents, serif headings
+6. **Quiz with Outcome Colors** - Green/yellow/red suitability indicator
+7. **Request a Call** - Form appears after quiz completion
+8. **Admin Dashboard** - Password-protected with lead management
+9. **SEO-Optimized** - JSON-LD, OG images, sitemap, robots.txt
+10. **City-Specific Content** - FAQs, clinics, pricing per city
+
+## Target SEO Keywords
+
+### Orthodontics Cluster
+- ортодонт София
+- Invisalign цена
+- алайнери цена
+- брекети цена
+- алайнери vs брекети
+
+### Implants Cluster
+- зъбни импланти цена
+- импланти София
+- All on 4 импланти
+- колко струва зъбен имплант
+
+### Problem/Symptom Keywords
+- криви зъби лечение
+- криви зъби
 
 ## Pending/Future Tasks
+
+### P0 - In Progress
+- [ ] More SEO content pages (bonding-vs-veneers, hollywood-smile)
+- [ ] Additional symptom pages
 
 ### P1 - High Priority
 - [ ] Replace placeholder OG images with real designs
 - [ ] Add Meta Pixel ID for tracking
 - [ ] Add Google Ads Conversion ID
-- [ ] Build production bundle
 
 ### P2 - Medium Priority
-- [ ] Add more clinic data (real partnerships)
+- [ ] Add real clinic data (partnerships)
 - [ ] Implement Google Analytics
 - [ ] Add appointment scheduling
 
 ### P3 - Future
-- [ ] English translation
+- [ ] English translation (`/en/...` routes)
 - [ ] More cities
 - [ ] Blog/content section
-
-## Admin Credentials
-- Email: `admin@zubite.bg`
-- Password: `password`
+- [ ] User reviews system
 
 ---
 *Last updated: December 2025*
