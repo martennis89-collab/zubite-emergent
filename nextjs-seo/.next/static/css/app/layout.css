@@ -652,6 +652,10 @@ h3{
   margin-left: auto;
   margin-right: auto;
 }
+.my-8{
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
 .mb-1{
   margin-bottom: 0.25rem;
 }
@@ -1234,6 +1238,9 @@ h3{
 .bg-white\/95{
   background-color: rgb(255 255 255 / 0.95);
 }
+.bg-white\/10{
+  background-color: rgb(255 255 255 / 0.1);
+}
 .bg-gradient-to-b{
   background-image: linear-gradient(to bottom, var(--tw-gradient-stops));
 }
@@ -1253,6 +1260,11 @@ h3{
   --tw-gradient-to: rgb(255 255 255 / 0) var(--tw-gradient-to-position);
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
 }
+.from-slate-600{
+  --tw-gradient-from: #475569 var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(71 85 105 / 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
 .to-sky-400{
   --tw-gradient-to: #38bdf8 var(--tw-gradient-to-position);
 }
@@ -1261,6 +1273,9 @@ h3{
 }
 .to-slate-50{
   --tw-gradient-to: #f8fafc var(--tw-gradient-to-position);
+}
+.to-slate-700{
+  --tw-gradient-to: #334155 var(--tw-gradient-to-position);
 }
 .fill-amber-400{
   fill: #fbbf24;
