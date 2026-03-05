@@ -3,9 +3,19 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
-import { CITIES, TREATMENTS, CITY_CLINICS, CITY_FAQS, CITY_PRICING } from '@/lib/data'
+import { CITIES, TREATMENTS, CITY_CLINICS, CITY_FAQS } from '@/lib/data'
+import { 
+  TREATMENT_PRICES, 
+  PRICE_DISCLAIMER, 
+  ORTHODONTICS_COMPLEX_NOTE,
+  EDUCATIONAL_DISCLAIMER,
+  formatPrice,
+  getTreatmentPrices,
+  WHEN_TO_SEEK_SPECIALIST,
+  TREATMENT_EXPLANATIONS
+} from '@/lib/pricing'
 import { generateBreadcrumbSchema, generateFAQSchema, generateLocalBusinessSchema } from '@/lib/schema'
-import { MapPin, Star, ArrowRight, ArrowLeft, Building, Award } from 'lucide-react'
+import { MapPin, Star, ArrowRight, ArrowLeft, Building, Award, CheckCircle, AlertCircle } from 'lucide-react'
 import { FAQAccordion } from '@/components/FAQAccordion'
 
 interface PageProps {
@@ -31,8 +41,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: 'Not Found' }
   }
   
-  const title = `${treatmentData.name} в ${cityData.name} | Клиники и Цени | Zubite.bg`
-  const description = `Намерете най-добрите клиники за ${treatmentData.name.toLowerCase()} в ${cityData.name}. Ориентировъчни цени, FAQ и партньорски клиники.`
+  const title = `${treatmentData.name} в ${cityData.name} | Цени, Клиники и Оценка | Zubite.bg`
+  const description = `${treatmentData.name} в ${cityData.name}: ориентировъчни цени, кога да потърсите специалист, партньорски клиники и безплатна оценка. Информацията е образователна.`
   
   return {
     title,
@@ -60,7 +70,9 @@ export default async function CityTreatmentPage({ params }: PageProps) {
   
   const clinics = CITY_CLINICS[city]?.filter(c => c.specialties.includes(treatment)) || []
   const faqs = CITY_FAQS[city]?.[treatment] || []
-  const pricing = CITY_PRICING[city]?.[treatment]
+  const prices = getTreatmentPrices(treatment)
+  const whenToSeek = WHEN_TO_SEEK_SPECIALIST[treatment] || []
+  const explanation = TREATMENT_EXPLANATIONS[treatment]
   
   const breadcrumbs = generateBreadcrumbSchema([
     { name: 'Начало', url: 'https://zubite.bg' },
@@ -110,41 +122,102 @@ export default async function CityTreatmentPage({ params }: PageProps) {
               {treatmentData.name} в {cityData.name}
             </h1>
             <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-              Намерете най-добрите клиники за {treatmentData.name.toLowerCase()} в {cityData.name}. 
-              Проверени специалисти, прозрачни цени и отзиви от пациенти.
+              Ориентировъчни цени, кога да потърсите специалист и партньорски клиники за {treatmentData.name.toLowerCase()} в {cityData.name}.
             </p>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href={`/${city}/${treatment}/quiz`}
+              href={`/${treatment}/quiz`}
               className="btn-primary inline-flex items-center justify-center gap-2 h-14 px-8"
               data-testid="start-quiz"
             >
-              Заяви обаждане
+              Направете оценка
               <ArrowRight className="w-5 h-5" />
             </Link>
           </div>
         </div>
       </section>
 
-      {/* City-specific intro */}
-      <section className="py-12 bg-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <div className="bg-sky-50 rounded-2xl border border-sky-200 p-8">
-            <h2 className="font-serif text-xl font-semibold text-slate-900 mb-4">
-              {treatmentData.name} в {cityData.name} - Какво трябва да знаете
+      {/* Explanation Section */}
+      {explanation && (
+        <section className="py-12 bg-white">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6">
+            <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-6">
+              {treatmentData.name} — Какво трябва да знаете
             </h2>
-            <p className="text-slate-600 leading-relaxed">
-              {cityData.name} предлага множество опции за {treatmentData.name.toLowerCase()} с различни ценови категории и специализации. 
-              Нашите партньорски клиники в {cityData.name} са внимателно подбрани въз основа на квалификация, опит и отзиви от пациенти.
-              {cityData.slug === 'sofia' && ' Като столица, София има най-голямата концентрация на специалисти и най-новите технологии.'}
-              {cityData.slug === 'plovdiv' && ' Пловдив предлага отлично съотношение цена-качество с опитни специалисти.'}
-              {cityData.slug === 'varna' && ' Варна е известна с добрите условия за медицински туризъм и конкурентни цени.'}
+            <div className="prose prose-slate max-w-none">
+              <p className="text-lg text-slate-600 mb-4">{explanation.intro}</p>
+              {explanation.paragraphs.map((para, idx) => (
+                <p key={idx} className="text-slate-600 leading-relaxed mb-4">{para}</p>
+              ))}
+            </div>
+            <p className="text-sm text-slate-400 mt-6 italic">{EDUCATIONAL_DISCLAIMER}</p>
+          </div>
+        </section>
+      )}
+
+      {/* When to Seek Specialist */}
+      {whenToSeek.length > 0 && (
+        <section className="py-12 bg-slate-50">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6">
+            <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-6">
+              Кога да потърсите специалист
+            </h2>
+            <div className="bg-white rounded-2xl border border-slate-200 p-6">
+              <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {whenToSeek.map((item, idx) => (
+                  <li key={idx} className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-sky-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-slate-600">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Pricing Section - Using centralized config */}
+      {prices.length > 0 && (
+        <section className="py-16 bg-white">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6">
+            <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-8 text-center">
+              Ориентировъчни цени
+            </h2>
+            <div className="space-y-4">
+              {prices.map((price, idx) => (
+                <div key={idx} className="bg-gradient-to-br from-sky-500 to-sky-600 rounded-2xl p-6 text-white">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                      <p className="text-sky-100 text-sm mb-1">{price.note}</p>
+                      <div className="text-2xl md:text-3xl font-bold">
+                        {price.minBGN.toLocaleString('bg-BG')} – {price.maxBGN.toLocaleString('bg-BG')} лв.
+                      </div>
+                      <div className="text-sky-200 text-sm mt-1">
+                        (≈ €{price.minEUR.toLocaleString('bg-BG')} – €{price.maxEUR.toLocaleString('bg-BG')})
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {treatment === 'orthodontics' && (
+              <div className="mt-4 p-4 bg-amber-50 rounded-xl border border-amber-200">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-amber-800 text-sm">{ORTHODONTICS_COMPLEX_NOTE}</p>
+                </div>
+              </div>
+            )}
+            
+            <p className="text-sm text-slate-500 text-center mt-6">
+              {PRICE_DISCLAIMER}
             </p>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Partner Clinics */}
       {clinics.length > 0 && (
@@ -176,37 +249,62 @@ export default async function CityTreatmentPage({ params }: PageProps) {
         </section>
       )}
 
-      {/* Pricing */}
-      {pricing && (
-        <section className="py-16 bg-white">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6">
-            <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-8 text-center">
-              Ориентировъчни цени в {cityData.name}
-            </h2>
-            <div className="bg-gradient-to-br from-sky-500 to-sky-600 rounded-2xl p-8 text-center text-white">
-              <div className="text-4xl font-bold mb-2">
-                {pricing.min.toLocaleString()} - {pricing.max.toLocaleString()} лв
-              </div>
-              <p className="text-sky-100">{pricing.note}</p>
-              <p className="text-sm text-sky-200/80 mt-4">
-                * Цените са ориентировъчни и могат да варират според клиниката и конкретния случай
-              </p>
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* FAQ */}
       {faqs.length > 0 && (
-        <section className="py-16 bg-slate-50">
+        <section className="py-16 bg-white">
           <div className="max-w-3xl mx-auto px-4 sm:px-6">
             <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-8 text-center">
-              Често задавани въпроси за {treatmentData.name} в {cityData.name}
+              Често задавани въпроси
             </h2>
             <FAQAccordion faqs={faqs} />
           </div>
         </section>
       )}
+
+      {/* Internal Links */}
+      <section className="py-12 bg-slate-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
+          <h2 className="font-serif text-xl font-semibold text-slate-900 mb-6">
+            Свързани страници
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Link
+              href={`/${treatment}`}
+              className="bg-white rounded-xl border border-slate-200 p-4 hover:border-sky-300 transition-colors flex items-center gap-3"
+            >
+              <ArrowRight className="w-4 h-4 text-sky-500" />
+              <span className="text-slate-700">{treatmentData.name} — основна страница</span>
+            </Link>
+            {treatment === 'orthodontics' && (
+              <>
+                <Link
+                  href="/aligners-vs-braces"
+                  className="bg-white rounded-xl border border-slate-200 p-4 hover:border-sky-300 transition-colors flex items-center gap-3"
+                >
+                  <ArrowRight className="w-4 h-4 text-sky-500" />
+                  <span className="text-slate-700">Алайнери vs Брекети — сравнение</span>
+                </Link>
+                <Link
+                  href="/crooked-teeth"
+                  className="bg-white rounded-xl border border-slate-200 p-4 hover:border-sky-300 transition-colors flex items-center gap-3"
+                >
+                  <ArrowRight className="w-4 h-4 text-sky-500" />
+                  <span className="text-slate-700">Криви зъби — симптоми и лечение</span>
+                </Link>
+              </>
+            )}
+            {treatment === 'implants' && (
+              <Link
+                href="/implant-price"
+                className="bg-white rounded-xl border border-slate-200 p-4 hover:border-sky-300 transition-colors flex items-center gap-3"
+              >
+                <ArrowRight className="w-4 h-4 text-sky-500" />
+                <span className="text-slate-700">Цени на зъбни импланти в България</span>
+              </Link>
+            )}
+          </div>
+        </div>
+      </section>
 
       {/* Other Cities */}
       <section className="py-16 bg-white">
@@ -241,14 +339,14 @@ export default async function CityTreatmentPage({ params }: PageProps) {
               Готови ли сте да започнете?
             </h2>
             <p className="text-sky-100 mb-8 max-w-lg mx-auto">
-              Преминете през нашата кратка оценка и се свържете с клиника в {cityData.name}.
+              Преминете нашата кратка оценка и получете препоръка за подходящи клиники в {cityData.name}.
             </p>
             <Link 
-              href={`/${city}/${treatment}/quiz`}
+              href={`/${treatment}/quiz`}
               className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-10 rounded-full bg-white text-sky-600 font-medium hover:bg-sky-50"
               data-testid="cta-quiz"
             >
-              Заяви обаждане
+              Направете оценка
               <ArrowRight className="w-5 h-5" />
             </Link>
           </div>
