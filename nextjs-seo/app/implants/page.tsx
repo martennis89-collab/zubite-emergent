@@ -116,12 +116,12 @@ export default function ImplantsPage() {
           {/* Quick CTA */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mt-10">
             <Link
-              href="/sofia/implants"
+              href="/sofia/implants/quiz"
               className="btn-primary inline-flex items-center justify-center gap-2 h-14 px-8"
-              data-testid="cta-sofia"
+              data-testid="cta-quiz"
             >
-              <MapPin className="w-5 h-5" />
-              Клиники в София
+              <Target className="w-5 h-5" />
+              Направете безплатна оценка
             </Link>
             <Link
               href="#methods"
@@ -296,11 +296,11 @@ export default function ImplantsPage() {
               Преминете през нашата кратка оценка, за да разберете дали зъбните импланти са подходящи за вас.
             </p>
             <Link 
-              href="/sofia/implants"
+              href="/sofia/implants/quiz"
               className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-10 rounded-full bg-white text-sky-600 font-medium hover:bg-sky-50"
               data-testid="start-quiz-cta"
             >
-              Започнете оценката
+              Направете безплатна оценка
               <ArrowRight className="w-5 h-5" />
             </Link>
           </div>
