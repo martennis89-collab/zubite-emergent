@@ -571,7 +571,7 @@ export default function OrthodonticsPage() {
         </div>
       </section>
 
-      <Footer />
+      <Footer treatmentSlug="orthodontics" />
     </main>
   )
 }
