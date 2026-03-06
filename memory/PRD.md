@@ -9,52 +9,50 @@ Zubite.bg is a dental solutions navigator platform that helps Bulgarian users fi
 - **Styling**: Tailwind CSS with light theme (white/sky-blue accents)
 - **Email**: Resend for lead notifications
 
+## Lead Qualification Flow (Updated December 2025)
+
+**Important**: The lead capture form is ONLY shown at the end of the quiz, not on treatment pages. This ensures patient qualification before capturing leads.
+
+**Flow:**
+1. User visits treatment page (e.g., `/cosmetic-dentistry`)
+2. User clicks "Направи бърза оценка" (single CTA)
+3. User goes through quiz questions
+4. At end of quiz, user sees lead capture form ("Заяви обаждане")
+5. Lead is submitted and stored
+
 ## Standardized Page Structure (All Treatment Pages)
 
 All treatment pages follow this consistent structure:
-1. **HERO**: H1, Primary CTA "Заяви обаждане" → #lead-form, Secondary CTA "Направи бърза оценка" → quiz, 3 Trust cards
-2. **HOW ZUBITE WORKS**: 3 steps (Оценка/обаждане → Разбирате възможностите → Избор на специалист)
+1. **HERO**: H1, Single CTA "Направи бърза оценка" → quiz, 3 Trust cards
+2. **HOW ZUBITE WORKS**: 3 steps (Оценка → Разбирате възможностите → Избор на специалист)
 3. **SYMPTOMS/PROBLEMS**: What the treatment can address
 4. **TREATMENT OPTIONS**: Available treatments/methods
-5. **COMPARISON SECTION**: Treatment-specific comparison (e.g., Aligners vs Braces, Oral Appliance vs CPAP)
+5. **COMPARISON SECTION**: Treatment-specific comparison
 6. **CONSIDERATIONS**: When other treatment may be needed first
 7. **INDICATIVE PRICES**: EUR primary, BGN secondary
 8. **WHO THIS IS FOR**: Suitable candidates
 9. **FAQ**: 6 questions with accordion
-10. **LEAD FORM**: Reusable LeadCaptureForm component
+10. **FINAL CTA**: "Направи бърза оценка" button to quiz
 11. **EDUCATIONAL DISCLAIMER**
+12. **FOOTER**: Dynamic city links based on current treatment
+
+**NO lead form on treatment pages** - only at end of quiz.
 
 ## Completed Treatment Pages (December 2025)
 
-### ✅ /orthodontics
-- H1: "Алайнери или брекети? Разберете кое е подходящо за вас"
-- Comparison: Aligners vs Braces
-- Brand section: Invisalign, Spark, Angel Aligner
-- Tested & verified
+All pages tested and verified ✅:
+- `/orthodontics`
+- `/implants`
+- `/cosmetic-dentistry`
+- `/sleep-airway`
+- `/tmj`
 
-### ✅ /implants
-- H1: "Зъбни импланти – трайно решение за липсващи зъби"
-- Types: Единичен, Мост, All-on-4/6, Стабилизиране
-- Systems: Straumann, Nobel Biocare, Osstem, Megagen
-- Tested & verified
+## Footer City Links (Dynamic)
 
-### ✅ /cosmetic-dentistry
-- H1: "Естетична стоматология – бондинг, фасети, избелване и smile design"
-- Comparison: Veneers vs Bonding
-- Prices: Whitening €100-€250, Veneers €200-€600/tooth, Bonding €75-€200/tooth
-- Tested & verified
-
-### ✅ /sleep-airway
-- H1: "Сънна апнея и хъркане – орални апарати и дентални решения"
-- Comparison: Oral Appliance vs CPAP
-- Prices: MAD €500-€2500, TRD €300-€800
-- Tested & verified
-
-### ✅ /tmj
-- H1: "TMJ дисфункция – болка в челюстта, щракане и лечение"
-- Comparison: Stabilizing Splint vs Night Guard
-- Prices: Splint €150-€400, Night Guard €100-€250
-- Tested & verified
+Footer component accepts `treatmentSlug` prop and generates correct city links:
+- From `/cosmetic-dentistry` → Sofia link points to `/sofia/cosmetic-dentistry`
+- From `/implants` → Sofia link points to `/sofia/implants`
+- etc.
 
 ## Pricing System (EUR Primary, BGN Secondary)
 
@@ -91,15 +89,21 @@ All treatment pages follow this consistent structure:
 ## Key Components
 
 ### LeadCaptureForm (`/components/LeadCaptureForm.tsx`)
+- Used ONLY at end of quiz
 - Fields: Име, Телефон*, Град, Какъв проблем имате, Consent checkbox
 - Submits to /api/leads endpoint
-- Success message: "Благодарим! Нашият екип ще се свърже с вас скоро."
+
+### Footer (`/components/Footer.tsx`)
+- Props: `treatmentSlug?: string` (defaults to 'orthodontics')
+- Generates dynamic city links based on current treatment
+
+### TreatmentQuiz (`/components/TreatmentQuiz.tsx`)
+- Generic quiz component
+- Shows lead form at end after qualification
 
 ### Centralized Pricing (`/lib/pricing.ts`)
 - Single source of truth for all prices
 - EUR primary, BGN secondary format
-- Price disclaimer constant
-- Educational disclaimer constant
 
 ## Current Architecture
 
@@ -112,12 +116,14 @@ All treatment pages follow this consistent structure:
 │   ├── cosmetic-dentistry/page.tsx # ✅ Updated
 │   ├── sleep-airway/page.tsx       # ✅ Updated
 │   ├── tmj/page.tsx                # ✅ Updated
+│   ├── [treatment]/quiz/page.tsx   # Quiz pages with lead form
 │   ├── aligners-comparison/        # Brand comparison SEO page
 │   ├── [city]/[treatment]/         # City+treatment pages
 │   └── admin/                      # Admin dashboard
 │
 ├── components/
-│   ├── LeadCaptureForm.tsx         # Reusable lead form
+│   ├── Footer.tsx                  # Updated with treatmentSlug prop
+│   ├── LeadCaptureForm.tsx         # Used in quiz only
 │   ├── TreatmentQuiz.tsx           # Quiz component
 │   ├── FAQAccordion.tsx
 │   └── ...
@@ -129,22 +135,11 @@ All treatment pages follow this consistent structure:
 └── public/
 ```
 
-## Lead Flow
-1. User fills form (Име, Телефон*, Град, Problem, Consent)
-2. Form submits to POST /api/leads
-3. Lead stored in MongoDB
-4. Email notification sent via Resend
-5. Visible in admin dashboard at /admin/dashboard
-
 ## Admin Panel
 - **Email**: `admin@zubite.bg`
 - **Password**: `password`
 
 ## Pending/Future Tasks
-
-### P0 - Critical
-- [x] Update all treatment pages with standardized structure
-- [ ] Audit footer city links (ensure correct treatment routing)
 
 ### P1 - High Priority
 - [ ] Add Meta Pixel ID for tracking (awaiting user input)
@@ -161,4 +156,4 @@ All treatment pages follow this consistent structure:
 
 ---
 *Last updated: December 2025*
-*Latest changes: All 5 treatment pages (orthodontics, implants, cosmetic-dentistry, sleep-airway, tmj) updated with standardized structure and tested*
+*Latest changes: Removed lead form from treatment pages (only at end of quiz), fixed footer city links to be dynamic per treatment*
