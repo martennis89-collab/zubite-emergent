@@ -13,7 +13,7 @@ export interface Lead {
   id?: string;
   city_slug: string;
   treatment_type: string;
-  answers: Record<string, string>;
+  answers: Record<string, string | number>;
   score_total?: number;
   band?: string;
   name?: string;
