@@ -1,5 +1,6 @@
 {
   "/cosmetic-dentistry/page": "app/cosmetic-dentistry/page.js",
   "/page": "app/page.js",
-  "/sleep-airway/page": "app/sleep-airway/page.js"
+  "/sleep-airway/page": "app/sleep-airway/page.js",
+  "/tmj/page": "app/tmj/page.js"
 }
