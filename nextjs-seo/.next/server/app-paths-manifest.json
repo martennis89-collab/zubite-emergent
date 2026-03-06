@@ -1,3 +1,5 @@
 {
-  "/implants/page": "app/implants/page.js"
+  "/page": "app/page.js",
+  "/implants/page": "app/implants/page.js",
+  "/cosmetic-dentistry/page": "app/cosmetic-dentistry/page.js"
 }
