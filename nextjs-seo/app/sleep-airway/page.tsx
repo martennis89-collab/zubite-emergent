@@ -3,11 +3,10 @@ import Link from 'next/link'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { TREATMENTS } from '@/lib/data'
-import { PRICE_DISCLAIMER, EDUCATIONAL_DISCLAIMER, TREATMENT_PRICES } from '@/lib/pricing'
+import { PRICE_DISCLAIMER, EDUCATIONAL_DISCLAIMER } from '@/lib/pricing'
 import { generateBreadcrumbSchema, generateFAQSchema } from '@/lib/schema'
 import { CheckCircle, ArrowRight, ArrowLeft, Info, Users, Moon, AlertCircle, Clock, Banknote, Shield, Zap, Wind, Brain, HeartPulse } from 'lucide-react'
 import { FAQAccordion } from '@/components/FAQAccordion'
-import { LeadCaptureForm } from '@/components/LeadCaptureForm'
 
 const treatment = TREATMENTS['sleep-airway']
 
@@ -37,8 +36,8 @@ const TRUST_CARDS = [
 const HOW_IT_WORKS = [
   { 
     step: '1', 
-    title: 'Оценка или обаждане', 
-    description: 'Оставяте данни или правите бърза оценка.' 
+    title: 'Бърза оценка', 
+    description: 'Отговаряте на няколко въпроса за вашия случай.' 
   },
   { 
     step: '2', 
@@ -237,20 +236,13 @@ export default function SleepAirwayPage() {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10">
-              <a
-                href="#lead-form"
+              <Link
+                href="/sleep-airway/quiz"
                 className="btn-primary inline-flex items-center justify-center gap-2 h-14 px-8"
                 data-testid="hero-cta-primary"
               >
-                Заяви обаждане
-                <ArrowRight className="w-5 h-5" />
-              </a>
-              <Link
-                href="/sleep-airway/quiz"
-                className="inline-flex items-center justify-center gap-2 h-14 px-8 rounded-xl border-2 border-slate-200 text-slate-700 font-medium hover:border-sky-300 hover:bg-sky-50 transition-colors"
-                data-testid="hero-cta-secondary"
-              >
                 Направи бърза оценка
+                <ArrowRight className="w-5 h-5" />
               </Link>
             </div>
             
@@ -501,45 +493,25 @@ export default function SleepAirwayPage() {
         </div>
       </section>
 
-      {/* SECTION 10 — FINAL CTA with Lead Form */}
-      <section id="lead-form" className="py-16 bg-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-            <div>
-              <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-4">
-                Подобрете качеството на съня си
-              </h2>
-              <p className="text-slate-600 mb-6">
-                Ако не сте сигурни дали оралните апарати са подходящи за вас, оставете данни и нашият екип ще се свърже с вас.
-              </p>
-              
-              <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-sky-500 flex-shrink-0 mt-0.5" />
-                  <span className="text-slate-600">Безплатна първоначална консултация</span>
-                </div>
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-sky-500 flex-shrink-0 mt-0.5" />
-                  <span className="text-slate-600">Ориентировъчна информация за цени</span>
-                </div>
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-sky-500 flex-shrink-0 mt-0.5" />
-                  <span className="text-slate-600">Насочване към подходящ специалист</span>
-                </div>
-              </div>
-              
-              <div className="mt-6">
-                <Link
-                  href="/sleep-airway/quiz"
-                  className="text-sky-600 font-medium hover:text-sky-700 inline-flex items-center gap-2"
-                >
-                  Или направете бърза оценка
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
-            </div>
-            
-            <LeadCaptureForm treatmentType="sleep-airway" source="sleep_airway_page" />
+      {/* SECTION 10 — FINAL CTA */}
+      <section className="py-16 bg-white">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6">
+          <div className="bg-gradient-to-br from-sky-500 to-sky-600 rounded-3xl p-8 md:p-12 text-center text-white">
+            <Moon className="w-12 h-12 mx-auto mb-4 opacity-90" />
+            <h2 className="font-serif text-2xl md:text-3xl font-semibold mb-4">
+              Подобрете качеството на съня си
+            </h2>
+            <p className="text-sky-100 mb-8 max-w-lg mx-auto">
+              Преминете през нашата кратка оценка, за да разберете дали оралните апарати са подходящи за вас.
+            </p>
+            <Link 
+              href="/sleep-airway/quiz"
+              className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-10 rounded-full bg-white text-sky-600 font-medium hover:bg-sky-50"
+              data-testid="start-quiz-cta"
+            >
+              Направи бърза оценка
+              <ArrowRight className="w-5 h-5" />
+            </Link>
           </div>
         </div>
       </section>
@@ -551,7 +523,7 @@ export default function SleepAirwayPage() {
         </p>
       </div>
 
-      <Footer />
+      <Footer treatmentSlug="sleep-airway" />
     </main>
   )
 }
