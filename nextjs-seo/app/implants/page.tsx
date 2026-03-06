@@ -5,6 +5,7 @@ import { Footer } from '@/components/Footer'
 import { TREATMENTS } from '@/lib/data'
 import { TREATMENT_PRICES, PRICE_DISCLAIMER, EDUCATIONAL_DISCLAIMER } from '@/lib/pricing'
 import { generateBreadcrumbSchema, generateFAQSchema } from '@/lib/schema'
+import { FAQAccordion } from '@/components/FAQAccordion'
 import { CheckCircle, ArrowRight, ArrowLeft, Target, Info, Shield, Users, AlertCircle, Bone, Crown, LayoutGrid, Anchor } from 'lucide-react'
 
 const treatment = TREATMENTS.implants
