@@ -6,8 +6,6 @@ import { TREATMENTS } from '@/lib/data'
 import { TREATMENT_PRICES, PRICE_DISCLAIMER, EDUCATIONAL_DISCLAIMER } from '@/lib/pricing'
 import { generateBreadcrumbSchema, generateFAQSchema } from '@/lib/schema'
 import { CheckCircle, ArrowRight, ArrowLeft, Target, Info, Shield, Users, AlertCircle, Bone, Crown, LayoutGrid, Anchor } from 'lucide-react'
-import { FAQAccordion } from '@/components/FAQAccordion'
-import { LeadCaptureForm } from '@/components/LeadCaptureForm'
 
 const treatment = TREATMENTS.implants
 
