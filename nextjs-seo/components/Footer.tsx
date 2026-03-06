@@ -1,7 +1,11 @@
 import Link from 'next/link'
 import { Shield, FileText, Phone, MapPin } from 'lucide-react'
 
-export function Footer() {
+interface FooterProps {
+  treatmentSlug?: string
+}
+
+export function Footer({ treatmentSlug = 'orthodontics' }: FooterProps) {
   return (
     <footer className="bg-slate-50 border-t border-slate-100">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
@@ -40,13 +44,13 @@ export function Footer() {
           <div>
             <h4 className="font-medium text-slate-900 mb-4">Градове</h4>
             <div className="space-y-2.5 text-sm text-slate-500">
-              <Link href="/sofia/orthodontics" className="flex items-center gap-2 hover:text-sky-500 transition-colors">
+              <Link href={`/sofia/${treatmentSlug}`} className="flex items-center gap-2 hover:text-sky-500 transition-colors">
                 <MapPin className="w-3.5 h-3.5" />София
               </Link>
-              <Link href="/plovdiv/orthodontics" className="flex items-center gap-2 hover:text-sky-500 transition-colors">
+              <Link href={`/plovdiv/${treatmentSlug}`} className="flex items-center gap-2 hover:text-sky-500 transition-colors">
                 <MapPin className="w-3.5 h-3.5" />Пловдив
               </Link>
-              <Link href="/varna/orthodontics" className="flex items-center gap-2 hover:text-sky-500 transition-colors">
+              <Link href={`/varna/${treatmentSlug}`} className="flex items-center gap-2 hover:text-sky-500 transition-colors">
                 <MapPin className="w-3.5 h-3.5" />Варна
               </Link>
             </div>
