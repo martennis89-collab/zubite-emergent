@@ -9,75 +9,97 @@ Zubite.bg is a dental solutions navigator platform that helps Bulgarian users fi
 - **Styling**: Tailwind CSS with light theme (white/sky-blue accents)
 - **Email**: Resend for lead notifications
 
-## Recent Updates (December 2025)
+## Standardized Page Structure (All Treatment Pages)
 
-### Implants Page Restructure
-New page structure following Educate → Qualify → Capture Lead flow:
+All treatment pages follow this consistent structure:
+1. **HERO**: H1, Primary CTA "Заяви обаждане" → #lead-form, Secondary CTA "Направи бърза оценка" → quiz, 3 Trust cards
+2. **HOW ZUBITE WORKS**: 3 steps (Оценка/обаждане → Разбирате възможностите → Избор на специалист)
+3. **SYMPTOMS/PROBLEMS**: What the treatment can address
+4. **TREATMENT OPTIONS**: Available treatments/methods
+5. **COMPARISON SECTION**: Treatment-specific comparison (e.g., Aligners vs Braces, Oral Appliance vs CPAP)
+6. **CONSIDERATIONS**: When other treatment may be needed first
+7. **INDICATIVE PRICES**: EUR primary, BGN secondary
+8. **WHO THIS IS FOR**: Suitable candidates
+9. **FAQ**: 6 questions with accordion
+10. **LEAD FORM**: Reusable LeadCaptureForm component
+11. **EDUCATIONAL DISCLAIMER**
 
-1. **HERO**: H1 "Зъбни импланти – трайно решение за липсващи зъби"
-   - Primary CTA: "Заяви обаждане" → #lead-form
-   - Secondary CTA: "Направи бърза оценка" → /implants/quiz
-   - 3 Trust cards
-2. **HOW ZUBITE WORKS**: 3 steps (Оценка/обаждане → Информация/цени → Избор на специалист)
-3. **WHEN IMPLANTS ARE USED**: 4 use cases
-4. **TYPES OF IMPLANT TREATMENTS**: 4 cards (Единичен, Мост, All-on-4/6, Стабилизиране)
-5. **IMPLANT SYSTEMS**: Straumann, Nobel Biocare, Osstem, Megagen + disclaimer
-6. **INDICATIVE PRICES**: EUR primary, BGN secondary
-7. **BEFORE YOU CHOOSE IMPLANTS**: 4 factors to consider
-8. **FAQ**: 6 questions
-9. **LEAD FORM**: Full capture form
+## Completed Treatment Pages (December 2025)
 
-### Lead Capture Form Component
-New reusable component `/app/nextjs-seo/components/LeadCaptureForm.tsx`:
-- Fields: Име, Телефон*, Град, Какъв проблем имате, Consent checkbox
-- Submits to /api/leads endpoint
-- Success message: "Благодарим! Нашият екип ще се свърже с вас скоро."
-- Sends email notification + stores in dashboard
+### ✅ /orthodontics
+- H1: "Алайнери или брекети? Разберете кое е подходящо за вас"
+- Comparison: Aligners vs Braces
+- Brand section: Invisalign, Spark, Angel Aligner
+- Tested & verified
 
-### Pricing System (EUR Primary, BGN Secondary)
+### ✅ /implants
+- H1: "Зъбни импланти – трайно решение за липсващи зъби"
+- Types: Единичен, Мост, All-on-4/6, Стабилизиране
+- Systems: Straumann, Nobel Biocare, Osstem, Megagen
+- Tested & verified
 
-#### Implants
-| Treatment | EUR | BGN |
-|-----------|-----|-----|
-| Единичен имплант | €700 – €2,000 | ≈ 1,400 – 4,000 лв. |
-| Имплант + корона | €1,200 – €3,000 | ≈ 2,400 – 6,000 лв. |
-| All-on-4 | €5,000 – €9,000 | ≈ 10,000 – 18,000 лв. |
+### ✅ /cosmetic-dentistry
+- H1: "Естетична стоматология – бондинг, фасети, избелване и smile design"
+- Comparison: Veneers vs Bonding
+- Prices: Whitening €100-€250, Veneers €200-€600/tooth, Bonding €75-€200/tooth
+- Tested & verified
 
-#### Orthodontics
+### ✅ /sleep-airway
+- H1: "Сънна апнея и хъркане – орални апарати и дентални решения"
+- Comparison: Oral Appliance vs CPAP
+- Prices: MAD €500-€2500, TRD €300-€800
+- Tested & verified
+
+### ✅ /tmj
+- H1: "TMJ дисфункция – болка в челюстта, щракане и лечение"
+- Comparison: Stabilizing Splint vs Night Guard
+- Prices: Splint €150-€400, Night Guard €100-€250
+- Tested & verified
+
+## Pricing System (EUR Primary, BGN Secondary)
+
+### Orthodontics
 | Treatment | EUR | BGN |
 |-----------|-----|-----|
 | Алайнери | €1,500 – €6,000 | ≈ 3,000 – 12,000 лв. |
 | Брекети | €1,000 – €4,000 | ≈ 2,000 – 8,000 лв. |
 
-### Tone Guidelines
-**Lifestyle premium but medically responsible:**
-- ❌ Avoid: "100% безболезнено", "гарантиран резултат"
-- ✅ Use: "обикновено", "в повечето случаи", "според случая"
+### Implants
+| Treatment | EUR | BGN |
+|-----------|-----|-----|
+| Единичен имплант | €800 – €2,000 | ≈ 1,600 – 4,000 лв. |
+| All-on-4 | €6,000 – €20,000 | ≈ 12,000 – 40,000 лв. |
 
-## Page Structures
+### Cosmetic Dentistry
+| Treatment | EUR | BGN |
+|-----------|-----|-----|
+| Избелване | €100 – €250 | ≈ 200 – 500 лв. |
+| Фасети | €200 – €600/зъб | ≈ 400 – 1,200 лв. |
+| Бондинг | €75 – €200/зъб | ≈ 150 – 400 лв. |
 
-### /orthodontics (SEO → Quiz → Request a Call)
-1. Hero: H1 "Алайнери или брекети?"
-2. How It Works (3 steps)
-3. Aligners vs Braces (comparison cards)
-4. Aligner Brands (Invisalign, Spark, Angel Aligner)
-5. Prices (EUR/BGN)
-6. Common Orthodontic Problems (SEO)
-7. Children Orthodontics
-8. Decision Section
-9. FAQ
-10. Final CTA
+### Sleep Apnea
+| Treatment | EUR | BGN |
+|-----------|-----|-----|
+| MAD апарат | €500 – €2,500 | ≈ 1,000 – 5,000 лв. |
 
-### /implants (Educate → Qualify → Capture Lead)
-1. Hero: H1 "Зъбни импланти – трайно решение за липсващи зъби"
-2. How Zubite Works (3 steps)
-3. When Implants Used (4 use cases)
-4. Types of Implant Treatments (4 cards)
-5. Implant Systems (Straumann, Nobel Biocare, Osstem, Megagen)
-6. Indicative Prices (EUR/BGN)
-7. Before You Choose Implants (4 factors)
-8. FAQ (6 questions)
-9. Lead Form
+### TMJ
+| Treatment | EUR | BGN |
+|-----------|-----|-----|
+| Стабилизираща шина | €150 – €400 | ≈ 300 – 800 лв. |
+| Нощна шина | €100 – €250 | ≈ 200 – 500 лв. |
+
+## Key Components
+
+### LeadCaptureForm (`/components/LeadCaptureForm.tsx`)
+- Fields: Име, Телефон*, Град, Какъв проблем имате, Consent checkbox
+- Submits to /api/leads endpoint
+- Success message: "Благодарим! Нашият екип ще се свърже с вас скоро."
+
+### Centralized Pricing (`/lib/pricing.ts`)
+- Single source of truth for all prices
+- EUR primary, BGN secondary format
+- Price disclaimer constant
+- Educational disclaimer constant
 
 ## Current Architecture
 
@@ -85,24 +107,23 @@ New reusable component `/app/nextjs-seo/components/LeadCaptureForm.tsx`:
 /app/nextjs-seo/
 ├── app/
 │   ├── page.tsx                    # Homepage
-│   ├── orthodontics/
-│   │   ├── page.tsx                # Orthodontics page (SEO → Quiz)
-│   │   └── quiz/page.tsx
-│   ├── implants/
-│   │   ├── page.tsx                # Implants page (Educate → Qualify → Lead)
-│   │   └── quiz/page.tsx
+│   ├── orthodontics/page.tsx       # ✅ Updated
+│   ├── implants/page.tsx           # ✅ Updated
+│   ├── cosmetic-dentistry/page.tsx # ✅ Updated
+│   ├── sleep-airway/page.tsx       # ✅ Updated
+│   ├── tmj/page.tsx                # ✅ Updated
 │   ├── aligners-comparison/        # Brand comparison SEO page
 │   ├── [city]/[treatment]/         # City+treatment pages
-│   └── ...
+│   └── admin/                      # Admin dashboard
 │
 ├── components/
-│   ├── TreatmentQuiz.tsx
-│   ├── LeadCaptureForm.tsx         # NEW: Reusable lead form
+│   ├── LeadCaptureForm.tsx         # Reusable lead form
+│   ├── TreatmentQuiz.tsx           # Quiz component
 │   ├── FAQAccordion.tsx
 │   └── ...
 │
 ├── lib/
-│   ├── pricing.ts                  # Centralized pricing (EUR primary)
+│   ├── pricing.ts                  # Centralized pricing
 │   ├── data.ts, api.ts, schema.ts
 │
 └── public/
@@ -121,18 +142,23 @@ New reusable component `/app/nextjs-seo/components/LeadCaptureForm.tsx`:
 
 ## Pending/Future Tasks
 
+### P0 - Critical
+- [x] Update all treatment pages with standardized structure
+- [ ] Audit footer city links (ensure correct treatment routing)
+
 ### P1 - High Priority
-- [ ] Add Meta Pixel ID for tracking
-- [ ] Add Google Ads Conversion ID
+- [ ] Add Meta Pixel ID for tracking (awaiting user input)
+- [ ] Add Google Ads Conversion ID (awaiting user input)
 
 ### P2 - Medium Priority
 - [ ] Replace placeholder OG images
-- [ ] Add real clinic partnerships
+- [ ] Enhance admin panel for content management
 
 ### P3 - Future
 - [ ] English translation (`/en/...` routes)
 - [ ] More cities
+- [ ] Delete obsolete `/app/frontend` directory
 
 ---
 *Last updated: December 2025*
-*Latest changes: Implants page restructure with lead capture form*
+*Latest changes: All 5 treatment pages (orthodontics, implants, cosmetic-dentistry, sleep-airway, tmj) updated with standardized structure and tested*
