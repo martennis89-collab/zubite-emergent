@@ -9,130 +9,99 @@ Zubite.bg is a dental solutions navigator platform that helps Bulgarian users fi
 - **Styling**: Tailwind CSS with light theme (white/sky-blue accents)
 - **Email**: Resend for lead notifications
 
-## Lead Qualification Flow (Updated December 2025)
+## Lead Qualification Flow
 
-**Important**: The lead capture form is ONLY shown at the end of the quiz, not on treatment pages. This ensures patient qualification before capturing leads.
+**Important**: Lead capture form is ONLY shown at the end of quizzes. Treatment pages guide users to quizzes for qualification.
 
-**Flow:**
-1. User visits treatment page (e.g., `/cosmetic-dentistry`)
-2. User clicks "Направи бърза оценка" (single CTA)
-3. User goes through quiz questions
-4. At end of quiz, user sees lead capture form ("Заяви обаждане")
-5. Lead is submitted and stored
+## Orthodontics Quiz System (Updated December 2025)
 
-## Standardized Page Structure (All Treatment Pages)
+### Quiz Flow
+`Intro → 8 Questions → Result Screen → Lead Form → Success`
 
-All treatment pages follow this consistent structure:
-1. **HERO**: H1, Single CTA "Направи бърза оценка" → quiz, 3 Trust cards
-2. **HOW ZUBITE WORKS**: 3 steps (Оценка → Разбирате възможностите → Избор на специалист)
-3. **SYMPTOMS/PROBLEMS**: What the treatment can address
-4. **TREATMENT OPTIONS**: Available treatments/methods
+### Intro Screen
+- Title: "Разберете дали ортодонтско лечение може да е подходящо за вас"
+- Disclaimer: "Този въпросник не замества преглед от специалист"
+- CTA: "Започнете оценката"
+- Info: "8 въпроса • ~60–90 секунди"
+
+### 8 Questions with Scoring
+
+| Q# | Question | Options & Scores |
+|----|----------|------------------|
+| 1 | Какъв е основният проблем? | crooked(+2), spaces(+2), bite(+3), aesthetic(+1), unsure(0) |
+| 2 | За кого е лечението? | adult(+2), child(+2), unsure(0) |
+| 3 | Имали ли сте брекети преди? | never(+2), relapse(+4), ongoing(0), unsure(+1) |
+| 4 | Захапката ви не е правилна? | yes(+4), sometimes(+2), no(0), unsure(+1) |
+| 5 | Проблеми с венците? | no(+2), bleeding(0), periodontal(-2), unsure(0) |
+| 6 | Приблизителна цена? | under_1000(-2), 1000-3000(+2), 3000-6000(+3), over_6000(+1), unsure(+1) |
+| 7 | Инвестиция от няколко хиляди евро? | yes(+4), maybe(+2), unsure(+1), no(-3) |
+| 8 | Кога бихте започнали? | 3_months(+4), 6_months(+3), 1_year(+1), research(0) |
+
+### Result Bands
+
+| Score | Band | Title |
+|-------|------|-------|
+| ≥16 | Strong | "Добра новина" |
+| 10-15 | Possible | "Възможно е ортодонтско лечение да е подходящо" |
+| <10 | Needs Evaluation | "Нужна е по-точна оценка" |
+
+### Lead Priority Tags
+- **HIGH**: score ≥16 AND timing ≤6 months
+- **MEDIUM**: score 10-15
+- **LOW**: score <10
+
+### Lead Form Fields
+- Име (optional)
+- Телефон * (mandatory)
+- Град (София, Пловдив, Варна)
+- Какъв е вашият основен проблем? (optional)
+- Съгласен съм с обработката на лични данни (mandatory)
+
+### Data Stored
+- quiz_score, problem_type, previous_ortho, bite_issue, gum_status
+- price_awareness, investment_readiness, timing, city, name, phone
+- priority, source, timestamp
+
+## Standardized Treatment Page Structure
+
+All treatment pages follow:
+1. **HERO**: H1, Single CTA "Направи бърза оценка" → quiz
+2. **HOW ZUBITE WORKS**: 3 steps
+3. **SYMPTOMS/PROBLEMS**: What the treatment addresses
+4. **TREATMENT OPTIONS**: Available methods
 5. **COMPARISON SECTION**: Treatment-specific comparison
-6. **CONSIDERATIONS**: When other treatment may be needed first
+6. **CONSIDERATIONS**: When other treatment may be needed
 7. **INDICATIVE PRICES**: EUR primary, BGN secondary
 8. **WHO THIS IS FOR**: Suitable candidates
 9. **FAQ**: 6 questions with accordion
-10. **FINAL CTA**: "Направи бърза оценка" button to quiz
-11. **EDUCATIONAL DISCLAIMER**
-12. **FOOTER**: Dynamic city links based on current treatment
+10. **FINAL CTA**: Quiz button
+11. **DISCLAIMER**
+12. **FOOTER**: Dynamic city links
 
-**NO lead form on treatment pages** - only at end of quiz.
-
-## Completed Treatment Pages (December 2025)
-
-All pages tested and verified ✅:
-- `/orthodontics`
-- `/implants`
-- `/cosmetic-dentistry`
-- `/sleep-airway`
-- `/tmj`
-
-## Footer City Links (Dynamic)
-
-Footer component accepts `treatmentSlug` prop and generates correct city links:
-- From `/cosmetic-dentistry` → Sofia link points to `/sofia/cosmetic-dentistry`
-- From `/implants` → Sofia link points to `/sofia/implants`
-- etc.
-
-## Pricing System (EUR Primary, BGN Secondary)
-
-### Orthodontics
-| Treatment | EUR | BGN |
-|-----------|-----|-----|
-| Алайнери | €1,500 – €6,000 | ≈ 3,000 – 12,000 лв. |
-| Брекети | €1,000 – €4,000 | ≈ 2,000 – 8,000 лв. |
-
-### Implants
-| Treatment | EUR | BGN |
-|-----------|-----|-----|
-| Единичен имплант | €800 – €2,000 | ≈ 1,600 – 4,000 лв. |
-| All-on-4 | €6,000 – €20,000 | ≈ 12,000 – 40,000 лв. |
-
-### Cosmetic Dentistry
-| Treatment | EUR | BGN |
-|-----------|-----|-----|
-| Избелване | €100 – €250 | ≈ 200 – 500 лв. |
-| Фасети | €200 – €600/зъб | ≈ 400 – 1,200 лв. |
-| Бондинг | €75 – €200/зъб | ≈ 150 – 400 лв. |
-
-### Sleep Apnea
-| Treatment | EUR | BGN |
-|-----------|-----|-----|
-| MAD апарат | €500 – €2,500 | ≈ 1,000 – 5,000 лв. |
-
-### TMJ
-| Treatment | EUR | BGN |
-|-----------|-----|-----|
-| Стабилизираща шина | €150 – €400 | ≈ 300 – 800 лв. |
-| Нощна шина | €100 – €250 | ≈ 200 – 500 лв. |
-
-## Key Components
-
-### LeadCaptureForm (`/components/LeadCaptureForm.tsx`)
-- Used ONLY at end of quiz
-- Fields: Име, Телефон*, Град, Какъв проблем имате, Consent checkbox
-- Submits to /api/leads endpoint
-
-### Footer (`/components/Footer.tsx`)
-- Props: `treatmentSlug?: string` (defaults to 'orthodontics')
-- Generates dynamic city links based on current treatment
-
-### TreatmentQuiz (`/components/TreatmentQuiz.tsx`)
-- Generic quiz component
-- Shows lead form at end after qualification
-
-### Centralized Pricing (`/lib/pricing.ts`)
-- Single source of truth for all prices
-- EUR primary, BGN secondary format
-
-## Current Architecture
+## Architecture
 
 ```
 /app/nextjs-seo/
 ├── app/
 │   ├── page.tsx                    # Homepage
-│   ├── orthodontics/page.tsx       # ✅ Updated
-│   ├── implants/page.tsx           # ✅ Updated
-│   ├── cosmetic-dentistry/page.tsx # ✅ Updated
-│   ├── sleep-airway/page.tsx       # ✅ Updated
-│   ├── tmj/page.tsx                # ✅ Updated
-│   ├── [treatment]/quiz/page.tsx   # Quiz pages with lead form
-│   ├── aligners-comparison/        # Brand comparison SEO page
-│   ├── [city]/[treatment]/         # City+treatment pages
-│   └── admin/                      # Admin dashboard
+│   ├── orthodontics/
+│   │   ├── page.tsx                # Treatment page
+│   │   └── quiz/page.tsx           # Quiz page
+│   ├── implants/
+│   ├── cosmetic-dentistry/
+│   ├── sleep-airway/
+│   ├── tmj/
+│   └── admin/
 │
 ├── components/
-│   ├── Footer.tsx                  # Updated with treatmentSlug prop
-│   ├── LeadCaptureForm.tsx         # Used in quiz only
-│   ├── TreatmentQuiz.tsx           # Quiz component
-│   ├── FAQAccordion.tsx
+│   ├── OrthodonticsQuiz.tsx        # NEW: Dedicated ortho quiz
+│   ├── TreatmentQuiz.tsx           # Generic quiz for other treatments
+│   ├── Footer.tsx                  # Dynamic city links
 │   └── ...
 │
 ├── lib/
 │   ├── pricing.ts                  # Centralized pricing
-│   ├── data.ts, api.ts, schema.ts
-│
-└── public/
+│   └── api.ts
 ```
 
 ## Admin Panel
@@ -147,13 +116,13 @@ Footer component accepts `treatmentSlug` prop and generates correct city links:
 
 ### P2 - Medium Priority
 - [ ] Replace placeholder OG images
-- [ ] Enhance admin panel for content management
+- [ ] Create dedicated quizzes for other treatments (implants, cosmetic, etc.)
 
 ### P3 - Future
 - [ ] English translation (`/en/...` routes)
 - [ ] More cities
-- [ ] Delete obsolete `/app/frontend` directory
+- [ ] Enhance admin panel
 
 ---
 *Last updated: December 2025*
-*Latest changes: Removed lead form from treatment pages (only at end of quiz), fixed footer city links to be dynamic per treatment*
+*Latest changes: New orthodontics quiz with 8 questions, scoring system, and priority tagging*
