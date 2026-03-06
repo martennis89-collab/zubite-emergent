@@ -20,6 +20,11 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/cosmetic-dentistry/quiz/page.js"
+    ],
+    "/sleep-airway/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/sleep-airway/page.js"
     ]
   }
 }
