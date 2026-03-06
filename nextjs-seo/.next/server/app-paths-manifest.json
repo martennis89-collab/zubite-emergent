@@ -2,5 +2,7 @@
   "/cosmetic-dentistry/page": "app/cosmetic-dentistry/page.js",
   "/page": "app/page.js",
   "/sleep-airway/page": "app/sleep-airway/page.js",
-  "/tmj/page": "app/tmj/page.js"
+  "/tmj/page": "app/tmj/page.js",
+  "/implants/page": "app/implants/page.js",
+  "/orthodontics/page": "app/orthodontics/page.js"
 }
