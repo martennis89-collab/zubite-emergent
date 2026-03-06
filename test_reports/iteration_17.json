@@ -1,0 +1,72 @@
+{
+  "summary": "Frontend testing of /sleep-airway and /tmj pages for Zubite.bg. All 13 features tested and passed. Both pages follow standardized layout: Hero → How it Works → Problem/Solution Sections → Pricing → FAQ → Final CTA. Lead form submission works correctly on both pages with success message displayed.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "/sleep-airway page loads without errors",
+    "/sleep-airway hero H1: 'Сънна апнея и хъркане – орални апарати и дентални решения'",
+    "/sleep-airway hero primary CTA 'Заяви обаждане' → #lead-form (data-testid='hero-cta-primary')",
+    "/sleep-airway hero secondary CTA 'Направи бърза оценка' → /sleep-airway/quiz (data-testid='hero-cta-secondary')",
+    "/sleep-airway 'How it Works' section with 3 steps (Оценка или обаждане, Разбирате възможностите, Избор на специалист)",
+    "/sleep-airway 'Oral Appliance vs CPAP' comparison section with both cards",
+    "/sleep-airway pricing section with EUR primary (€500-€2500) and BGN secondary",
+    "/sleep-airway FAQ accordion with 6 questions - expand/collapse works correctly",
+    "/sleep-airway lead form submission - success message 'Благодарим!' displayed",
+    "/tmj page loads without errors",
+    "/tmj hero H1: 'TMJ дисфункция – болка в челюстта, щракане и лечение'",
+    "/tmj hero primary CTA 'Заяви обаждане' → #lead-form (data-testid='hero-cta-primary')",
+    "/tmj hero secondary CTA 'Направи бърза оценка' → /tmj/quiz (data-testid='hero-cta-secondary')",
+    "/tmj 'Splint vs Night Guard' comparison section with both cards (€150-€400 vs €100-€250)",
+    "/tmj pricing section with EUR primary and BGN secondary",
+    "/tmj FAQ accordion with 6 questions - expand/collapse works correctly",
+    "/tmj lead form submission - success message 'Благодарим!' displayed"
+  ],
+
+  "test_report_links": [
+    "/app/test_reports/iteration_17.json"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "Both pages follow correct standardized structure: Hero → How it Works → Symptoms/Problems → Treatment Options → Comparison Section → When Not Suitable/Causes → Pricing → Who This Is For → FAQ → Lead Form → Educational Disclaimer → Footer",
+    "All data-testid attributes correctly implemented: hero-cta-primary, hero-cta-secondary, back-to-home, lead-form-name, lead-form-phone, lead-form-city, lead-form-problem, lead-form-consent, lead-form-submit, faq-0 through faq-5",
+    "Pricing configuration properly uses EUR primary with BGN secondary on both pages",
+    "Lead form submits to /api/leads endpoint and displays success message correctly on both pages",
+    "FAQAccordion component works correctly with expand/collapse functionality on both pages",
+    "LeadCaptureForm component properly validates required fields (phone, consent)",
+    "Price disclaimer 'Цените са ориентировъчни и зависят от сложност, план и клиника.' present on both pages",
+    "Educational disclaimer 'Информацията е образователна и не замества преглед.' present on both pages"
+  ],
+
+  "updated_files": [],
+
+  "success_rate": {
+    "backend": "N/A (frontend only testing)",
+    "frontend": "100% (all 13 requested features tested and passed)"
+  },
+
+  "seed_data_creation": "",
+
+  "test_credentials": {
+    "admin_login": {
+      "username": "admin@zubite.bg",
+      "password": "password"
+    }
+  },
+
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Sleep-airway and TMJ pages testing completed. Both pages verified with standardized structure: 1) Hero with H1, Primary CTA 'Заяви обаждане' → #lead-form, Secondary CTA 'Направи бърза оценка' → /{page}/quiz, 2) 3 trust cards, 3) How Zubite Works (3 steps), 4) Symptoms section, 5) Treatment options, 6) Comparison section (Oral vs CPAP for sleep-airway, Splint vs Night Guard for TMJ), 7) When not suitable/Causes section, 8) Pricing (EUR primary, BGN secondary), 9) Who this is suitable for, 10) FAQ (6 questions with accordion), 11) Lead Form with all fields. Form submission tested on both pages - success message displays correctly. Key test IDs: hero-cta-primary, hero-cta-secondary, back-to-home, lead-form-name, lead-form-phone, lead-form-city, lead-form-problem, lead-form-consent, lead-form-submit, faq-0 through faq-5."
+}
