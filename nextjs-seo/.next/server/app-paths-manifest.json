@@ -3,6 +3,7 @@
   "/page": "app/page.js",
   "/sleep-airway/page": "app/sleep-airway/page.js",
   "/tmj/page": "app/tmj/page.js",
-  "/implants/page": "app/implants/page.js",
-  "/orthodontics/page": "app/orthodontics/page.js"
+  "/sleep-airway/quiz/page": "app/sleep-airway/quiz/page.js",
+  "/orthodontics/page": "app/orthodontics/page.js",
+  "/orthodontics/quiz/page": "app/orthodontics/quiz/page.js"
 }
