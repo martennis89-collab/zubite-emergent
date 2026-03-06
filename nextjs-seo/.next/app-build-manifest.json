@@ -30,6 +30,11 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/tmj/page.js"
+    ],
+    "/[city]/[treatment]/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/[city]/[treatment]/page.js"
     ]
   }
 }
