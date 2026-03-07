@@ -79,6 +79,47 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         {children}
+        {/* Hide Emergent badge injected by platform */}
+        <style dangerouslySetInnerHTML={{ __html: `
+          #emergent-badge,
+          [id*="emergent"],
+          [class*="emergent-badge"],
+          a[href*="emergentagent.com"] {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            position: absolute !important;
+            left: -9999px !important;
+          }
+        `}} />
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function() {
+            function removeEmergentBadge() {
+              var selectors = [
+                '#emergent-badge',
+                '[id*="emergent"]',
+                '[class*="emergent-badge"]',
+                'a[href*="emergentagent.com"]'
+              ];
+              selectors.forEach(function(sel) {
+                document.querySelectorAll(sel).forEach(function(el) {
+                  el.remove();
+                });
+              });
+            }
+            if (document.readyState === 'loading') {
+              document.addEventListener('DOMContentLoaded', removeEmergentBadge);
+            } else {
+              removeEmergentBadge();
+            }
+            // Also run after a delay and observe for dynamic injection
+            setTimeout(removeEmergentBadge, 1000);
+            setTimeout(removeEmergentBadge, 3000);
+            var observer = new MutationObserver(removeEmergentBadge);
+            observer.observe(document.body, { childList: true, subtree: true });
+          })();
+        `}} />
       </body>
     </html>
   )
