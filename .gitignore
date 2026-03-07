@@ -81,3 +81,5 @@ android-sdk/ frontend/node_modules/.cache/default-development/0.pack
 frontend/node_modules/.cache/default-development/0.pack
 nextjs-seo/node_modules/@next/swc-linux-arm64-gnu/next-swc.linux-arm64-gnu.node
 nextjs-seo/node_modules/@next/swc-linux-arm64-musl/next-swc.linux-arm64-musl.node
+nextjs-standalone/node_modules/@next/swc-linux-arm64-gnu/next-swc.linux-arm64-gnu.node
+nextjs-standalone/node_modules/@next/swc-linux-arm64-musl/next-swc.linux-arm64-musl.node
