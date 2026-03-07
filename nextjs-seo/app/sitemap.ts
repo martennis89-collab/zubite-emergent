@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next'
 import { CITIES, TREATMENTS } from '@/lib/data'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://zubite.bg'
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://zubite.bg'
   
   // Static pages
   const staticPages: MetadataRoute.Sitemap = [

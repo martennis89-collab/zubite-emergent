@@ -5,11 +5,13 @@ const nextConfig = {
     domains: [],
     unoptimized: true,
   },
+  output: 'standalone',
   async rewrites() {
+    const backendUrl = process.env.BACKEND_INTERNAL_URL || 'http://localhost:8001'
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:8001/api/:path*',
+        destination: `${backendUrl}/api/:path*`,
       },
     ]
   },
