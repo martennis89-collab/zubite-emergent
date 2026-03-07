@@ -46,7 +46,7 @@ api_router = APIRouter(prefix="/api")
 # Root-level health endpoint for deployment health checks
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "service": "zubite-backend"}
+    return {"status": "ok"}
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
