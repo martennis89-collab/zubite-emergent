@@ -3,15 +3,10 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { Menu, X, ChevronDown } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 
-interface HeaderProps {
-  lang?: 'bg' | 'en'
-}
-
-export function Header({ lang = 'bg' }: HeaderProps) {
+export function Header() {
   const [isOpen, setIsOpen] = useState(false)
-  const [treatmentsOpen, setTreatmentsOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const pathname = usePathname()
   
@@ -26,94 +21,66 @@ export function Header({ lang = 'bg' }: HeaderProps) {
   const isActive = (path: string) => {
     return pathname === path || pathname.startsWith(path + '/')
   }
-  
-  const treatments = [
-    { slug: 'orthodontics', name: 'Ортодонтия' },
-    { slug: 'implants', name: 'Зъбни импланти' },
-    { slug: 'cosmetic-dentistry', name: 'Естетична стоматология' },
-    { slug: 'sleep-airway', name: 'Сънна апнея' },
-    { slug: 'tmj', name: 'TMJ / Челюстни стави' },
+
+  const scrollToAssessment = (e: React.MouseEvent) => {
+    e.preventDefault()
+    const element = document.getElementById('assessment-cta')
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' })
+    } else {
+      window.location.href = '/orthodontics/quiz'
+    }
+  }
+
+  const navLinks = [
+    { href: '/', label: 'Начало' },
+    { href: '#how-it-works', label: 'Как работи', isAnchor: true },
+    { href: '/orthodontics', label: 'Ортодонтия' },
+    { href: '/symptoms', label: 'Симптоми' },
+    { href: '/contact', label: 'Контакти' },
   ]
   
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-      scrolled ? 'bg-white/95 backdrop-blur-sm shadow-sm' : 'bg-white'
+      scrolled ? 'bg-white/95 backdrop-blur-md shadow-sm' : 'bg-white'
     }`}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-16 md:h-20">
+          {/* Logo */}
           <Link 
             href="/" 
             className="font-serif text-2xl font-semibold text-slate-900 transition-transform hover:scale-105" 
             data-testid="logo"
           >
-            Zubite<span className="text-sky-500">.bg</span>
+            Zubite
           </Link>
           
+          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">
-            <Link 
-              href="/" 
-              className={`text-sm font-medium transition-colors nav-link-animated ${
-                pathname === '/' ? 'text-sky-500' : 'text-slate-600 hover:text-slate-900'
-              }`}
-              data-testid="nav-home"
-            >
-              Начало
-            </Link>
-            
-            {/* Treatments Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setTreatmentsOpen(!treatmentsOpen)}
-                onBlur={() => setTimeout(() => setTreatmentsOpen(false), 150)}
-                className={`text-sm font-medium transition-colors flex items-center gap-1 ${
-                  treatments.some(t => isActive(`/${t.slug}`)) ? 'text-sky-500' : 'text-slate-600 hover:text-slate-900'
+            {navLinks.map((link) => (
+              <Link 
+                key={link.href}
+                href={link.href}
+                className={`text-sm font-medium transition-colors nav-link-animated ${
+                  isActive(link.href) && !link.isAnchor ? 'text-sky-500' : 'text-slate-600 hover:text-slate-900'
                 }`}
-                data-testid="nav-treatments"
+                data-testid={`nav-${link.label.toLowerCase().replace(/\s/g, '-')}`}
               >
-                Лечения
-                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${treatmentsOpen ? 'rotate-180' : ''}`} />
-              </button>
-              
-              {treatmentsOpen && (
-                <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-100 py-2 z-50 animate-fade-in">
-                  {treatments.map((treatment) => (
-                    <Link
-                      key={treatment.slug}
-                      href={`/${treatment.slug}`}
-                      className={`block px-4 py-2.5 text-sm transition-colors ${
-                        isActive(`/${treatment.slug}`) 
-                          ? 'text-sky-500 bg-sky-50' 
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                      }`}
-                      onClick={() => setTreatmentsOpen(false)}
-                    >
-                      {treatment.name}
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-            
-            <Link 
-              href="/symptoms" 
-              className={`text-sm font-medium transition-colors nav-link-animated ${
-                isActive('/symptoms') ? 'text-sky-500' : 'text-slate-600 hover:text-slate-900'
-              }`}
-              data-testid="nav-symptoms"
-            >
-              Симптоми
-            </Link>
-            
-            <Link 
-              href="/contact" 
-              className={`text-sm font-medium transition-colors nav-link-animated ${
-                isActive('/contact') ? 'text-sky-500' : 'text-slate-600 hover:text-slate-900'
-              }`}
-              data-testid="nav-contact"
-            >
-              Контакти
-            </Link>
+                {link.label}
+              </Link>
+            ))}
           </nav>
+          
+          {/* CTA Button */}
+          <div className="hidden md:block">
+            <button
+              onClick={scrollToAssessment}
+              className="inline-flex items-center justify-center h-10 px-6 rounded-full bg-sky-500 text-white text-sm font-medium hover:bg-sky-600 transition-all duration-200 hover:shadow-lg hover:shadow-sky-500/25"
+              data-testid="nav-cta"
+            >
+              Направете оценка
+            </button>
+          </div>
           
           {/* Mobile menu button */}
           <div className="md:hidden">
@@ -130,40 +97,25 @@ export function Header({ lang = 'bg' }: HeaderProps) {
         {/* Mobile menu */}
         {isOpen && (
           <nav className="md:hidden py-4 border-t border-slate-100 animate-fade-in-down">
-            <Link 
-              href="/" 
-              className="block py-3 text-sm font-medium text-slate-600 hover:text-slate-900" 
-              onClick={() => setIsOpen(false)}
+            {navLinks.map((link) => (
+              <Link 
+                key={link.href}
+                href={link.href}
+                className="block py-3 text-sm font-medium text-slate-600 hover:text-slate-900 border-b border-slate-50" 
+                onClick={() => setIsOpen(false)}
+              >
+                {link.label}
+              </Link>
+            ))}
+            <button
+              onClick={(e) => {
+                setIsOpen(false)
+                scrollToAssessment(e)
+              }}
+              className="w-full mt-4 inline-flex items-center justify-center h-12 px-6 rounded-full bg-sky-500 text-white text-sm font-medium"
             >
-              Начало
-            </Link>
-            <div className="py-3 border-t border-slate-100">
-              <span className="text-xs uppercase text-slate-400 tracking-wider">Лечения</span>
-              {treatments.map((treatment) => (
-                <Link
-                  key={treatment.slug}
-                  href={`/${treatment.slug}`}
-                  className="block py-2.5 pl-4 text-sm font-medium text-slate-600 hover:text-slate-900"
-                  onClick={() => setIsOpen(false)}
-                >
-                  {treatment.name}
-                </Link>
-              ))}
-            </div>
-            <Link 
-              href="/symptoms" 
-              className="block py-3 text-sm font-medium text-slate-600 hover:text-slate-900 border-t border-slate-100" 
-              onClick={() => setIsOpen(false)}
-            >
-              Симптоми
-            </Link>
-            <Link 
-              href="/contact" 
-              className="block py-3 text-sm font-medium text-slate-600 hover:text-slate-900 border-t border-slate-100" 
-              onClick={() => setIsOpen(false)}
-            >
-              Контакти
-            </Link>
+              Направете оценка
+            </button>
           </nav>
         )}
       </div>
