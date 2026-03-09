@@ -24,12 +24,7 @@ export function Header() {
 
   const scrollToAssessment = (e: React.MouseEvent) => {
     e.preventDefault()
-    const element = document.getElementById('assessment-cta')
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' })
-    } else {
-      window.location.href = '/orthodontics/quiz'
-    }
+    window.location.href = '/assessment'
   }
 
   const navLinks = [
