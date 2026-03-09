@@ -133,7 +133,7 @@ export default function HomePage() {
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start animate-fade-in-up animate-delay-200">
                 <Link
-                  href="/orthodontics/quiz"
+                  href="/assessment"
                   className="inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full bg-sky-500 text-white font-medium hover:bg-sky-600 transition-all duration-300 hover:shadow-xl hover:shadow-sky-500/25 btn-animate btn-pulse"
                   data-testid="hero-cta-primary"
                 >
