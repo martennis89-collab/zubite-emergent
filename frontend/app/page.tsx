@@ -373,7 +373,7 @@ export default function HomePage() {
               Безплатна оценка за 60 секунди. Без ангажименти.
             </p>
             <Link
-              href="/orthodontics/quiz"
+              href="/assessment"
               className="inline-flex items-center justify-center gap-2 h-14 px-10 rounded-full bg-white text-sky-600 font-semibold hover:bg-sky-50 transition-all duration-300 shadow-lg hover:shadow-xl btn-animate"
               data-testid="final-cta"
             >
