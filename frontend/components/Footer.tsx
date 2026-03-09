@@ -1,7 +1,11 @@
 import Link from 'next/link'
 import { Facebook, Instagram, Linkedin } from 'lucide-react'
 
-export function Footer() {
+interface FooterProps {
+  treatmentSlug?: string
+}
+
+export function Footer({ treatmentSlug }: FooterProps) {
   return (
     <footer className="bg-slate-50 border-t border-slate-100">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
