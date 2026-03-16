@@ -32,9 +32,13 @@ const CATEGORY_NAMES: Record<string, string> = {
 
 async function getBlogPost(slug: string): Promise<BlogPost | null> {
   try {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api'
+    // Use internal URL for server-side requests
+    const API_URL = process.env.BACKEND_INTERNAL_URL 
+      ? `${process.env.BACKEND_INTERNAL_URL}/api`
+      : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api')
     const response = await fetch(`${API_URL}/blog/posts/${slug}`, {
       next: { revalidate: 60 },
+      cache: 'no-store', // Disable caching for dynamic content
     })
     
     if (!response.ok) {
@@ -42,7 +46,8 @@ async function getBlogPost(slug: string): Promise<BlogPost | null> {
     }
     
     return response.json()
-  } catch {
+  } catch (error) {
+    console.error('Error fetching blog post:', error)
     return null
   }
 }
