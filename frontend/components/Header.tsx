@@ -31,7 +31,7 @@ export function Header() {
     { href: '/', label: 'Начало' },
     { href: '#how-it-works', label: 'Как работи', isAnchor: true },
     { href: '/orthodontics', label: 'Ортодонтия' },
-    { href: '/symptoms', label: 'Симптоми' },
+    { href: '/blog', label: 'Блог' },
     { href: '/contact', label: 'Контакти' },
   ]
   
