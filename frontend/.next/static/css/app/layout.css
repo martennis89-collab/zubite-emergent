@@ -752,6 +752,9 @@ h3{
 .mt-8{
   margin-top: 2rem;
 }
+.mr-1{
+  margin-right: 0.25rem;
+}
 .line-clamp-2{
   overflow: hidden;
   display: -webkit-box;
@@ -763,6 +766,9 @@ h3{
 }
 .inline-block{
   display: inline-block;
+}
+.inline{
+  display: inline;
 }
 .flex{
   display: flex;
@@ -1159,6 +1165,14 @@ h3{
 .rounded-xl{
   border-radius: 0.75rem;
 }
+.rounded-l-lg{
+  border-top-left-radius: 0.5rem;
+  border-bottom-left-radius: 0.5rem;
+}
+.rounded-r-lg{
+  border-top-right-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+}
 .border{
   border-width: 1px;
 }
@@ -1170,6 +1184,9 @@ h3{
 }
 .border-t{
   border-top-width: 1px;
+}
+.border-r-0{
+  border-right-width: 0px;
 }
 .border-amber-100{
   --tw-border-opacity: 1;
@@ -1568,6 +1585,9 @@ h3{
 }
 .font-serif{
   font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+}
+.font-mono{
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 .text-2xl{
   font-size: 1.5rem;
@@ -2343,6 +2363,16 @@ h3{
 .hover\:bg-slate-100:hover{
   --tw-bg-opacity: 1;
   background-color: rgb(241 245 249 / var(--tw-bg-opacity, 1));
+}
+
+.hover\:bg-emerald-600:hover{
+  --tw-bg-opacity: 1;
+  background-color: rgb(5 150 105 / var(--tw-bg-opacity, 1));
+}
+
+.hover\:bg-amber-600:hover{
+  --tw-bg-opacity: 1;
+  background-color: rgb(217 119 6 / var(--tw-bg-opacity, 1));
 }
 
 .hover\:text-sky-300:hover{
