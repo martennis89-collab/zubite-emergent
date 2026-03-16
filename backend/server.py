@@ -775,6 +775,10 @@ async def startup():
     await db.clinics.create_index("id", unique=True)
     await db.clinics.create_index("city_slug")
     await db.admin_users.create_index("username", unique=True)
+    await db.blog_posts.create_index("id", unique=True)
+    await db.blog_posts.create_index("slug", unique=True)
+    await db.blog_posts.create_index("is_published")
+    await db.blog_posts.create_index("category")
 
 @app.on_event("shutdown")
 async def shutdown():
