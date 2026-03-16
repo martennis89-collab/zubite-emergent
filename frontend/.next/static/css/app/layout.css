@@ -752,6 +752,12 @@ h3{
 .mt-8{
   margin-top: 2rem;
 }
+.line-clamp-2{
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
 .block{
   display: block;
 }
@@ -830,6 +836,9 @@ h3{
 .h-full{
   height: 100%;
 }
+.h-11{
+  height: 2.75rem;
+}
 .max-h-0{
   max-height: 0px;
 }
@@ -899,6 +908,9 @@ h3{
 .w-full{
   width: 100%;
 }
+.min-w-0{
+  min-width: 0px;
+}
 .max-w-2xl{
   max-width: 42rem;
 }
@@ -941,6 +953,10 @@ h3{
 }
 .rotate-180{
   --tw-rotate: 180deg;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+.rotate-\[135deg\]{
+  --tw-rotate: 135deg;
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
 .transform{
@@ -1119,6 +1135,11 @@ h3{
 }
 .overflow-x-auto{
   overflow-x: auto;
+}
+.truncate{
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .rounded{
   border-radius: 0.25rem;
@@ -2304,6 +2325,26 @@ h3{
   background-color: rgb(255 255 255 / 0.1);
 }
 
+.hover\:bg-amber-50:hover{
+  --tw-bg-opacity: 1;
+  background-color: rgb(255 251 235 / var(--tw-bg-opacity, 1));
+}
+
+.hover\:bg-emerald-50:hover{
+  --tw-bg-opacity: 1;
+  background-color: rgb(236 253 245 / var(--tw-bg-opacity, 1));
+}
+
+.hover\:bg-red-50:hover{
+  --tw-bg-opacity: 1;
+  background-color: rgb(254 242 242 / var(--tw-bg-opacity, 1));
+}
+
+.hover\:bg-slate-100:hover{
+  --tw-bg-opacity: 1;
+  background-color: rgb(241 245 249 / var(--tw-bg-opacity, 1));
+}
+
 .hover\:text-sky-300:hover{
   --tw-text-opacity: 1;
   color: rgb(125 211 252 / var(--tw-text-opacity, 1));
@@ -2332,6 +2373,16 @@ h3{
 .hover\:text-slate-900:hover{
   --tw-text-opacity: 1;
   color: rgb(15 23 42 / var(--tw-text-opacity, 1));
+}
+
+.hover\:text-red-500:hover{
+  --tw-text-opacity: 1;
+  color: rgb(239 68 68 / var(--tw-text-opacity, 1));
+}
+
+.hover\:text-slate-600:hover{
+  --tw-text-opacity: 1;
+  color: rgb(71 85 105 / var(--tw-text-opacity, 1));
 }
 
 .hover\:underline:hover{
@@ -2430,6 +2481,18 @@ h3{
 
   .sm\:flex-row{
     flex-direction: row;
+  }
+
+  .sm\:items-center{
+    align-items: center;
+  }
+
+  .sm\:justify-between{
+    justify-content: space-between;
+  }
+
+  .sm\:p-6{
+    padding: 1.5rem;
   }
 
   .sm\:px-6{
