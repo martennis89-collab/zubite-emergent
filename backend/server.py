@@ -578,6 +578,166 @@ async def serve_ortho_page_bg(city_slug: str):
         return FileResponse(file_path, media_type="text/html")
     raise HTTPException(status_code=404, detail="Page not found")
 
+# ============== BLOG MODELS ==============
+
+class BlogPostCreate(BaseModel):
+    title: str
+    slug: str
+    excerpt: str
+    content: str
+    featured_image: Optional[str] = None
+    category: str = "orthodontics"
+    tags: List[str] = []
+    meta_title: Optional[str] = None
+    meta_description: Optional[str] = None
+    is_published: bool = False
+
+class BlogPostUpdate(BaseModel):
+    title: Optional[str] = None
+    slug: Optional[str] = None
+    excerpt: Optional[str] = None
+    content: Optional[str] = None
+    featured_image: Optional[str] = None
+    category: Optional[str] = None
+    tags: Optional[List[str]] = None
+    meta_title: Optional[str] = None
+    meta_description: Optional[str] = None
+    is_published: Optional[bool] = None
+
+class BlogPost(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    slug: str
+    excerpt: str
+    content: str
+    featured_image: Optional[str] = None
+    category: str = "orthodontics"
+    tags: List[str] = []
+    meta_title: Optional[str] = None
+    meta_description: Optional[str] = None
+    is_published: bool = False
+    author_id: Optional[str] = None
+    author_name: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    published_at: Optional[datetime] = None
+    view_count: int = 0
+
+# ============== BLOG ENDPOINTS ==============
+
+# Public blog endpoints
+@api_router.get("/blog/posts")
+async def get_published_posts(
+    category: Optional[str] = None,
+    tag: Optional[str] = None,
+    limit: int = 10,
+    skip: int = 0
+):
+    """Get published blog posts for public view"""
+    query = {"is_published": True}
+    if category:
+        query["category"] = category
+    if tag:
+        query["tags"] = tag
+    
+    cursor = db.blog_posts.find(query, {"_id": 0}).sort("published_at", -1).skip(skip).limit(limit)
+    posts = await cursor.to_list(length=limit)
+    total = await db.blog_posts.count_documents(query)
+    
+    return {"posts": posts, "total": total}
+
+@api_router.get("/blog/posts/{slug}")
+async def get_post_by_slug(slug: str):
+    """Get a single published blog post by slug"""
+    post = await db.blog_posts.find_one({"slug": slug, "is_published": True}, {"_id": 0})
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    
+    # Increment view count
+    await db.blog_posts.update_one({"slug": slug}, {"$inc": {"view_count": 1}})
+    
+    return post
+
+# Admin blog endpoints
+@api_router.get("/admin/blog/posts")
+async def admin_get_posts(
+    user: AdminUser = Depends(get_current_user),
+    is_published: Optional[bool] = None,
+    limit: int = 50,
+    skip: int = 0
+):
+    """Get all blog posts for admin"""
+    query = {}
+    if is_published is not None:
+        query["is_published"] = is_published
+    
+    cursor = db.blog_posts.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit)
+    posts = await cursor.to_list(length=limit)
+    total = await db.blog_posts.count_documents(query)
+    
+    return {"posts": posts, "total": total}
+
+@api_router.get("/admin/blog/posts/{post_id}")
+async def admin_get_post(post_id: str, user: AdminUser = Depends(get_current_user)):
+    """Get a single blog post by ID for admin"""
+    post = await db.blog_posts.find_one({"id": post_id}, {"_id": 0})
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    return post
+
+@api_router.post("/admin/blog/posts", response_model=BlogPost)
+async def admin_create_post(
+    post_data: BlogPostCreate,
+    user: AdminUser = Depends(get_current_user)
+):
+    """Create a new blog post"""
+    # Check if slug already exists
+    existing = await db.blog_posts.find_one({"slug": post_data.slug})
+    if existing:
+        raise HTTPException(status_code=400, detail="Slug already exists")
+    
+    post = BlogPost(
+        **post_data.model_dump(),
+        author_id=user.id,
+        author_name=user.username,
+        published_at=datetime.now(timezone.utc) if post_data.is_published else None
+    )
+    
+    await db.blog_posts.insert_one(post.model_dump())
+    return post
+
+@api_router.put("/admin/blog/posts/{post_id}", response_model=BlogPost)
+async def admin_update_post(
+    post_id: str,
+    post_data: BlogPostUpdate,
+    user: AdminUser = Depends(get_current_user)
+):
+    """Update a blog post"""
+    existing = await db.blog_posts.find_one({"id": post_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Post not found")
+    
+    update_data = {k: v for k, v in post_data.model_dump().items() if v is not None}
+    update_data["updated_at"] = datetime.now(timezone.utc)
+    
+    # Set published_at if publishing for the first time
+    if post_data.is_published and not existing.get("published_at"):
+        update_data["published_at"] = datetime.now(timezone.utc)
+    
+    await db.blog_posts.update_one({"id": post_id}, {"$set": update_data})
+    
+    updated = await db.blog_posts.find_one({"id": post_id}, {"_id": 0})
+    return BlogPost(**updated)
+
+@api_router.delete("/admin/blog/posts/{post_id}")
+async def admin_delete_post(post_id: str, user: AdminUser = Depends(get_current_user)):
+    """Delete a blog post"""
+    result = await db.blog_posts.delete_one({"id": post_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Post not found")
+    return {"message": "Post deleted successfully"}
+
 @api_router.get("/seo/en/city/{city_slug}/ortho/", response_class=HTMLResponse)
 async def serve_ortho_page_en(city_slug: str):
     file_path = STATIC_DIR / "en" / "city" / city_slug / "ortho" / "index.html"
