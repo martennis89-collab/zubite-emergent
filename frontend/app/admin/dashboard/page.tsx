@@ -202,14 +202,23 @@ export default function AdminDashboardPage() {
               <span className="text-slate-300">|</span>
               <span className="text-slate-600 font-medium">Админ Панел</span>
             </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors"
-              data-testid="logout-btn"
-            >
-              <LogOut className="w-5 h-5" />
-              <span className="hidden sm:inline">Изход</span>
-            </button>
+            <div className="flex items-center gap-4">
+              <Link
+                href="/admin/blog"
+                className="flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors"
+              >
+                <FileText className="w-5 h-5" />
+                <span className="hidden sm:inline">Блог</span>
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors"
+                data-testid="logout-btn"
+              >
+                <LogOut className="w-5 h-5" />
+                <span className="hidden sm:inline">Изход</span>
+              </button>
+            </div>
           </div>
         </div>
       </header>
