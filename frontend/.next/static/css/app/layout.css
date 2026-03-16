@@ -725,8 +725,14 @@ h3{
 .ml-2{
   margin-left: 0.5rem;
 }
+.ml-4{
+  margin-left: 1rem;
+}
 .ml-auto{
   margin-left: auto;
+}
+.mr-1{
+  margin-right: 0.25rem;
 }
 .mt-0\.5{
   margin-top: 0.125rem;
@@ -736,6 +742,9 @@ h3{
 }
 .mt-10{
   margin-top: 2.5rem;
+}
+.mt-12{
+  margin-top: 3rem;
 }
 .mt-2{
   margin-top: 0.5rem;
@@ -751,15 +760,6 @@ h3{
 }
 .mt-8{
   margin-top: 2rem;
-}
-.mr-1{
-  margin-right: 0.25rem;
-}
-.mt-12{
-  margin-top: 3rem;
-}
-.ml-4{
-  margin-left: 1rem;
 }
 .line-clamp-2{
   overflow: hidden;
@@ -799,6 +799,9 @@ h3{
 }
 .h-10{
   height: 2.5rem;
+}
+.h-11{
+  height: 2.75rem;
 }
 .h-12{
   height: 3rem;
@@ -845,14 +848,11 @@ h3{
 .h-9{
   height: 2.25rem;
 }
-.h-full{
-  height: 100%;
-}
-.h-11{
-  height: 2.75rem;
-}
 .h-auto{
   height: auto;
+}
+.h-full{
+  height: 100%;
 }
 .max-h-0{
   max-height: 0px;
@@ -1196,11 +1196,11 @@ h3{
 .border-b{
   border-bottom-width: 1px;
 }
-.border-t{
-  border-top-width: 1px;
-}
 .border-r-0{
   border-right-width: 0px;
+}
+.border-t{
+  border-top-width: 1px;
 }
 .border-amber-100{
   --tw-border-opacity: 1;
@@ -1406,6 +1406,11 @@ h3{
   --tw-gradient-to: rgb(186 230 253 / 0) var(--tw-gradient-to-position);
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
 }
+.from-sky-50{
+  --tw-gradient-from: #f0f9ff var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(240 249 255 / 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
 .from-sky-500{
   --tw-gradient-from: #0ea5e9 var(--tw-gradient-from-position);
   --tw-gradient-to: rgb(14 165 233 / 0) var(--tw-gradient-to-position);
@@ -1419,11 +1424,6 @@ h3{
 .from-white{
   --tw-gradient-from: #fff var(--tw-gradient-from-position);
   --tw-gradient-to: rgb(255 255 255 / 0) var(--tw-gradient-to-position);
-  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
-}
-.from-sky-50{
-  --tw-gradient-from: #f0f9ff var(--tw-gradient-from-position);
-  --tw-gradient-to: rgb(240 249 255 / 0) var(--tw-gradient-to-position);
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
 }
 .via-sky-50{
@@ -1550,13 +1550,13 @@ h3{
   padding-top: 1rem;
   padding-bottom: 1rem;
 }
-.py-8{
-  padding-top: 2rem;
-  padding-bottom: 2rem;
-}
 .py-6{
   padding-top: 1.5rem;
   padding-bottom: 1.5rem;
+}
+.py-8{
+  padding-top: 2rem;
+  padding-bottom: 2rem;
 }
 .pb-12{
   padding-bottom: 3rem;
@@ -1606,11 +1606,11 @@ h3{
 .text-center{
   text-align: center;
 }
-.font-serif{
-  font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
-}
 .font-mono{
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+.font-serif{
+  font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
 }
 .text-2xl{
   font-size: 1.5rem;
@@ -1769,6 +1769,10 @@ h3{
   --tw-text-opacity: 1;
   color: rgb(7 89 133 / var(--tw-text-opacity, 1));
 }
+.text-slate-200{
+  --tw-text-opacity: 1;
+  color: rgb(226 232 240 / var(--tw-text-opacity, 1));
+}
 .text-slate-300{
   --tw-text-opacity: 1;
   color: rgb(203 213 225 / var(--tw-text-opacity, 1));
@@ -1796,10 +1800,6 @@ h3{
 .text-white{
   --tw-text-opacity: 1;
   color: rgb(255 255 255 / var(--tw-text-opacity, 1));
-}
-.text-slate-200{
-  --tw-text-opacity: 1;
-  color: rgb(226 232 240 / var(--tw-text-opacity, 1));
 }
 .underline{
   text-decoration-line: underline;
@@ -2342,9 +2342,34 @@ h3{
   border-color: rgb(203 213 225 / var(--tw-border-opacity, 1));
 }
 
+.hover\:bg-amber-50:hover{
+  --tw-bg-opacity: 1;
+  background-color: rgb(255 251 235 / var(--tw-bg-opacity, 1));
+}
+
+.hover\:bg-amber-600:hover{
+  --tw-bg-opacity: 1;
+  background-color: rgb(217 119 6 / var(--tw-bg-opacity, 1));
+}
+
+.hover\:bg-emerald-50:hover{
+  --tw-bg-opacity: 1;
+  background-color: rgb(236 253 245 / var(--tw-bg-opacity, 1));
+}
+
+.hover\:bg-emerald-600:hover{
+  --tw-bg-opacity: 1;
+  background-color: rgb(5 150 105 / var(--tw-bg-opacity, 1));
+}
+
 .hover\:bg-emerald-700:hover{
   --tw-bg-opacity: 1;
   background-color: rgb(4 120 87 / var(--tw-bg-opacity, 1));
+}
+
+.hover\:bg-red-50:hover{
+  --tw-bg-opacity: 1;
+  background-color: rgb(254 242 242 / var(--tw-bg-opacity, 1));
 }
 
 .hover\:bg-sky-100:hover{
@@ -2362,6 +2387,11 @@ h3{
   background-color: rgb(2 132 199 / var(--tw-bg-opacity, 1));
 }
 
+.hover\:bg-slate-100:hover{
+  --tw-bg-opacity: 1;
+  background-color: rgb(241 245 249 / var(--tw-bg-opacity, 1));
+}
+
 .hover\:bg-slate-50:hover{
   --tw-bg-opacity: 1;
   background-color: rgb(248 250 252 / var(--tw-bg-opacity, 1));
@@ -2375,34 +2405,9 @@ h3{
   background-color: rgb(255 255 255 / 0.1);
 }
 
-.hover\:bg-amber-50:hover{
-  --tw-bg-opacity: 1;
-  background-color: rgb(255 251 235 / var(--tw-bg-opacity, 1));
-}
-
-.hover\:bg-emerald-50:hover{
-  --tw-bg-opacity: 1;
-  background-color: rgb(236 253 245 / var(--tw-bg-opacity, 1));
-}
-
-.hover\:bg-red-50:hover{
-  --tw-bg-opacity: 1;
-  background-color: rgb(254 242 242 / var(--tw-bg-opacity, 1));
-}
-
-.hover\:bg-slate-100:hover{
-  --tw-bg-opacity: 1;
-  background-color: rgb(241 245 249 / var(--tw-bg-opacity, 1));
-}
-
-.hover\:bg-emerald-600:hover{
-  --tw-bg-opacity: 1;
-  background-color: rgb(5 150 105 / var(--tw-bg-opacity, 1));
-}
-
-.hover\:bg-amber-600:hover{
-  --tw-bg-opacity: 1;
-  background-color: rgb(217 119 6 / var(--tw-bg-opacity, 1));
+.hover\:text-red-500:hover{
+  --tw-text-opacity: 1;
+  color: rgb(239 68 68 / var(--tw-text-opacity, 1));
 }
 
 .hover\:text-sky-300:hover{
@@ -2425,6 +2430,11 @@ h3{
   color: rgb(3 105 161 / var(--tw-text-opacity, 1));
 }
 
+.hover\:text-slate-600:hover{
+  --tw-text-opacity: 1;
+  color: rgb(71 85 105 / var(--tw-text-opacity, 1));
+}
+
 .hover\:text-slate-700:hover{
   --tw-text-opacity: 1;
   color: rgb(51 65 85 / var(--tw-text-opacity, 1));
@@ -2433,16 +2443,6 @@ h3{
 .hover\:text-slate-900:hover{
   --tw-text-opacity: 1;
   color: rgb(15 23 42 / var(--tw-text-opacity, 1));
-}
-
-.hover\:text-red-500:hover{
-  --tw-text-opacity: 1;
-  color: rgb(239 68 68 / var(--tw-text-opacity, 1));
-}
-
-.hover\:text-slate-600:hover{
-  --tw-text-opacity: 1;
-  color: rgb(71 85 105 / var(--tw-text-opacity, 1));
 }
 
 .hover\:underline:hover{
@@ -2650,6 +2650,11 @@ h3{
     padding: 2rem;
   }
 
+  .md\:py-16{
+    padding-top: 4rem;
+    padding-bottom: 4rem;
+  }
+
   .md\:py-20{
     padding-top: 5rem;
     padding-bottom: 5rem;
@@ -2658,11 +2663,6 @@ h3{
   .md\:py-24{
     padding-top: 6rem;
     padding-bottom: 6rem;
-  }
-
-  .md\:py-16{
-    padding-top: 4rem;
-    padding-bottom: 4rem;
   }
 
   .md\:pb-16{
