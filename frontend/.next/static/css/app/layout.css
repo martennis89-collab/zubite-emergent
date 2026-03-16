@@ -758,6 +758,9 @@ h3{
 .mt-12{
   margin-top: 3rem;
 }
+.ml-4{
+  margin-left: 1rem;
+}
 .line-clamp-2{
   overflow: hidden;
   display: -webkit-box;
@@ -847,6 +850,9 @@ h3{
 }
 .h-11{
   height: 2.75rem;
+}
+.h-auto{
+  height: auto;
 }
 .max-h-0{
   max-height: 0px;
@@ -1415,6 +1421,11 @@ h3{
   --tw-gradient-to: rgb(255 255 255 / 0) var(--tw-gradient-to-position);
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
 }
+.from-sky-50{
+  --tw-gradient-from: #f0f9ff var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(240 249 255 / 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
 .via-sky-50{
   --tw-gradient-to: rgb(240 249 255 / 0)  var(--tw-gradient-to-position);
   --tw-gradient-stops: var(--tw-gradient-from), #f0f9ff var(--tw-gradient-via-position), var(--tw-gradient-to);
@@ -1542,6 +1553,10 @@ h3{
 .py-8{
   padding-top: 2rem;
   padding-bottom: 2rem;
+}
+.py-6{
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
 }
 .pb-12{
   padding-bottom: 3rem;
@@ -1785,6 +1800,9 @@ h3{
 .text-slate-200{
   --tw-text-opacity: 1;
   color: rgb(226 232 240 / var(--tw-text-opacity, 1));
+}
+.underline{
+  text-decoration-line: underline;
 }
 .antialiased{
   -webkit-font-smoothing: antialiased;
