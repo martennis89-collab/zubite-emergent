@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { 
   Loader2, LogOut, Users, TrendingUp, MapPin, Phone, Mail, 
   Calendar, Filter, RefreshCw, ChevronRight, CheckCircle, 
-  AlertCircle, XCircle, FileDown, Search
+  AlertCircle, XCircle, FileDown, Search, FileText
 } from 'lucide-react'
 
 interface Lead {
