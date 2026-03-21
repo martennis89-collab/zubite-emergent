@@ -28,8 +28,8 @@ export default function AdminLoginPage() {
     setIsLoading(true)
     
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api'
-      const response = await fetch(`${API_URL}/admin/login`, {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+      const response = await fetch(`${API_URL}/api/admin/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
