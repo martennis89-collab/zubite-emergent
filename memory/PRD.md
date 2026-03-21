@@ -9,16 +9,16 @@ Zubite.bg is an educational orthodontic platform helping Bulgarian users underst
 - **Styling**: Tailwind CSS with white/sky-blue accents
 - **Email**: Resend for lead notifications
 
-## Core User Flow (Updated December 2025)
+## Core User Flow
 ```
 Homepage → Quiz (10 questions with micro-insights) → Result Stage → Soft Commit → Lead Form (A/B) → Success Screen
 ```
 
 ---
 
-## Master Quiz System v3 (Updated December 2025)
+## Master Quiz System v3 (December 2025)
 
-### New Features
+### Features
 
 #### 1. Micro-Insights Between Questions
 Psychological triggers inserted AFTER specific questions:
@@ -41,80 +41,24 @@ Psychological triggers inserted AFTER specific questions:
 - **Button**: „Обратно към началото"
 
 #### 4. Lead Form A/B Testing
-**Version A (Full)**:
-- Име*
-- Телефон*
-- Имейл
-- Град*
-
-**Version B (Simplified)**:
-- Телефон*
-- Град*
-
-Form value prop above: „Ще получиш 3 реални препоръки според твоя случай — не просто списък с клиники."
+**Version A (Full)**: Име*, Телефон*, Имейл, Град*
+**Version B (Simplified)**: Телефон*, Град*
 
 #### 5. Analytics Tracking
-Every interaction is tracked:
-- `quiz_start` - Session begins
-- `question_answered` - Each question with answer, score, time
-- `quiz_completed` - Final score, band, total time
-- `soft_commit` - Yes/No choice
-- `form_submitted` - Form version, city, has_name, has_email
+Every interaction is tracked: quiz_start, question_answered, quiz_completed, soft_commit, form_submitted
 
 ---
 
 ## Admin Analytics Dashboard (/admin/analytics)
 
 ### Metrics Tracked
-
-#### Quiz Metrics
-- Total quiz starts
-- Completion rate (%)
+- Quiz start/completion rates
 - Drop-off per question
-- Average time to complete
-
-#### Question Analytics
-For each question:
-- % "Да"
-- % "Понякога" / "Не съм сигурен"
-- % "Не"
-
-#### Result Distribution
-- % early (Ранен етап)
-- % progressing (Развиващ се етап)
-- % advanced (Напреднал етап)
-
-#### Funnel Metrics
-- Quiz start → Quiz completed
-- Quiz completed → Soft commit YES
-- Soft commit YES → Form submitted
-- Soft commit NO tracked separately
-
-#### Form Analytics
+- Question-by-question answer distribution
+- Result stage distribution
+- Form A/B test conversion comparison
 - Leads per day (30 day chart)
-- Leads by city (Sofia vs Plovdiv)
-- Form Version A vs B conversion comparison
-
----
-
-## Quiz Questions (10 Questions)
-| Q# | Question | Options (Score) |
-|----|----------|-----------------|
-| 1 | Имаш ли усещане, че някои зъби са леко струпани или застъпени? | Да(2), Понякога(1), Не(0) |
-| 2 | Когато захапеш, усещаш ли зъбите си напълно равномерно? | Не(2), Не съм сигурен(1), Да(0) |
-| 3 | Дъвчеш ли повече от едната страна, без да се замисляш? | Да(2), Понякога(1), Не(0) |
-| 4 | Случва ли се да дишаш през устата (особено нощем)? | Да(2), Понякога(1), Не(0) |
-| 5 | Чуваш ли щракане или пукане при отваряне на устата? | Да(2), Понякога(1), Не(0) |
-| 6 | Събуждаш ли се с напрежение в челюстта или лицето? | Да(2), Понякога(1), Не(0) |
-| 7 | Задържа ли се храна на едни и същи места между зъбите? | Да(2), Понякога(1), Не(0) |
-| 8 | Забелязал ли си зъбите ти да изглеждат по-износени с времето? | Да(2), Не съм сигурен(1), Не(0) |
-| 9 | Имаш ли главоболие, напрежение във врата или ушите без ясна причина? | Да(2), Понякога(1), Не(0) |
-| 10 | Преди този тест мислеше ли, че имаш проблем със зъбите? | Не(2), Не бях сигурен(1), Да(0) |
-
-### Scoring
-- **0-5**: Ранен етап (Green)
-- **6-12**: Развиващ се етап (Amber)
-- **13-20**: Напреднал етап (Red)
+- Leads by city breakdown
 
 ---
 
@@ -123,24 +67,29 @@ For each question:
 ```
 /app/frontend/
 ├── app/
-│   ├── page.tsx                    # Homepage
-│   ├── quiz/
-│   │   └── page.tsx                # Master quiz
+│   ├── page.tsx                    # Homepage (uses AnimatedHomeSections)
+│   ├── api/revalidate/route.ts     # NEW: On-demand ISR revalidation
+│   ├── quiz/page.tsx               # Master quiz
 │   ├── admin/
 │   │   ├── page.tsx                # Login
 │   │   ├── dashboard/              # Leads dashboard
-│   │   ├── analytics/              # NEW: Analytics dashboard
-│   │   ├── blog/                   # Blog management
-│   │   └── leads/                  # Lead details
-│   ├── symptoms/
-│   ├── orthodontics/
-│   └── blog/
+│   │   ├── analytics/              # Analytics dashboard
+│   │   └── blog/                   # Blog management
+│   ├── blog/                       # Public blog pages
+│   ├── privacy/cookies/terms/      # GDPR pages
+│   └── ...
 │
 ├── components/
-│   └── MasterQuiz.tsx              # v3: Micro-insights, soft commit, A/B form
+│   ├── AnimatedHomeSections.tsx    # NEW: Animated homepage sections
+│   ├── MasterQuiz.tsx              # Quiz with micro-insights, A/B form
+│   ├── CookieConsent.tsx           # GDPR cookie banner
+│   └── ...
+│
+├── hooks/
+│   └── useScrollAnimation.tsx      # Scroll animation hook with effects
 
 /app/backend/
-└── server.py                       # NEW: /api/analytics/events, /api/admin/analytics
+└── server.py                       # FastAPI with revalidation integration
 ```
 
 ---
@@ -150,36 +99,27 @@ For each question:
 - **Email**: `admin@zubite.bg`
 - **Password**: `password`
 
-**Pages**:
-- /admin/dashboard - Leads management
-- /admin/analytics - Quiz analytics (NEW)
-- /admin/blog - Blog management
-
 ---
 
-## Completed Work (December 2025)
+## Completed Work
 
-### ✅ Quiz Enhancements v3
-- Micro-insights after Q2, Q5, Q6, Q8
-- Soft commit screen before lead form
-- Exit screen for "Not now" users
-- A/B testing on lead form (Version A: full, Version B: simplified)
-- Full analytics tracking on all interactions
-
-### ✅ Admin Analytics Dashboard
-- Quiz completion metrics
-- Question-by-question answer distribution
-- Conversion funnel visualization
-- Form A/B test results
-- Leads per day chart
-- Leads by city breakdown
+### ✅ March 21, 2026 - Homepage Animations & Blog Revalidation
+- **Homepage Scroll Animations**: Implemented scroll-triggered animations using IntersectionObserver
+  - ScrollReveal component with fade-up, fade-down, fade-left, fade-right, zoom, flip effects
+  - StaggerChildren for staggered reveal of list items
+  - Hover effects on all interactive elements (buttons, cards, links)
+  - Soft pulse animation on mobile CTA
+- **On-Demand Blog Revalidation**: Blog posts now appear instantly after creation/update/deletion
+  - Created `/api/revalidate` API route in Next.js
+  - Backend triggers revalidation via `asyncio.create_task` after blog CRUD
+  - Revalidates `/`, `/blog`, and `/blog/[slug]` paths
 
 ### ✅ Previous Work
-- Homepage copy update with psychological tension
-- 10-question assessment quiz
-- 3 result states with stage-specific content
-- Lead capture system
-- Blog CMS
+- Quiz system with micro-insights, soft-commit, A/B testing
+- Admin analytics dashboard
+- Blog CMS with Google Drive image support and Cyrillic-to-Latin slug
+- GDPR compliance (Privacy, Cookies, Terms pages + cookie consent banner)
+- Homepage copy optimization for psychological tension
 
 ---
 
@@ -190,15 +130,31 @@ For each question:
 - [ ] Add Google Ads Conversion ID (awaiting user input)
 
 ### P2 - Medium Priority
-- [ ] Blog static generation fix (on-demand revalidation)
+- [ ] Backend refactoring (split server.py into routers)
+- [ ] Frontend API client centralization
 - [ ] Replace placeholder OG images
 
 ### P3 - Future
 - [ ] English translation (`/en/...` routes)
 - [ ] More cities beyond София and Пловдив
-- [ ] Backend refactoring (split server.py into routers)
+- [ ] Create specific quizzes for other treatments
 
 ---
 
-*Last updated: December 2025*
-*Latest changes: Quiz v3 with micro-insights, soft commit, A/B form testing, and admin analytics dashboard*
+## Technical Notes
+
+### On-Demand Revalidation
+- **Endpoint**: `/api/revalidate` (POST/GET)
+- **Secret**: Set via `REVALIDATE_SECRET` env var (default: `zubite-revalidate-secret-2024`)
+- **Trigger**: Backend calls after blog post create/update/delete
+- **Paths revalidated**: `/`, `/blog`, `/blog/[slug]`
+
+### Scroll Animation System
+- **Hook**: `useScrollAnimation` in `/app/frontend/hooks/useScrollAnimation.tsx`
+- **Components**: `ScrollReveal`, `StaggerChildren`, `useParallax`, `useCountUp`
+- **Usage**: Client-side components in `AnimatedHomeSections.tsx`
+
+---
+
+*Last updated: March 21, 2026*
+*Latest changes: Homepage scroll animations and on-demand blog revalidation*
