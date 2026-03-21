@@ -34,17 +34,25 @@ const CATEGORY_NAMES: Record<string, string> = {
 
 async function getBlogPosts(): Promise<{ posts: BlogPost[], total: number }> {
   try {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api'
-    const response = await fetch(`${API_URL}/blog/posts?limit=20`, {
+    // For server-side rendering, use internal URL
+    const isServer = typeof window === 'undefined'
+    const API_URL = isServer 
+      ? 'http://localhost:8001' 
+      : (process.env.NEXT_PUBLIC_API_URL || '')
+    
+    const response = await fetch(`${API_URL}/api/blog/posts?limit=20`, {
       next: { revalidate: 60 }, // Revalidate every 60 seconds
+      cache: 'no-store' // Disable caching for now to debug
     })
     
     if (!response.ok) {
+      console.error('Blog fetch error:', response.status, response.statusText)
       return { posts: [], total: 0 }
     }
     
     return response.json()
-  } catch {
+  } catch (error) {
+    console.error('Blog fetch exception:', error)
     return { posts: [], total: 0 }
   }
 }
@@ -151,13 +159,13 @@ export default async function BlogPage() {
             Готови да направите първата стъпка?
           </h2>
           <p className="text-slate-600 mb-8">
-            Направете безплатна оценка и разберете кое лечение е подходящо за вас.
+            Направете безплатна оценка и разберете на какъв етап сте.
           </p>
           <Link
-            href="/assessment"
+            href="/quiz"
             className="inline-flex items-center justify-center gap-2 h-12 px-8 rounded-full bg-sky-500 text-white font-medium hover:bg-sky-600 transition-all duration-300 hover:shadow-lg"
           >
-            Направете оценка
+            Провери етапа си
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
