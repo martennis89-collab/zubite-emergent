@@ -1,1 +1,0 @@
-self.__SSG_MANIFEST=new Set(["\u002F[city]\u002F[treatment]","\u002Fsymptoms\u002F[symptomSlug]"]);self.__SSG_MANIFEST_CB&&self.__SSG_MANIFEST_CB()
