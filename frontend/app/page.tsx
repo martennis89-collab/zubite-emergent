@@ -1,20 +1,34 @@
 import Link from 'next/link'
 import { Metadata } from 'next'
-import { ArrowRight, ChevronRight, AlertTriangle, TrendingUp, Clock, Target, Check } from 'lucide-react'
+import { ArrowRight, ChevronRight, AlertTriangle, TrendingUp, Clock, Target } from 'lucide-react'
 
 export const metadata: Metadata = {
-  title: 'Zubite | Провери на кой етап си — преди да стане по-сложно',
+  title: 'Zubite.bg | Провери на кой етап си — преди да стане по-сложно',
   description: 'Повечето хора вече имат ранни признаци на проблеми със зъбите — но ги осъзнават чак когато лечението стане по-сложно. Провери къде се намираш за 60 секунди.',
+  keywords: 'ортодонтия, брекети, алайнери, зъби, захапка, ортодонт, България',
   alternates: {
     canonical: 'https://zubite.bg/',
   },
   openGraph: {
-    title: 'Zubite | Провери на кой етап си',
+    title: 'Zubite.bg | Провери на кой етап си',
     description: 'Повечето хора чакат, докато стане скъпо. Ти на кой етап си?',
     url: 'https://zubite.bg/',
-    siteName: 'Zubite',
+    siteName: 'Zubite.bg',
     locale: 'bg_BG',
     type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Zubite.bg | Провери на кой етап си',
+    description: 'Повечето хора чакат, докато стане скъпо. Ти на кой етап си?',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
   },
 }
 
@@ -32,20 +46,23 @@ const stages = [
   {
     stage: 'Рано',
     description: 'почти незабележимо',
-    color: 'from-emerald-500/20 to-emerald-500/5',
-    dot: 'bg-emerald-400',
+    color: 'bg-emerald-50 border-emerald-200',
+    dot: 'bg-emerald-500',
+    text: 'text-emerald-700',
   },
   {
     stage: 'Средно',
     description: 'вече се усеща',
-    color: 'from-amber-500/20 to-amber-500/5',
-    dot: 'bg-amber-400',
+    color: 'bg-amber-50 border-amber-200',
+    dot: 'bg-amber-500',
+    text: 'text-amber-700',
   },
   {
     stage: 'Късно',
     description: 'става сложно и скъпо',
-    color: 'from-red-500/20 to-red-500/5',
-    dot: 'bg-red-400',
+    color: 'bg-red-50 border-red-200',
+    dot: 'bg-red-500',
+    text: 'text-red-700',
   },
 ]
 
@@ -59,12 +76,13 @@ const reasons = [
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-[#0f172a] text-white overflow-hidden">
-      {/* Sticky CTA */}
+    <main className="min-h-screen bg-white text-slate-900">
+      {/* Sticky CTA - Mobile */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 md:hidden">
         <Link
           href="/assessment"
-          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-sky-500 to-blue-600 text-white font-medium rounded-full shadow-lg shadow-sky-500/30 hover:shadow-sky-500/50 transition-all"
+          className="flex items-center gap-2 px-6 py-3 bg-sky-500 text-white font-medium rounded-full shadow-lg shadow-sky-500/30 hover:bg-sky-600 transition-all"
+          aria-label="Провери етапа си"
         >
           <span>Провери етапа си</span>
           <ArrowRight className="w-4 h-4" />
@@ -72,47 +90,50 @@ export default function HomePage() {
       </div>
 
       {/* Navigation */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-[#0f172a]/80 backdrop-blur-lg border-b border-white/5">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-100">
+        <nav className="max-w-6xl mx-auto px-4 sm:px-6" aria-label="Главна навигация">
           <div className="flex items-center justify-between h-16 md:h-20">
-            <Link href="/" className="font-serif text-2xl font-semibold text-white">
-              Zubite
+            <Link href="/" className="font-serif text-2xl font-semibold text-slate-900" aria-label="Zubite.bg начална страница">
+              Zubite<span className="text-sky-500">.bg</span>
             </Link>
-            <Link
-              href="/assessment"
-              className="hidden md:flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-sky-500 to-blue-600 text-white text-sm font-medium rounded-full hover:shadow-lg hover:shadow-sky-500/25 transition-all"
-            >
-              Провери етапа си
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+            <div className="hidden md:flex items-center gap-8">
+              <Link href="/blog" className="text-sm text-slate-600 hover:text-slate-900 transition-colors">
+                Блог
+              </Link>
+              <Link href="/orthodontics" className="text-sm text-slate-600 hover:text-slate-900 transition-colors">
+                Ортодонтия
+              </Link>
+              <Link
+                href="/assessment"
+                className="flex items-center gap-2 px-6 py-2.5 bg-sky-500 text-white text-sm font-medium rounded-full hover:bg-sky-600 hover:shadow-lg hover:shadow-sky-500/25 transition-all"
+              >
+                Провери етапа си
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
           </div>
-        </div>
+        </nav>
       </header>
 
       {/* SECTION 1 — HERO */}
-      <section className="relative pt-32 md:pt-44 pb-20 md:pb-32">
-        {/* Background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-b from-sky-900/20 via-transparent to-transparent" />
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl" />
-        
-        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold leading-tight mb-8 animate-fade-in-up">
-            <span className="text-white">По-лесно е да оправиш зъбите си навреме.</span>
+      <section className="relative pt-32 md:pt-44 pb-20 md:pb-32 bg-gradient-to-b from-sky-50 to-white" aria-labelledby="hero-heading">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
+          <h1 id="hero-heading" className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold leading-tight mb-8 animate-fade-in-up">
+            <span className="text-slate-900">По-лесно е да оправиш зъбите си навреме.</span>
             <br />
-            <span className="text-slate-400">Повечето хора чакат, докато стане скъпо.</span>
+            <span className="text-slate-500">Повечето хора чакат, докато стане скъпо.</span>
             <br />
-            <span className="text-sky-400">Ти на кой етап си?</span>
+            <span className="text-sky-600">Ти на кой етап си?</span>
           </h1>
           
-          <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 animate-fade-in-up animate-delay-100">
+          <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto mb-10 animate-fade-in-up animate-delay-100">
             Повечето хора вече имат ранни признаци — но ги осъзнават чак когато лечението стане по-сложно.
           </p>
           
           <div className="animate-fade-in-up animate-delay-200">
             <Link
               href="/assessment"
-              className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-sky-500 to-blue-600 text-white text-lg font-medium rounded-full hover:shadow-xl hover:shadow-sky-500/30 transition-all duration-300 group"
+              className="inline-flex items-center gap-3 px-8 py-4 bg-sky-500 text-white text-lg font-medium rounded-full hover:bg-sky-600 hover:shadow-xl hover:shadow-sky-500/30 transition-all duration-300 group"
               data-testid="hero-cta"
             >
               <span>Провери къде се намираш</span>
@@ -127,32 +148,32 @@ export default function HomePage() {
       </section>
 
       {/* SECTION 2 — INTERRUPT */}
-      <section className="py-20 md:py-28 border-t border-white/5">
+      <section className="py-20 md:py-28 bg-white" aria-labelledby="interrupt-heading">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
           <div className="flex items-start gap-4 mb-10">
-            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
-              <AlertTriangle className="w-6 h-6 text-amber-400" />
+            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center" aria-hidden="true">
+              <AlertTriangle className="w-6 h-6 text-amber-600" />
             </div>
-            <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-white">
+            <h2 id="interrupt-heading" className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-slate-900">
               Не ти трябва болка, за да има проблем.
             </h2>
           </div>
           
           <div className="space-y-6 mb-12">
-            <p className="text-lg text-slate-300 pl-4 border-l-2 border-slate-700">
+            <p className="text-lg text-slate-700 pl-4 border-l-4 border-slate-200">
               Повечето проблеми със захапката започват тихо.
             </p>
-            <p className="text-lg text-slate-300 pl-4 border-l-2 border-slate-700">
+            <p className="text-lg text-slate-700 pl-4 border-l-4 border-slate-200">
               Малките размествания → неравномерно износване.
             </p>
-            <p className="text-lg text-slate-400 pl-4 border-l-2 border-sky-500/50">
-              <span className="text-sky-400">Ранният етап = най-лесен за корекция.</span>
+            <p className="text-lg text-slate-900 pl-4 border-l-4 border-sky-500 font-medium">
+              Ранният етап = най-лесен за корекция.
             </p>
           </div>
           
           <Link
             href="/assessment"
-            className="inline-flex items-center gap-2 text-sky-400 font-medium hover:text-sky-300 transition-colors group"
+            className="inline-flex items-center gap-2 text-sky-600 font-medium hover:text-sky-700 transition-colors group"
           >
             <span>Провери своя етап</span>
             <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -160,29 +181,29 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* SECTION 3 — SELF RECOGNITION */}
-      <section className="py-20 md:py-28 bg-gradient-to-b from-slate-900/50 to-transparent">
+      {/* SECTION 3 — SELF RECOGNITION (Blue Background) */}
+      <section className="py-20 md:py-28 bg-sky-600" aria-labelledby="recognition-heading">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
-          <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-white mb-12 text-center">
+          <h2 id="recognition-heading" className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-white mb-12 text-center">
             Звучи ли ти познато?
           </h2>
           
-          <div className="space-y-4 mb-12">
+          <ul className="space-y-4 mb-12" role="list">
             {symptoms.map((symptom, index) => (
-              <div 
+              <li 
                 key={index}
-                className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 hover:bg-white/[0.07] transition-all duration-300"
+                className="flex items-center gap-4 p-4 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/15 transition-all duration-300"
               >
-                <div className="w-2 h-2 rounded-full bg-sky-400" />
-                <span className="text-slate-300">{symptom}</span>
-              </div>
+                <span className="w-2 h-2 rounded-full bg-white flex-shrink-0" aria-hidden="true" />
+                <span className="text-white/90">{symptom}</span>
+              </li>
             ))}
-          </div>
+          </ul>
           
           <div className="text-center">
             <Link
               href="/assessment"
-              className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-sky-500 to-blue-600 text-white font-medium rounded-full hover:shadow-xl hover:shadow-sky-500/30 transition-all duration-300 group"
+              className="inline-flex items-center gap-3 px-8 py-4 bg-white text-sky-600 font-medium rounded-full hover:shadow-xl transition-all duration-300 group"
             >
               <span>Провери своя етап</span>
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -192,168 +213,203 @@ export default function HomePage() {
       </section>
 
       {/* SECTION 4 — PROGRESSION */}
-      <section className="py-20 md:py-28 border-t border-white/5">
+      <section className="py-20 md:py-28 bg-white" aria-labelledby="progression-heading">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <div className="flex items-start gap-4 mb-16">
-            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-red-400" />
+            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center" aria-hidden="true">
+              <TrendingUp className="w-6 h-6 text-red-600" />
             </div>
-            <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-white">
+            <h2 id="progression-heading" className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-slate-900">
               Това не остава същото. Влошава се.
             </h2>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6" role="list">
             {stages.map((item, index) => (
-              <div 
+              <article 
                 key={index}
-                className={`relative p-6 rounded-2xl bg-gradient-to-b ${item.color} border border-white/5`}
+                className={`relative p-6 rounded-2xl border-2 ${item.color}`}
               >
                 {/* Connector line */}
                 {index < stages.length - 1 && (
-                  <div className="hidden md:block absolute top-1/2 -right-3 w-6 h-0.5 bg-slate-700">
-                    <ChevronRight className="w-4 h-4 text-slate-600 absolute -right-1 -top-1.5" />
+                  <div className="hidden md:block absolute top-1/2 -right-3 w-6 h-0.5 bg-slate-300" aria-hidden="true">
+                    <ChevronRight className="w-4 h-4 text-slate-400 absolute -right-1 -top-1.5" />
                   </div>
                 )}
                 
-                <div className={`w-3 h-3 rounded-full ${item.dot} mb-4`} />
-                <h3 className="font-serif text-xl font-semibold text-white mb-2">{item.stage}</h3>
-                <p className="text-slate-400">{item.description}</p>
-              </div>
+                <div className={`w-3 h-3 rounded-full ${item.dot} mb-4`} aria-hidden="true" />
+                <h3 className={`font-serif text-xl font-semibold ${item.text} mb-2`}>{item.stage}</h3>
+                <p className="text-slate-600">{item.description}</p>
+              </article>
             ))}
           </div>
         </div>
       </section>
 
       {/* SECTION 5 — COST REFRAME */}
-      <section className="py-20 md:py-28 bg-gradient-to-b from-slate-900/50 to-transparent">
+      <section className="py-20 md:py-28 bg-slate-50" aria-labelledby="cost-heading">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
           <div className="flex items-start gap-4 mb-12">
-            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-sky-500/10 flex items-center justify-center">
-              <Clock className="w-6 h-6 text-sky-400" />
+            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-sky-100 flex items-center justify-center" aria-hidden="true">
+              <Clock className="w-6 h-6 text-sky-600" />
             </div>
-            <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-white">
+            <h2 id="cost-heading" className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-slate-900">
               Решението навреме и решението по-късно не са едно и също.
             </h2>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-6 rounded-2xl bg-emerald-500/5 border border-emerald-500/20">
+            <article className="p-6 rounded-2xl bg-white border-2 border-emerald-200">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                <span className="text-emerald-400 font-medium">Ранен етап</span>
+                <span className="w-3 h-3 rounded-full bg-emerald-500" aria-hidden="true" />
+                <span className="text-emerald-700 font-semibold">Ранен етап</span>
               </div>
-              <p className="text-slate-300">По-лесно, по-бързо, по-предвидимо.</p>
-            </div>
-            <div className="p-6 rounded-2xl bg-red-500/5 border border-red-500/20">
+              <p className="text-slate-700">По-лесно, по-бързо, по-предвидимо.</p>
+            </article>
+            <article className="p-6 rounded-2xl bg-white border-2 border-red-200">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-2 h-2 rounded-full bg-red-400" />
-                <span className="text-red-400 font-medium">Късен етап</span>
+                <span className="w-3 h-3 rounded-full bg-red-500" aria-hidden="true" />
+                <span className="text-red-700 font-semibold">Късен етап</span>
               </div>
-              <p className="text-slate-300">По-сложно, по-скъпо.</p>
-            </div>
+              <p className="text-slate-700">По-сложно, по-скъпо.</p>
+            </article>
           </div>
         </div>
       </section>
 
       {/* SECTION 6 — AUTHORITY / SEO */}
-      <section className="py-20 md:py-28 border-t border-white/5">
+      <section className="py-20 md:py-28 bg-white" aria-labelledby="authority-heading">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
           <div className="flex items-start gap-4 mb-10">
-            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-slate-500/10 flex items-center justify-center">
-              <Target className="w-6 h-6 text-slate-400" />
+            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center" aria-hidden="true">
+              <Target className="w-6 h-6 text-slate-600" />
             </div>
-            <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-white">
+            <h2 id="authority-heading" className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-slate-900">
               Защо повечето хора пропускат ранния етап
             </h2>
           </div>
           
-          <div className="space-y-4 mb-10">
+          <ol className="space-y-4 mb-10" role="list">
             {reasons.map((reason, index) => (
-              <div key={index} className="flex items-center gap-4">
-                <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-slate-500 font-medium text-sm">
+              <li key={index} className="flex items-center gap-4">
+                <span className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600 font-semibold text-sm flex-shrink-0">
                   {index + 1}
-                </div>
-                <span className="text-slate-300">{reason}</span>
-              </div>
+                </span>
+                <span className="text-slate-700">{reason}</span>
+              </li>
             ))}
-          </div>
+          </ol>
           
-          <div className="p-6 rounded-xl bg-white/5 border border-white/10">
-            <p className="text-slate-400 italic">
+          <blockquote className="p-6 rounded-xl bg-slate-50 border-l-4 border-sky-500">
+            <p className="text-slate-600 italic">
               "Проучвания показват, че повечето възрастни имат признаци — но малък процент действат навреме."
             </p>
-          </div>
+          </blockquote>
         </div>
       </section>
 
       {/* SECTION 7 — SEO BLOCK */}
-      <section className="py-20 md:py-28 bg-gradient-to-b from-slate-900/50 to-transparent">
+      <section className="py-20 md:py-28 bg-slate-50" aria-labelledby="seo-heading">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
-          <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-white mb-8">
+          <h2 id="seo-heading" className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-slate-900 mb-8">
             Имаш ли реален проблем със зъбите — или е само естетика?
           </h2>
           
-          <div className="space-y-6 text-slate-400 leading-relaxed">
+          <div className="space-y-6 text-slate-600 leading-relaxed">
             <p>
               Кривите или разместени зъби често се възприемат като чисто естетичен проблем, но много нарушения в захапката започват без болка.
             </p>
             <p>
               Ранните признаци могат да включват неравномерно натоварване, напрежение в челюстта или постепенно разместване.
             </p>
-            <p className="text-slate-300">
+            <p className="text-slate-800 font-medium">
               Разбирането на етапа ти навреме може да предотврати по-сложно лечение в бъдеще.
             </p>
           </div>
         </div>
       </section>
 
-      {/* SECTION 8 — FINAL CTA */}
-      <section className="py-20 md:py-32 border-t border-white/5">
+      {/* SECTION 8 — FINAL CTA (Blue Background) */}
+      <section className="py-20 md:py-32 bg-sky-600" aria-labelledby="final-cta-heading">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
-          <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-white mb-10">
+          <h2 id="final-cta-heading" className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-white mb-10">
             Разбери на кой етап си, преди да стане по-сериозен проблем.
           </h2>
           
           <Link
             href="/assessment"
-            className="inline-flex items-center gap-3 px-10 py-5 bg-gradient-to-r from-sky-500 to-blue-600 text-white text-lg font-medium rounded-full hover:shadow-2xl hover:shadow-sky-500/30 transition-all duration-300 group"
+            className="inline-flex items-center gap-3 px-10 py-5 bg-white text-sky-600 text-lg font-semibold rounded-full hover:shadow-2xl transition-all duration-300 group"
             data-testid="final-cta"
           >
             <span>Провери къде се намираш</span>
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </Link>
           
-          <p className="text-sm text-slate-500 mt-6">
+          <p className="text-sm text-sky-100 mt-6">
             60 секунди. Без регистрация. Без ангажименти.
           </p>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="py-12 border-t border-white/5">
+      <footer className="py-12 bg-white border-t border-slate-200" role="contentinfo">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <Link href="/" className="font-serif text-xl font-semibold text-white">
-              Zubite
+            <Link href="/" className="font-serif text-xl font-semibold text-slate-900" aria-label="Zubite.bg начална страница">
+              Zubite<span className="text-sky-500">.bg</span>
             </Link>
-            <nav className="flex flex-wrap items-center justify-center gap-6 text-sm text-slate-500">
-              <Link href="/blog" className="hover:text-white transition-colors">Блог</Link>
-              <Link href="/orthodontics" className="hover:text-white transition-colors">Ортодонтия</Link>
-              <Link href="/privacy" className="hover:text-white transition-colors">Поверителност</Link>
-              <Link href="/contact" className="hover:text-white transition-colors">Контакти</Link>
+            <nav className="flex flex-wrap items-center justify-center gap-6 text-sm text-slate-600" aria-label="Допълнителна навигация">
+              <Link href="/blog" className="hover:text-slate-900 transition-colors">Блог</Link>
+              <Link href="/orthodontics" className="hover:text-slate-900 transition-colors">Ортодонтия</Link>
+              <Link href="/privacy" className="hover:text-slate-900 transition-colors">Поверителност</Link>
+              <Link href="/contact" className="hover:text-slate-900 transition-colors">Контакти</Link>
             </nav>
-            <p className="text-sm text-slate-600">
-              © {new Date().getFullYear()} Zubite
+            <p className="text-sm text-slate-500">
+              © {new Date().getFullYear()} Zubite.bg
             </p>
           </div>
-          <div className="mt-8 pt-8 border-t border-white/5 text-center">
-            <p className="text-xs text-slate-600 max-w-2xl mx-auto">
-              Zubite не е клиника и не предлага медицински консултации. Платформата е създадена да ви помогне да разберете своите опции за ортодонтско лечение.
+          <div className="mt-8 pt-8 border-t border-slate-100 text-center">
+            <p className="text-xs text-slate-500 max-w-2xl mx-auto">
+              Zubite.bg не е клиника и не предлага медицински консултации. Платформата е създадена да ви помогне да разберете своите опции за ортодонтско лечение.
             </p>
           </div>
         </div>
       </footer>
+
+      {/* Structured Data for SEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "Zubite.bg",
+            "description": "Платформа за ориентация в ортодонтското лечение в България",
+            "url": "https://zubite.bg",
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "https://zubite.bg/search?q={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          })
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "Zubite.bg",
+            "url": "https://zubite.bg",
+            "description": "Платформа за информирани решения в ортодонтията",
+            "areaServed": {
+              "@type": "Country",
+              "name": "България"
+            }
+          })
+        }}
+      />
     </main>
   )
 }
