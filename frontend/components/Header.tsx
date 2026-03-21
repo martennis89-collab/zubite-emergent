@@ -47,7 +47,7 @@ export function Header() {
             className="font-serif text-2xl font-semibold text-slate-900 transition-transform hover:scale-105" 
             data-testid="logo"
           >
-            Zubite
+            Zubite<span className="text-sky-500">.bg</span>
           </Link>
           
           {/* Desktop Navigation */}
