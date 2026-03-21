@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
   Loader2, LogOut, ArrowLeft, Save, Eye, EyeOff,
-  Image as ImageIcon, Tag, FileText
+  Image as ImageIcon, Tag, FileText, RefreshCw
 } from 'lucide-react'
 
 export default function NewBlogPostPage() {
@@ -34,13 +34,53 @@ export default function NewBlogPostPage() {
     }
   }, [router])
 
+  // Bulgarian Cyrillic to Latin transliteration map
+  const cyrillicToLatin: Record<string, string> = {
+    'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ж': 'zh',
+    'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n',
+    'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f',
+    'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sht', 'ъ': 'a', 'ь': '',
+    'ю': 'yu', 'я': 'ya',
+    'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D', 'Е': 'E', 'Ж': 'Zh',
+    'З': 'Z', 'И': 'I', 'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M', 'Н': 'N',
+    'О': 'O', 'П': 'P', 'Р': 'R', 'С': 'S', 'Т': 'T', 'У': 'U', 'Ф': 'F',
+    'Х': 'H', 'Ц': 'Ts', 'Ч': 'Ch', 'Ш': 'Sh', 'Щ': 'Sht', 'Ъ': 'A', 'Ь': '',
+    'Ю': 'Yu', 'Я': 'Ya'
+  }
+
+  const transliterate = (text: string): string => {
+    return text.split('').map(char => cyrillicToLatin[char] || char).join('')
+  }
+
   const generateSlug = (title: string) => {
-    return title
+    // First transliterate Bulgarian to Latin
+    const latinTitle = transliterate(title)
+    // Then create slug
+    return latinTitle
       .toLowerCase()
-      .replace(/[^a-z0-9\u0400-\u04FF\s-]/g, '')
+      .replace(/[^a-z0-9\s-]/g, '')
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
       .trim()
+  }
+
+  // Convert Google Drive share link to direct image URL
+  const convertGoogleDriveUrl = (url: string): string => {
+    // Pattern: https://drive.google.com/file/d/FILE_ID/view?usp=sharing
+    const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)
+    if (match) {
+      const fileId = match[1]
+      // Use lh3.googleusercontent.com which is more reliable
+      return `https://lh3.googleusercontent.com/d/${fileId}`
+    }
+    return url
+  }
+
+  const handleImageUrlChange = (url: string) => {
+    // Auto-convert Google Drive URLs
+    const convertedUrl = convertGoogleDriveUrl(url)
+    setFormData(prev => ({ ...prev, featured_image: convertedUrl }))
   }
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -174,7 +214,7 @@ export default function NewBlogPostPage() {
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 URL Slug *
               </label>
-              <div className="flex items-center">
+              <div className="flex items-center gap-2">
                 <span className="px-3 py-3 bg-slate-100 border border-r-0 border-slate-300 rounded-l-lg text-slate-500 text-sm">
                   /blog/
                 </span>
@@ -186,7 +226,18 @@ export default function NewBlogPostPage() {
                   placeholder="url-slug"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, slug: generateSlug(prev.title) }))}
+                  className="px-3 py-3 text-slate-500 hover:text-sky-600 transition-colors"
+                  title="Генерирай от заглавие"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </button>
               </div>
+              <p className="text-xs text-slate-400 mt-1">
+                Автоматично се транслитерира на латиница за по-добро SEO
+              </p>
             </div>
 
             <div>
@@ -235,10 +286,25 @@ export default function NewBlogPostPage() {
                 <input
                   type="url"
                   value={formData.featured_image}
-                  onChange={e => setFormData(prev => ({ ...prev, featured_image: e.target.value }))}
+                  onChange={e => handleImageUrlChange(e.target.value)}
                   className="w-full px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm focus:outline-none focus:border-sky-500"
                   placeholder="https://..."
                 />
+                <p className="text-xs text-slate-400 mt-1">
+                  Google Drive линкове се конвертират автоматично
+                </p>
+                {formData.featured_image && (
+                  <div className="mt-3 rounded-lg overflow-hidden border border-slate-200">
+                    <img 
+                      src={formData.featured_image} 
+                      alt="Preview" 
+                      className="w-full h-32 object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none'
+                      }}
+                    />
+                  </div>
+                )}
               </div>
 
               <div>

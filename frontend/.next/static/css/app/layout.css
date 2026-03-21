@@ -1544,6 +1544,10 @@ h3{
 .to-white{
   --tw-gradient-to: #fff var(--tw-gradient-to-position);
 }
+.object-cover{
+  -o-object-fit: cover;
+     object-fit: cover;
+}
 .p-10{
   padding: 2.5rem;
 }
