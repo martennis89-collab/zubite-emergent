@@ -558,3 +558,92 @@
     0 2px 8px rgba(14, 165, 233, 0.2);
 }
 
+/* ====================================
+   SCROLL-TRIGGERED ANIMATIONS
+   ==================================== */
+
+/* Soft pulse for mobile CTA */
+@keyframes pulseSoft {
+  0%, 100% { 
+    transform: translateX(-50%) scale(1);
+    box-shadow: 0 10px 25px -5px rgba(14, 165, 233, 0.3);
+  }
+  50% { 
+    transform: translateX(-50%) scale(1.02);
+    box-shadow: 0 15px 35px -5px rgba(14, 165, 233, 0.4);
+  }
+}
+
+.animate-pulse-soft {
+  animation: pulseSoft 3s ease-in-out infinite;
+}
+
+/* Smooth reveal on scroll */
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), 
+              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal-on-scroll.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stagger reveal for children */
+.stagger-reveal > * {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+
+.stagger-reveal.visible > *:nth-child(1) { transition-delay: 0ms; opacity: 1; transform: translateY(0); }
+.stagger-reveal.visible > *:nth-child(2) { transition-delay: 100ms; opacity: 1; transform: translateY(0); }
+.stagger-reveal.visible > *:nth-child(3) { transition-delay: 200ms; opacity: 1; transform: translateY(0); }
+.stagger-reveal.visible > *:nth-child(4) { transition-delay: 300ms; opacity: 1; transform: translateY(0); }
+.stagger-reveal.visible > *:nth-child(5) { transition-delay: 400ms; opacity: 1; transform: translateY(0); }
+
+/* Enhanced hover states for interactive elements */
+.interactive-hover {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.3s ease-out,
+              background-color 0.2s ease-out;
+}
+
+.interactive-hover:hover {
+  transform: translateY(-4px);
+}
+
+.interactive-hover:active {
+  transform: translateY(-2px);
+}
+
+/* Zoom on hover for images */
+.zoom-on-hover {
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.zoom-on-hover:hover {
+  transform: scale(1.05);
+}
+
+/* Icon bounce on hover */
+@keyframes iconBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+.icon-bounce:hover {
+  animation: iconBounce 0.5s ease-out;
+}
+
+/* Glow effect on hover */
+.glow-on-hover {
+  transition: box-shadow 0.3s ease-out;
+}
+
+.glow-on-hover:hover {
+  box-shadow: 0 0 20px rgba(14, 165, 233, 0.3);
+}
+

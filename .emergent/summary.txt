@@ -2,153 +2,186 @@
 The user's high-level goal is to build and optimize their Next.js-based website, , an educational platform designed to help users in Bulgaria understand their orthodontic issues and guide them toward the correct treatment path.
 
 **PRODUCT REQUIREMENTS:**
-1.  **Resolve Critical Deployment Failures:** Fix a series of recurring deployment errors, including wrong application deploying, backend health check failures, and Next.js production build errors.
-2.  **Build a High-Conversion Homepage:** Design and implement a new homepage focused on orthodontics. The design and copy went through several iterations, culminating in a white-themed, SEO-optimized page with specific Bulgarian text designed to create urgency and guide users to a quiz.
-3.  **Create a Dedicated Assessment Page:** Build an interstitial page at  to explain the purpose of the quiz before the user starts it.
-4.  **Implement a Blog/CMS:** Add functionality for an admin to publish and manage blog posts through the admin panel, and for users to view these posts on the public-facing site. This includes a Блог link in the main navigation.
-5.  **Remove Platform Badge:** Remove the Made with Emergent badge injected by the deployment platform.
+1.  **Homepage Copy & UX Enhancement:** Update the homepage copy to create psychological tension and increase quiz starts. Avoid a full redesign, focusing on text and micro-interactions to remove the AI-generated feel.
+2.  **Master Quiz Implementation & Refinement:**
+    *   Build a new multi-step quiz at  with specific Bulgarian questions and a scoring system.
+    *   Refactor the quiz results to show one of three stages (Early, Developing, Advanced) with educational content, removing the initial logic that automatically routed users to treatment pages.
+    *   Implement a lead capture form on the results page to allow the Zubite.bg team to follow up with clinic recommendations.
+    *   Enhance the quiz with micro-insight messages between questions to increase engagement and urgency.
+    *   Add a soft commit screen before the lead form to increase conversion.
+    *   A/B test two versions of the lead form (full vs. simplified).
+3.  **SEO & Content:**
+    *   Update SEO-focused pages (, ) with new content and links to the master quiz.
+    *   Add thumbnail images to the blog listing page () and a Recent Articles section to the homepage, ensuring all content is server-side rendered for crawlers.
+4.  **Admin Panel & Analytics:**
+    *   Fix persistent admin login bugs (wrong credentials).
+    *   Fix a bug where new leads were not appearing in the admin panel.
+    *   Create a new analytics dashboard () to track quiz funnel metrics (starts, completion, drop-off), question-level analytics, result distribution, and lead form conversion rates (including the A/B test).
+5.  **Blog Enhancements:**
+    *   Fix a bug where images hosted on Google Drive were not loading in blog posts.
+    *   Implement automatic Cyrillic-to-Latin slug transliteration for better SEO.
+    *   Fix a bug where published blog posts were not appearing on the main  listing page.
+6.  **GDPR & Animations:**
+    *   Add GDPR-compliant pages (Privacy, Cookies, Terms) and a cookie consent popup.
+    *   Add dynamic scroll-triggered animations and hover effects to the homepage.
 
-**User's preferred language**: English (for conversation) and Bulgarian (for application content).
+**User's preferred language**: English for conversation and Bulgarian for all user-facing application content.
 
 **what currently exists?**
-The project is a full-stack application with a Next.js frontend () and a FastAPI backend (). The previous deployment issues have been resolved by adding a  endpoint to the backend, ensuring the Next.js app builds correctly with a  script, and aligning the directory structure () with deployment expectations.
-
-The homepage has been completely rebuilt to be a high-conversion, SEO-focused page with a white background and blue accents. A dedicated  page now serves as a gateway to the main orthodontics quiz. A complete blog system has been implemented, with backend CRUD endpoints, admin management pages, and public-facing blog pages. The Made with Emergent badge is hidden via custom CSS and script injection.
+The application is a full-stack Next.js (frontend) and FastAPI (backend) project. The homepage copy has been updated, and a sophisticated, multi-step Master Quiz is in place. The quiz assesses a user's stage of orthodontic need, provides educational results, and captures leads via a form with A/B testing capabilities. A comprehensive admin analytics dashboard exists to track the entire quiz funnel. The blog system has been enhanced with automatic slug transliteration and a fix for displaying Google Drive images. The main blog listing page and homepage both feature thumbnail images for posts, and all content is server-side rendered for SEO. GDPR compliance pages and a cookie consent banner have been implemented. The agent has just started adding dynamic scroll animations.
 
 **Last working item**:
--   Last item agent was working: Redesigning the homepage to have a white background, blue accent sections, and updating the logo to Zubite.bg with a blue highlight.
--   Status: USER VERIFICATION PENDING
--   Agent Testing Done: Y (The agent took screenshots to verify the new design was rendered correctly in the preview environment.)
--   Which testing method agent to use? Frontend testing agent to do a comprehensive visual regression check on the new homepage design and ensure all links and CTAs are functional.
+-   Last item agent was working: Adding scroll-triggered animations and enhanced hover effects to the homepage to make it more dynamic and less template-like. The agent created a custom React hook for this purpose.
+-   Status: IN PROGRESS
+-   Agent Testing Done: N
+-   Which testing method agent to use? Frontend testing agent to verify the animations are smooth, not janky, and trigger correctly on scroll. A screenshot can be used for a basic check.
 -   User Testing Done: N
 
 **All Pending/In progress Issue list**:
 -   Issue 1: Blog Static Generation Inconsistency (P1)
 
-  Issues Detail:
-  - Issue 1:
-     - **Description**: The public blog page () uses Next.js Static Site Generation (SSG) with time-based revalidation. When an admin publishes a new post, it does not appear on the live site until the revalidation period expires (e.g., 60 seconds) or the site is rebuilt. This creates a disconnect for content creators.
-     - **Attempted fixes**: The agent correctly identified the cause but did not implement a fix beyond acknowledging the time-based delay.
-     - **Next debug checklist**:
-        1.  In the backend , modify the blog creation () and update () endpoints.
-        2.  After successfully saving a post to the database, make a  request to the Next.js app's revalidation API route.
-        3.  Create a new API route in Next.js (e.g., ) that accepts a secret key and a path to revalidate.
-        4.  Use the  and  functions from  to trigger an on-demand rebuild of the blog pages.
-     - **Why fix this issue and what will be achieved with the fix?** To provide an instant feedback loop for content creators, ensuring published content appears on the public website immediately.
-     - **Status**: NOT STARTED
-     - **Is recurring issue?** N
-     - **Should Test frontend/backend/both after fix?** Both. Test the backend endpoint to ensure it triggers revalidation. Test the frontend to confirm a new post appears on the  index instantly after being created in the admin panel.
-     - **Blocked on other issue**: None
+Issues Detail:
+-   Issue 1:
+    -   **Description**: This is an issue carried over from the previous session. When an admin publishes a new blog post, it does not appear on the live site ( and ) immediately. It only appears after the Next.js revalidation period expires (e.g., 60 seconds) or the site is rebuilt. This creates a poor user experience for content creators.
+    -   **Attempted fixes**: None. The agent has fixed other blog-related bugs (listing page not showing posts at all, image issues) but has not implemented on-demand revalidation.
+    -   **Next debug checklist**:
+        1.  Create a new secure API route in the Next.js frontend (e.g., ).
+        2.  This route should accept a secret key (from environment variables) and a path to revalidate (e.g., , , ).
+        3.  Use the  function from  to trigger an on-demand rebuild of the specified pages.
+        4.  Modify the backend blog creation/update endpoints ( and  at ) in .
+        5.  After a post is successfully saved, the backend should make an HTTP request to the new Next.js revalidation API route, triggering an instant update on the frontend.
+    -   **Why fix this issue and what will be achieved with the fix?** This will provide an instant feedback loop for content creators, ensuring published or updated content appears on the public website immediately, which is standard for any CMS.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** Both. Test by creating a new post in the admin panel and immediately checking if it appears on the live  page and the homepage's Recent Articles section.
+    -   **Blocked on other issue**: None
 
 **In progress Task List**:
--   None.
+-   Task 1: Implement Homepage Scroll and Hover Animations (P0)
+
+Task Detail:
+-   Task 1:
+    -   **Where to resume**: The file  has been created. The next step is to write the hook logic to detect when an element is in the viewport. Then, import and apply this hook to various sections of the homepage component () to add animation classes (e.g., fade-in, slide-up).
+    -   **What will be achieved with this?** A more dynamic and premium user experience on the homepage, addressing the user's request to make the homepage look more dynamic and live and remove the static, vibe-coded feel.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?** Frontend.
+    -   **Blocked on something**: None.
 
 **Upcoming and Future Tasks**
--   **P1: Implement Tracking Pixels:** Ask the user for their **Meta Pixel ID** and **Google Ads Conversion ID** and integrate them into .
--   **P2: Create Specific Quizzes for Other Treatments:** Propose creating dedicated quizzes for other treatments (e.g., cosmetic dentistry, implants) to expand the platform's scope.
--   **P3: Build English Language Version:** Create content for and build out the  routes for an English-speaking audience.
--   **P4: Enhance Admin Panel:** Expand the admin panel beyond blog management to allow editing of other site content (e.g., homepage text, treatment details).
+-   **Upcoming Tasks:**
+    -   **P1: Implement Tracking Pixels:** Integrate Meta Pixel and Google Ads tracking by leveraging the  and  custom events dispatched by the new GDPR banner. This requires getting the respective IDs from the user.
+    -   **P2: Backend Refactoring:** Modularize the monolithic  file by splitting logic into separate files using FastAPI's  (e.g., routers for auth, leads, blog, analytics).
+    -   **P3: Frontend Data Fetching Refactor:** Abstract the data-fetching logic (which currently uses different URLs for server-side vs. client-side) into a single reusable helper function to improve maintainability and reduce errors.
+-   **Future Tasks:**
+    -   **P1: Create Specific Quizzes:** Develop new quizzes for other dental treatments (e.g., cosmetic dentistry, implants) to expand the platform's scope.
+    -   **P2: Build English Language Version:** Create content and build out the  routes for an English-speaking audience.
+    -   **P3: Expand Admin Panel:** Add functionality to the admin panel to manage content beyond the blog, such as homepage text and treatment details.
+    -   **P4: Expand City Options:** Add more cities (e.g., Varna, Burgas) to the dropdown in the lead capture form.
 
 **Completed work in this session**
--   **Deployment Stability:** Resolved a cascade of critical deployment failures, including backend health check errors and Next.js build issues. This was achieved by:
-    -   Adding a  endpoint to .
-    -   Correctly configuring  with .
-    -   Adding a  script to .
-    -   Performing a full cleanup of stale build artifacts (, ).
--   **Homepage Redesigns:** Iteratively designed and built multiple versions of the homepage, culminating in the current white-themed, SEO-focused version in .
--   **Assessment Page:** Created a dedicated lead-in page for the quiz at .
--   **Blog System Implementation:**
-    -   Created backend CRUD endpoints for posts in .
-    -   Built admin pages for post management under .
-    -   Built public-facing blog index and post pages under .
-    -   Fixed an SSR bug where the blog page was using the wrong API URL during server-side rendering.
--   **Emergent Badge Removal:** Added custom CSS and JavaScript to  to remove the platform-injected badge.
+-   **Quiz System Overhaul:** Created and iteratively enhanced the master quiz with stage-based results, lead capture, micro-insights, a soft-commit step, and A/B testing.
+-   **Admin Panel Enhancements:**
+    -   Fixed critical login and data-fetching bugs by correcting API request paths across all admin pages.
+    -   Built a comprehensive analytics dashboard () to track the entire quiz funnel.
+-   **Blog System Fixes & Features:**
+    -   Fixed Google Drive images not displaying by implementing a URL conversion utility ().
+    -   Implemented automatic Cyrillic-to-Latin slug generation for better SEO.
+    -   Fixed a server-side rendering bug preventing posts from showing on the blog list page ().
+    -   Added thumbnail images to the blog list page and a Recent Articles section to the homepage ().
+-   **GDPR Compliance:** Implemented Privacy, Cookies, and Terms pages, along with a functional cookie consent banner ().
 
 **Earlier issues found/mentioned but not fixed**
--   None.
+-   The on-demand revalidation for the blog (listed in All Pending/In progress Issue list) is the only outstanding issue mentioned in the handoff that was not addressed.
 
 **Known issue recurrence from previous fork**
--   **Issue**: Deployment failures related to Next.js build artifacts and directory structure.
--   **Recurrence count**: This was a major recurring theme throughout the session, failing multiple times with different symptoms.
--   **Status**: RESOLVED. The final configuration with the  script and correct directory naming appears to be stable, but any changes to the build process should be made with extreme caution.
+-   **Issue**: Incorrect frontend API configurations. The handoff summary did not mention this specifically, but a pattern emerged during this session where multiple admin pages failed because API calls were missing the  prefix. The agent had to fix this on , , , and all blog management pages.
+-   **Recurrence count**: This issue was the root cause for at least two separate user complaints (admin login failing, leads not showing).
+-   **Status**: RESOLVED. The agent manually corrected all identified instances. However, the lack of a centralized API client makes this a potential area for future bugs.
 
 **Code Architecture**
 
-*Note: A symlink  exists for local supervisor compatibility.*
 
 **Key Technical Concepts**
--   **Frontend**: Next.js (App Router), React, Tailwind CSS.
+-   **Frontend**: Next.js (App Router), React (Server & Client Components, Hooks), Tailwind CSS.
 -   **Backend**: FastAPI, MongoDB (using ).
--   **Deployment Debugging**: Solved complex deployment issues by analyzing logs and correcting build configurations (, ) and backend health checks.
--   **DOM Manipulation**: Injected runtime CSS and JavaScript into  to remove the platform's branding badge, demonstrating an ability to modify the final rendered DOM.
+-   **State Management**: React  and  for component state.  is used for persisting cookie consent.
+-   **A/B Testing**: Simple client-side logic in  to alternate between two form variations.
+-   **Server-Side Rendering (SSR)**: Key pages like the homepage and blog listing are now async Server Components that fetch data directly on the server for SEO.
+-   **DOM Manipulation**: Runtime script in  to remove the platform's branding badge.
 
 **key DB schema**
--   **users**: Admin authentication (, ).
--   **leads**: Stores user info and quiz results.
--   **blog_posts**: New collection for the blog, containing , , , , , etc. An index is created on .
+-   **admin_users**: Admin authentication.
+-   **leads**: Stores user info and quiz results from the lead form.
+-   **blog_posts**: Stores blog articles.
+-   **quiz_events**: New collection to store analytics events (quiz start, question answer, etc.) for the admin dashboard.
 
 **changes in tech stack**
 -   None.
 
 **All files of reference**
--   **Primary Frontend Directory:** 
--   **Homepage:** 
--   **Backend Server:** 
--   **Frontend Build Config:** , 
--   **Main Layout (Badge Removal):** 
--   **Blog Admin Pages:** 
--   **Blog Public Pages:** 
+-   **Homepage & Animations**: , 
+-   **Quiz**: , 
+-   **Backend Logic**: 
+-   **Admin Panel**:  (specifically , , , )
+-   **Blog Content**: , 
+-   **Blog Admin**: , 
+-   **GDPR & Layout**: , , , 
 
 **Areas that need refactoring**:
--   The backend  file has grown to over 600 lines. It should be modularized by splitting logic into separate files using FastAPI's  (e.g., one router for auth, one for leads, one for the blog) to improve maintainability.
--   The logic for fetching data in server components ( and ) uses a  check. This can be abstracted into a single data-fetching helper in  that transparently handles using the correct internal or public URL depending on the environment (server-side vs. client-side).
+-   **Backend Modularity**:  is now over 700 lines and contains logic for auth, leads, blog, and analytics. It should be split into multiple  files for maintainability.
+-   **Frontend API Client**: API fetch calls are scattered across many admin components. A centralized API client or helper function should be created to standardize requests, handle auth tokens, and unify the API path (), preventing a repeat of the missing /api prefix bugs.
 
 **key api endpoints**
--   : Health check for deployment.
--   : Admin authentication.
--   : Public endpoint to fetch all posts.
--   : Public endpoint to fetch a single post.
--   : Admin CRUD endpoints for managing blog posts.
+-   : Creates a new lead from the quiz form.
+-   : Tracks a user interaction event in the quiz funnel.
+-   : Retrieves aggregated data for the admin analytics dashboard.
+-   : Fetches all leads for the admin panel.
+-   : Authenticates an admin user.
+-   : Admin CRUD for blog posts.
 
 **Critical Info for New Agent**
--   **Deployment is fragile**: The project has a history of build-related deployment issues. Do not alter the build process ( scripts, ) or directory structure without careful consideration. The current setup is known to work.
--   **Supervisor config is read-only**: The local supervisor is configured to look for . A symlink () has been created to make local development work. Do not remove this symlink.
--   **Content Language**: All user-facing content on the website is in **Bulgarian**.
+-   **API URL Handling is Dual-Mode**:
+    -   **Client-side fetches** (in most  hooks within admin pages) must now prepend  to the fetch URL (e.g., ). The  env var should NOT contain .
+    -   **Server-side fetches** (in async Server Components like ) must use the full internal backend URL: .
+-   **Google Drive Images**: Pasting a standard Google Drive share link into the blog's image field is not sufficient. The frontend code in the admin panel now automatically converts these links into a direct-serving format (). This logic must be preserved.
+-   **Admin Credentials**: The correct credentials ( / ) are now working after the agent fixed the API paths on the frontend login page. The admin user is created on backend startup. If login fails, check backend logs and frontend API call paths first.
 
 **documents and test reports created in this job**
--   None.
+-   /app/test_reports/iteration_20.json
+-   /app/test_reports/iteration_21.json
+-   /app/memory/PRD.md (updated multiple times)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Fix deployment issue (). (Resolved)
-2.  **User:** Fix deployment issue (new logs provided: health check & build errors). (Resolved)
-3.  **User:** Restructure project and fix build from scratch ( -> ). (Resolved)
-4.  **User:** Fix corrupted Next.js build (). (Resolved)
-5.  **User:** Remove Emergent badge. (Resolved)
-6.  **User:** Build new homepage (Bulgarian, light theme, orthodontics focus). (Superseded)
-7.  **User:** Build dedicated assessment page. (Completed)
-8.  **User:** Add a blog system. (Completed)
-9.  **User:** Build new homepage (dark theme, high-conversion copy). (Superseded)
-10. **User:** Revert homepage to white background with blue sections and update logo. (Completed, awaiting user verification)
+1.  **User**:  login credentials are not working. (Resolved)
+2.  **User**: Test leads are not showing up in the admin panel. (Resolved)
+3.  **User**: Google Drive image link is not loading on the blog post, and requests automatic Cyrillic-to-Latin URL slug generation. (Resolved)
+4.  **User**: Blog posts are not appearing on the  page. (Resolved)
+5.  **User**: Add thumbnail images to the blog page and a Recent Articles section to the homepage, ensuring it's SEO-friendly. (Completed)
+6.  **User**: Add GDPR pages (Privacy, Cookies, Terms) and a cookie consent popup. (Completed)
+7.  **User**: Add scroll and hover effects to the homepage to make it more dynamic. (In Progress)
+8.  **User**: Provided requirements to add micro-insights to the quiz, a soft-commit step, and an admin analytics dashboard. (Completed)
+9.  **User**: Provided requirements to update the quiz flow to focus on lead capture, not treatment routing. (Completed)
+10. **User**: Provided initial requirements for homepage copy updates and the new master quiz. (Completed)
 
 **Project Health Check:**
--   **Working**: The application is fully functional in the preview environment.
--   **Broken**: The user experience for content management is flawed because new blog posts do not appear on the live site instantly due to SSG caching.
+-   **Working**: The main application, quiz funnel, lead capture, admin panel (including analytics), blog system, and GDPR features are all functional.
+-   **Broken**: The content management workflow is suboptimal because new blog posts are not reflected on the live site instantly due to SSG caching. The on-demand revalidation fix is still pending.
 -   **Mocked**: None.
 
 **3rd Party Integrations**
--   **Resend:** For sending lead notification emails.
+-   **Resend**: For sending lead notification emails (configured in a previous session).
 
 **Testing status**
--   Testing agent used after significant changes: NO (for recent features). The agent relied on self-testing via screenshots and .
+-   Testing agent used after significant changes: YES. The agent used the testing agent to validate two major iterations of the quiz flow.
 -   Troubleshoot agent used after agent stuck in loop: NO
 -   Test files created: []
--   Known regressions: None.
+-   Known regressions: None currently active. The admin panel API path issue was a temporary regression that has been fixed.
 
 **Credentials to test flow:**
--   **Admin Panel**: 
+-   **Admin Panel URL**: 
 -   **Email**: 
 -   **Password**: 
 
 **What agent forgot to execute**
--   The agent did not implement an on-demand revalidation strategy for the blog pages. This means new posts are not reflected on the site immediately, which is a key requirement for any CMS.
--   The agent did not create a centralized, robust solution for handling internal vs. external API URLs for server-side rendering, instead using a simple  check in each component.</analysis>
+-   The agent has consistently overlooked the **on-demand revalidation** for the blog, which was mentioned in the initial handoff and remains the primary unresolved issue.
+-   The agent did not perform the **backend and frontend refactoring** suggested in the initial handoff (modularizing , creating a central data-fetching helper). This has led to repeated bugs (e.g., fixing the same API path issue in multiple files).</analysis>

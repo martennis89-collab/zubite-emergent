@@ -8,6 +8,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 import asyncio
+import httpx
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
@@ -36,12 +37,37 @@ RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
 ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'martennis89@gmail.com')
 
+# Revalidation Settings for Next.js ISR
+REVALIDATE_SECRET = os.environ.get('REVALIDATE_SECRET', 'zubite-revalidate-secret-2024')
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+
 if RESEND_API_KEY:
     resend.api_key = RESEND_API_KEY
 
 security = HTTPBearer()
 app = FastAPI(title="Zubite.bg API")
 api_router = APIRouter(prefix="/api")
+
+# Helper function to trigger Next.js page revalidation
+async def trigger_revalidation(slug: Optional[str] = None, action: str = "unknown"):
+    """Trigger Next.js on-demand revalidation for blog pages"""
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                f"{FRONTEND_URL}/api/revalidate",
+                json={
+                    "secret": REVALIDATE_SECRET,
+                    "slug": slug,
+                    "action": action
+                }
+            )
+            if response.status_code == 200:
+                logger.info(f"Revalidation triggered successfully for action: {action}, slug: {slug}")
+            else:
+                logger.warning(f"Revalidation returned status {response.status_code}: {response.text}")
+    except Exception as e:
+        # Don't fail the main request if revalidation fails
+        logger.error(f"Failed to trigger revalidation: {e}")
 
 # Root-level health endpoint for deployment health checks
 @app.get("/health")
@@ -705,6 +731,11 @@ async def admin_create_post(
     )
     
     await db.blog_posts.insert_one(post.model_dump())
+    
+    # Trigger revalidation if the post is published
+    if post_data.is_published:
+        asyncio.create_task(trigger_revalidation(slug=post.slug, action="create"))
+    
     return post
 
 @api_router.put("/admin/blog/posts/{post_id}", response_model=BlogPost)
@@ -728,14 +759,27 @@ async def admin_update_post(
     await db.blog_posts.update_one({"id": post_id}, {"$set": update_data})
     
     updated = await db.blog_posts.find_one({"id": post_id}, {"_id": 0})
+    
+    # Trigger revalidation - use new slug if changed, otherwise existing
+    slug_to_revalidate = post_data.slug if post_data.slug else existing.get("slug")
+    asyncio.create_task(trigger_revalidation(slug=slug_to_revalidate, action="update"))
+    
     return BlogPost(**updated)
 
 @api_router.delete("/admin/blog/posts/{post_id}")
 async def admin_delete_post(post_id: str, user: AdminUser = Depends(get_current_user)):
     """Delete a blog post"""
+    # Get the post first to get the slug for revalidation
+    existing = await db.blog_posts.find_one({"id": post_id}, {"_id": 0})
+    
     result = await db.blog_posts.delete_one({"id": post_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Post not found")
+    
+    # Trigger revalidation to remove from listings
+    if existing:
+        asyncio.create_task(trigger_revalidation(slug=existing.get("slug"), action="delete"))
+    
     return {"message": "Post deleted successfully"}
 
 @api_router.get("/seo/en/city/{city_slug}/ortho/", response_class=HTMLResponse)
