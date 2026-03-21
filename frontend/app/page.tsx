@@ -80,11 +80,11 @@ export default function HomePage() {
       {/* Sticky CTA - Mobile */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 md:hidden">
         <Link
-          href="/assessment"
+          href="/quiz"
           className="flex items-center gap-2 px-6 py-3 bg-sky-500 text-white font-medium rounded-full shadow-lg shadow-sky-500/30 hover:bg-sky-600 transition-all"
           aria-label="Провери етапа си"
         >
-          <span>Провери етапа си</span>
+          <span>Провери къде се намираш</span>
           <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
@@ -97,14 +97,17 @@ export default function HomePage() {
               Zubite<span className="text-sky-500">.bg</span>
             </Link>
             <div className="hidden md:flex items-center gap-8">
-              <Link href="/blog" className="text-sm text-slate-600 hover:text-slate-900 transition-colors">
-                Блог
+              <Link href="/symptoms" className="text-sm text-slate-600 hover:text-slate-900 transition-colors">
+                Симптоми
               </Link>
               <Link href="/orthodontics" className="text-sm text-slate-600 hover:text-slate-900 transition-colors">
                 Ортодонтия
               </Link>
+              <Link href="/blog" className="text-sm text-slate-600 hover:text-slate-900 transition-colors">
+                Блог
+              </Link>
               <Link
-                href="/assessment"
+                href="/quiz"
                 className="flex items-center gap-2 px-6 py-2.5 bg-sky-500 text-white text-sm font-medium rounded-full hover:bg-sky-600 hover:shadow-lg hover:shadow-sky-500/25 transition-all"
               >
                 Провери етапа си
@@ -123,7 +126,7 @@ export default function HomePage() {
             <br />
             <span className="text-slate-500">Повечето хора чакат, докато стане скъпо.</span>
             <br />
-            <span className="text-sky-600">Ти на кой етап си?</span>
+            <span className="text-sky-600">Ти сигурен ли си, че не си вече в този етап?</span>
           </h1>
           
           <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto mb-10 animate-fade-in-up animate-delay-100">
@@ -132,7 +135,7 @@ export default function HomePage() {
           
           <div className="animate-fade-in-up animate-delay-200">
             <Link
-              href="/assessment"
+              href="/quiz"
               className="inline-flex items-center gap-3 px-8 py-4 bg-sky-500 text-white text-lg font-medium rounded-full hover:bg-sky-600 hover:shadow-xl hover:shadow-sky-500/30 transition-all duration-300 group"
               data-testid="hero-cta"
             >
@@ -141,7 +144,7 @@ export default function HomePage() {
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
             <p className="text-sm text-slate-500 mt-4">
-              Без записване. Без натиск. Само яснота.
+              Отнема 60 секунди. Повечето хора никога не стигат дотук.
             </p>
           </div>
         </div>
@@ -155,7 +158,7 @@ export default function HomePage() {
               <AlertTriangle className="w-6 h-6 text-amber-600" />
             </div>
             <h2 id="interrupt-heading" className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-slate-900">
-              Не ти трябва болка, за да има проблем.
+              Ако чакаш да те заболи — вече си закъснял.
             </h2>
           </div>
           
@@ -172,7 +175,7 @@ export default function HomePage() {
           </div>
           
           <Link
-            href="/assessment"
+            href="/quiz"
             className="inline-flex items-center gap-2 text-sky-600 font-medium hover:text-sky-700 transition-colors group"
           >
             <span>Провери своя етап</span>
@@ -184,15 +187,19 @@ export default function HomePage() {
       {/* SECTION 3 — SELF RECOGNITION (Blue Background) */}
       <section className="py-20 md:py-28 bg-sky-600" aria-labelledby="recognition-heading">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
-          <h2 id="recognition-heading" className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-white mb-12 text-center">
+          <h2 id="recognition-heading" className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-white mb-4 text-center">
             Звучи ли ти познато?
           </h2>
+          <p className="text-sky-100 text-center mb-12 text-lg">
+            Повечето хора игнорират тези неща… докато не стане проблем.
+          </p>
           
           <ul className="space-y-4 mb-12" role="list">
             {symptoms.map((symptom, index) => (
               <li 
                 key={index}
                 className="flex items-center gap-4 p-4 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/15 transition-all duration-300"
+                style={{ animationDelay: `${index * 80}ms` }}
               >
                 <span className="w-2 h-2 rounded-full bg-white flex-shrink-0" aria-hidden="true" />
                 <span className="text-white/90">{symptom}</span>
@@ -202,7 +209,7 @@ export default function HomePage() {
           
           <div className="text-center">
             <Link
-              href="/assessment"
+              href="/quiz"
               className="inline-flex items-center gap-3 px-8 py-4 bg-white text-sky-600 font-medium rounded-full hover:shadow-xl transition-all duration-300 group"
             >
               <span>Провери своя етап</span>
@@ -215,7 +222,7 @@ export default function HomePage() {
       {/* SECTION 4 — PROGRESSION */}
       <section className="py-20 md:py-28 bg-white" aria-labelledby="progression-heading">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <div className="flex items-start gap-4 mb-16">
+          <div className="flex items-start gap-4 mb-6">
             <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center" aria-hidden="true">
               <TrendingUp className="w-6 h-6 text-red-600" />
             </div>
@@ -223,12 +230,15 @@ export default function HomePage() {
               Това не остава същото. Влошава се.
             </h2>
           </div>
+          <p className="text-slate-600 mb-16 ml-16">
+            Проблемът не стои на място.
+          </p>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6" role="list">
             {stages.map((item, index) => (
               <article 
                 key={index}
-                className={`relative p-6 rounded-2xl border-2 ${item.color}`}
+                className={`relative p-6 rounded-2xl border-2 ${item.color} transition-transform duration-300 hover:scale-[1.02]`}
               >
                 {/* Connector line */}
                 {index < stages.length - 1 && (
@@ -254,7 +264,7 @@ export default function HomePage() {
               <Clock className="w-6 h-6 text-sky-600" />
             </div>
             <h2 id="cost-heading" className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-slate-900">
-              Решението навреме и решението по-късно не са едно и също.
+              Това не е един и същ проблем — ако го хванеш навреме или по-късно.
             </h2>
           </div>
           
@@ -305,6 +315,10 @@ export default function HomePage() {
               "Проучвания показват, че повечето възрастни имат признаци — но малък процент действат навреме."
             </p>
           </blockquote>
+          
+          <p className="text-slate-700 mt-8 font-medium text-center">
+            И повечето разбират това… твърде късно.
+          </p>
         </div>
       </section>
 
@@ -333,11 +347,11 @@ export default function HomePage() {
       <section className="py-20 md:py-32 bg-sky-600" aria-labelledby="final-cta-heading">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <h2 id="final-cta-heading" className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-white mb-10">
-            Разбери на кой етап си, преди да стане по-сериозен проблем.
+            Разбери на кой етап си — преди да стане по-сложно и по-скъпо.
           </h2>
           
           <Link
-            href="/assessment"
+            href="/quiz"
             className="inline-flex items-center gap-3 px-10 py-5 bg-white text-sky-600 text-lg font-semibold rounded-full hover:shadow-2xl transition-all duration-300 group"
             data-testid="final-cta"
           >
@@ -359,8 +373,9 @@ export default function HomePage() {
               Zubite<span className="text-sky-500">.bg</span>
             </Link>
             <nav className="flex flex-wrap items-center justify-center gap-6 text-sm text-slate-600" aria-label="Допълнителна навигация">
-              <Link href="/blog" className="hover:text-slate-900 transition-colors">Блог</Link>
+              <Link href="/symptoms" className="hover:text-slate-900 transition-colors">Симптоми</Link>
               <Link href="/orthodontics" className="hover:text-slate-900 transition-colors">Ортодонтия</Link>
+              <Link href="/blog" className="hover:text-slate-900 transition-colors">Блог</Link>
               <Link href="/privacy" className="hover:text-slate-900 transition-colors">Поверителност</Link>
               <Link href="/contact" className="hover:text-slate-900 transition-colors">Контакти</Link>
             </nav>

@@ -22,17 +22,16 @@ export function Header() {
     return pathname === path || pathname.startsWith(path + '/')
   }
 
-  const scrollToAssessment = (e: React.MouseEvent) => {
+  const scrollToQuiz = (e: React.MouseEvent) => {
     e.preventDefault()
-    window.location.href = '/assessment'
+    window.location.href = '/quiz'
   }
 
   const navLinks = [
     { href: '/', label: 'Начало' },
-    { href: '#how-it-works', label: 'Как работи', isAnchor: true },
+    { href: '/symptoms', label: 'Симптоми' },
     { href: '/orthodontics', label: 'Ортодонтия' },
     { href: '/blog', label: 'Блог' },
-    { href: '/contact', label: 'Контакти' },
   ]
   
   return (
@@ -57,7 +56,7 @@ export function Header() {
                 key={link.href}
                 href={link.href}
                 className={`text-sm font-medium transition-colors nav-link-animated ${
-                  isActive(link.href) && !link.isAnchor ? 'text-sky-500' : 'text-slate-600 hover:text-slate-900'
+                  isActive(link.href) ? 'text-sky-500' : 'text-slate-600 hover:text-slate-900'
                 }`}
                 data-testid={`nav-${link.label.toLowerCase().replace(/\s/g, '-')}`}
               >
@@ -69,11 +68,11 @@ export function Header() {
           {/* CTA Button */}
           <div className="hidden md:block">
             <button
-              onClick={scrollToAssessment}
+              onClick={scrollToQuiz}
               className="inline-flex items-center justify-center h-10 px-6 rounded-full bg-sky-500 text-white text-sm font-medium hover:bg-sky-600 transition-all duration-200 hover:shadow-lg hover:shadow-sky-500/25"
               data-testid="nav-cta"
             >
-              Направете оценка
+              Провери етапа си
             </button>
           </div>
           
@@ -105,11 +104,11 @@ export function Header() {
             <button
               onClick={(e) => {
                 setIsOpen(false)
-                scrollToAssessment(e)
+                scrollToQuiz(e)
               }}
               className="w-full mt-4 inline-flex items-center justify-center h-12 px-6 rounded-full bg-sky-500 text-white text-sm font-medium"
             >
-              Направете оценка
+              Провери етапа си
             </button>
           </nav>
         )}

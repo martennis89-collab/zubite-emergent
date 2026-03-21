@@ -444,3 +444,117 @@
 .symptom-icon {
   transition: transform 0.3s ease-out;
 }
+
+/* ====================================
+   HUMAN FEEL - Remove AI vibe
+   ==================================== */
+
+/* Subtle text variations for organic feel */
+.human-text {
+  letter-spacing: -0.01em;
+}
+
+/* Micro-interactions on hover */
+.hover-lift {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease-out;
+}
+
+.hover-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.12);
+}
+
+/* Subtle entrance animations with stagger */
+@keyframes subtleEnter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.subtle-enter {
+  animation: subtleEnter 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+
+.subtle-enter:nth-child(1) { animation-delay: 0ms; }
+.subtle-enter:nth-child(2) { animation-delay: 80ms; }
+.subtle-enter:nth-child(3) { animation-delay: 160ms; }
+.subtle-enter:nth-child(4) { animation-delay: 240ms; }
+.subtle-enter:nth-child(5) { animation-delay: 320ms; }
+.subtle-enter:nth-child(6) { animation-delay: 400ms; }
+.subtle-enter:nth-child(7) { animation-delay: 480ms; }
+
+/* Section reveal with slight delay */
+.section-reveal {
+  opacity: 0;
+  animation: subtleEnter 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: 100ms;
+}
+
+/* Organic button hover - not perfectly centered transform */
+.btn-organic {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), 
+              box-shadow 0.25s ease-out,
+              background-color 0.2s ease-out;
+}
+
+.btn-organic:hover {
+  transform: translateY(-2px) translateX(1px);
+  box-shadow: 0 6px 16px -4px rgba(14, 165, 233, 0.35);
+}
+
+.btn-organic:active {
+  transform: translateY(0) translateX(0);
+}
+
+/* List item hover with slight rotation */
+.list-item-organic {
+  transition: transform 0.2s ease-out, background-color 0.2s ease-out;
+}
+
+.list-item-organic:hover {
+  transform: translateX(4px);
+  background-color: rgba(14, 165, 233, 0.04);
+}
+
+/* Card with asymmetric shadow */
+.card-organic {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease-out;
+}
+
+.card-organic:hover {
+  transform: translateY(-6px) rotate(-0.3deg);
+  box-shadow: 
+    0 20px 40px -12px rgba(0, 0, 0, 0.1),
+    0 4px 8px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Breathing animation for important elements */
+@keyframes breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+.breathe {
+  animation: breathe 4s ease-in-out infinite;
+}
+
+/* Slight text shadow for depth */
+.text-depth {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+/* Focus ring with slight offset */
+.focus-organic:focus-visible {
+  outline: none;
+  box-shadow: 
+    0 0 0 2px white,
+    0 0 0 4px rgba(14, 165, 233, 0.5),
+    0 2px 8px rgba(14, 165, 233, 0.2);
+}
+

@@ -177,20 +177,20 @@ export default function OrthodonticsPage() {
             </div>
             
             <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-slate-900 mb-4">
-              Алайнери или брекети?<br />Намерете правилното ортодонтско лечение
+              Алайнери или брекети — какво е подходящо за теб?
             </h1>
             
             <p className="text-lg text-slate-600 max-w-2xl mx-auto mb-8">
-              Отговорете на кратък тест и получете препоръка за подходящо лечение, ориентировъчна цена и следваща стъпка.
+              Разберете разликите, кога кой метод е подходящ, и митовете около ортодонтското лечение.
             </p>
             
             <Link
-              href="/orthodontics/quiz"
+              href="/quiz"
               className="btn-primary inline-flex items-center justify-center gap-2 h-14 px-8"
               data-testid="hero-cta-quiz"
             >
               <Smile className="w-5 h-5" />
-              Виж дали си подходящ за алайнери
+              Провери на кой етап си
             </Link>
           </div>
         </div>
@@ -221,11 +221,11 @@ export default function OrthodonticsPage() {
           
           <div className="text-center mt-10">
             <Link
-              href="/orthodontics/quiz"
+              href="/quiz"
               className="btn-primary inline-flex items-center justify-center gap-2 h-12 px-6"
               data-testid="how-it-works-cta"
             >
-              Започни теста
+              Провери своя етап
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -319,10 +319,10 @@ export default function OrthodonticsPage() {
           <div className="text-center mt-8">
             <p className="text-slate-500 mb-4">Не сте сигурни кой метод е за вас?</p>
             <Link
-              href="/orthodontics/quiz"
+              href="/quiz"
               className="text-sky-600 font-medium hover:text-sky-700 inline-flex items-center gap-2"
             >
-              Направете теста и разберете
+              Провери на кой етап си
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -523,11 +523,11 @@ export default function OrthodonticsPage() {
             </div>
             
             <Link
-              href="/orthodontics/quiz"
+              href="/quiz"
               className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-10 rounded-full bg-white text-sky-600 font-medium hover:bg-sky-50"
               data-testid="decision-cta-quiz"
             >
-              Започни теста
+              Провери на кой етап си
               <ArrowRight className="w-5 h-5" />
             </Link>
           </div>
@@ -556,12 +556,12 @@ export default function OrthodonticsPage() {
             Отговорете на няколко въпроса и получете персонализирана препоръка за вашето ортодонтско лечение.
           </p>
           <Link
-            href="/orthodontics/quiz"
+            href="/quiz"
             className="btn-primary inline-flex items-center justify-center gap-2 h-14 px-8"
             data-testid="final-cta-quiz"
           >
             <Smile className="w-5 h-5" />
-            Виж дали си подходящ за алайнери
+            Провери на кой етап си
           </Link>
           
           {/* Disclaimer */}
