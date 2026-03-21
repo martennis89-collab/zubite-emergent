@@ -87,6 +87,9 @@ export function Footer({ treatmentSlug }: FooterProps) {
               <Link href="/privacy" className="block hover:text-sky-500 transition-colors">
                 Политика за поверителност
               </Link>
+              <Link href="/cookies" className="block hover:text-sky-500 transition-colors">
+                Политика за бисквитки
+              </Link>
               <Link href="/terms" className="block hover:text-sky-500 transition-colors">
                 Условия за ползване
               </Link>

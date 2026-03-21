@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { generateOrganizationSchema, generateWebSiteSchema } from '@/lib/schema'
+import { CookieConsent } from '@/components/CookieConsent'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://zubite.bg'),
@@ -79,6 +80,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         {children}
+        <CookieConsent />
         {/* Hide Emergent badge injected by platform */}
         <style dangerouslySetInnerHTML={{ __html: `
           #emergent-badge,
