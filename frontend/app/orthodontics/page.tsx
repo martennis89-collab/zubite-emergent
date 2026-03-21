@@ -190,7 +190,7 @@ export default function OrthodonticsPage() {
               data-testid="hero-cta-quiz"
             >
               <Smile className="w-5 h-5" />
-              Провери на кой етап си
+              Провери ситуацията си първо
             </Link>
           </div>
         </div>
@@ -550,10 +550,10 @@ export default function OrthodonticsPage() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <Smile className="w-16 h-16 text-sky-500 mx-auto mb-6" />
           <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-4">
-            Готови ли сте да разберете кой метод е за вас?
+            Не знаеш откъде да започнеш?
           </h2>
           <p className="text-slate-600 mb-8 max-w-lg mx-auto">
-            Отговорете на няколко въпроса и получете персонализирана препоръка за вашето ортодонтско лечение.
+            Провери ситуацията си първо и разбери на какъв етап може да си. След това ще ти помогнем да намериш подходящи опции.
           </p>
           <Link
             href="/quiz"
@@ -561,7 +561,7 @@ export default function OrthodonticsPage() {
             data-testid="final-cta-quiz"
           >
             <Smile className="w-5 h-5" />
-            Провери на кой етап си
+            Провери ситуацията си първо
           </Link>
           
           {/* Disclaimer */}
