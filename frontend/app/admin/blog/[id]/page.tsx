@@ -38,8 +38,8 @@ export default function EditBlogPostPage() {
       }
 
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api'
-        const response = await fetch(`${API_URL}/admin/blog/posts/${postId}`, {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+        const response = await fetch(`${API_URL}/api/admin/blog/posts/${postId}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           }
@@ -83,7 +83,7 @@ export default function EditBlogPostPage() {
     setIsSaving(true)
 
     const token = localStorage.getItem('admin_token')
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api'
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
     try {
       const updateData = {
@@ -92,7 +92,7 @@ export default function EditBlogPostPage() {
         is_published: publish !== undefined ? publish : formData.is_published
       }
 
-      const response = await fetch(`${API_URL}/admin/blog/posts/${postId}`, {
+      const response = await fetch(`${API_URL}/api/admin/blog/posts/${postId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -126,10 +126,10 @@ export default function EditBlogPostPage() {
     }
 
     const token = localStorage.getItem('admin_token')
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api'
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
     try {
-      const response = await fetch(`${API_URL}/admin/blog/posts/${postId}`, {
+      const response = await fetch(`${API_URL}/api/admin/blog/posts/${postId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -39,13 +39,13 @@ export default function AdminBlogPage() {
     }
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api'
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
       const params = new URLSearchParams()
       if (filterPublished !== '') {
         params.append('is_published', filterPublished)
       }
 
-      const response = await fetch(`${API_URL}/admin/blog/posts?${params.toString()}`, {
+      const response = await fetch(`${API_URL}/api/admin/blog/posts?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -87,10 +87,10 @@ export default function AdminBlogPage() {
     }
 
     const token = localStorage.getItem('admin_token')
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api'
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
     try {
-      const response = await fetch(`${API_URL}/admin/blog/posts/${postId}`, {
+      const response = await fetch(`${API_URL}/api/admin/blog/posts/${postId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -107,10 +107,10 @@ export default function AdminBlogPage() {
 
   const handleTogglePublish = async (post: BlogPost) => {
     const token = localStorage.getItem('admin_token')
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api'
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
     try {
-      const response = await fetch(`${API_URL}/admin/blog/posts/${post.id}`, {
+      const response = await fetch(`${API_URL}/api/admin/blog/posts/${post.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

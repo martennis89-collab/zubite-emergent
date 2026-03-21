@@ -32,8 +32,8 @@ export default function AdminLeadsPage() {
     
     const fetchLeads = async () => {
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api'
-        const response = await fetch(`${API_URL}/admin/leads`, {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+        const response = await fetch(`${API_URL}/api/admin/leads`, {
           headers: { Authorization: `Bearer ${token}` }
         })
         

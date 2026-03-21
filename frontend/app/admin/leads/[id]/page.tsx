@@ -69,8 +69,8 @@ export default function LeadDetailPage() {
     }
     
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api'
-      const response = await fetch(`${API_URL}/admin/leads/${leadId}`, {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+      const response = await fetch(`${API_URL}/api/admin/leads/${leadId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -108,8 +108,8 @@ export default function LeadDetailPage() {
     setSaveMessage('')
     
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api'
-      const response = await fetch(`${API_URL}/admin/leads/${leadId}`, {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+      const response = await fetch(`${API_URL}/api/admin/leads/${leadId}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,

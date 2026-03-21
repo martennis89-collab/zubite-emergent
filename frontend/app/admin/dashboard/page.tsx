@@ -77,7 +77,7 @@ export default function AdminDashboardPage() {
     }
     
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api'
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
       const headers = {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -90,8 +90,8 @@ export default function AdminDashboardPage() {
       if (filterTreatment) params.append('treatment_type', filterTreatment)
       
       const [leadsRes, statsRes] = await Promise.all([
-        fetch(`${API_URL}/admin/leads?${params.toString()}`, { headers }),
-        fetch(`${API_URL}/admin/stats`, { headers })
+        fetch(`${API_URL}/api/admin/leads?${params.toString()}`, { headers }),
+        fetch(`${API_URL}/api/admin/stats`, { headers })
       ])
       
       if (!leadsRes.ok || !statsRes.ok) {
@@ -131,8 +131,8 @@ export default function AdminDashboardPage() {
     const token = localStorage.getItem('admin_token')
     if (!token) return
     
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api'
-    const response = await fetch(`${API_URL}/admin/leads/export/csv`, {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+    const response = await fetch(`${API_URL}/api/admin/leads/export/csv`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     

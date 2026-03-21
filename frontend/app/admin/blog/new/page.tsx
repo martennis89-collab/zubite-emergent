@@ -58,10 +58,10 @@ export default function NewBlogPostPage() {
     setIsSaving(true)
 
     const token = localStorage.getItem('admin_token')
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api'
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
     try {
-      const response = await fetch(`${API_URL}/admin/blog/posts`, {
+      const response = await fetch(`${API_URL}/api/admin/blog/posts`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
