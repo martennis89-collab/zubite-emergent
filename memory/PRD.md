@@ -1,128 +1,176 @@
 # Zubite.bg - Product Requirements Document
 
 ## Project Overview
-Zubite.bg is a dental solutions navigator platform that helps Bulgarian users find the right dental treatment and connect with verified clinics in their city.
+Zubite.bg is an educational orthodontic platform helping Bulgarian users understand their dental/orthodontic issues and guide them toward the correct treatment path. Focus is on conversion optimization - getting users to start the assessment quiz.
 
 ## Tech Stack
 - **Frontend**: Next.js 15 (App Router) with TypeScript
 - **Backend**: FastAPI with MongoDB
-- **Styling**: Tailwind CSS with light theme (white/sky-blue accents)
+- **Styling**: Tailwind CSS with white/sky-blue accents
 - **Email**: Resend for lead notifications
 
-## Lead Qualification Flow
+## Core User Flow
+`Homepage → Quiz (10 questions) → Result → Treatment Page or Lead Form`
 
-**Important**: Lead capture form is ONLY shown at the end of quizzes. Treatment pages guide users to quizzes for qualification.
+---
 
-## Orthodontics Quiz System (Updated December 2025)
+## Master Quiz System (NEW - December 2025)
 
-### Quiz Flow
-`Intro → 8 Questions → Result Screen → Lead Form → Success`
+### Overview
+New 10-question quiz at `/quiz` with psychological tension. One question per screen, minimal design, mobile-first.
 
-### Intro Screen
-- Title: "Разберете дали ортодонтско лечение може да е подходящо за вас"
-- Disclaimer: "Този въпросник не замества преглед от специалист"
-- CTA: "Започнете оценката"
-- Info: "8 въпроса • ~60–90 секунди"
+### Quiz Questions (Exact Bulgarian Copy)
+| Q# | Question | Options (Score) |
+|----|----------|-----------------|
+| 1 | Имаш ли усещане, че някои зъби са леко струпани или застъпени? | Да(2), Понякога(1), Не(0) |
+| 2 | Когато захапеш, усещаш ли зъбите си напълно равномерно? | Не(2), Не съм сигурен(1), Да(0) |
+| 3 | Дъвчеш ли повече от едната страна, без да се замисляш? | Да(2), Понякога(1), Не(0) |
+| 4 | Случва ли се да дишаш през устата (особено нощем)? | Да(2), Понякога(1), Не(0) |
+| 5 | Чуваш ли щракане или пукане при отваряне на устата? | Да(2), Понякога(1), Не(0) |
+| 6 | Събуждаш ли се с напрежение в челюстта или лицето? | Да(2), Понякога(1), Не(0) |
+| 7 | Задържа ли се храна на едни и същи места между зъбите? | Да(2), Понякога(1), Не(0) |
+| 8 | Забелязал ли си зъбите ти да изглеждат по-износени с времето? | Да(2), Не съм сигурен(1), Не(0) |
+| 9 | Имаш ли главоболие, напрежение във врата или ушите без ясна причина? | Да(2), Понякога(1), Не(0) |
+| 10 | Преди този тест мислеше ли, че имаш проблем със зъбите? | Не(2), Не бях сигурен(1), Да(0) |
 
-### 8 Questions with Scoring
+### Scoring Logic
+- **Max score**: 20 points (10 questions × 2 points)
+- **Early (0-6)**: "Вероятно си в ранен етап — но не всичко е толкова безобидно." → /orthodontics
+- **Progression (7-12)**: "Не си в безопасната зона — но все още е лесно да се коригира." → /orthodontics  
+- **Advanced (13-20)**: "Вероятно вече си в етап, в който проблемът се развива." → /implants
 
-| Q# | Question | Options & Scores |
-|----|----------|------------------|
-| 1 | Какъв е основният проблем? | crooked(+2), spaces(+2), bite(+3), aesthetic(+1), unsure(0) |
-| 2 | За кого е лечението? | adult(+2), child(+2), unsure(0) |
-| 3 | Имали ли сте брекети преди? | never(+2), relapse(+4), ongoing(0), unsure(+1) |
-| 4 | Захапката ви не е правилна? | yes(+4), sometimes(+2), no(0), unsure(+1) |
-| 5 | Проблеми с венците? | no(+2), bleeding(0), periodontal(-2), unsure(0) |
-| 6 | Приблизителна цена? | under_1000(-2), 1000-3000(+2), 3000-6000(+3), over_6000(+1), unsure(+1) |
-| 7 | Инвестиция от няколко хиляди евро? | yes(+4), maybe(+2), unsure(+1), no(-3) |
-| 8 | Кога бихте започнали? | 3_months(+4), 6_months(+3), 1_year(+1), research(0) |
+### Quiz UX
+- Progress bar with text: "Проверяваме твоята ситуация..."
+- 3 answer buttons per question (A, B, C labels)
+- Fast transitions between questions
+- Back button to previous question
+- Minimal header (logo + question counter)
 
-### Result Bands
+---
 
-| Score | Band | Title |
-|-------|------|-------|
-| ≥16 | Strong | "Добра новина" |
-| 10-15 | Possible | "Възможно е ортодонтско лечение да е подходящо" |
-| <10 | Needs Evaluation | "Нужна е по-точна оценка" |
+## Homepage Copy (Updated December 2025)
 
-### Lead Priority Tags
-- **HIGH**: score ≥16 AND timing ≤6 months
-- **MEDIUM**: score 10-15
-- **LOW**: score <10
+### Hero Section
+- **Headline**: "По-лесно е да оправиш зъбите си навреме. / Повечето хора чакат, докато стане скъпо. / Ти сигурен ли си, че не си вече в този етап?"
+- **Subheadline**: "Повечето хора вече имат ранни признаци — но ги осъзнават чак когато лечението стане по-сложно."
+- **CTA**: "Провери къде се намираш (60 сек)"
+- **Micro**: "Отнема 60 секунди. Повечето хора никога не стигат дотук."
 
-### Lead Form Fields
-- Име (optional)
-- Телефон * (mandatory)
-- Град (София, Пловдив, Варна)
-- Какъв е вашият основен проблем? (optional)
-- Съгласен съм с обработката на лични данни (mandatory)
+### Interrupt Section
+- **Title**: "Ако чакаш да те заболи — вече си закъснял."
 
-### Data Stored
-- quiz_score, problem_type, previous_ortho, bite_issue, gum_status
-- price_awareness, investment_readiness, timing, city, name, phone
-- priority, source, timestamp
+### Self Recognition Section
+- **Tension line**: "Повечето хора игнорират тези неща… докато не стане проблем."
 
-## Standardized Treatment Page Structure
+### Progression Section
+- **Micro copy**: "Проблемът не стои на място."
 
-All treatment pages follow:
-1. **HERO**: H1, Single CTA "Направи бърза оценка" → quiz
-2. **HOW ZUBITE WORKS**: 3 steps
-3. **SYMPTOMS/PROBLEMS**: What the treatment addresses
-4. **TREATMENT OPTIONS**: Available methods
-5. **COMPARISON SECTION**: Treatment-specific comparison
-6. **CONSIDERATIONS**: When other treatment may be needed
-7. **INDICATIVE PRICES**: EUR primary, BGN secondary
-8. **WHO THIS IS FOR**: Suitable candidates
-9. **FAQ**: 6 questions with accordion
-10. **FINAL CTA**: Quiz button
-11. **DISCLAIMER**
-12. **FOOTER**: Dynamic city links
+### Cost Section
+- **Title**: "Това не е един и същ проблем — ако го хванеш навреме или по-късно."
+
+### Authority Section
+- **Close**: "И повечето разбират това… твърде късно."
+
+### Final CTA
+- **Text**: "Разбери на кой етап си — преди да стане по-сложно и по-скъпо."
+
+---
+
+## SEO Pages
+
+### /symptoms
+- **Title**: "Признаци, че може да имаш проблем със захапката (дори без болка)"
+- **Content**: струпани зъби, неравномерна захапка, щракане, напрежение, износване
+- **Internal links**: → /quiz
+
+### /orthodontics
+- **Title**: "Алайнери или брекети — какво е подходящо за теб?"
+- **Content**: разлики, кога кой е подходящ, митове
+- **CTA**: → /quiz
+
+---
+
+## Navigation Structure
+- Начало
+- Симптоми (/symptoms)
+- Ортодонтия (/orthodontics)
+- Блог (/blog)
+- CTA: "Провери етапа си" → /quiz
+
+---
 
 ## Architecture
 
 ```
-/app/nextjs-seo/
+/app/frontend/
 ├── app/
-│   ├── page.tsx                    # Homepage
+│   ├── page.tsx                    # Homepage (updated copy)
+│   ├── quiz/
+│   │   └── page.tsx                # NEW: Master quiz
+│   ├── symptoms/
+│   │   └── page.tsx                # SEO symptoms page
 │   ├── orthodontics/
-│   │   ├── page.tsx                # Treatment page
-│   │   └── quiz/page.tsx           # Quiz page
-│   ├── implants/
-│   ├── cosmetic-dentistry/
-│   ├── sleep-airway/
-│   ├── tmj/
+│   │   └── page.tsx                # Updated with quiz links
+│   ├── assessment/                 # Legacy (still works)
+│   ├── blog/
 │   └── admin/
 │
 ├── components/
-│   ├── OrthodonticsQuiz.tsx        # NEW: Dedicated ortho quiz
-│   ├── TreatmentQuiz.tsx           # Generic quiz for other treatments
-│   ├── Footer.tsx                  # Dynamic city links
-│   └── ...
-│
-├── lib/
-│   ├── pricing.ts                  # Centralized pricing
-│   └── api.ts
+│   ├── MasterQuiz.tsx              # NEW: 10-question quiz
+│   ├── OrthodonticsQuiz.tsx        # Detailed ortho quiz (8 questions)
+│   ├── Header.tsx                  # Updated nav
+│   └── Footer.tsx
 ```
 
+---
+
 ## Admin Panel
+- **URL**: /admin
 - **Email**: `admin@zubite.bg`
 - **Password**: `password`
+
+---
+
+## Completed Work (December 2025)
+
+### ✅ Homepage Copy Update
+- Updated all section copy with psychological tension
+- CTAs now link to /quiz
+
+### ✅ Master Quiz Implementation
+- 10 questions at /quiz
+- Scoring: Да=2, Понякога=1, Не=0
+- 3 result states with appropriate routing
+
+### ✅ SEO Pages
+- /symptoms page with new content
+- /orthodontics updated with quiz links
+
+### ✅ Navigation Update
+- Added "Симптоми" link
+- CTA changed to "Провери етапа си"
+
+---
 
 ## Pending/Future Tasks
 
 ### P1 - High Priority
 - [ ] Add Meta Pixel ID for tracking (awaiting user input)
 - [ ] Add Google Ads Conversion ID (awaiting user input)
+- [ ] Blog static generation fix (on-demand revalidation)
 
 ### P2 - Medium Priority
+- [ ] Create specific quizzes for other treatments (implants, cosmetic)
 - [ ] Replace placeholder OG images
-- [ ] Create dedicated quizzes for other treatments (implants, cosmetic, etc.)
+- [ ] Create /implants placeholder page for advanced quiz results
 
 ### P3 - Future
 - [ ] English translation (`/en/...` routes)
 - [ ] More cities
-- [ ] Enhance admin panel
+- [ ] Enhance admin panel (edit homepage content)
+- [ ] Backend refactoring (split server.py into routers)
 
 ---
+
 *Last updated: December 2025*
-*Latest changes: New orthodontics quiz with 8 questions, scoring system, and priority tagging*
+*Latest changes: Master quiz with 10 questions, homepage copy update, SEO pages, navigation update*
