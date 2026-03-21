@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Metadata } from 'next'
-import { ArrowRight, ChevronRight, AlertTriangle, TrendingUp, Clock, Target } from 'lucide-react'
+import { ArrowRight, ChevronRight, AlertTriangle, TrendingUp, Clock, Target, Calendar, BookOpen } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: 'Zubite.bg | Провери на кой етап си — преди да стане по-сложно',
@@ -30,6 +30,44 @@ export const metadata: Metadata = {
       follow: true,
     },
   },
+}
+
+// Blog post interface
+interface BlogPost {
+  id: string
+  title: string
+  slug: string
+  excerpt: string
+  category: string
+  featured_image: string | null
+  published_at: string
+}
+
+// Fetch recent blog posts for SSR
+async function getRecentPosts(): Promise<BlogPost[]> {
+  try {
+    const response = await fetch('http://localhost:8001/api/blog/posts?limit=3', {
+      next: { revalidate: 300 }, // Revalidate every 5 minutes
+    })
+    
+    if (!response.ok) {
+      return []
+    }
+    
+    const data = await response.json()
+    return data.posts || []
+  } catch {
+    return []
+  }
+}
+
+// Category names in Bulgarian
+const CATEGORY_NAMES: Record<string, string> = {
+  orthodontics: 'Ортодонтия',
+  aligners: 'Алайнери',
+  braces: 'Брекети',
+  tips: 'Съвети',
+  news: 'Новини',
 }
 
 // Self-recognition symptoms
@@ -74,7 +112,10 @@ const reasons = [
   'Повечето хора не проверяват',
 ]
 
-export default function HomePage() {
+export default async function HomePage() {
+  // Fetch recent blog posts server-side for SEO
+  const recentPosts = await getRecentPosts()
+  
   return (
     <main className="min-h-screen bg-white text-slate-900">
       {/* Sticky CTA - Mobile */}
@@ -342,6 +383,96 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* SECTION 7.5 — RECENT ARTICLES (SEO) */}
+      {recentPosts.length > 0 && (
+        <section className="py-20 md:py-28 bg-white" aria-labelledby="recent-articles-heading">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6">
+            <div className="flex items-center justify-between mb-12">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-sky-100 flex items-center justify-center" aria-hidden="true">
+                  <BookOpen className="w-6 h-6 text-sky-600" />
+                </div>
+                <div>
+                  <h2 id="recent-articles-heading" className="font-serif text-2xl md:text-3xl font-semibold text-slate-900">
+                    Последни статии
+                  </h2>
+                  <p className="text-slate-500 mt-1">Научи повече за грижата за зъбите</p>
+                </div>
+              </div>
+              <Link 
+                href="/blog" 
+                className="hidden md:flex items-center gap-2 text-sky-600 font-medium hover:text-sky-700 transition-colors"
+              >
+                Виж всички
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+              {recentPosts.map((post) => (
+                <article 
+                  key={post.id}
+                  className="group bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-xl hover:shadow-sky-500/10 transition-all duration-300"
+                >
+                  <Link href={`/blog/${post.slug}`}>
+                    {/* Thumbnail */}
+                    {post.featured_image ? (
+                      <div className="aspect-[16/10] relative overflow-hidden bg-slate-100">
+                        <img 
+                          src={post.featured_image} 
+                          alt={post.title}
+                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          loading="lazy"
+                        />
+                      </div>
+                    ) : (
+                      <div className="aspect-[16/10] bg-gradient-to-br from-sky-100 to-sky-50 flex items-center justify-center">
+                        <BookOpen className="w-12 h-12 text-sky-300" />
+                      </div>
+                    )}
+                    
+                    {/* Content */}
+                    <div className="p-5">
+                      <div className="flex items-center gap-3 mb-3 text-xs">
+                        <span className="px-2 py-1 rounded-full bg-sky-50 text-sky-600 font-medium">
+                          {CATEGORY_NAMES[post.category] || post.category}
+                        </span>
+                        <span className="flex items-center gap-1 text-slate-400">
+                          <Calendar className="w-3 h-3" />
+                          {new Date(post.published_at).toLocaleDateString('bg-BG', {
+                            day: 'numeric',
+                            month: 'short'
+                          })}
+                        </span>
+                      </div>
+                      
+                      <h3 className="font-serif text-lg font-semibold text-slate-900 mb-2 line-clamp-2 group-hover:text-sky-600 transition-colors">
+                        {post.title}
+                      </h3>
+                      
+                      <p className="text-slate-500 text-sm line-clamp-2">
+                        {post.excerpt}
+                      </p>
+                    </div>
+                  </Link>
+                </article>
+              ))}
+            </div>
+
+            {/* Mobile "View All" link */}
+            <div className="mt-8 text-center md:hidden">
+              <Link 
+                href="/blog" 
+                className="inline-flex items-center gap-2 text-sky-600 font-medium hover:text-sky-700 transition-colors"
+              >
+                Виж всички статии
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* SECTION 8 — FINAL CTA (Blue Background) */}
       <section className="py-20 md:py-32 bg-sky-600" aria-labelledby="final-cta-heading">

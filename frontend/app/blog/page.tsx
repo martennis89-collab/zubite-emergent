@@ -102,38 +102,55 @@ export default async function BlogPage() {
             </div>
           ) : (
             <div className="space-y-8">
-              {posts.map((post, index) => (
+              {posts.map((post) => (
                 <article 
                   key={post.id}
                   className="group bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-xl hover:shadow-sky-500/10 transition-all duration-300"
                 >
                   <Link href={`/blog/${post.slug}`} className="block">
-                    <div className="p-6 md:p-8">
-                      <div className="flex flex-wrap items-center gap-3 mb-4 text-sm">
-                        <span className="px-3 py-1 rounded-full bg-sky-50 text-sky-600 font-medium">
-                          {CATEGORY_NAMES[post.category] || post.category}
-                        </span>
-                        <span className="flex items-center gap-1.5 text-slate-400">
-                          <Calendar className="w-4 h-4" />
-                          {new Date(post.published_at).toLocaleDateString('bg-BG', {
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric'
-                          })}
-                        </span>
-                      </div>
+                    <div className="flex flex-col md:flex-row">
+                      {/* Thumbnail Image */}
+                      {post.featured_image && (
+                        <div className="md:w-72 lg:w-80 flex-shrink-0">
+                          <div className="aspect-[16/10] md:aspect-square md:h-full relative overflow-hidden bg-slate-100">
+                            <img 
+                              src={post.featured_image} 
+                              alt={post.title}
+                              className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                              loading="lazy"
+                            />
+                          </div>
+                        </div>
+                      )}
                       
-                      <h2 className="font-serif text-xl md:text-2xl font-semibold text-slate-900 mb-3 group-hover:text-sky-600 transition-colors">
-                        {post.title}
-                      </h2>
-                      
-                      <p className="text-slate-600 mb-4 line-clamp-2">
-                        {post.excerpt}
-                      </p>
-                      
-                      <div className="flex items-center text-sky-500 font-medium group-hover:gap-3 transition-all">
-                        <span>Прочетете повече</span>
-                        <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                      {/* Content */}
+                      <div className="flex-1 p-6 md:p-8">
+                        <div className="flex flex-wrap items-center gap-3 mb-4 text-sm">
+                          <span className="px-3 py-1 rounded-full bg-sky-50 text-sky-600 font-medium">
+                            {CATEGORY_NAMES[post.category] || post.category}
+                          </span>
+                          <span className="flex items-center gap-1.5 text-slate-400">
+                            <Calendar className="w-4 h-4" />
+                            {new Date(post.published_at).toLocaleDateString('bg-BG', {
+                              day: 'numeric',
+                              month: 'long',
+                              year: 'numeric'
+                            })}
+                          </span>
+                        </div>
+                        
+                        <h2 className="font-serif text-xl md:text-2xl font-semibold text-slate-900 mb-3 group-hover:text-sky-600 transition-colors">
+                          {post.title}
+                        </h2>
+                        
+                        <p className="text-slate-600 mb-4 line-clamp-2">
+                          {post.excerpt}
+                        </p>
+                        
+                        <div className="flex items-center text-sky-500 font-medium group-hover:gap-3 transition-all">
+                          <span>Прочетете повече</span>
+                          <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                        </div>
                       </div>
                     </div>
                   </Link>
