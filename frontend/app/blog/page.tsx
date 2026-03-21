@@ -4,6 +4,9 @@ import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { Calendar, ArrowRight, BookOpen } from 'lucide-react'
 
+// Force dynamic rendering - do not pre-render at build time
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'Блог | Zubite.bg',
   description: 'Статии и съвети за ортодонтия, алайнери и брекети. Научете повече за грижата за зъбите и ортодонтското лечение.',
@@ -34,11 +37,9 @@ const CATEGORY_NAMES: Record<string, string> = {
 
 async function getBlogPosts(): Promise<{ posts: BlogPost[], total: number }> {
   try {
-    // For server-side rendering, use internal URL
-    const isServer = typeof window === 'undefined'
-    const API_URL = isServer 
-      ? 'http://localhost:8001' 
-      : (process.env.NEXT_PUBLIC_API_URL || '')
+    // Use the public API URL for server-side rendering
+    // This works in both preview and production environments
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || process.env.REACT_APP_BACKEND_URL || ''
     
     const response = await fetch(`${API_URL}/api/blog/posts?limit=20`, {
       next: { revalidate: 60 }, // Revalidate every 60 seconds

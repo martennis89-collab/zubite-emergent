@@ -58,7 +58,10 @@ interface BlogPost {
 // Fetch recent blog posts for SSR
 async function getRecentPosts(): Promise<BlogPost[]> {
   try {
-    const response = await fetch('http://localhost:8001/api/blog/posts?limit=3', {
+    // Use the public API URL for server-side rendering
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || process.env.REACT_APP_BACKEND_URL || ''
+    
+    const response = await fetch(`${API_URL}/api/blog/posts?limit=3`, {
       next: { revalidate: 300 }, // Revalidate every 5 minutes
     })
     

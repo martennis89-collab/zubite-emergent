@@ -5,6 +5,9 @@ import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { Calendar, ArrowLeft, ArrowRight, Tag, User } from 'lucide-react'
 
+// Force dynamic rendering - do not pre-render at build time
+export const dynamic = 'force-dynamic'
+
 interface BlogPost {
   id: string
   title: string
@@ -32,11 +35,8 @@ const CATEGORY_NAMES: Record<string, string> = {
 
 async function getBlogPost(slug: string): Promise<BlogPost | null> {
   try {
-    // For server-side rendering, use internal URL
-    const isServer = typeof window === 'undefined'
-    const API_URL = isServer 
-      ? 'http://localhost:8001' 
-      : (process.env.NEXT_PUBLIC_API_URL || '')
+    // Use the public API URL for server-side rendering
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || process.env.REACT_APP_BACKEND_URL || ''
     
     const response = await fetch(`${API_URL}/api/blog/posts/${slug}`, {
       next: { revalidate: 60 },
