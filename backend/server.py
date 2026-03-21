@@ -752,6 +752,183 @@ async def serve_static_file(file_path: str):
         return FileResponse(full_path)
     raise HTTPException(status_code=404, detail="File not found")
 
+
+# ============================================
+# ANALYTICS ENDPOINTS
+# ============================================
+
+class AnalyticsEvent(BaseModel):
+    event_type: str
+    session_id: str
+    timestamp: str
+    question_id: Optional[str] = None
+    question_index: Optional[int] = None
+    answer: Optional[str] = None
+    score: Optional[int] = None
+    time_spent_ms: Optional[int] = None
+    total_score: Optional[int] = None
+    band: Optional[str] = None
+    total_time_ms: Optional[int] = None
+    answers: Optional[List[Dict[str, Any]]] = None
+    choice: Optional[str] = None
+    form_version: Optional[str] = None
+    city: Optional[str] = None
+    has_name: Optional[bool] = None
+    has_email: Optional[bool] = None
+
+@api_router.post("/analytics/events")
+async def track_analytics_event(event: AnalyticsEvent):
+    """Track quiz analytics event"""
+    doc = {
+        "id": str(uuid.uuid4()),
+        "event_type": event.event_type,
+        "session_id": event.session_id,
+        "timestamp": event.timestamp,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        **{k: v for k, v in event.model_dump().items() if v is not None and k not in ['event_type', 'session_id', 'timestamp']}
+    }
+    await db.analytics_events.insert_one(doc)
+    return {"status": "ok"}
+
+
+class QuizAnalytics(BaseModel):
+    total_starts: int
+    total_completions: int
+    completion_rate: float
+    avg_time_seconds: float
+    dropoff_by_question: Dict[str, int]
+    question_stats: Dict[str, Dict[str, float]]
+    result_distribution: Dict[str, int]
+    funnel: Dict[str, int]
+    leads_per_day: List[Dict[str, Any]]
+    leads_by_city: Dict[str, int]
+    form_version_stats: Dict[str, int]
+
+
+@api_router.get("/admin/analytics")
+async def get_analytics(user: AdminUser = Depends(get_current_user)):
+    """Get comprehensive quiz analytics"""
+    
+    # Get all events
+    events = await db.analytics_events.find().to_list(10000)
+    
+    # Calculate metrics
+    sessions = {}
+    for event in events:
+        sid = event.get('session_id')
+        if sid not in sessions:
+            sessions[sid] = {'events': [], 'started': False, 'completed': False}
+        sessions[sid]['events'].append(event)
+        if event.get('event_type') == 'quiz_start':
+            sessions[sid]['started'] = True
+        if event.get('event_type') == 'quiz_completed':
+            sessions[sid]['completed'] = True
+    
+    total_starts = sum(1 for s in sessions.values() if s['started'])
+    total_completions = sum(1 for s in sessions.values() if s['completed'])
+    completion_rate = (total_completions / total_starts * 100) if total_starts > 0 else 0
+    
+    # Average time to complete
+    completion_times = []
+    for s in sessions.values():
+        for e in s['events']:
+            if e.get('event_type') == 'quiz_completed' and e.get('total_time_ms'):
+                completion_times.append(e['total_time_ms'] / 1000)
+    avg_time = sum(completion_times) / len(completion_times) if completion_times else 0
+    
+    # Drop-off by question
+    question_answers = {}
+    for event in events:
+        if event.get('event_type') == 'question_answered':
+            q_idx = event.get('question_index', 0)
+            question_answers[q_idx] = question_answers.get(q_idx, 0) + 1
+    
+    dropoff = {}
+    for i in range(1, 11):
+        current = question_answers.get(i, 0)
+        previous = question_answers.get(i - 1, total_starts) if i > 1 else total_starts
+        dropoff[f"q{i}"] = previous - current if previous > current else 0
+    
+    # Question stats (answer distribution)
+    question_stats = {}
+    for i in range(1, 11):
+        q_key = f"q{i}"
+        question_stats[q_key] = {"yes": 0, "sometimes": 0, "unsure": 0, "no": 0}
+    
+    for event in events:
+        if event.get('event_type') == 'question_answered':
+            q_idx = event.get('question_index', 0)
+            answer = event.get('answer', '')
+            q_key = f"q{q_idx}"
+            if q_key in question_stats and answer in question_stats[q_key]:
+                question_stats[q_key][answer] += 1
+    
+    # Convert to percentages
+    for q_key, stats in question_stats.items():
+        total = sum(stats.values())
+        if total > 0:
+            for answer in stats:
+                stats[answer] = round(stats[answer] / total * 100, 1)
+    
+    # Result distribution
+    result_dist = {"early": 0, "progressing": 0, "advanced": 0}
+    for event in events:
+        if event.get('event_type') == 'quiz_completed':
+            band = event.get('band', '')
+            if band in result_dist:
+                result_dist[band] += 1
+    
+    # Funnel metrics
+    soft_commits_yes = sum(1 for e in events if e.get('event_type') == 'soft_commit' and e.get('choice') == 'yes')
+    soft_commits_no = sum(1 for e in events if e.get('event_type') == 'soft_commit' and e.get('choice') == 'no')
+    form_submits = sum(1 for e in events if e.get('event_type') == 'form_submitted')
+    
+    funnel = {
+        "quiz_start": total_starts,
+        "quiz_completed": total_completions,
+        "soft_commit_yes": soft_commits_yes,
+        "soft_commit_no": soft_commits_no,
+        "form_submitted": form_submits
+    }
+    
+    # Leads per day (last 30 days)
+    thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
+    leads_cursor = db.leads.find({"created_at": {"$gte": thirty_days_ago.isoformat()}})
+    leads = await leads_cursor.to_list(1000)
+    
+    leads_by_date = {}
+    for lead in leads:
+        created = lead.get('created_at', '')[:10]
+        leads_by_date[created] = leads_by_date.get(created, 0) + 1
+    
+    leads_per_day = [{"date": k, "count": v} for k, v in sorted(leads_by_date.items())]
+    
+    # Leads by city
+    leads_by_city = {
+        "sofia": await db.leads.count_documents({"city_slug": "sofia"}),
+        "plovdiv": await db.leads.count_documents({"city_slug": "plovdiv"})
+    }
+    
+    # Form version stats
+    form_a_leads = await db.leads.count_documents({"form_version": "A"})
+    form_b_leads = await db.leads.count_documents({"form_version": "B"})
+    form_version_stats = {"A": form_a_leads, "B": form_b_leads}
+    
+    return {
+        "total_starts": total_starts,
+        "total_completions": total_completions,
+        "completion_rate": round(completion_rate, 1),
+        "avg_time_seconds": round(avg_time, 1),
+        "dropoff_by_question": dropoff,
+        "question_stats": question_stats,
+        "result_distribution": result_dist,
+        "funnel": funnel,
+        "leads_per_day": leads_per_day,
+        "leads_by_city": leads_by_city,
+        "form_version_stats": form_version_stats
+    }
+
+
 app.include_router(api_router)
 
 app.add_middleware(
@@ -772,6 +949,7 @@ async def startup():
     await db.leads.create_index("city_slug")
     await db.leads.create_index("band")
     await db.leads.create_index("status")
+    await db.leads.create_index("form_version")
     await db.clinics.create_index("id", unique=True)
     await db.clinics.create_index("city_slug")
     await db.admin_users.create_index("username", unique=True)
@@ -779,6 +957,9 @@ async def startup():
     await db.blog_posts.create_index("slug", unique=True)
     await db.blog_posts.create_index("is_published")
     await db.blog_posts.create_index("category")
+    await db.analytics_events.create_index("session_id")
+    await db.analytics_events.create_index("event_type")
+    await db.analytics_events.create_index("created_at")
 
 @app.on_event("shutdown")
 async def shutdown():

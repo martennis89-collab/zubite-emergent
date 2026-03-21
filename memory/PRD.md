@@ -9,29 +9,95 @@ Zubite.bg is an educational orthodontic platform helping Bulgarian users underst
 - **Styling**: Tailwind CSS with white/sky-blue accents
 - **Email**: Resend for lead notifications
 
-## Core User Flow
-`Homepage → Quiz (10 questions) → Result Stage → Lead Form → Success Screen`
-
-**Important**: The quiz does NOT route users to treatment pages. It:
-1. Assesses the user's current stage
-2. Shows how serious/urgent the situation may be
-3. Educates them briefly based on their result
-4. Captures their contact details
-5. Allows Zubite.bg to contact them and recommend 3 clinic options
+## Core User Flow (Updated December 2025)
+```
+Homepage → Quiz (10 questions with micro-insights) → Result Stage → Soft Commit → Lead Form (A/B) → Success Screen
+```
 
 ---
 
-## Master Quiz System (Updated December 2025)
+## Master Quiz System v3 (Updated December 2025)
 
-### Quiz Purpose
-- Assess whether the person has early / progressing / advanced signs
-- Determine how quickly they should seek professional help
-- **Does NOT decide**: aligners vs braces, implants vs orthodontics, exact treatment type
+### New Features
 
-### Quiz Flow
-`Quiz Questions → Result Stage → Lead Form → Success Screen`
+#### 1. Micro-Insights Between Questions
+Psychological triggers inserted AFTER specific questions:
 
-### Quiz Questions (10 Questions)
+| After Q# | Insight Text |
+|----------|--------------|
+| Q2 | „Повечето хора с такива усещания нямат болка… но това често е началото." |
+| Q5 | „Около 60% от хората имат подобни признаци — но малко от тях действат навреме." |
+| Q6 | „Остава малко — почти си готов." |
+| Q8 | „Когато се стигне до износване, решението рядко остава толкова лесно, колкото в началото." |
+
+#### 2. Soft Commit Screen (After Result, Before Form)
+- **Headline**: „Искаш ли да видиш какви са опциите ти оттук нататък?"
+- **Subtext**: „Можем да ти препоръчаме 3 подходящи клиники според твоя резултат и град."
+- **Primary CTA**: „Да, покажете ми опциите" → Form
+- **Secondary**: „Не сега" → Exit Screen
+
+#### 3. Exit Screen (For "Not Now" Users)
+- **Text**: „Разбираемо. Ако решиш по-късно, винаги можеш да провериш отново."
+- **Button**: „Обратно към началото"
+
+#### 4. Lead Form A/B Testing
+**Version A (Full)**:
+- Име*
+- Телефон*
+- Имейл
+- Град*
+
+**Version B (Simplified)**:
+- Телефон*
+- Град*
+
+Form value prop above: „Ще получиш 3 реални препоръки според твоя случай — не просто списък с клиники."
+
+#### 5. Analytics Tracking
+Every interaction is tracked:
+- `quiz_start` - Session begins
+- `question_answered` - Each question with answer, score, time
+- `quiz_completed` - Final score, band, total time
+- `soft_commit` - Yes/No choice
+- `form_submitted` - Form version, city, has_name, has_email
+
+---
+
+## Admin Analytics Dashboard (/admin/analytics)
+
+### Metrics Tracked
+
+#### Quiz Metrics
+- Total quiz starts
+- Completion rate (%)
+- Drop-off per question
+- Average time to complete
+
+#### Question Analytics
+For each question:
+- % "Да"
+- % "Понякога" / "Не съм сигурен"
+- % "Не"
+
+#### Result Distribution
+- % early (Ранен етап)
+- % progressing (Развиващ се етап)
+- % advanced (Напреднал етап)
+
+#### Funnel Metrics
+- Quiz start → Quiz completed
+- Quiz completed → Soft commit YES
+- Soft commit YES → Form submitted
+- Soft commit NO tracked separately
+
+#### Form Analytics
+- Leads per day (30 day chart)
+- Leads by city (Sofia vs Plovdiv)
+- Form Version A vs B conversion comparison
+
+---
+
+## Quiz Questions (10 Questions)
 | Q# | Question | Options (Score) |
 |----|----------|-----------------|
 | 1 | Имаш ли усещане, че някои зъби са леко струпани или застъпени? | Да(2), Понякога(1), Не(0) |
@@ -45,74 +111,10 @@ Zubite.bg is an educational orthodontic platform helping Bulgarian users underst
 | 9 | Имаш ли главоболие, напрежение във врата или ушите без ясна причина? | Да(2), Понякога(1), Не(0) |
 | 10 | Преди този тест мислеше ли, че имаш проблем със зъбите? | Не(2), Не бях сигурен(1), Да(0) |
 
-### Scoring Logic
-- **Max score**: 20 points (10 questions × 2 points)
-- **Ранен етап (0-5)**: Green/Emerald styling
-- **Развиващ се етап (6-12)**: Amber styling
-- **Напреднал етап (13-20)**: Red styling
-
-### Result Page Content
-
-#### Ранен етап (Early)
-- **Headline**: "Вероятно си в ранен етап."
-- **Explanation**: "Показваш леки сигнали, които често остават незабелязани в началото..."
-- **Urgency**: "Добър момент е да потърсиш оценка навреме — преди ситуацията да стане по-сложна."
-- **Education**: "Ранният етап често е най-лесният за корекция..."
-
-#### Развиващ се етап (Progressing)
-- **Headline**: "Има признаци, че проблемът се развива."
-- **Explanation**: "Отговорите ти показват модел, който често се задълбочава с времето..."
-- **Urgency**: "Добре е да потърсиш професионална оценка скоро..."
-- **Education**: "Този резултат не определя конкретно лечение..."
-
-#### Напреднал етап (Advanced)
-- **Headline**: "Вероятно си в по-напреднал етап."
-- **Explanation**: "Отговорите ти показват повече сигнали..."
-- **Urgency**: "Добре е да потърсиш професионална помощ възможно най-скоро..."
-- **Education**: "Този резултат не е диагноза и не означава автоматично импланти, брекети или алайнери..."
-
-### Lead Form (On Result Page)
-**Title**: "Получете 3 препоръчани клиники за вашия случай"
-**Subtitle**: "Попълнете данните си и нашият екип ще прегледа резултата ви и ще се свърже с вас с 3 подходящи опции."
-
-**Fields**:
-- Име* (required)
-- Телефон* (required)
-- Имейл (optional)
-- Град* (required): София, Пловдив
-- Кратко описание или въпрос (optional)
-
-**Submit button**: "Изпрати и получи 3 опции"
-**Trust text**: "Без ангажимент. Ние не сме клиника. Ще използваме отговорите ти само за да ти помогнем да намериш подходящ следващ ход."
-
-### Success Screen
-- **Headline**: "Получихме твоите данни."
-- **Text**: "Ще прегледаме отговорите ти и ще се свържем с теб с 3 подходящи опции за клиники според твоята ситуация и избрания град."
-- **Supporting text**: "Този резултат не е диагноза, а насока кога е добре да потърсиш професионална оценка."
-- **Button**: "Обратно към началото"
-
----
-
-## SEO Pages
-
-### /symptoms
-- **Title**: "Признаци, че може да имаш проблем със захапката (дори без болка)"
-- **Content**: струпани зъби, неравномерна захапка, щракане, напрежение, износване, дишане през устата, задържане на храна
-- **CTA**: "Провери на кой етап си" → /quiz
-
-### /orthodontics
-- **Title**: "Алайнери или брекети — какво е подходящо за теб?"
-- **Content**: разликите, кога кой е подходящ, какво влияе на избора, защо първо трябва добра оценка
-- **CTA**: "Провери ситуацията си първо" → /quiz
-
----
-
-## Navigation Structure
-- Начало
-- Симптоми (/symptoms)
-- Ортодонтия (/orthodontics)
-- Блог (/blog)
-- CTA: "Провери етапа си" → /quiz
+### Scoring
+- **0-5**: Ранен етап (Green)
+- **6-12**: Развиващ се етап (Amber)
+- **13-20**: Напреднал етап (Red)
 
 ---
 
@@ -124,19 +126,21 @@ Zubite.bg is an educational orthodontic platform helping Bulgarian users underst
 │   ├── page.tsx                    # Homepage
 │   ├── quiz/
 │   │   └── page.tsx                # Master quiz
+│   ├── admin/
+│   │   ├── page.tsx                # Login
+│   │   ├── dashboard/              # Leads dashboard
+│   │   ├── analytics/              # NEW: Analytics dashboard
+│   │   ├── blog/                   # Blog management
+│   │   └── leads/                  # Lead details
 │   ├── symptoms/
-│   │   └── page.tsx                # SEO symptoms page
 │   ├── orthodontics/
-│   │   └── page.tsx                # SEO orthodontics page
-│   ├── assessment/                 # Legacy (still works)
-│   ├── blog/
-│   └── admin/
+│   └── blog/
 │
 ├── components/
-│   ├── MasterQuiz.tsx              # 10-question quiz with integrated lead form
-│   ├── OrthodonticsQuiz.tsx        # Detailed ortho quiz (legacy)
-│   ├── Header.tsx
-│   └── Footer.tsx
+│   └── MasterQuiz.tsx              # v3: Micro-insights, soft commit, A/B form
+
+/app/backend/
+└── server.py                       # NEW: /api/analytics/events, /api/admin/analytics
 ```
 
 ---
@@ -146,28 +150,36 @@ Zubite.bg is an educational orthodontic platform helping Bulgarian users underst
 - **Email**: `admin@zubite.bg`
 - **Password**: `password`
 
+**Pages**:
+- /admin/dashboard - Leads management
+- /admin/analytics - Quiz analytics (NEW)
+- /admin/blog - Blog management
+
 ---
 
 ## Completed Work (December 2025)
 
-### ✅ Master Quiz v2 with Lead Capture
-- 10 questions assessing stage (not treatment)
+### ✅ Quiz Enhancements v3
+- Micro-insights after Q2, Q5, Q6, Q8
+- Soft commit screen before lead form
+- Exit screen for "Not now" users
+- A/B testing on lead form (Version A: full, Version B: simplified)
+- Full analytics tracking on all interactions
+
+### ✅ Admin Analytics Dashboard
+- Quiz completion metrics
+- Question-by-question answer distribution
+- Conversion funnel visualization
+- Form A/B test results
+- Leads per day chart
+- Leads by city breakdown
+
+### ✅ Previous Work
+- Homepage copy update with psychological tension
+- 10-question assessment quiz
 - 3 result states with stage-specific content
-- Lead form integrated directly on result page
-- Success confirmation screen
-- NO automatic routing to treatment pages
-
-### ✅ Homepage Copy Update
-- Psychological tension copy
-- CTAs link to /quiz
-
-### ✅ SEO Pages
-- /symptoms page with comprehensive symptom list
-- /orthodontics page with educational content
-
-### ✅ Navigation Update
-- Added "Симптоми" link
-- CTA "Провери етапа си"
+- Lead capture system
+- Blog CMS
 
 ---
 
@@ -176,18 +188,17 @@ Zubite.bg is an educational orthodontic platform helping Bulgarian users underst
 ### P1 - High Priority
 - [ ] Add Meta Pixel ID for tracking (awaiting user input)
 - [ ] Add Google Ads Conversion ID (awaiting user input)
-- [ ] Blog static generation fix (on-demand revalidation)
 
 ### P2 - Medium Priority
+- [ ] Blog static generation fix (on-demand revalidation)
 - [ ] Replace placeholder OG images
 
 ### P3 - Future
 - [ ] English translation (`/en/...` routes)
 - [ ] More cities beyond София and Пловдив
-- [ ] Enhance admin panel (edit homepage content)
 - [ ] Backend refactoring (split server.py into routers)
 
 ---
 
 *Last updated: December 2025*
-*Latest changes: Quiz v2 with stage assessment + lead capture, removed treatment routing*
+*Latest changes: Quiz v3 with micro-insights, soft commit, A/B form testing, and admin analytics dashboard*
