@@ -1,7 +1,7 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, status
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status, UploadFile, File
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -9,6 +9,7 @@ import os
 import logging
 import asyncio
 import httpx
+import requests
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
@@ -40,6 +41,12 @@ ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'martennis89@gmail.com')
 # Revalidation Settings for Next.js ISR
 REVALIDATE_SECRET = os.environ.get('REVALIDATE_SECRET', 'zubite-revalidate-secret-2024')
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+
+# Object Storage Settings
+STORAGE_URL = "https://integrations.emergentagent.com/objstore/api/v1/storage"
+EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY')
+APP_NAME = "zubite-bg"
+storage_key = None  # Module-level, set once and reused globally
 
 if RESEND_API_KEY:
     resend.api_key = RESEND_API_KEY
@@ -76,6 +83,65 @@ async def health_check():
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# ============== OBJECT STORAGE HELPERS ==============
+
+def init_storage():
+    """Initialize object storage. Call ONCE at startup."""
+    global storage_key
+    if storage_key:
+        return storage_key
+    if not EMERGENT_LLM_KEY:
+        logger.warning("EMERGENT_LLM_KEY not set - file uploads disabled")
+        return None
+    try:
+        resp = requests.post(
+            f"{STORAGE_URL}/init",
+            json={"emergent_key": EMERGENT_LLM_KEY},
+            timeout=30
+        )
+        resp.raise_for_status()
+        storage_key = resp.json()["storage_key"]
+        logger.info("Object storage initialized successfully")
+        return storage_key
+    except Exception as e:
+        logger.error(f"Failed to initialize storage: {e}")
+        return None
+
+def put_object(path: str, data: bytes, content_type: str) -> dict:
+    """Upload file to object storage. Returns {"path": "...", "size": 123, "etag": "..."}"""
+    key = init_storage()
+    if not key:
+        raise HTTPException(status_code=503, detail="Storage not available")
+    resp = requests.put(
+        f"{STORAGE_URL}/objects/{path}",
+        headers={"X-Storage-Key": key, "Content-Type": content_type},
+        data=data,
+        timeout=120
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+def get_object(path: str) -> tuple:
+    """Download file from object storage. Returns (content_bytes, content_type)."""
+    key = init_storage()
+    if not key:
+        raise HTTPException(status_code=503, detail="Storage not available")
+    resp = requests.get(
+        f"{STORAGE_URL}/objects/{path}",
+        headers={"X-Storage-Key": key},
+        timeout=60
+    )
+    resp.raise_for_status()
+    return resp.content, resp.headers.get("Content-Type", "application/octet-stream")
+
+# MIME type mapping for common image formats
+ALLOWED_IMAGE_TYPES = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/gif": "gif",
+    "image/webp": "webp"
+}
 
 # ============== MODELS ==============
 
@@ -685,6 +751,113 @@ async def get_post_by_slug(slug: str):
     
     return post
 
+# ============== FILE UPLOAD ENDPOINTS ==============
+
+@api_router.post("/admin/upload")
+async def admin_upload_file(
+    file: UploadFile = File(...),
+    user: AdminUser = Depends(get_current_user)
+):
+    """Upload an image file for blog posts. Returns the URL to access it."""
+    # Validate file type
+    content_type = file.content_type or "application/octet-stream"
+    if content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Allowed: {', '.join(ALLOWED_IMAGE_TYPES.keys())}"
+        )
+    
+    # Generate unique filename
+    ext = ALLOWED_IMAGE_TYPES[content_type]
+    file_id = str(uuid.uuid4())
+    storage_path = f"{APP_NAME}/blog/{file_id}.{ext}"
+    
+    # Read file content
+    file_data = await file.read()
+    
+    # Check file size (max 5MB)
+    if len(file_data) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large. Maximum size is 5MB.")
+    
+    try:
+        # Upload to object storage
+        result = put_object(storage_path, file_data, content_type)
+        
+        # Store reference in database
+        file_record = {
+            "id": file_id,
+            "storage_path": result["path"],
+            "original_filename": file.filename,
+            "content_type": content_type,
+            "size": result["size"],
+            "uploaded_by": user.id,
+            "is_deleted": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.uploaded_files.insert_one(file_record)
+        
+        # Return URL that can be used in blog posts
+        # The URL will be served through our API
+        return {
+            "success": True,
+            "file_id": file_id,
+            "url": f"/api/files/{file_id}",
+            "filename": file.filename,
+            "size": result["size"]
+        }
+    except Exception as e:
+        logger.error(f"File upload failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to upload file")
+
+@api_router.get("/files/{file_id}")
+async def serve_file(file_id: str):
+    """Serve an uploaded file by its ID. No auth required for public blog images."""
+    # Find file record in database
+    record = await db.uploaded_files.find_one({"id": file_id, "is_deleted": False}, {"_id": 0})
+    if not record:
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    try:
+        # Get file from storage
+        data, content_type = get_object(record["storage_path"])
+        return Response(
+            content=data,
+            media_type=record.get("content_type", content_type),
+            headers={
+                "Cache-Control": "public, max-age=31536000",  # Cache for 1 year
+                "Content-Disposition": f"inline; filename=\"{record.get('original_filename', 'image')}\""
+            }
+        )
+    except Exception as e:
+        logger.error(f"Failed to serve file {file_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve file")
+
+@api_router.get("/admin/files")
+async def admin_list_files(
+    user: AdminUser = Depends(get_current_user),
+    limit: int = 50,
+    skip: int = 0
+):
+    """List all uploaded files for admin."""
+    cursor = db.uploaded_files.find(
+        {"is_deleted": False},
+        {"_id": 0}
+    ).sort("created_at", -1).skip(skip).limit(limit)
+    files = await cursor.to_list(length=limit)
+    total = await db.uploaded_files.count_documents({"is_deleted": False})
+    return {"files": files, "total": total}
+
+@api_router.delete("/admin/files/{file_id}")
+async def admin_delete_file(file_id: str, user: AdminUser = Depends(get_current_user)):
+    """Soft-delete an uploaded file."""
+    result = await db.uploaded_files.update_one(
+        {"id": file_id},
+        {"$set": {"is_deleted": True, "deleted_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="File not found")
+    return {"success": True, "message": "File deleted"}
+
 # Admin blog endpoints
 @api_router.get("/admin/blog/posts")
 async def admin_get_posts(
@@ -1004,6 +1177,11 @@ async def startup():
     await db.analytics_events.create_index("session_id")
     await db.analytics_events.create_index("event_type")
     await db.analytics_events.create_index("created_at")
+    await db.uploaded_files.create_index("id", unique=True)
+    await db.uploaded_files.create_index("is_deleted")
+    
+    # Initialize object storage
+    init_storage()
 
 @app.on_event("shutdown")
 async def shutdown():

@@ -1275,6 +1275,9 @@ h3{
 .border-t{
   border-top-width: 1px;
 }
+.border-dashed{
+  border-style: dashed;
+}
 .border-amber-100{
   --tw-border-opacity: 1;
   border-color: rgb(254 243 199 / var(--tw-border-opacity, 1));

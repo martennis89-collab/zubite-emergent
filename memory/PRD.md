@@ -8,6 +8,8 @@ Zubite.bg is an educational orthodontic platform helping Bulgarian users underst
 - **Backend**: FastAPI with MongoDB
 - **Styling**: Tailwind CSS with white/sky-blue accents
 - **Email**: Resend for lead notifications
+- **Storage**: Emergent Object Storage for blog images
+- **Analytics**: Meta Pixel (ID: 26074948688761177)
 
 ## Core User Flow
 ```
@@ -16,103 +18,36 @@ Homepage → Quiz (10 questions with micro-insights) → Result Stage → Soft C
 
 ---
 
-## Master Quiz System v3 (December 2025)
-
-### Features
-
-#### 1. Micro-Insights Between Questions
-Psychological triggers inserted AFTER specific questions:
-
-| After Q# | Insight Text |
-|----------|--------------|
-| Q2 | „Повечето хора с такива усещания нямат болка… но това често е началото." |
-| Q5 | „Около 60% от хората имат подобни признаци — но малко от тях действат навреме." |
-| Q6 | „Остава малко — почти си готов." |
-| Q8 | „Когато се стигне до износване, решението рядко остава толкова лесно, колкото в началото." |
-
-#### 2. Soft Commit Screen (After Result, Before Form)
-- **Headline**: „Искаш ли да видиш какви са опциите ти оттук нататък?"
-- **Subtext**: „Можем да ти препоръчаме 3 подходящи клиники според твоя резултат и град."
-- **Primary CTA**: „Да, покажете ми опциите" → Form
-- **Secondary**: „Не сега" → Exit Screen
-
-#### 3. Exit Screen (For "Not Now" Users)
-- **Text**: „Разбираемо. Ако решиш по-късно, винаги можеш да провериш отново."
-- **Button**: „Обратно към началото"
-
-#### 4. Lead Form A/B Testing
-**Version A (Full)**: Име*, Телефон*, Имейл, Град*
-**Version B (Simplified)**: Телефон*, Град*
-
-#### 5. Analytics Tracking
-Every interaction is tracked: quiz_start, question_answered, quiz_completed, soft_commit, form_submitted
-
----
-
-## Admin Analytics Dashboard (/admin/analytics)
-
-### Metrics Tracked
-- Quiz start/completion rates
-- Drop-off per question
-- Question-by-question answer distribution
-- Result stage distribution
-- Form A/B test conversion comparison
-- Leads per day (30 day chart)
-- Leads by city breakdown
-
----
-
-## Architecture
-
-```
-/app/frontend/
-├── app/
-│   ├── page.tsx                    # Homepage (uses AnimatedHomeSections)
-│   ├── api/revalidate/route.ts     # NEW: On-demand ISR revalidation
-│   ├── quiz/page.tsx               # Master quiz
-│   ├── admin/
-│   │   ├── page.tsx                # Login
-│   │   ├── dashboard/              # Leads dashboard
-│   │   ├── analytics/              # Analytics dashboard
-│   │   └── blog/                   # Blog management
-│   ├── blog/                       # Public blog pages
-│   ├── privacy/cookies/terms/      # GDPR pages
-│   └── ...
-│
-├── components/
-│   ├── AnimatedHomeSections.tsx    # NEW: Animated homepage sections
-│   ├── MasterQuiz.tsx              # Quiz with micro-insights, A/B form
-│   ├── CookieConsent.tsx           # GDPR cookie banner
-│   └── ...
-│
-├── hooks/
-│   └── useScrollAnimation.tsx      # Scroll animation hook with effects
-
-/app/backend/
-└── server.py                       # FastAPI with revalidation integration
-```
-
----
-
 ## Admin Panel
-- **URL**: /admin
+- **URL**: /admin (or zubite.bg/admin in production)
 - **Email**: `admin@zubite.bg`
 - **Password**: `password`
+
+### Features:
+- **Dashboard**: View and manage leads
+- **Analytics**: Track quiz funnel metrics
+- **Blog Management**: Create, edit, delete blog posts with **direct image upload**
+- **File Upload**: Supports JPEG, PNG, GIF, WebP (max 5MB)
 
 ---
 
 ## Completed Work
 
+### ✅ March 21, 2026 - Blog Image Upload Feature
+- Added direct image upload functionality to blog admin pages
+- Files stored in Emergent Object Storage for persistence
+- Upload button with drag-and-drop style UI
+- Supports JPEG, PNG, GIF, WebP up to 5MB
+- Backend endpoints: POST `/api/admin/upload`, GET `/api/files/{file_id}`
+
+### ✅ March 21, 2026 - Meta Pixel Integration
+- Integrated Meta Pixel (ID: 26074948688761177)
+- GDPR-compliant: Only tracks after marketing cookie consent
+- Events tracked: QuizStart, QuestionAnswered, QuizComplete, SoftCommit, Lead
+
 ### ✅ March 21, 2026 - Homepage Animations & Blog Revalidation
-- **Homepage Scroll Animations**: Implemented scroll-triggered animations using IntersectionObserver
-  - ScrollReveal component with fade-up, fade-down, fade-left, fade-right, zoom, flip effects
-  - StaggerChildren for staggered reveal of list items
-  - Hover effects on all interactive elements (buttons, cards, links)
-  - Soft pulse animation on mobile CTA
-- **On-Demand Blog Revalidation**: Blog posts now appear instantly after creation/update/deletion
-  - Created `/api/revalidate` API route in Next.js
-  - Backend triggers revalidation via `asyncio.create_task` after blog CRUD
-  - Revalidates `/`, `/blog`, and `/blog/[slug]` paths
+- Implemented scroll-triggered animations using IntersectionObserver
+- On-demand blog revalidation so posts appear instantly
 
 ### ✅ Previous Work
 - Quiz system with micro-insights, soft-commit, A/B testing
@@ -123,16 +58,76 @@ Every interaction is tracked: quiz_start, question_answered, quiz_completed, sof
 
 ---
 
+## Architecture
+
+```
+/app/frontend/
+├── app/
+│   ├── page.tsx                    # Homepage (animated)
+│   ├── api/revalidate/route.ts     # On-demand ISR revalidation
+│   ├── quiz/page.tsx               # Master quiz
+│   ├── admin/
+│   │   ├── page.tsx                # Login
+│   │   ├── dashboard/              # Leads dashboard
+│   │   ├── analytics/              # Analytics dashboard
+│   │   └── blog/
+│   │       ├── new/page.tsx        # NEW: With image upload
+│   │       └── [id]/page.tsx       # NEW: With image upload
+│   └── ...
+│
+├── components/
+│   ├── AnimatedHomeSections.tsx    # Animated homepage sections
+│   ├── MasterQuiz.tsx              # Quiz with tracking
+│   ├── MetaPixel.tsx               # NEW: Meta Pixel component
+│   ├── CookieConsent.tsx           # GDPR cookie banner
+│   └── ...
+
+/app/backend/
+└── server.py                       # FastAPI with file upload endpoints
+```
+
+---
+
+## Key API Endpoints
+
+### File Upload (NEW)
+- `POST /api/admin/upload` - Upload image file (auth required)
+- `GET /api/files/{file_id}` - Serve uploaded file (public)
+- `GET /api/admin/files` - List all uploaded files (auth required)
+- `DELETE /api/admin/files/{file_id}` - Delete file (auth required)
+
+### Blog
+- `GET/POST /api/admin/blog/posts` - CRUD operations
+- `PUT/DELETE /api/admin/blog/posts/{id}` - Update/delete post
+
+### Analytics
+- `POST /api/analytics/event` - Track quiz events
+- `GET /api/admin/analytics` - Dashboard data
+
+---
+
+## Meta Pixel Events Manager Setup
+
+1. **Verify Installation**: Events Manager → Data Sources → Select pixel
+2. **Custom Conversions** (recommended):
+   - QuizStart - Track engagement
+   - QuizComplete - Track completion
+   - Lead - Standard event for optimization
+3. **Custom Audiences** (for retargeting):
+   - Quiz started but not completed
+   - Quiz completed but no lead
+   - Leads (for lookalike audiences)
+
+---
+
 ## Pending/Future Tasks
 
 ### P1 - High Priority
-- [ ] Add Meta Pixel ID for tracking (awaiting user input)
-- [ ] Add Google Ads Conversion ID (awaiting user input)
+- [ ] Add Google Ads Conversion tracking (need Conversion ID)
 
 ### P2 - Medium Priority
 - [ ] Backend refactoring (split server.py into routers)
 - [ ] Frontend API client centralization
-- [ ] Replace placeholder OG images
 
 ### P3 - Future
 - [ ] English translation (`/en/...` routes)
@@ -141,20 +136,5 @@ Every interaction is tracked: quiz_start, question_answered, quiz_completed, sof
 
 ---
 
-## Technical Notes
-
-### On-Demand Revalidation
-- **Endpoint**: `/api/revalidate` (POST/GET)
-- **Secret**: Set via `REVALIDATE_SECRET` env var (default: `zubite-revalidate-secret-2024`)
-- **Trigger**: Backend calls after blog post create/update/delete
-- **Paths revalidated**: `/`, `/blog`, `/blog/[slug]`
-
-### Scroll Animation System
-- **Hook**: `useScrollAnimation` in `/app/frontend/hooks/useScrollAnimation.tsx`
-- **Components**: `ScrollReveal`, `StaggerChildren`, `useParallax`, `useCountUp`
-- **Usage**: Client-side components in `AnimatedHomeSections.tsx`
-
----
-
 *Last updated: March 21, 2026*
-*Latest changes: Homepage scroll animations and on-demand blog revalidation*
+*Latest changes: Blog image upload feature, Meta Pixel integration*

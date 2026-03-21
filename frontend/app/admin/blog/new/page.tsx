@@ -1,18 +1,20 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
   Loader2, LogOut, ArrowLeft, Save, Eye, EyeOff,
-  Image as ImageIcon, Tag, FileText, RefreshCw
+  Image as ImageIcon, Tag, FileText, RefreshCw, Upload
 } from 'lucide-react'
 
 export default function NewBlogPostPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [formData, setFormData] = useState({
     title: '',
@@ -81,6 +83,63 @@ export default function NewBlogPostPage() {
     // Auto-convert Google Drive URLs
     const convertedUrl = convertGoogleDriveUrl(url)
     setFormData(prev => ({ ...prev, featured_image: convertedUrl }))
+  }
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError('Моля, изберете изображение (JPEG, PNG, GIF, WebP)')
+      return
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Файлът е твърде голям. Максимум 5MB.')
+      return
+    }
+
+    setIsUploading(true)
+    setError('')
+
+    const token = localStorage.getItem('admin_token')
+    if (!token) {
+      router.push('/admin')
+      return
+    }
+
+    try {
+      const formDataUpload = new FormData()
+      formDataUpload.append('file', file)
+
+      const response = await fetch('/api/admin/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formDataUpload
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.detail || 'Грешка при качване')
+      }
+
+      const data = await response.json()
+      
+      // Set the uploaded image URL
+      setFormData(prev => ({ ...prev, featured_image: data.url }))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Грешка при качване на файла')
+    } finally {
+      setIsUploading(false)
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
   }
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -279,6 +338,48 @@ export default function NewBlogPostPage() {
                 Медия
               </h3>
               
+              {/* Upload Button */}
+              <div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  id="image-upload"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-sky-50 border-2 border-dashed border-sky-200 rounded-lg text-sky-600 hover:bg-sky-100 hover:border-sky-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Качване...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-5 h-5" />
+                      Качи изображение
+                    </>
+                  )}
+                </button>
+                <p className="text-xs text-slate-400 mt-2 text-center">
+                  JPEG, PNG, GIF, WebP • Максимум 5MB
+                </p>
+              </div>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-slate-200"></div>
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="px-2 bg-white text-slate-400">или въведи URL</span>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   URL на изображение
