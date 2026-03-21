@@ -1,34 +1,16 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import { Metadata } from 'next'
-import { Header } from '@/components/Header'
-import { Footer } from '@/components/Footer'
-import { 
-  ArrowRight, 
-  CheckCircle, 
-  Eye, 
-  Smile, 
-  Clock, 
-  Sparkles,
-  DollarSign,
-  ClipboardList,
-  Lightbulb,
-  Target,
-  Scale,
-  BookOpen,
-  Award,
-  ShieldCheck
-} from 'lucide-react'
+import { ArrowRight, ChevronRight, AlertTriangle, TrendingUp, Clock, Target, Check } from 'lucide-react'
 
 export const metadata: Metadata = {
-  title: 'Zubite | Брекети или алайнери? Разберете кое лечение е подходящо за вас',
-  description: 'Отговорете на няколко кратки въпроса и получете насока за ортодонтско лечение, ориентировъчни цени и следващи стъпки. Безплатна 60-секундна оценка.',
+  title: 'Zubite | Провери на кой етап си — преди да стане по-сложно',
+  description: 'Повечето хора вече имат ранни признаци на проблеми със зъбите — но ги осъзнават чак когато лечението стане по-сложно. Провери къде се намираш за 60 секунди.',
   alternates: {
     canonical: 'https://zubite.bg/',
   },
   openGraph: {
-    title: 'Zubite | Брекети или алайнери?',
-    description: 'Разберете кое ортодонтско лечение е подходящо за вашия случай. Безплатна оценка за 60 секунди.',
+    title: 'Zubite | Провери на кой етап си',
+    description: 'Повечето хора чакат, докато стане скъпо. Ти на кой етап си?',
     url: 'https://zubite.bg/',
     siteName: 'Zubite',
     locale: 'bg_BG',
@@ -36,355 +18,342 @@ export const metadata: Metadata = {
   },
 }
 
-// Problem icons data
-const problems = [
-  { icon: Smile, title: 'Криви зъби', desc: 'Неправилно подредени зъби' },
-  { icon: Target, title: 'Струпване', desc: 'Липса на място за зъбите' },
-  { icon: ArrowRight, title: 'Разстояния', desc: 'Междини между зъбите' },
-  { icon: Scale, title: 'Неправилна захапка', desc: 'Проблеми с прикуса' },
+// Self-recognition symptoms
+const symptoms = [
+  'Дъвчеш повече от едната страна',
+  'Зъбите ти са леко струпани',
+  'Захапката ти не се усеща равномерна',
+  'Събуждаш се с напрежение в челюстта',
+  'Чуваш щракане при отваряне на устата',
 ]
 
-// Treatment options data
-const treatments = [
+// Progression stages
+const stages = [
   {
-    title: 'Алайнери',
-    desc: 'Почти невидими прозрачни шини за постепенно изправяне на зъбите.',
-    price: '4000–8000 лв',
-    icon: Eye,
+    stage: 'Рано',
+    description: 'почти незабележимо',
+    color: 'from-emerald-500/20 to-emerald-500/5',
+    dot: 'bg-emerald-400',
   },
   {
-    title: 'Метални брекети',
-    desc: 'Класическо ортодонтско лечение с метални брекети.',
-    price: '2000–4000 лв',
-    icon: Award,
+    stage: 'Средно',
+    description: 'вече се усеща',
+    color: 'from-amber-500/20 to-amber-500/5',
+    dot: 'bg-amber-400',
   },
   {
-    title: 'Керамични брекети',
-    desc: 'По-дискретна алтернатива на металните брекети.',
-    price: '3000–5000 лв',
-    icon: Sparkles,
-  },
-  {
-    title: 'Лингвални брекети',
-    desc: 'Брекети, поставени от вътрешната страна на зъбите.',
-    price: '5000–8000 лв',
-    icon: ShieldCheck,
+    stage: 'Късно',
+    description: 'става сложно и скъпо',
+    color: 'from-red-500/20 to-red-500/5',
+    dot: 'bg-red-400',
   },
 ]
 
-// Comparison table data
-const comparisonItems = [
-  { label: 'Видимост', aligners: 'Почти невидими', braces: 'Видими' },
-  { label: 'Комфорт', aligners: 'Висок', braces: 'Среден' },
-  { label: 'Продължителност', aligners: '6-18 месеца', braces: '12-24 месеца' },
-  { label: 'Хигиена', aligners: 'Лесна', braces: 'По-трудна' },
-  { label: 'Цена', aligners: '4000-8000 лв', braces: '2000-5000 лв' },
-]
-
-// How it works steps
-const steps = [
-  {
-    number: '1',
-    title: 'Отговорете на няколко въпроса',
-    desc: 'Кратка оценка за вашия ортодонтски случай.',
-    icon: ClipboardList,
-  },
-  {
-    number: '2',
-    title: 'Разберете възможните решения',
-    desc: 'Ще получите насока дали случаят ви е по-подходящ за алайнери или брекети.',
-    icon: Lightbulb,
-  },
-  {
-    number: '3',
-    title: 'Следващи стъпки',
-    desc: 'Ще научите какво да обсъдите с ортодонт и какви са ориентировъчните разходи.',
-    icon: Target,
-  },
-]
-
-// Trust points
-const trustPoints = [
-  { icon: BookOpen, title: 'Образователна информация', desc: 'Научете за различните видове лечения' },
-  { icon: Scale, title: 'Сравнение на лечения', desc: 'Обективно сравнение между опциите' },
-  { icon: DollarSign, title: 'Ориентировъчни цени', desc: 'Информация за разходите' },
-  { icon: ShieldCheck, title: 'Неутрална платформа', desc: 'Без реклами на клиники' },
+// Why people miss early stage
+const reasons = [
+  'Няма болка в началото',
+  'Симптомите са леки',
+  'Проблемът се развива бавно',
+  'Повечето хора не проверяват',
 ]
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-white">
-      <Header />
+    <main className="min-h-screen bg-[#0f172a] text-white overflow-hidden">
+      {/* Sticky CTA */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 md:hidden">
+        <Link
+          href="/assessment"
+          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-sky-500 to-blue-600 text-white font-medium rounded-full shadow-lg shadow-sky-500/30 hover:shadow-sky-500/50 transition-all"
+        >
+          <span>Провери етапа си</span>
+          <ArrowRight className="w-4 h-4" />
+        </Link>
+      </div>
 
-      {/* SECTION 1 — HERO */}
-      <section className="pt-24 md:pt-32 pb-16 md:pb-24 bg-gradient-to-br from-white via-sky-50/30 to-white overflow-hidden">
+      {/* Navigation */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-[#0f172a]/80 backdrop-blur-lg border-b border-white/5">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            {/* Left Column - Content */}
-            <div className="text-center lg:text-left">
-              <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight mb-6 animate-fade-in-up">
-                Брекети или алайнери?
-                <span className="block text-sky-500 mt-2">Разберете кое лечение е подходящо за вашия случай.</span>
-              </h1>
-              
-              <p className="text-lg text-slate-600 mb-8 animate-fade-in-up animate-delay-100 max-w-xl mx-auto lg:mx-0">
-                Отговорете на няколко кратки въпроса и получете насока за лечение, ориентировъчни цени и следващи стъпки.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start animate-fade-in-up animate-delay-200">
-                <Link
-                  href="/assessment"
-                  className="inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full bg-sky-500 text-white font-medium hover:bg-sky-600 transition-all duration-300 hover:shadow-xl hover:shadow-sky-500/25 btn-animate btn-pulse"
-                  data-testid="hero-cta-primary"
-                >
-                  <Clock className="w-5 h-5" />
-                  Направете 60-секундна оценка
-                </Link>
-                <Link
-                  href="#how-it-works"
-                  className="inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full border-2 border-slate-200 text-slate-700 font-medium hover:border-sky-300 hover:text-sky-600 transition-all duration-300"
-                  data-testid="hero-cta-secondary"
-                >
-                  Научете повече
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
-            </div>
-            
-            {/* Right Column - Image */}
-            <div className="relative animate-fade-in animate-delay-300">
-              <div className="relative rounded-3xl overflow-hidden shadow-2xl shadow-sky-500/10">
-                <div className="aspect-[4/3] bg-gradient-to-br from-sky-100 to-sky-50 flex items-center justify-center">
-                  <div className="text-center p-8">
-                    <div className="w-32 h-32 mx-auto mb-6 rounded-full bg-white shadow-lg flex items-center justify-center">
-                      <Smile className="w-16 h-16 text-sky-500" />
-                    </div>
-                    <p className="text-slate-600 font-medium">Перфектната усмивка започва тук</p>
-                  </div>
-                </div>
-              </div>
-              {/* Decorative elements */}
-              <div className="absolute -top-4 -right-4 w-24 h-24 bg-sky-100 rounded-full blur-2xl opacity-60" />
-              <div className="absolute -bottom-4 -left-4 w-32 h-32 bg-sky-50 rounded-full blur-3xl opacity-80" />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 2 — THE PROBLEM */}
-      <section className="py-16 md:py-24 bg-slate-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-semibold text-slate-900 mb-6 animate-fade-in-up">
-            Много хора знаят, че имат проблем със зъбите си —
-            <span className="block text-sky-500 mt-2">но не знаят какво лечение им е необходимо.</span>
-          </h2>
-          
-          <p className="text-slate-600 mb-12 max-w-2xl mx-auto animate-fade-in-up animate-delay-100">
-            Различните ортодонтски проблеми изискват различни подходи. Ето най-честите случаи, при които хората търсят помощ:
-          </p>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {problems.map((problem, index) => (
-              <div 
-                key={problem.title}
-                className="group bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 animate-fade-in-up card-hover-subtle"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-sky-50 flex items-center justify-center group-hover:bg-sky-100 group-hover:scale-110 transition-all duration-300">
-                  <problem.icon className="w-7 h-7 text-sky-500" />
-                </div>
-                <h3 className="font-medium text-slate-900 mb-1">{problem.title}</h3>
-                <p className="text-sm text-slate-500">{problem.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 3 — ORTHODONTIC OPTIONS */}
-      <section className="py-16 md:py-24 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12">
-            <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-semibold text-slate-900 mb-4 animate-fade-in-up">
-              Основни методи за изправяне на зъби
-            </h2>
-            <p className="text-slate-600 max-w-2xl mx-auto animate-fade-in-up animate-delay-100">
-              Сравнете различните ортодонтски решения и техните характеристики
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {treatments.map((treatment, index) => (
-              <div 
-                key={treatment.title}
-                className="group bg-white border border-slate-200 rounded-2xl p-6 hover:border-sky-300 hover:shadow-xl hover:shadow-sky-500/10 transition-all duration-300 animate-fade-in-up card-hover"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <div className="w-12 h-12 mb-4 rounded-xl bg-sky-50 flex items-center justify-center group-hover:bg-sky-100 transition-colors">
-                  <treatment.icon className="w-6 h-6 text-sky-500" />
-                </div>
-                <h3 className="font-serif text-xl font-medium text-slate-900 mb-2">{treatment.title}</h3>
-                <p className="text-sm text-slate-600 mb-4">{treatment.desc}</p>
-                <div className="pt-4 border-t border-slate-100">
-                  <p className="text-xs text-slate-400 mb-1">Цена:</p>
-                  <p className="text-lg font-semibold text-sky-600">{treatment.price}</p>
-                </div>
-                <Link
-                  href="/orthodontics"
-                  className="mt-4 inline-flex items-center text-sm text-sky-500 font-medium hover:text-sky-600 transition-colors group-hover:gap-2"
-                >
-                  Научете повече
-                  <ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" />
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 4 — ALIGNERS VS BRACES */}
-      <section className="py-16 md:py-24 bg-slate-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12">
-            <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-semibold text-slate-900 mb-4 animate-fade-in-up">
-              Алайнери vs Брекети
-            </h2>
-            <p className="text-slate-600 animate-fade-in-up animate-delay-100">
-              Кратко сравнение на двата основни метода
-            </p>
-          </div>
-          
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden animate-fade-in-up animate-delay-200">
-            <div className="grid grid-cols-3 bg-slate-50 border-b border-slate-200">
-              <div className="p-4 text-sm font-medium text-slate-500"></div>
-              <div className="p-4 text-center text-sm font-semibold text-sky-600">Алайнери</div>
-              <div className="p-4 text-center text-sm font-semibold text-slate-700">Брекети</div>
-            </div>
-            {comparisonItems.map((item, index) => (
-              <div 
-                key={item.label}
-                className={`grid grid-cols-3 ${index !== comparisonItems.length - 1 ? 'border-b border-slate-100' : ''}`}
-              >
-                <div className="p-4 text-sm font-medium text-slate-700">{item.label}</div>
-                <div className="p-4 text-center text-sm text-slate-600">{item.aligners}</div>
-                <div className="p-4 text-center text-sm text-slate-600">{item.braces}</div>
-              </div>
-            ))}
-          </div>
-          
-          <div className="text-center mt-8">
+          <div className="flex items-center justify-between h-16 md:h-20">
+            <Link href="/" className="font-serif text-2xl font-semibold text-white">
+              Zubite
+            </Link>
             <Link
-              href="/aligners-vs-braces"
-              className="inline-flex items-center justify-center gap-2 h-12 px-8 rounded-full border-2 border-sky-500 text-sky-600 font-medium hover:bg-sky-50 transition-all duration-300"
-              data-testid="comparison-cta"
+              href="/assessment"
+              className="hidden md:flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-sky-500 to-blue-600 text-white text-sm font-medium rounded-full hover:shadow-lg hover:shadow-sky-500/25 transition-all"
             >
-              Виж пълното сравнение
+              Провери етапа си
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         </div>
-      </section>
+      </header>
 
-      {/* SECTION 5 — HOW ZUBITE WORKS */}
-      <section id="how-it-works" className="py-16 md:py-24 bg-white scroll-mt-20">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-16">
-            <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-semibold text-slate-900 mb-4 animate-fade-in-up">
-              Как работи Zubite
-            </h2>
-            <p className="text-slate-600 animate-fade-in-up animate-delay-100">
-              Три прости стъпки до информирано решение
-            </p>
-          </div>
+      {/* SECTION 1 — HERO */}
+      <section className="relative pt-32 md:pt-44 pb-20 md:pb-32">
+        {/* Background gradient */}
+        <div className="absolute inset-0 bg-gradient-to-b from-sky-900/20 via-transparent to-transparent" />
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl" />
+        
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 text-center">
+          <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold leading-tight mb-8 animate-fade-in-up">
+            <span className="text-white">По-лесно е да оправиш зъбите си навреме.</span>
+            <br />
+            <span className="text-slate-400">Повечето хора чакат, докато стане скъпо.</span>
+            <br />
+            <span className="text-sky-400">Ти на кой етап си?</span>
+          </h1>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
-            {steps.map((step, index) => (
-              <div 
-                key={step.number}
-                className="relative text-center animate-fade-in-up"
-                style={{ animationDelay: `${index * 150}ms` }}
-              >
-                {/* Connector line for desktop */}
-                {index < steps.length - 1 && (
-                  <div className="hidden md:block absolute top-10 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-sky-200 to-sky-100" />
-                )}
-                
-                <div className="relative z-10">
-                  <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-sky-500 to-sky-600 shadow-lg shadow-sky-500/25 flex items-center justify-center transform hover:scale-105 transition-transform duration-300">
-                    <step.icon className="w-8 h-8 text-white" />
-                  </div>
-                  <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 font-bold text-sm border-2 border-white shadow">
-                    {step.number}
-                  </div>
-                </div>
-                <h3 className="font-serif text-xl font-medium text-slate-900 mb-3">{step.title}</h3>
-                <p className="text-slate-600 text-sm">{step.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 6 — WHY TRUST ZUBITE */}
-      <section className="py-16 md:py-24 bg-slate-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12">
-            <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-semibold text-slate-900 mb-4 animate-fade-in-up">
-              Защо да използвате Zubite
-            </h2>
-          </div>
+          <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 animate-fade-in-up animate-delay-100">
+            Повечето хора вече имат ранни признаци — но ги осъзнават чак когато лечението стане по-сложно.
+          </p>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-            {trustPoints.map((point, index) => (
-              <div 
-                key={point.title}
-                className="bg-white rounded-2xl p-6 text-center hover:shadow-lg transition-shadow duration-300 animate-fade-in-up"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-sky-50 flex items-center justify-center">
-                  <point.icon className="w-6 h-6 text-sky-500" />
-                </div>
-                <h3 className="font-medium text-slate-900 mb-2">{point.title}</h3>
-                <p className="text-sm text-slate-500">{point.desc}</p>
-              </div>
-            ))}
-          </div>
-          
-          {/* Important disclaimer */}
-          <div className="bg-sky-50 border border-sky-100 rounded-2xl p-6 md:p-8 text-center animate-fade-in-up">
-            <p className="text-slate-700">
-              <span className="font-semibold text-sky-700">Важно:</span> Zubite не е клиника и не предлага лечение.
-              <span className="block mt-2 text-slate-600">
-                Целта ни е да ви помогнем да разберете опциите си и да вземете информирано решение.
-              </span>
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 7 — FINAL CTA */}
-      <section id="assessment-cta" className="py-16 md:py-24 bg-white">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
-          <div className="bg-gradient-to-br from-sky-500 via-sky-600 to-sky-700 rounded-3xl p-10 md:p-16 text-white shadow-2xl shadow-sky-500/25 animate-fade-in-up">
-            <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-semibold mb-6">
-              Готови ли сте да разберете кое лечение е подходящо за вас?
-            </h2>
-            <p className="text-sky-100 mb-8 max-w-lg mx-auto text-lg">
-              Безплатна оценка за 60 секунди. Без ангажименти.
-            </p>
+          <div className="animate-fade-in-up animate-delay-200">
             <Link
               href="/assessment"
-              className="inline-flex items-center justify-center gap-2 h-14 px-10 rounded-full bg-white text-sky-600 font-semibold hover:bg-sky-50 transition-all duration-300 shadow-lg hover:shadow-xl btn-animate"
-              data-testid="final-cta"
+              className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-sky-500 to-blue-600 text-white text-lg font-medium rounded-full hover:shadow-xl hover:shadow-sky-500/30 transition-all duration-300 group"
+              data-testid="hero-cta"
             >
-              <CheckCircle className="w-5 h-5" />
-              Направете безплатна оценка
+              <span>Провери къде се намираш</span>
+              <span className="text-sky-200">(60 сек)</span>
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Link>
+            <p className="text-sm text-slate-500 mt-4">
+              Без записване. Без натиск. Само яснота.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 2 — INTERRUPT */}
+      <section className="py-20 md:py-28 border-t border-white/5">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6">
+          <div className="flex items-start gap-4 mb-10">
+            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
+              <AlertTriangle className="w-6 h-6 text-amber-400" />
+            </div>
+            <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-white">
+              Не ти трябва болка, за да има проблем.
+            </h2>
+          </div>
+          
+          <div className="space-y-6 mb-12">
+            <p className="text-lg text-slate-300 pl-4 border-l-2 border-slate-700">
+              Повечето проблеми със захапката започват тихо.
+            </p>
+            <p className="text-lg text-slate-300 pl-4 border-l-2 border-slate-700">
+              Малките размествания → неравномерно износване.
+            </p>
+            <p className="text-lg text-slate-400 pl-4 border-l-2 border-sky-500/50">
+              <span className="text-sky-400">Ранният етап = най-лесен за корекция.</span>
+            </p>
+          </div>
+          
+          <Link
+            href="/assessment"
+            className="inline-flex items-center gap-2 text-sky-400 font-medium hover:text-sky-300 transition-colors group"
+          >
+            <span>Провери своя етап</span>
+            <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          </Link>
+        </div>
+      </section>
+
+      {/* SECTION 3 — SELF RECOGNITION */}
+      <section className="py-20 md:py-28 bg-gradient-to-b from-slate-900/50 to-transparent">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6">
+          <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-white mb-12 text-center">
+            Звучи ли ти познато?
+          </h2>
+          
+          <div className="space-y-4 mb-12">
+            {symptoms.map((symptom, index) => (
+              <div 
+                key={index}
+                className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 hover:bg-white/[0.07] transition-all duration-300"
+              >
+                <div className="w-2 h-2 rounded-full bg-sky-400" />
+                <span className="text-slate-300">{symptom}</span>
+              </div>
+            ))}
+          </div>
+          
+          <div className="text-center">
+            <Link
+              href="/assessment"
+              className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-sky-500 to-blue-600 text-white font-medium rounded-full hover:shadow-xl hover:shadow-sky-500/30 transition-all duration-300 group"
+            >
+              <span>Провери своя етап</span>
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
         </div>
       </section>
 
-      <Footer />
+      {/* SECTION 4 — PROGRESSION */}
+      <section className="py-20 md:py-28 border-t border-white/5">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
+          <div className="flex items-start gap-4 mb-16">
+            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center">
+              <TrendingUp className="w-6 h-6 text-red-400" />
+            </div>
+            <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-white">
+              Това не остава същото. Влошава се.
+            </h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {stages.map((item, index) => (
+              <div 
+                key={index}
+                className={`relative p-6 rounded-2xl bg-gradient-to-b ${item.color} border border-white/5`}
+              >
+                {/* Connector line */}
+                {index < stages.length - 1 && (
+                  <div className="hidden md:block absolute top-1/2 -right-3 w-6 h-0.5 bg-slate-700">
+                    <ChevronRight className="w-4 h-4 text-slate-600 absolute -right-1 -top-1.5" />
+                  </div>
+                )}
+                
+                <div className={`w-3 h-3 rounded-full ${item.dot} mb-4`} />
+                <h3 className="font-serif text-xl font-semibold text-white mb-2">{item.stage}</h3>
+                <p className="text-slate-400">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 5 — COST REFRAME */}
+      <section className="py-20 md:py-28 bg-gradient-to-b from-slate-900/50 to-transparent">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6">
+          <div className="flex items-start gap-4 mb-12">
+            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-sky-500/10 flex items-center justify-center">
+              <Clock className="w-6 h-6 text-sky-400" />
+            </div>
+            <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-white">
+              Решението навреме и решението по-късно не са едно и също.
+            </h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="p-6 rounded-2xl bg-emerald-500/5 border border-emerald-500/20">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span className="text-emerald-400 font-medium">Ранен етап</span>
+              </div>
+              <p className="text-slate-300">По-лесно, по-бързо, по-предвидимо.</p>
+            </div>
+            <div className="p-6 rounded-2xl bg-red-500/5 border border-red-500/20">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-2 h-2 rounded-full bg-red-400" />
+                <span className="text-red-400 font-medium">Късен етап</span>
+              </div>
+              <p className="text-slate-300">По-сложно, по-скъпо.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 6 — AUTHORITY / SEO */}
+      <section className="py-20 md:py-28 border-t border-white/5">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6">
+          <div className="flex items-start gap-4 mb-10">
+            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-slate-500/10 flex items-center justify-center">
+              <Target className="w-6 h-6 text-slate-400" />
+            </div>
+            <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-white">
+              Защо повечето хора пропускат ранния етап
+            </h2>
+          </div>
+          
+          <div className="space-y-4 mb-10">
+            {reasons.map((reason, index) => (
+              <div key={index} className="flex items-center gap-4">
+                <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-slate-500 font-medium text-sm">
+                  {index + 1}
+                </div>
+                <span className="text-slate-300">{reason}</span>
+              </div>
+            ))}
+          </div>
+          
+          <div className="p-6 rounded-xl bg-white/5 border border-white/10">
+            <p className="text-slate-400 italic">
+              "Проучвания показват, че повечето възрастни имат признаци — но малък процент действат навреме."
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 7 — SEO BLOCK */}
+      <section className="py-20 md:py-28 bg-gradient-to-b from-slate-900/50 to-transparent">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6">
+          <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-white mb-8">
+            Имаш ли реален проблем със зъбите — или е само естетика?
+          </h2>
+          
+          <div className="space-y-6 text-slate-400 leading-relaxed">
+            <p>
+              Кривите или разместени зъби често се възприемат като чисто естетичен проблем, но много нарушения в захапката започват без болка.
+            </p>
+            <p>
+              Ранните признаци могат да включват неравномерно натоварване, напрежение в челюстта или постепенно разместване.
+            </p>
+            <p className="text-slate-300">
+              Разбирането на етапа ти навреме може да предотврати по-сложно лечение в бъдеще.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 8 — FINAL CTA */}
+      <section className="py-20 md:py-32 border-t border-white/5">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
+          <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-white mb-10">
+            Разбери на кой етап си, преди да стане по-сериозен проблем.
+          </h2>
+          
+          <Link
+            href="/assessment"
+            className="inline-flex items-center gap-3 px-10 py-5 bg-gradient-to-r from-sky-500 to-blue-600 text-white text-lg font-medium rounded-full hover:shadow-2xl hover:shadow-sky-500/30 transition-all duration-300 group"
+            data-testid="final-cta"
+          >
+            <span>Провери къде се намираш</span>
+            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          </Link>
+          
+          <p className="text-sm text-slate-500 mt-6">
+            60 секунди. Без регистрация. Без ангажименти.
+          </p>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-12 border-t border-white/5">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <Link href="/" className="font-serif text-xl font-semibold text-white">
+              Zubite
+            </Link>
+            <nav className="flex flex-wrap items-center justify-center gap-6 text-sm text-slate-500">
+              <Link href="/blog" className="hover:text-white transition-colors">Блог</Link>
+              <Link href="/orthodontics" className="hover:text-white transition-colors">Ортодонтия</Link>
+              <Link href="/privacy" className="hover:text-white transition-colors">Поверителност</Link>
+              <Link href="/contact" className="hover:text-white transition-colors">Контакти</Link>
+            </nav>
+            <p className="text-sm text-slate-600">
+              © {new Date().getFullYear()} Zubite
+            </p>
+          </div>
+          <div className="mt-8 pt-8 border-t border-white/5 text-center">
+            <p className="text-xs text-slate-600 max-w-2xl mx-auto">
+              Zubite не е клиника и не предлага медицински консултации. Платформата е създадена да ви помогне да разберете своите опции за ортодонтско лечение.
+            </p>
+          </div>
+        </div>
+      </footer>
     </main>
   )
 }
