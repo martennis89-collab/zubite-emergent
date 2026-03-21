@@ -13,7 +13,7 @@ export function Footer({ treatmentSlug }: FooterProps) {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="font-serif text-xl font-semibold text-slate-900">
-              Zubite
+              Zubite<span className="text-sky-500">.bg</span>
             </Link>
             <p className="text-slate-500 text-sm mt-2">
               Платформа за информирани решения в ортодонтията
