@@ -3,6 +3,13 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { ArrowRight, ArrowLeft, Loader2, CheckCircle, MapPin, Phone, X } from 'lucide-react'
+import { 
+  trackQuizStart, 
+  trackQuestionAnswered, 
+  trackQuizComplete, 
+  trackSoftCommit, 
+  trackLeadSubmit 
+} from './MetaPixel'
 
 // Quiz questions
 const QUIZ_QUESTIONS = [
@@ -224,8 +231,11 @@ export function MasterQuiz() {
     startTime.current = Date.now()
     questionStartTime.current = Date.now()
     
-    // Track quiz start
+    // Track quiz start (internal analytics)
     trackEvent('quiz_start', { session_id: sessionId.current })
+    
+    // Track quiz start (Meta Pixel)
+    trackQuizStart()
   }, [])
 
   // Track analytics event
@@ -262,7 +272,7 @@ export function MasterQuiz() {
   const handleAnswer = (questionId: string, value: string, score: number) => {
     const timeSpent = Date.now() - questionStartTime.current
     
-    // Track question answer
+    // Track question answer (internal analytics)
     trackEvent('question_answered', {
       question_id: questionId,
       question_index: currentQuestion + 1,
@@ -270,6 +280,9 @@ export function MasterQuiz() {
       score,
       time_spent_ms: timeSpent
     })
+    
+    // Track question answer (Meta Pixel)
+    trackQuestionAnswered(currentQuestion + 1, value)
 
     setIsTransitioning(true)
     
@@ -295,7 +308,7 @@ export function MasterQuiz() {
         const band = calculateBand(totalScore)
         setResult({ band, score: totalScore })
         
-        // Track quiz completion
+        // Track quiz completion (internal analytics)
         const totalTime = Date.now() - startTime.current
         trackEvent('quiz_completed', {
           total_score: totalScore,
@@ -303,6 +316,9 @@ export function MasterQuiz() {
           total_time_ms: totalTime,
           answers: newAnswers.map(a => ({ q: a.questionId, v: a.value, s: a.score }))
         })
+        
+        // Track quiz completion (Meta Pixel)
+        trackQuizComplete(band, totalScore)
         
         setStep('result')
       }
@@ -327,11 +343,13 @@ export function MasterQuiz() {
 
   const handleSoftCommitYes = () => {
     trackEvent('soft_commit', { choice: 'yes' })
+    trackSoftCommit(true) // Meta Pixel
     setStep('form')
   }
 
   const handleSoftCommitNo = () => {
     trackEvent('soft_commit', { choice: 'no' })
+    trackSoftCommit(false) // Meta Pixel
     setStep('exit')
   }
 
@@ -394,13 +412,16 @@ export function MasterQuiz() {
         throw new Error('Failed to submit')
       }
 
-      // Track form submission
+      // Track form submission (internal analytics)
       trackEvent('form_submitted', {
         form_version: formVersion,
         city: formData.city,
         has_name: !!formData.name,
         has_email: !!formData.email
       })
+      
+      // Track lead submission (Meta Pixel - standard Lead event)
+      trackLeadSubmit(formData.city, formVersion)
 
       setStep('success')
     } catch {
