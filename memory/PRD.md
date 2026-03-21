@@ -1,7 +1,7 @@
 # Zubite.bg - Product Requirements Document
 
 ## Project Overview
-Zubite.bg is an educational orthodontic platform helping Bulgarian users understand their dental/orthodontic issues and guide them toward the correct treatment path. Focus is on conversion optimization - getting users to start the assessment quiz.
+Zubite.bg is an educational orthodontic platform helping Bulgarian users understand their dental/orthodontic issues and guide them toward professional evaluation. The platform assesses the user's current stage and captures their contact details so Zubite.bg can recommend 3 suitable clinic options.
 
 ## Tech Stack
 - **Frontend**: Next.js 15 (App Router) with TypeScript
@@ -10,16 +10,28 @@ Zubite.bg is an educational orthodontic platform helping Bulgarian users underst
 - **Email**: Resend for lead notifications
 
 ## Core User Flow
-`Homepage → Quiz (10 questions) → Result → Treatment Page or Lead Form`
+`Homepage → Quiz (10 questions) → Result Stage → Lead Form → Success Screen`
+
+**Important**: The quiz does NOT route users to treatment pages. It:
+1. Assesses the user's current stage
+2. Shows how serious/urgent the situation may be
+3. Educates them briefly based on their result
+4. Captures their contact details
+5. Allows Zubite.bg to contact them and recommend 3 clinic options
 
 ---
 
-## Master Quiz System (NEW - December 2025)
+## Master Quiz System (Updated December 2025)
 
-### Overview
-New 10-question quiz at `/quiz` with psychological tension. One question per screen, minimal design, mobile-first.
+### Quiz Purpose
+- Assess whether the person has early / progressing / advanced signs
+- Determine how quickly they should seek professional help
+- **Does NOT decide**: aligners vs braces, implants vs orthodontics, exact treatment type
 
-### Quiz Questions (Exact Bulgarian Copy)
+### Quiz Flow
+`Quiz Questions → Result Stage → Lead Form → Success Screen`
+
+### Quiz Questions (10 Questions)
 | Q# | Question | Options (Score) |
 |----|----------|-----------------|
 | 1 | Имаш ли усещане, че някои зъби са леко струпани или застъпени? | Да(2), Понякога(1), Не(0) |
@@ -35,44 +47,49 @@ New 10-question quiz at `/quiz` with psychological tension. One question per scr
 
 ### Scoring Logic
 - **Max score**: 20 points (10 questions × 2 points)
-- **Early (0-6)**: "Вероятно си в ранен етап — но не всичко е толкова безобидно." → /orthodontics
-- **Progression (7-12)**: "Не си в безопасната зона — но все още е лесно да се коригира." → /orthodontics  
-- **Advanced (13-20)**: "Вероятно вече си в етап, в който проблемът се развива." → /implants
+- **Ранен етап (0-5)**: Green/Emerald styling
+- **Развиващ се етап (6-12)**: Amber styling
+- **Напреднал етап (13-20)**: Red styling
 
-### Quiz UX
-- Progress bar with text: "Проверяваме твоята ситуация..."
-- 3 answer buttons per question (A, B, C labels)
-- Fast transitions between questions
-- Back button to previous question
-- Minimal header (logo + question counter)
+### Result Page Content
 
----
+#### Ранен етап (Early)
+- **Headline**: "Вероятно си в ранен етап."
+- **Explanation**: "Показваш леки сигнали, които често остават незабелязани в началото..."
+- **Urgency**: "Добър момент е да потърсиш оценка навреме — преди ситуацията да стане по-сложна."
+- **Education**: "Ранният етап често е най-лесният за корекция..."
 
-## Homepage Copy (Updated December 2025)
+#### Развиващ се етап (Progressing)
+- **Headline**: "Има признаци, че проблемът се развива."
+- **Explanation**: "Отговорите ти показват модел, който често се задълбочава с времето..."
+- **Urgency**: "Добре е да потърсиш професионална оценка скоро..."
+- **Education**: "Този резултат не определя конкретно лечение..."
 
-### Hero Section
-- **Headline**: "По-лесно е да оправиш зъбите си навреме. / Повечето хора чакат, докато стане скъпо. / Ти сигурен ли си, че не си вече в този етап?"
-- **Subheadline**: "Повечето хора вече имат ранни признаци — но ги осъзнават чак когато лечението стане по-сложно."
-- **CTA**: "Провери къде се намираш (60 сек)"
-- **Micro**: "Отнема 60 секунди. Повечето хора никога не стигат дотук."
+#### Напреднал етап (Advanced)
+- **Headline**: "Вероятно си в по-напреднал етап."
+- **Explanation**: "Отговорите ти показват повече сигнали..."
+- **Urgency**: "Добре е да потърсиш професионална помощ възможно най-скоро..."
+- **Education**: "Този резултат не е диагноза и не означава автоматично импланти, брекети или алайнери..."
 
-### Interrupt Section
-- **Title**: "Ако чакаш да те заболи — вече си закъснял."
+### Lead Form (On Result Page)
+**Title**: "Получете 3 препоръчани клиники за вашия случай"
+**Subtitle**: "Попълнете данните си и нашият екип ще прегледа резултата ви и ще се свърже с вас с 3 подходящи опции."
 
-### Self Recognition Section
-- **Tension line**: "Повечето хора игнорират тези неща… докато не стане проблем."
+**Fields**:
+- Име* (required)
+- Телефон* (required)
+- Имейл (optional)
+- Град* (required): София, Пловдив
+- Кратко описание или въпрос (optional)
 
-### Progression Section
-- **Micro copy**: "Проблемът не стои на място."
+**Submit button**: "Изпрати и получи 3 опции"
+**Trust text**: "Без ангажимент. Ние не сме клиника. Ще използваме отговорите ти само за да ти помогнем да намериш подходящ следващ ход."
 
-### Cost Section
-- **Title**: "Това не е един и същ проблем — ако го хванеш навреме или по-късно."
-
-### Authority Section
-- **Close**: "И повечето разбират това… твърде късно."
-
-### Final CTA
-- **Text**: "Разбери на кой етап си — преди да стане по-сложно и по-скъпо."
+### Success Screen
+- **Headline**: "Получихме твоите данни."
+- **Text**: "Ще прегледаме отговорите ти и ще се свържем с теб с 3 подходящи опции за клиники според твоята ситуация и избрания град."
+- **Supporting text**: "Този резултат не е диагноза, а насока кога е добре да потърсиш професионална оценка."
+- **Button**: "Обратно към началото"
 
 ---
 
@@ -80,13 +97,13 @@ New 10-question quiz at `/quiz` with psychological tension. One question per scr
 
 ### /symptoms
 - **Title**: "Признаци, че може да имаш проблем със захапката (дори без болка)"
-- **Content**: струпани зъби, неравномерна захапка, щракане, напрежение, износване
-- **Internal links**: → /quiz
+- **Content**: струпани зъби, неравномерна захапка, щракане, напрежение, износване, дишане през устата, задържане на храна
+- **CTA**: "Провери на кой етап си" → /quiz
 
 ### /orthodontics
 - **Title**: "Алайнери или брекети — какво е подходящо за теб?"
-- **Content**: разлики, кога кой е подходящ, митове
-- **CTA**: → /quiz
+- **Content**: разликите, кога кой е подходящ, какво влияе на избора, защо първо трябва добра оценка
+- **CTA**: "Провери ситуацията си първо" → /quiz
 
 ---
 
@@ -104,21 +121,21 @@ New 10-question quiz at `/quiz` with psychological tension. One question per scr
 ```
 /app/frontend/
 ├── app/
-│   ├── page.tsx                    # Homepage (updated copy)
+│   ├── page.tsx                    # Homepage
 │   ├── quiz/
-│   │   └── page.tsx                # NEW: Master quiz
+│   │   └── page.tsx                # Master quiz
 │   ├── symptoms/
 │   │   └── page.tsx                # SEO symptoms page
 │   ├── orthodontics/
-│   │   └── page.tsx                # Updated with quiz links
+│   │   └── page.tsx                # SEO orthodontics page
 │   ├── assessment/                 # Legacy (still works)
 │   ├── blog/
 │   └── admin/
 │
 ├── components/
-│   ├── MasterQuiz.tsx              # NEW: 10-question quiz
-│   ├── OrthodonticsQuiz.tsx        # Detailed ortho quiz (8 questions)
-│   ├── Header.tsx                  # Updated nav
+│   ├── MasterQuiz.tsx              # 10-question quiz with integrated lead form
+│   ├── OrthodonticsQuiz.tsx        # Detailed ortho quiz (legacy)
+│   ├── Header.tsx
 │   └── Footer.tsx
 ```
 
@@ -133,22 +150,24 @@ New 10-question quiz at `/quiz` with psychological tension. One question per scr
 
 ## Completed Work (December 2025)
 
-### ✅ Homepage Copy Update
-- Updated all section copy with psychological tension
-- CTAs now link to /quiz
+### ✅ Master Quiz v2 with Lead Capture
+- 10 questions assessing stage (not treatment)
+- 3 result states with stage-specific content
+- Lead form integrated directly on result page
+- Success confirmation screen
+- NO automatic routing to treatment pages
 
-### ✅ Master Quiz Implementation
-- 10 questions at /quiz
-- Scoring: Да=2, Понякога=1, Не=0
-- 3 result states with appropriate routing
+### ✅ Homepage Copy Update
+- Psychological tension copy
+- CTAs link to /quiz
 
 ### ✅ SEO Pages
-- /symptoms page with new content
-- /orthodontics updated with quiz links
+- /symptoms page with comprehensive symptom list
+- /orthodontics page with educational content
 
 ### ✅ Navigation Update
 - Added "Симптоми" link
-- CTA changed to "Провери етапа си"
+- CTA "Провери етапа си"
 
 ---
 
@@ -160,17 +179,15 @@ New 10-question quiz at `/quiz` with psychological tension. One question per scr
 - [ ] Blog static generation fix (on-demand revalidation)
 
 ### P2 - Medium Priority
-- [ ] Create specific quizzes for other treatments (implants, cosmetic)
 - [ ] Replace placeholder OG images
-- [ ] Create /implants placeholder page for advanced quiz results
 
 ### P3 - Future
 - [ ] English translation (`/en/...` routes)
-- [ ] More cities
+- [ ] More cities beyond София and Пловдив
 - [ ] Enhance admin panel (edit homepage content)
 - [ ] Backend refactoring (split server.py into routers)
 
 ---
 
 *Last updated: December 2025*
-*Latest changes: Master quiz with 10 questions, homepage copy update, SEO pages, navigation update*
+*Latest changes: Quiz v2 with stage assessment + lead capture, removed treatment routing*
