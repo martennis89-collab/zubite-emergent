@@ -70,10 +70,10 @@ const CATEGORY_NAMES: Record<string, string> = {
 // Hero Section with Animations
 export function AnimatedHero() {
   return (
-    <section className="relative pt-32 md:pt-44 pb-20 md:pb-32 bg-gradient-to-b from-sky-50 to-white" aria-labelledby="hero-heading">
+    <section className="relative pt-28 md:pt-44 pb-16 md:pb-32 bg-gradient-to-b from-sky-50 to-white" aria-labelledby="hero-heading">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
         <ScrollReveal animation="fade-up" duration={800}>
-          <h1 id="hero-heading" className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold leading-tight mb-8">
+          <h1 id="hero-heading" className="font-serif text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-semibold leading-tight mb-6 md:mb-8">
             <span className="text-slate-900">Около 75% от хората имат криви зъби.</span>
             <br />
             <span className="text-slate-500">Това не е само естетичен проблем —</span>
@@ -83,7 +83,7 @@ export function AnimatedHero() {
         </ScrollReveal>
         
         <ScrollReveal animation="fade-up" delay={150} duration={800}>
-          <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto mb-10">
+          <p className="text-base md:text-xl text-slate-600 max-w-2xl mx-auto mb-8 md:mb-10 px-2">
             Отговори на няколко въпроса и виж дали пропускаш ранни признаци. Отнема 60 секунди. Без регистрация. Без задължения.
           </p>
         </ScrollReveal>
@@ -92,11 +92,11 @@ export function AnimatedHero() {
           <div>
             <Link
               href="/quiz"
-              className="inline-flex items-center gap-3 px-8 py-4 bg-sky-500 text-white text-lg font-medium rounded-full hover:bg-sky-600 hover:shadow-xl hover:shadow-sky-500/30 hover:-translate-y-1 active:translate-y-0 transition-all duration-300 group"
+              className="inline-flex items-center gap-2 md:gap-3 px-6 md:px-8 py-3 md:py-4 bg-sky-500 text-white text-base md:text-lg font-medium rounded-full hover:bg-sky-600 hover:shadow-xl hover:shadow-sky-500/30 hover:-translate-y-1 active:translate-y-0 transition-all duration-300 group"
               data-testid="hero-cta"
             >
               <span>Провери къде се намираш</span>
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-4 h-4 md:w-5 md:h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
         </ScrollReveal>
@@ -219,18 +219,18 @@ export function AnimatedHowItWorksSection() {
   ]
 
   return (
-    <section className="py-20 md:py-28 bg-white" aria-labelledby="how-it-works-heading">
+    <section className="py-16 md:py-28 bg-white" aria-labelledby="how-it-works-heading">
       <div className="max-w-4xl mx-auto px-4 sm:px-6">
         <ScrollReveal animation="fade-up" duration={700}>
-          <h2 id="how-it-works-heading" className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-slate-900 text-center mb-4">
+          <h2 id="how-it-works-heading" className="font-serif text-xl md:text-3xl lg:text-4xl font-semibold text-slate-900 text-center mb-3 md:mb-4">
             Как работи Zubite.bg
           </h2>
-          <p className="text-slate-500 text-center mb-16 text-lg">
+          <p className="text-slate-500 text-center mb-10 md:mb-16 text-base md:text-lg">
             Три прости стъпки до яснота
           </p>
         </ScrollReveal>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
           {steps.map((step, index) => (
             <ScrollReveal key={index} animation="fade-up" delay={index * 150} duration={600}>
               <div className="relative">
@@ -241,24 +241,24 @@ export function AnimatedHowItWorksSection() {
                   </div>
                 )}
                 
-                <article className="text-center p-6 rounded-2xl bg-slate-50 hover:bg-slate-100 hover:shadow-lg transition-all duration-300">
+                <article className="text-center p-5 md:p-6 rounded-2xl bg-slate-50 hover:bg-slate-100 hover:shadow-lg transition-all duration-300">
                   {/* Icon */}
-                  <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl ${step.color} mb-6 hover:scale-110 transition-transform duration-300`}>
-                    <step.icon className="w-8 h-8" />
+                  <div className={`inline-flex items-center justify-center w-14 h-14 md:w-16 md:h-16 rounded-2xl ${step.color} mb-4 md:mb-6 hover:scale-110 transition-transform duration-300`}>
+                    <step.icon className="w-7 h-7 md:w-8 md:h-8" />
                   </div>
                   
                   {/* Step number */}
-                  <div className="text-sm font-bold text-sky-500 mb-2">
+                  <div className="text-xs md:text-sm font-bold text-sky-500 mb-2">
                     Стъпка {step.number}
                   </div>
                   
                   {/* Title */}
-                  <h3 className="font-serif text-lg font-semibold text-slate-900 mb-1">
+                  <h3 className="font-serif text-base md:text-lg font-semibold text-slate-900 mb-1">
                     {step.title}
                   </h3>
                   
                   {step.subtitle && (
-                    <p className="text-sm text-slate-400 mb-3">{step.subtitle}</p>
+                    <p className="text-xs md:text-sm text-slate-400 mb-2 md:mb-3">{step.subtitle}</p>
                   )}
                   
                   {/* Description */}
@@ -272,13 +272,13 @@ export function AnimatedHowItWorksSection() {
         </div>
 
         <ScrollReveal animation="fade-up" delay={500}>
-          <div className="text-center mt-12">
+          <div className="text-center mt-10 md:mt-12">
             <Link
               href="/quiz"
-              className="inline-flex items-center gap-3 px-8 py-4 bg-sky-500 text-white font-medium rounded-full hover:bg-sky-600 hover:shadow-xl hover:shadow-sky-500/30 hover:-translate-y-1 active:translate-y-0 transition-all duration-300 group"
+              className="inline-flex items-center gap-2 md:gap-3 px-6 md:px-8 py-3 md:py-4 bg-sky-500 text-white text-base md:text-lg font-medium rounded-full hover:bg-sky-600 hover:shadow-xl hover:shadow-sky-500/30 hover:-translate-y-1 active:translate-y-0 transition-all duration-300 group"
             >
               <span>Започни сега</span>
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-4 h-4 md:w-5 md:h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
         </ScrollReveal>
@@ -334,36 +334,36 @@ export function AnimatedProgressionSection() {
 // Cost Reframe Section with Animations
 export function AnimatedCostReframeSection() {
   return (
-    <section className="py-20 md:py-28 bg-slate-50" aria-labelledby="cost-heading">
+    <section className="py-16 md:py-28 bg-slate-50 overflow-hidden" aria-labelledby="cost-heading">
       <div className="max-w-3xl mx-auto px-4 sm:px-6">
         <ScrollReveal animation="fade-right" duration={700}>
-          <div className="flex items-start gap-4 mb-12">
-            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-sky-100 flex items-center justify-center hover:scale-110 transition-transform duration-300" aria-hidden="true">
-              <Clock className="w-6 h-6 text-sky-600" />
+          <div className="flex items-start gap-3 md:gap-4 mb-8 md:mb-12">
+            <div className="flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-xl bg-sky-100 flex items-center justify-center hover:scale-110 transition-transform duration-300" aria-hidden="true">
+              <Clock className="w-5 h-5 md:w-6 md:h-6 text-sky-600" />
             </div>
-            <h2 id="cost-heading" className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-slate-900">
+            <h2 id="cost-heading" className="font-serif text-xl md:text-3xl lg:text-4xl font-semibold text-slate-900">
               Ако хванеш проблема рано обикновено струва по-малко и се разрешава по-лесно.
             </h2>
           </div>
         </ScrollReveal>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           <ScrollReveal animation="fade-right" delay={100}>
-            <article className="p-6 rounded-2xl bg-white border-2 border-emerald-200 hover:shadow-lg hover:scale-[1.02] hover:border-emerald-300 transition-all duration-300">
-              <div className="flex items-center gap-3 mb-4">
+            <article className="p-4 md:p-6 rounded-2xl bg-white border-2 border-emerald-200 hover:shadow-lg transition-all duration-300">
+              <div className="flex items-center gap-3 mb-3 md:mb-4">
                 <span className="w-3 h-3 rounded-full bg-emerald-500" aria-hidden="true" />
-                <span className="text-emerald-700 font-semibold">Ранен етап</span>
+                <span className="text-emerald-700 font-semibold text-sm md:text-base">Ранен етап</span>
               </div>
-              <p className="text-slate-700">По-лесно, по-бързо, по-предвидимо.</p>
+              <p className="text-slate-700 text-sm md:text-base">По-лесно, по-бързо, по-предвидимо.</p>
             </article>
           </ScrollReveal>
           <ScrollReveal animation="fade-left" delay={200}>
-            <article className="p-6 rounded-2xl bg-white border-2 border-red-200 hover:shadow-lg hover:scale-[1.02] hover:border-red-300 transition-all duration-300">
-              <div className="flex items-center gap-3 mb-4">
+            <article className="p-4 md:p-6 rounded-2xl bg-white border-2 border-red-200 hover:shadow-lg transition-all duration-300">
+              <div className="flex items-center gap-3 mb-3 md:mb-4">
                 <span className="w-3 h-3 rounded-full bg-red-500" aria-hidden="true" />
-                <span className="text-red-700 font-semibold">Късен етап</span>
+                <span className="text-red-700 font-semibold text-sm md:text-base">Късен етап</span>
               </div>
-              <p className="text-slate-700">По-сложно, по-скъпо.</p>
+              <p className="text-slate-700 text-sm md:text-base">По-сложно, по-скъпо.</p>
             </article>
           </ScrollReveal>
         </div>
@@ -612,14 +612,14 @@ export function AnimatedFooter() {
 // Mobile Sticky CTA with pulse animation
 export function AnimatedStickyCTA() {
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 md:hidden">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 md:hidden w-[calc(100%-3rem)] max-w-xs">
       <Link
         href="/quiz"
-        className="flex items-center gap-2 px-6 py-3 bg-sky-500 text-white font-medium rounded-full shadow-lg shadow-sky-500/30 hover:bg-sky-600 hover:scale-105 active:scale-100 transition-all duration-300 animate-pulse-soft"
+        className="flex items-center justify-center gap-2 w-full px-5 py-3 bg-sky-500 text-white font-medium rounded-full shadow-lg shadow-sky-500/30 hover:bg-sky-600 active:scale-95 transition-all duration-300"
         aria-label="Провери етапа си"
       >
-        <span>Провери къде се намираш</span>
-        <ArrowRight className="w-4 h-4" />
+        <span className="text-sm">Провери къде се намираш</span>
+        <ArrowRight className="w-4 h-4 flex-shrink-0" />
       </Link>
     </div>
   )
