@@ -1,9 +1,9 @@
 {
   "pages": {
-    "/blog/page": [
+    "/quiz/success/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/blog/page.js"
+      "static/chunks/app/quiz/success/page.js"
     ],
     "/layout": [
       "static/chunks/webpack.js",

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { ArrowRight, ArrowLeft, Loader2, CheckCircle, MapPin, Phone, X } from 'lucide-react'
 import { 
   trackQuizStart, 
@@ -200,6 +201,7 @@ const generateSessionId = () => {
 }
 
 export function MasterQuiz() {
+  const router = useRouter()
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [answers, setAnswers] = useState<{ questionId: string; value: string; score: number }[]>([])
   const [result, setResult] = useState<{ band: ResultBand; score: number } | null>(null)
@@ -423,7 +425,13 @@ export function MasterQuiz() {
       // Track lead submission (Meta Pixel - standard Lead event)
       trackLeadSubmit(formData.city, formVersion)
 
-      setStep('success')
+      // Redirect to dedicated success page for conversion tracking
+      const successParams = new URLSearchParams({
+        stage: result?.band || 'early',
+        city: formData.city,
+        name: formData.name || ''
+      })
+      router.push(`/quiz/success?${successParams.toString()}`)
     } catch {
       setError('Възникна грешка. Моля, опитайте отново.')
     } finally {

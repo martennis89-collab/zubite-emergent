@@ -899,6 +899,9 @@ h3{
 .min-h-screen{
   min-height: 100vh;
 }
+.min-h-\[60vh\]{
+  min-height: 60vh;
+}
 .w-0\.5{
   width: 0.125rem;
 }
@@ -1265,6 +1268,9 @@ h3{
 }
 .border-b{
   border-bottom-width: 1px;
+}
+.border-b-2{
+  border-bottom-width: 2px;
 }
 .border-l-4{
   border-left-width: 4px;
@@ -3284,6 +3290,11 @@ h3{
   .md\:text-3xl{
     font-size: 1.875rem;
     line-height: 2.25rem;
+  }
+
+  .md\:text-4xl{
+    font-size: 2.25rem;
+    line-height: 2.5rem;
   }
 
   .md\:text-5xl{
