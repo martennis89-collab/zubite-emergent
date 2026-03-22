@@ -675,6 +675,9 @@ h3{
 .top-1\/2{
   top: 50%;
 }
+.top-12{
+  top: 3rem;
+}
 .top-14{
   top: 3.5rem;
 }
@@ -896,11 +899,11 @@ h3{
 .max-h-48{
   max-height: 12rem;
 }
-.min-h-screen{
-  min-height: 100vh;
-}
 .min-h-\[60vh\]{
   min-height: 60vh;
+}
+.min-h-screen{
+  min-height: 100vh;
 }
 .w-0\.5{
   width: 0.125rem;
@@ -3297,11 +3300,6 @@ h3{
     line-height: 2.5rem;
   }
 
-  .md\:text-5xl{
-    font-size: 3rem;
-    line-height: 1;
-  }
-
   .md\:text-xl{
     font-size: 1.25rem;
     line-height: 1.75rem;
@@ -3363,11 +3361,6 @@ h3{
 
   .lg\:text-5xl{
     font-size: 3rem;
-    line-height: 1;
-  }
-
-  .lg\:text-6xl{
-    font-size: 3.75rem;
     line-height: 1;
   }
 }

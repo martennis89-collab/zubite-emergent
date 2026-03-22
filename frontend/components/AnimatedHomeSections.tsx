@@ -2,7 +2,7 @@
 
 import { ReactNode } from 'react'
 import Link from 'next/link'
-import { ArrowRight, ChevronRight, AlertTriangle, TrendingUp, Clock, Target, BookOpen, Calendar } from 'lucide-react'
+import { ArrowRight, ChevronRight, AlertTriangle, TrendingUp, Clock, Target, BookOpen, Calendar, ClipboardList, Eye, MessageSquare } from 'lucide-react'
 import { ScrollReveal, StaggerChildren } from '../hooks/useScrollAnimation'
 
 // Self-recognition symptoms
@@ -73,22 +73,12 @@ export function AnimatedHero() {
     <section className="relative pt-32 md:pt-44 pb-20 md:pb-32 bg-gradient-to-b from-sky-50 to-white" aria-labelledby="hero-heading">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
         <ScrollReveal animation="fade-up" duration={800}>
-          <h1 id="hero-heading" className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold leading-tight mb-8">
-            <span className="text-slate-900">По-лесно е да оправиш зъбите си навреме.</span>
-            <br />
-            <span className="text-slate-500">Повечето хора чакат, докато стане скъпо.</span>
-            <br />
-            <span className="text-sky-600">Ти сигурен ли си, че не си вече в този етап?</span>
-          </h1>
-        </ScrollReveal>
-        
-        <ScrollReveal animation="fade-up" delay={150} duration={800}>
-          <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto mb-10">
-            Повечето хора вече имат ранни признаци — но ги осъзнават чак когато лечението стане по-сложно.
+          <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto mb-10 leading-relaxed">
+            Около 75% от хората имат криви зъби, което не е само естетичен проблем — това може да доведе до здравословни проблеми. Отговори на няколко въпроса и виж дали пропускаш ранни признаци. <span className="text-slate-800 font-medium">Отнема 60 секунди. Без регистрация. Без задължения.</span>
           </p>
         </ScrollReveal>
         
-        <ScrollReveal animation="zoom" delay={300} duration={800}>
+        <ScrollReveal animation="zoom" delay={150} duration={800}>
           <div>
             <Link
               href="/quiz"
@@ -96,12 +86,8 @@ export function AnimatedHero() {
               data-testid="hero-cta"
             >
               <span>Провери къде се намираш</span>
-              <span className="text-sky-200">(60 сек)</span>
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
-            <p className="text-sm text-slate-500 mt-4">
-              Отнема 60 секунди. Повечето хора никога не стигат дотук.
-            </p>
           </div>
         </ScrollReveal>
       </div>
@@ -193,6 +179,104 @@ export function AnimatedSelfRecognitionSection() {
   )
 }
 
+// How It Works Section
+export function AnimatedHowItWorksSection() {
+  const steps = [
+    {
+      number: '1',
+      title: 'Отговаряш на няколко въпроса',
+      subtitle: '(60 секунди)',
+      description: 'Разбираме дали има признаци, които обикновено се игнорират.',
+      icon: ClipboardList,
+      color: 'bg-sky-100 text-sky-600'
+    },
+    {
+      number: '2',
+      title: 'Виждаш каква е твоята ситуация',
+      subtitle: '',
+      description: 'Дали всичко е наред или проблемът вече е в ранен или по-напреднал етап. Това показва колко спешно е да обърнеш внимание.',
+      icon: Eye,
+      color: 'bg-amber-100 text-amber-600'
+    },
+    {
+      number: '3',
+      title: 'Получаваш конкретни следващи стъпки',
+      subtitle: '',
+      description: 'И ако искаш — ще ти препоръчаме 3 подходящи клиники според твоя случай и град.',
+      icon: MessageSquare,
+      color: 'bg-emerald-100 text-emerald-600'
+    }
+  ]
+
+  return (
+    <section className="py-20 md:py-28 bg-white" aria-labelledby="how-it-works-heading">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6">
+        <ScrollReveal animation="fade-up" duration={700}>
+          <h2 id="how-it-works-heading" className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-slate-900 text-center mb-4">
+            Как работи Zubite.bg
+          </h2>
+          <p className="text-slate-500 text-center mb-16 text-lg">
+            Три прости стъпки до яснота
+          </p>
+        </ScrollReveal>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {steps.map((step, index) => (
+            <ScrollReveal key={index} animation="fade-up" delay={index * 150} duration={600}>
+              <div className="relative">
+                {/* Connector arrow for desktop */}
+                {index < steps.length - 1 && (
+                  <div className="hidden md:flex absolute top-12 -right-4 z-10 items-center justify-center w-8 h-8 text-slate-300">
+                    <ArrowRight className="w-6 h-6" />
+                  </div>
+                )}
+                
+                <article className="text-center p-6 rounded-2xl bg-slate-50 hover:bg-slate-100 hover:shadow-lg transition-all duration-300">
+                  {/* Icon */}
+                  <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl ${step.color} mb-6 hover:scale-110 transition-transform duration-300`}>
+                    <step.icon className="w-8 h-8" />
+                  </div>
+                  
+                  {/* Step number */}
+                  <div className="text-sm font-bold text-sky-500 mb-2">
+                    Стъпка {step.number}
+                  </div>
+                  
+                  {/* Title */}
+                  <h3 className="font-serif text-lg font-semibold text-slate-900 mb-1">
+                    {step.title}
+                  </h3>
+                  
+                  {step.subtitle && (
+                    <p className="text-sm text-slate-400 mb-3">{step.subtitle}</p>
+                  )}
+                  
+                  {/* Description */}
+                  <p className="text-slate-600 text-sm leading-relaxed">
+                    {step.description}
+                  </p>
+                </article>
+              </div>
+            </ScrollReveal>
+          ))}
+        </div>
+
+        <ScrollReveal animation="fade-up" delay={500}>
+          <div className="text-center mt-12">
+            <Link
+              href="/quiz"
+              className="inline-flex items-center gap-3 px-8 py-4 bg-sky-500 text-white font-medium rounded-full hover:bg-sky-600 hover:shadow-xl hover:shadow-sky-500/30 hover:-translate-y-1 active:translate-y-0 transition-all duration-300 group"
+            >
+              <span>Започни сега</span>
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+        </ScrollReveal>
+      </div>
+    </section>
+  )
+}
+
 // Progression Section with Animations
 export function AnimatedProgressionSection() {
   return (
@@ -248,7 +332,7 @@ export function AnimatedCostReframeSection() {
               <Clock className="w-6 h-6 text-sky-600" />
             </div>
             <h2 id="cost-heading" className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-slate-900">
-              Това не е един и същ проблем — ако го хванеш навреме или по-късно.
+              Ако хванеш проблема рано обикновено струва по-малко и се разрешава по-лесно.
             </h2>
           </div>
         </ScrollReveal>

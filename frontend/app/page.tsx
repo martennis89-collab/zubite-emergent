@@ -3,7 +3,7 @@ import {
   AnimatedHero,
   AnimatedInterruptSection,
   AnimatedSelfRecognitionSection,
-  AnimatedProgressionSection,
+  AnimatedHowItWorksSection,
   AnimatedCostReframeSection,
   AnimatedAuthoritySection,
   AnimatedSeoSection,
@@ -97,8 +97,8 @@ export default async function HomePage() {
       {/* SECTION 3 — SELF RECOGNITION (Blue Background) */}
       <AnimatedSelfRecognitionSection />
 
-      {/* SECTION 4 — PROGRESSION */}
-      <AnimatedProgressionSection />
+      {/* SECTION 4 — HOW IT WORKS */}
+      <AnimatedHowItWorksSection />
 
       {/* SECTION 5 — COST REFRAME */}
       <AnimatedCostReframeSection />
