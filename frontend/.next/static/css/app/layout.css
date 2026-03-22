@@ -3300,6 +3300,11 @@ h3{
     line-height: 2.5rem;
   }
 
+  .md\:text-5xl{
+    font-size: 3rem;
+    line-height: 1;
+  }
+
   .md\:text-xl{
     font-size: 1.25rem;
     line-height: 1.75rem;
@@ -3361,6 +3366,11 @@ h3{
 
   .lg\:text-5xl{
     font-size: 3rem;
+    line-height: 1;
+  }
+
+  .lg\:text-6xl{
+    font-size: 3.75rem;
     line-height: 1;
   }
 }

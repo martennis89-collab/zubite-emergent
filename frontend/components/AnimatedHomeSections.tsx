@@ -73,12 +73,22 @@ export function AnimatedHero() {
     <section className="relative pt-32 md:pt-44 pb-20 md:pb-32 bg-gradient-to-b from-sky-50 to-white" aria-labelledby="hero-heading">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
         <ScrollReveal animation="fade-up" duration={800}>
-          <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Около 75% от хората имат криви зъби, което не е само естетичен проблем — това може да доведе до здравословни проблеми. Отговори на няколко въпроса и виж дали пропускаш ранни признаци. <span className="text-slate-800 font-medium">Отнема 60 секунди. Без регистрация. Без задължения.</span>
+          <h1 id="hero-heading" className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold leading-tight mb-8">
+            <span className="text-slate-900">Около 75% от хората имат криви зъби.</span>
+            <br />
+            <span className="text-slate-500">Това не е само естетичен проблем —</span>
+            <br />
+            <span className="text-sky-600">може да доведе до здравословни проблеми.</span>
+          </h1>
+        </ScrollReveal>
+        
+        <ScrollReveal animation="fade-up" delay={150} duration={800}>
+          <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto mb-10">
+            Отговори на няколко въпроса и виж дали пропускаш ранни признаци. Отнема 60 секунди. Без регистрация. Без задължения.
           </p>
         </ScrollReveal>
         
-        <ScrollReveal animation="zoom" delay={150} duration={800}>
+        <ScrollReveal animation="zoom" delay={300} duration={800}>
           <div>
             <Link
               href="/quiz"
