@@ -367,10 +367,6 @@ export default function AdminBlogPage() {
                           <TrendingUp className="w-3 h-3" />
                           {getUniqueVisitors(post.slug)} уникални
                         </span>
-                        <span className="flex items-center gap-1" title="Общо прегледи">
-                          <BarChart3 className="w-3 h-3" />
-                          {post.view_count} прегледа
-                        </span>
                         <span className="text-slate-300">
                           /{post.slug}
                         </span>
