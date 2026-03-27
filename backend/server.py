@@ -1087,11 +1087,14 @@ async def get_analytics(user: AdminUser = Depends(get_current_user)):
             for answer in stats:
                 stats[answer] = round(stats[answer] / total * 100, 1)
     
-    # Result distribution
-    result_dist = {"early": 0, "progressing": 0, "advanced": 0}
+    # Result distribution - check both field names for compatibility
+    result_dist = {"early": 0, "developing": 0, "advanced": 0}
     for event in events:
         if event.get('event_type') == 'quiz_completed':
             band = event.get('band', '')
+            # Handle different naming conventions
+            if band == 'progressing':
+                band = 'developing'
             if band in result_dist:
                 result_dist[band] += 1
     
@@ -1126,10 +1129,22 @@ async def get_analytics(user: AdminUser = Depends(get_current_user)):
         "plovdiv": await db.leads.count_documents({"city_slug": "plovdiv"})
     }
     
-    # Form version stats
-    form_a_leads = await db.leads.count_documents({"form_version": "A"})
-    form_b_leads = await db.leads.count_documents({"form_version": "B"})
-    form_version_stats = {"A": form_a_leads, "B": form_b_leads}
+    # Form version stats - check in both main level and answers object
+    form_a_count = 0
+    form_b_count = 0
+    
+    leads_for_form = await db.leads.find({}, {"form_version": 1, "answers": 1, "_id": 0}).to_list(10000)
+    for lead in leads_for_form:
+        fv = lead.get('form_version') or (lead.get('answers', {}) or {}).get('form_version')
+        if fv == 'A':
+            form_a_count += 1
+        elif fv == 'B':
+            form_b_count += 1
+    
+    form_version_stats = {"A": form_a_count, "B": form_b_count}
+    
+    # Total leads count
+    total_leads = await db.leads.count_documents({})
     
     return {
         "total_starts": total_starts,
@@ -1142,7 +1157,8 @@ async def get_analytics(user: AdminUser = Depends(get_current_user)):
         "funnel": funnel,
         "leads_per_day": leads_per_day,
         "leads_by_city": leads_by_city,
-        "form_version_stats": form_version_stats
+        "form_version_stats": form_version_stats,
+        "total_leads": total_leads
     }
 
 
