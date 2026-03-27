@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { 
   Loader2, LogOut, Plus, Edit, Trash2, Eye, EyeOff,
   Calendar, RefreshCw, Search, FileText, ArrowLeft,
-  Users, BarChart3
+  Users, BarChart3, TrendingUp
 } from 'lucide-react'
 
 interface BlogPost {
@@ -23,13 +23,47 @@ interface BlogPost {
   author_name: string
 }
 
+interface BlogAnalytics {
+  total_views: number
+  total_unique_visitors: number
+  total_posts: number
+  post_stats: {
+    slug: string
+    title: string
+    total_views: number
+    unique_visitors: number
+  }[]
+}
+
 export default function AdminBlogPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [posts, setPosts] = useState<BlogPost[]>([])
   const [total, setTotal] = useState(0)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterPublished, setFilterPublished] = useState<string>('')
+  const [analytics, setAnalytics] = useState<BlogAnalytics | null>(null)
   const router = useRouter()
+
+  const fetchAnalytics = useCallback(async () => {
+    const token = localStorage.getItem('admin_token')
+    if (!token) return
+
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+      const response = await fetch(`${API_URL}/api/admin/blog/analytics`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setAnalytics(data)
+      }
+    } catch (error) {
+      console.error('Error fetching analytics:', error)
+    }
+  }, [])
 
   const fetchPosts = useCallback(async () => {
     const token = localStorage.getItem('admin_token')
@@ -73,7 +107,15 @@ export default function AdminBlogPage() {
 
   useEffect(() => {
     fetchPosts()
-  }, [fetchPosts])
+    fetchAnalytics()
+  }, [fetchPosts, fetchAnalytics])
+
+  // Helper to get unique visitors for a post
+  const getUniqueVisitors = (slug: string): number => {
+    if (!analytics) return 0
+    const stat = analytics.post_stats.find(s => s.slug === slug)
+    return stat?.unique_visitors || 0
+  }
 
   const handleLogout = () => {
     localStorage.removeItem('admin_token')
@@ -199,6 +241,45 @@ export default function AdminBlogPage() {
           </Link>
         </div>
 
+        {/* Stats Summary */}
+        {analytics && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-sky-100 flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-sky-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Публикации</p>
+                  <p className="text-xl font-semibold text-slate-900">{analytics.total_posts}</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Уникални посетители</p>
+                  <p className="text-xl font-semibold text-slate-900">{analytics.total_unique_visitors}</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center">
+                  <BarChart3 className="w-5 h-5 text-violet-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Общо прегледи</p>
+                  <p className="text-xl font-semibold text-slate-900">{analytics.total_views}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Filters */}
         <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
@@ -282,7 +363,11 @@ export default function AdminBlogPage() {
                           <Calendar className="w-3 h-3" />
                           {new Date(post.created_at).toLocaleDateString('bg-BG')}
                         </span>
-                        <span className="flex items-center gap-1">
+                        <span className="flex items-center gap-1 text-emerald-600 font-medium" title="Уникални посетители">
+                          <TrendingUp className="w-3 h-3" />
+                          {getUniqueVisitors(post.slug)} уникални
+                        </span>
+                        <span className="flex items-center gap-1" title="Общо прегледи">
                           <BarChart3 className="w-3 h-3" />
                           {post.view_count} прегледа
                         </span>

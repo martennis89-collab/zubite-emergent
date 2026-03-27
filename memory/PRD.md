@@ -33,6 +33,13 @@ Homepage → Quiz (10 questions with micro-insights) → Result Stage → Soft C
 
 ## Completed Work
 
+### ✅ March 27, 2026 - Blog Traffic Analytics
+- Added unique visitor tracking for blog posts
+- `BlogViewTracker` component tracks views with visitor fingerprinting
+- Admin panel shows unique visitors per post in `/admin/blog`
+- Summary stats: total posts, unique visitors, total views
+- Backend endpoints: `POST /api/blog/track-view`, `GET /api/admin/blog/analytics`
+
 ### ✅ March 21, 2026 - Blog Image Upload Feature
 - Added direct image upload functionality to blog admin pages
 - Files stored in Emergent Object Storage for persistence
@@ -78,7 +85,8 @@ Homepage → Quiz (10 questions with micro-insights) → Result Stage → Soft C
 ├── components/
 │   ├── AnimatedHomeSections.tsx    # Animated homepage sections
 │   ├── MasterQuiz.tsx              # Quiz with tracking
-│   ├── MetaPixel.tsx               # NEW: Meta Pixel component
+│   ├── BlogViewTracker.tsx         # NEW: Blog view analytics
+│   ├── MetaPixel.tsx               # Meta Pixel component
 │   ├── CookieConsent.tsx           # GDPR cookie banner
 │   └── ...
 
@@ -99,6 +107,8 @@ Homepage → Quiz (10 questions with micro-insights) → Result Stage → Soft C
 ### Blog
 - `GET/POST /api/admin/blog/posts` - CRUD operations
 - `PUT/DELETE /api/admin/blog/posts/{id}` - Update/delete post
+- `POST /api/blog/track-view` - Track unique blog post views
+- `GET /api/admin/blog/analytics` - Blog traffic analytics
 
 ### Analytics
 - `POST /api/analytics/event` - Track quiz events
@@ -136,5 +146,5 @@ Homepage → Quiz (10 questions with micro-insights) → Result Stage → Soft C
 
 ---
 
-*Last updated: March 21, 2026*
-*Latest changes: Blog image upload feature, Meta Pixel integration*
+*Last updated: March 27, 2026*
+*Latest changes: Blog traffic analytics feature (unique visitor tracking)*

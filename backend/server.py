@@ -800,6 +800,114 @@ async def get_post_by_slug(slug: str):
     
     return post
 
+
+# Blog view tracking model
+class BlogViewEvent(BaseModel):
+    post_slug: str
+    visitor_id: str
+    referrer: Optional[str] = None
+    user_agent: Optional[str] = None
+
+
+@api_router.post("/blog/track-view")
+async def track_blog_view(event: BlogViewEvent):
+    """Track a unique blog post view"""
+    # Check if this visitor already viewed this post today
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    
+    existing = await db.blog_views.find_one({
+        "post_slug": event.post_slug,
+        "visitor_id": event.visitor_id,
+        "date": today
+    })
+    
+    if not existing:
+        # New unique view for today
+        await db.blog_views.insert_one({
+            "id": str(uuid.uuid4()),
+            "post_slug": event.post_slug,
+            "visitor_id": event.visitor_id,
+            "referrer": event.referrer,
+            "user_agent": event.user_agent,
+            "date": today,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        return {"tracked": True, "unique": True}
+    
+    return {"tracked": True, "unique": False}
+
+
+@api_router.get("/admin/blog/analytics")
+async def get_blog_analytics(user: AdminUser = Depends(get_current_user)):
+    """Get blog traffic analytics"""
+    # Get all blog posts
+    posts = await db.blog_posts.find({"is_published": True}, {"_id": 0}).to_list(1000)
+    
+    # Get view counts per post
+    pipeline = [
+        {"$group": {
+            "_id": "$post_slug",
+            "total_views": {"$sum": 1},
+            "unique_visitors": {"$addToSet": "$visitor_id"}
+        }}
+    ]
+    view_stats = await db.blog_views.aggregate(pipeline).to_list(1000)
+    view_map = {stat["_id"]: {
+        "total_views": stat["total_views"],
+        "unique_visitors": len(stat["unique_visitors"])
+    } for stat in view_stats}
+    
+    # Get views per day for last 30 days
+    thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%d")
+    daily_pipeline = [
+        {"$match": {"date": {"$gte": thirty_days_ago}}},
+        {"$group": {
+            "_id": "$date",
+            "views": {"$sum": 1},
+            "unique_visitors": {"$addToSet": "$visitor_id"}
+        }},
+        {"$sort": {"_id": 1}}
+    ]
+    daily_stats = await db.blog_views.aggregate(daily_pipeline).to_list(100)
+    views_per_day = [{
+        "date": stat["_id"],
+        "views": stat["views"],
+        "unique_visitors": len(stat["unique_visitors"])
+    } for stat in daily_stats]
+    
+    # Calculate totals
+    total_views = sum(stat.get("total_views", 0) for stat in view_stats)
+    all_visitors = set()
+    for stat in view_stats:
+        all_visitors.update(stat.get("unique_visitors", []))
+    total_unique_visitors = len(all_visitors)
+    
+    # Build post stats with view counts
+    post_stats = []
+    for post in posts:
+        slug = post.get("slug", "")
+        stats = view_map.get(slug, {"total_views": 0, "unique_visitors": 0})
+        post_stats.append({
+            "slug": slug,
+            "title": post.get("title", ""),
+            "category": post.get("category", ""),
+            "published_at": post.get("published_at"),
+            "total_views": stats["total_views"],
+            "unique_visitors": stats["unique_visitors"]
+        })
+    
+    # Sort by unique visitors descending
+    post_stats.sort(key=lambda x: x["unique_visitors"], reverse=True)
+    
+    return {
+        "total_views": total_views,
+        "total_unique_visitors": total_unique_visitors,
+        "total_posts": len(posts),
+        "views_per_day": views_per_day,
+        "post_stats": post_stats
+    }
+
+
 # ============== FILE UPLOAD ENDPOINTS ==============
 
 @api_router.post("/admin/upload")
@@ -1244,6 +1352,8 @@ async def startup():
     await db.analytics_events.create_index("created_at")
     await db.uploaded_files.create_index("id", unique=True)
     await db.uploaded_files.create_index("is_deleted")
+    await db.blog_views.create_index([("post_slug", 1), ("visitor_id", 1), ("date", 1)])
+    await db.blog_views.create_index("date")
     
     # Initialize object storage
     init_storage()

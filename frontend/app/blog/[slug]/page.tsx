@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
+import { BlogViewTracker } from '@/components/BlogViewTracker'
 import { Calendar, ArrowLeft, ArrowRight, Tag, User } from 'lucide-react'
 
 // Force dynamic rendering - do not pre-render at build time
@@ -128,6 +129,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
   return (
     <main className="min-h-screen bg-white">
       <Header />
+      <BlogViewTracker postSlug={params.slug} />
 
       {/* Article Header */}
       <article className="pt-24 md:pt-32">
