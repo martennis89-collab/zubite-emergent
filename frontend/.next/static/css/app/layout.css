@@ -2964,6 +2964,11 @@ h3{
   color: rgb(15 23 42 / var(--tw-text-opacity, 1));
 }
 
+.hover\:text-red-700:hover{
+  --tw-text-opacity: 1;
+  color: rgb(185 28 28 / var(--tw-text-opacity, 1));
+}
+
 .hover\:underline:hover{
   text-decoration-line: underline;
 }

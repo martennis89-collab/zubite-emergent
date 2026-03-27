@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { 
   Loader2, LogOut, ArrowLeft, RefreshCw,
   Users, TrendingUp, Clock, Target, 
-  BarChart3, PieChart, Activity, FileText
+  BarChart3, PieChart, Activity, FileText, Trash2
 } from 'lucide-react'
 
 interface Analytics {
@@ -21,10 +21,12 @@ interface Analytics {
   leads_per_day: Array<{ date: string; count: number }>
   leads_by_city: Record<string, number>
   form_version_stats: Record<string, number>
+  total_leads?: number
 }
 
 export default function AdminAnalyticsPage() {
   const [isLoading, setIsLoading] = useState(true)
+  const [isResetting, setIsResetting] = useState(false)
   const [analytics, setAnalytics] = useState<Analytics | null>(null)
   const router = useRouter()
 
@@ -61,6 +63,70 @@ export default function AdminAnalyticsPage() {
       setIsLoading(false)
     }
   }, [router])
+
+  const resetAnalytics = async () => {
+    if (!confirm('⚠️ Сигурни ли сте, че искате да нулирате ВСИЧКИ analytics данни?\n\nТова ще изтрие:\n- Данни за започнати/завършени тестове\n- Отговори по въпроси\n- Soft commit статистика\n\nЛийдовете НЯМА да бъдат изтрити.')) {
+      return
+    }
+
+    const token = localStorage.getItem('admin_token')
+    if (!token) return
+
+    setIsResetting(true)
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+      const response = await fetch(`${API_URL}/api/admin/reset-analytics`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        alert('✅ Analytics данните бяха нулирани успешно!')
+        fetchAnalytics()
+      } else {
+        alert('❌ Грешка при нулиране на данните')
+      }
+    } catch (error) {
+      console.error('Error resetting analytics:', error)
+      alert('❌ Грешка при нулиране на данните')
+    } finally {
+      setIsResetting(false)
+    }
+  }
+
+  const resetBlogViews = async () => {
+    if (!confirm('⚠️ Сигурни ли сте, че искате да нулирате статистиката за blog прегледи?')) {
+      return
+    }
+
+    const token = localStorage.getItem('admin_token')
+    if (!token) return
+
+    setIsResetting(true)
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+      const response = await fetch(`${API_URL}/api/admin/reset-blog-views`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        alert('✅ Blog view статистиката беше нулирана!')
+      } else {
+        alert('❌ Грешка при нулиране')
+      }
+    } catch (error) {
+      console.error('Error resetting blog views:', error)
+    } finally {
+      setIsResetting(false)
+    }
+  }
 
   useEffect(() => {
     fetchAnalytics()
@@ -127,7 +193,7 @@ export default function AdminAnalyticsPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header Actions */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <Link 
               href="/admin/dashboard"
@@ -140,13 +206,35 @@ export default function AdminAnalyticsPage() {
               Анализи на теста
             </h1>
           </div>
-          <button
-            onClick={() => fetchAnalytics()}
-            className="flex items-center gap-2 px-4 py-2 text-sm text-slate-600 hover:text-slate-900 transition-colors"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Обнови
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={resetBlogViews}
+              disabled={isResetting}
+              className="flex items-center gap-2 px-4 py-2 text-sm text-slate-500 hover:text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
+            >
+              <Trash2 className="w-4 h-4" />
+              Нулирай blog views
+            </button>
+            <button
+              onClick={resetAnalytics}
+              disabled={isResetting}
+              className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:text-red-700 border border-red-200 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+            >
+              {isResetting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4" />
+              )}
+              Нулирай фунията
+            </button>
+            <button
+              onClick={() => fetchAnalytics()}
+              className="flex items-center gap-2 px-4 py-2 text-sm text-slate-600 hover:text-slate-900 transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Обнови
+            </button>
+          </div>
         </div>
 
         {analytics && (

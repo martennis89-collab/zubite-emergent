@@ -641,6 +641,13 @@ async def reset_analytics(user: AdminUser = Depends(get_current_user)):
     return {"success": True, "deleted_count": result.deleted_count}
 
 
+@api_router.post("/admin/reset-blog-views")
+async def reset_blog_views(user: AdminUser = Depends(get_current_user)):
+    """Reset all blog view tracking data"""
+    result = await db.blog_views.delete_many({})
+    return {"success": True, "deleted_count": result.deleted_count}
+
+
 @api_router.post("/admin/cleanup-leads")
 async def cleanup_leads(keep_ids: List[str], user: AdminUser = Depends(get_current_user)):
     """Delete all leads except the specified ones"""
