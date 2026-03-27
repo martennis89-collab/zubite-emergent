@@ -92,9 +92,11 @@ export default function AdminDashboardPage() {
   const [filterTreatment, setFilterTreatment] = useState<string>('')
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [editForm, setEditForm] = useState({ name: '', phone: '', email: '', city_slug: '', status: '', notes: '' })
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [bulkDeleting, setBulkDeleting] = useState(false)
   const [resettingAnalytics, setResettingAnalytics] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const router = useRouter()
@@ -277,6 +279,55 @@ export default function AdminDashboardPage() {
     } finally {
       setDeleting(false)
     }
+  }
+
+  const handleBulkDelete = async () => {
+    const token = localStorage.getItem('admin_token')
+    if (!token || selectedIds.size === 0) return
+    
+    if (!confirm(`Сигурен ли си, че искаш да изтриеш ${selectedIds.size} лийда?`)) return
+    
+    setBulkDeleting(true)
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+      
+      // Delete each selected lead
+      const deletePromises = Array.from(selectedIds).map(id =>
+        fetch(`${API_URL}/api/admin/leads/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+      )
+      
+      await Promise.all(deletePromises)
+      
+      setMessage({ type: 'success', text: `${selectedIds.size} лийда са изтрити успешно!` })
+      setSelectedIds(new Set())
+      fetchData()
+    } catch {
+      setMessage({ type: 'error', text: 'Грешка при изтриване' })
+    } finally {
+      setBulkDeleting(false)
+    }
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredLeads.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filteredLeads.map(l => l.id)))
+    }
+  }
+
+  const toggleSelectLead = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const newSelected = new Set(selectedIds)
+    if (newSelected.has(id)) {
+      newSelected.delete(id)
+    } else {
+      newSelected.add(id)
+    }
+    setSelectedIds(newSelected)
   }
   
   const getBandIcon = (band: string) => {
@@ -478,6 +529,16 @@ export default function AdminDashboardPage() {
             </div>
             
             <div className="flex gap-2">
+              {selectedIds.size > 0 && (
+                <button
+                  onClick={handleBulkDelete}
+                  disabled={bulkDeleting}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
+                >
+                  {bulkDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  Изтрий ({selectedIds.size})
+                </button>
+              )}
               <button
                 onClick={handleResetAnalytics}
                 disabled={resettingAnalytics}
@@ -511,6 +572,14 @@ export default function AdminDashboardPage() {
             <table className="w-full">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
+                  <th className="px-4 py-3 text-left">
+                    <input
+                      type="checkbox"
+                      checked={filteredLeads.length > 0 && selectedIds.size === filteredLeads.length}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 rounded border-slate-300 text-sky-500 focus:ring-sky-500"
+                    />
+                  </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Лийд</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Контакт</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Град</th>
@@ -522,7 +591,7 @@ export default function AdminDashboardPage() {
               <tbody className="divide-y divide-slate-100">
                 {filteredLeads.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-12 text-center text-slate-500">
+                    <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
                       Няма намерени лийдове
                     </td>
                   </tr>
@@ -531,8 +600,17 @@ export default function AdminDashboardPage() {
                     <tr 
                       key={lead.id} 
                       onClick={() => openLeadModal(lead)}
-                      className="hover:bg-slate-50 transition-colors cursor-pointer"
+                      className={`hover:bg-slate-50 transition-colors cursor-pointer ${selectedIds.has(lead.id) ? 'bg-sky-50' : ''}`}
                     >
+                      <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(lead.id)}
+                          onChange={() => {}}
+                          onClick={(e) => toggleSelectLead(lead.id, e)}
+                          className="w-4 h-4 rounded border-slate-300 text-sky-500 focus:ring-sky-500"
+                        />
+                      </td>
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
                           {getBandIcon(lead.band)}
