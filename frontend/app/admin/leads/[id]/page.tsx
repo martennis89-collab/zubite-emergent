@@ -1,168 +1,172 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
-import { 
-  Loader2, ArrowLeft, Phone, Mail, MapPin, Calendar, 
-  CheckCircle, AlertCircle, XCircle, Save, User, FileText
-} from 'lucide-react'
+import { Loader2, ArrowLeft, Save, Trash2, CheckCircle, XCircle } from 'lucide-react'
 
-interface Lead {
-  id: string
-  created_at: string
-  city_slug: string
-  treatment_type: string
-  score_total: number
-  band: string
-  status: string
-  name?: string
-  phone?: string
-  email?: string
-  consent: boolean
-  answers: Record<string, unknown>
-  notes?: string
+// Quiz questions mapping
+const QUESTIONS: Record<string, string> = {
+  q1: 'Усещаш ли, че дъвчеш повече от едната страна на устата?',
+  q2: 'Имаш ли зъби, които изглеждат леко струпани или застъпени?',
+  q3: 'Усещаш ли понякога, че захапката ти не е съвсем равномерна?',
+  q4: 'Събуждаш ли се сутрин с напрежение в челюстта или около слепоочията?',
+  q5: 'Чуваш ли щракане или пукане при отваряне на устата?',
+  q6: 'Има ли зъби, които са по-износени от останалите?',
+  q7: 'Имаш ли чувствителност към студено или горещо в определени зъби?',
+  q8: 'Забелязваш ли, че венците ти се оттеглят на някои места?',
+  q9: 'Имаш ли главоболие или болки във врата, които не можеш да обясниш?',
+  q10: 'Получавал/а ли си коментари от зъболекар за неправилна захапка?'
 }
 
-const CITY_NAMES: Record<string, string> = {
-  sofia: 'София',
-  plovdiv: 'Пловдив',
-  varna: 'Варна',
-  haskovo: 'Хасково'
+// Answer labels
+const ANSWER_LABELS: Record<string, string> = {
+  yes: 'Да',
+  sometimes: 'Понякога',
+  unsure: 'Не съм сигурен/а',
+  no: 'Не'
 }
 
-const TREATMENT_NAMES: Record<string, string> = {
-  orthodontics: 'Ортодонтия',
-  implants: 'Импланти',
-  'cosmetic-dentistry': 'Естетика',
-  'sleep-airway': 'Сънна апнея',
-  tmj: 'TMJ',
-  invisalign: 'Инвизалайн',
-  full_mouth: 'Пълна уста'
-}
-
+// Status labels
 const STATUS_OPTIONS = [
   { value: 'NEW', label: 'Нов' },
-  { value: 'CONTACTED', label: 'Контактуван' },
+  { value: 'CONTACTED', label: 'Свързан' },
   { value: 'SCHEDULED', label: 'Записан' },
   { value: 'COMPLETED', label: 'Завършен' },
   { value: 'CANCELLED', label: 'Отказан' }
 ]
 
+interface Lead {
+  id: string
+  name: string
+  email: string
+  phone: string
+  city_slug: string
+  treatment_type: string
+  band: string
+  status: string
+  created_at: string
+  answers?: Record<string, string>
+  notes?: string
+}
+
 export default function LeadDetailPage() {
+  const router = useRouter()
   const params = useParams()
   const leadId = params.id as string
-  const router = useRouter()
   
   const [lead, setLead] = useState<Lead | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
-  const [status, setStatus] = useState('')
-  const [notes, setNotes] = useState('')
-  const [saveMessage, setSaveMessage] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   
-  const fetchLead = useCallback(async () => {
+  // Editable fields
+  const [editForm, setEditForm] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    city_slug: '',
+    status: '',
+    notes: ''
+  })
+  
+  useEffect(() => {
     const token = localStorage.getItem('admin_token')
     if (!token) {
       router.push('/admin')
       return
     }
     
-    try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
-      const response = await fetch(`${API_URL}/api/admin/leads/${leadId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+    const fetchLead = async () => {
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+        const response = await fetch(`${API_URL}/api/admin/leads`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        
+        if (!response.ok) throw new Error('Unauthorized')
+        
+        const leads = await response.json()
+        const foundLead = leads.find((l: Lead) => l.id === leadId)
+        
+        if (foundLead) {
+          setLead(foundLead)
+          setEditForm({
+            name: foundLead.name || '',
+            phone: foundLead.phone || '',
+            email: foundLead.email || '',
+            city_slug: foundLead.city_slug || '',
+            status: foundLead.status || 'NEW',
+            notes: foundLead.notes || ''
+          })
         }
-      })
-      
-      if (response.status === 401) {
+      } catch {
         localStorage.removeItem('admin_token')
         router.push('/admin')
-        return
+      } finally {
+        setLoading(false)
       }
-      
-      if (!response.ok) throw new Error('Failed to fetch lead')
-      
-      const data = await response.json()
-      setLead(data)
-      setStatus(data.status)
-      setNotes(data.notes || '')
-    } catch (error) {
-      console.error('Error fetching lead:', error)
-    } finally {
-      setIsLoading(false)
     }
-  }, [leadId, router])
-  
-  useEffect(() => {
+    
     fetchLead()
-  }, [fetchLead])
+  }, [router, leadId])
   
   const handleSave = async () => {
     const token = localStorage.getItem('admin_token')
-    if (!token) return
+    if (!token || !lead) return
     
-    setIsSaving(true)
-    setSaveMessage('')
+    setSaving(true)
+    setMessage(null)
     
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
-      const response = await fetch(`${API_URL}/api/admin/leads/${leadId}`, {
-        method: 'PATCH',
+      const response = await fetch(`${API_URL}/api/admin/leads/${lead.id}`, {
+        method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ status, notes })
+        body: JSON.stringify(editForm)
       })
       
-      if (response.ok) {
-        setSaveMessage('Запазено успешно!')
-        fetchLead()
-      } else {
-        setSaveMessage('Грешка при запазване')
-      }
+      if (!response.ok) throw new Error('Failed to update')
+      
+      const updatedLead = await response.json()
+      setLead(updatedLead)
+      setMessage({ type: 'success', text: 'Лийдът е обновен успешно!' })
     } catch {
-      setSaveMessage('Грешка при запазване')
+      setMessage({ type: 'error', text: 'Грешка при запазване' })
     } finally {
-      setIsSaving(false)
-      setTimeout(() => setSaveMessage(''), 3000)
+      setSaving(false)
     }
   }
   
-  const getBandInfo = (band: string) => {
-    const normalizedBand = band.toUpperCase()
-    switch (normalizedBand) {
-      case 'GREEN':
-        return {
-          icon: <CheckCircle className="w-6 h-6 text-emerald-500" />,
-          bg: 'bg-emerald-50',
-          border: 'border-emerald-200',
-          text: 'text-emerald-700',
-          label: 'Зелен - Подходящ кандидат'
-        }
-      case 'YELLOW':
-        return {
-          icon: <AlertCircle className="w-6 h-6 text-amber-500" />,
-          bg: 'bg-amber-50',
-          border: 'border-amber-200',
-          text: 'text-amber-700',
-          label: 'Жълт - Необходима консултация'
-        }
-      default:
-        return {
-          icon: <XCircle className="w-6 h-6 text-red-500" />,
-          bg: 'bg-red-50',
-          border: 'border-red-200',
-          text: 'text-red-700',
-          label: 'Червен - Нужна е оценка'
-        }
+  const handleDelete = async () => {
+    const token = localStorage.getItem('admin_token')
+    if (!token || !lead) return
+    
+    if (!confirm('Сигурен ли си, че искаш да изтриеш този лийд?')) return
+    
+    setDeleting(true)
+    
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+      const response = await fetch(`${API_URL}/api/admin/leads/${lead.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      
+      if (!response.ok) throw new Error('Failed to delete')
+      
+      router.push('/admin/leads')
+    } catch {
+      setMessage({ type: 'error', text: 'Грешка при изтриване' })
+      setDeleting(false)
     }
   }
   
-  if (isLoading) {
+  if (loading) {
     return (
       <main className="min-h-screen bg-slate-50 flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-sky-500 animate-spin" />
@@ -173,179 +177,222 @@ export default function LeadDetailPage() {
   if (!lead) {
     return (
       <main className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-slate-500">Лийдът не беше намерен</div>
+        <p className="text-slate-600">Лийдът не е намерен</p>
       </main>
     )
   }
   
-  const bandInfo = getBandInfo(lead.band)
+  // Extract quiz answers from answers object
+  const quizAnswers = lead.answers || {}
+  const answeredQuestions = Object.entries(quizAnswers)
+    .filter(([key]) => key.startsWith('q') && key.length <= 3)
+    .sort((a, b) => parseInt(a[0].slice(1)) - parseInt(b[0].slice(1)))
   
   return (
     <main className="min-h-screen bg-slate-50">
       {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center h-16">
-            <Link 
-              href="/admin/dashboard"
-              className="flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors"
+        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+          <Link 
+            href="/admin/leads"
+            className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Обратно към лийдове</span>
+          </Link>
+          
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
             >
-              <ArrowLeft className="w-5 h-5" />
-              <span>Назад към панела</span>
-            </Link>
+              {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              <span>Изтрий</span>
+            </button>
+            
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex items-center gap-2 px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors disabled:opacity-50"
+            >
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              <span>Запази</span>
+            </button>
           </div>
         </div>
       </header>
       
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Lead Header */}
-        <div className={`${bandInfo.bg} ${bandInfo.border} border-2 rounded-2xl p-6 mb-6`}>
-          <div className="flex items-start gap-4">
-            {bandInfo.icon}
-            <div className="flex-1">
-              <h1 className="font-serif text-2xl font-semibold text-slate-900 mb-1">
-                {lead.name || 'Без име'}
-              </h1>
-              <p className={`${bandInfo.text} font-medium`}>{bandInfo.label}</p>
-              <p className="text-sm text-slate-500 mt-1">
-                Резултат: {lead.score_total} точки
-              </p>
-            </div>
+      <div className="max-w-5xl mx-auto px-4 py-8">
+        {/* Message */}
+        {message && (
+          <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 ${
+            message.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+          }`}>
+            {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
+            <span>{message.text}</span>
           </div>
-        </div>
+        )}
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Contact Info */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6">
-            <h2 className="font-medium text-slate-900 mb-4 flex items-center gap-2">
-              <User className="w-5 h-5 text-slate-400" />
-              Контактна информация
-            </h2>
-            
-            <div className="space-y-4">
-              {lead.phone && (
-                <div className="flex items-center gap-3">
-                  <Phone className="w-5 h-5 text-slate-400" />
-                  <a href={`tel:${lead.phone}`} className="text-slate-700 hover:text-sky-500">
-                    {lead.phone}
-                  </a>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Contact Info */}
+          <div className="lg:col-span-1 space-y-6">
+            <div className="bg-white rounded-xl border border-slate-200 p-6">
+              <h2 className="font-semibold text-slate-900 mb-4">Контактна информация</h2>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-1">Име</label>
+                  <input
+                    type="text"
+                    value={editForm.name}
+                    onChange={e => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    placeholder="Име на клиента"
+                  />
                 </div>
-              )}
-              
-              {lead.email && (
-                <div className="flex items-center gap-3">
-                  <Mail className="w-5 h-5 text-slate-400" />
-                  <a href={`mailto:${lead.email}`} className="text-slate-700 hover:text-sky-500">
-                    {lead.email}
-                  </a>
+                
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-1">Телефон</label>
+                  <input
+                    type="tel"
+                    value={editForm.phone}
+                    onChange={e => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    placeholder="+359..."
+                  />
                 </div>
-              )}
-              
-              <div className="flex items-center gap-3">
-                <MapPin className="w-5 h-5 text-slate-400" />
-                <span className="text-slate-700">
-                  {CITY_NAMES[lead.city_slug] || lead.city_slug}
-                </span>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <Calendar className="w-5 h-5 text-slate-400" />
-                <span className="text-slate-700">
-                  {new Date(lead.created_at).toLocaleDateString('bg-BG', {
-                    day: '2-digit',
-                    month: 'long',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </span>
+                
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-1">Имейл</label>
+                  <input
+                    type="email"
+                    value={editForm.email}
+                    onChange={e => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    placeholder="email@example.com"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-1">Град</label>
+                  <select
+                    value={editForm.city_slug}
+                    onChange={e => setEditForm(prev => ({ ...prev, city_slug: e.target.value }))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  >
+                    <option value="">Избери град</option>
+                    <option value="sofia">София</option>
+                    <option value="plovdiv">Пловдив</option>
+                    <option value="varna">Варна</option>
+                    <option value="burgas">Бургас</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-1">Статус</label>
+                  <select
+                    value={editForm.status}
+                    onChange={e => setEditForm(prev => ({ ...prev, status: e.target.value }))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  >
+                    {STATUS_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
             
-            <div className="mt-4 pt-4 border-t border-slate-100">
-              <p className="text-sm text-slate-500">
-                Лечение: <span className="text-slate-700">{TREATMENT_NAMES[lead.treatment_type] || lead.treatment_type}</span>
-              </p>
-              <p className="text-sm text-slate-500 mt-1">
-                Съгласие GDPR: <span className="text-slate-700">{lead.consent ? 'Да' : 'Не'}</span>
-              </p>
+            {/* Notes */}
+            <div className="bg-white rounded-xl border border-slate-200 p-6">
+              <h2 className="font-semibold text-slate-900 mb-4">Бележки</h2>
+              <textarea
+                value={editForm.notes}
+                onChange={e => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
+                rows={4}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
+                placeholder="Добави бележки..."
+              />
+            </div>
+            
+            {/* Meta Info */}
+            <div className="bg-white rounded-xl border border-slate-200 p-6">
+              <h2 className="font-semibold text-slate-900 mb-4">Информация</h2>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Създаден</span>
+                  <span className="text-slate-900">{new Date(lead.created_at).toLocaleString('bg-BG')}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Резултат</span>
+                  <span className={`font-medium ${
+                    quizAnswers.quiz_band === 'early' ? 'text-emerald-600' :
+                    quizAnswers.quiz_band === 'developing' || quizAnswers.quiz_band === 'progressing' ? 'text-amber-600' :
+                    'text-red-600'
+                  }`}>
+                    {quizAnswers.quiz_band === 'early' ? 'Ранен етап' :
+                     quizAnswers.quiz_band === 'developing' || quizAnswers.quiz_band === 'progressing' ? 'Развиващ се' :
+                     quizAnswers.quiz_band === 'advanced' ? 'Напреднал' : lead.band}
+                  </span>
+                </div>
+                {quizAnswers.quiz_score !== undefined && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Точки</span>
+                    <span className="text-slate-900">{quizAnswers.quiz_score}</span>
+                  </div>
+                )}
+                {quizAnswers.form_version && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Форма версия</span>
+                    <span className="text-slate-900">{quizAnswers.form_version}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           
-          {/* Status & Notes */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6">
-            <h2 className="font-medium text-slate-900 mb-4 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-slate-400" />
-              Управление
-            </h2>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Статус
-                </label>
-                <select
-                  value={status}
-                  onChange={e => setStatus(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-700 focus:outline-none focus:border-sky-500"
-                >
-                  {STATUS_OPTIONS.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          {/* Right Column - Quiz Answers */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-xl border border-slate-200 p-6">
+              <h2 className="font-semibold text-slate-900 mb-6">Отговори на въпросите</h2>
               
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Бележки
-                </label>
-                <textarea
-                  value={notes}
-                  onChange={e => setNotes(e.target.value)}
-                  rows={4}
-                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-700 focus:outline-none focus:border-sky-500 resize-none"
-                  placeholder="Добавете бележки..."
-                />
-              </div>
-              
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-sky-500 text-white rounded-xl font-medium hover:bg-sky-600 transition-colors disabled:opacity-50"
-              >
-                {isSaving ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <Save className="w-5 h-5" />
-                )}
-                Запази
-              </button>
-              
-              {saveMessage && (
-                <p className={`text-sm text-center ${saveMessage.includes('успешно') ? 'text-emerald-600' : 'text-red-600'}`}>
-                  {saveMessage}
+              {answeredQuestions.length > 0 ? (
+                <div className="space-y-4">
+                  {answeredQuestions.map(([key, value]) => {
+                    const questionText = QUESTIONS[key] || key
+                    const answerText = ANSWER_LABELS[value] || value
+                    
+                    return (
+                      <div key={key} className="p-4 bg-slate-50 rounded-lg">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-slate-500 mb-1">
+                              Въпрос {key.replace('q', '')}
+                            </p>
+                            <p className="text-slate-900">{questionText}</p>
+                          </div>
+                          <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                            value === 'yes' ? 'bg-red-100 text-red-700' :
+                            value === 'sometimes' ? 'bg-amber-100 text-amber-700' :
+                            value === 'unsure' ? 'bg-slate-200 text-slate-700' :
+                            'bg-emerald-100 text-emerald-700'
+                          }`}>
+                            {answerText}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="text-slate-500 text-center py-8">
+                  Няма записани отговори
                 </p>
               )}
             </div>
           </div>
         </div>
-        
-        {/* Answers */}
-        {Object.keys(lead.answers).length > 0 && (
-          <div className="bg-white rounded-xl border border-slate-200 p-6 mt-6">
-            <h2 className="font-medium text-slate-900 mb-4">Отговори от теста</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {Object.entries(lead.answers).map(([key, value]) => (
-                <div key={key} className="bg-slate-50 rounded-lg p-3">
-                  <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">{key}</p>
-                  <p className="text-slate-700">{String(value)}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </main>
   )

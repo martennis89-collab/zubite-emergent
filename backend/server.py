@@ -598,6 +598,55 @@ async def export_csv(user: AdminUser = Depends(get_current_user)):
     return StreamingResponse(iter([output.getvalue()]), media_type="text/csv",
                             headers={"Content-Disposition": "attachment; filename=leads.csv"})
 
+
+# Lead update model
+class LeadUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    city_slug: Optional[str] = None
+    status: Optional[str] = None
+    notes: Optional[str] = None
+
+
+@api_router.put("/admin/leads/{lead_id}")
+async def update_lead(lead_id: str, update: LeadUpdate, user: AdminUser = Depends(get_current_user)):
+    """Update a lead's details"""
+    existing = await db.leads.find_one({"id": lead_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    update_data = {k: v for k, v in update.model_dump().items() if v is not None}
+    if update_data:
+        update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+        await db.leads.update_one({"id": lead_id}, {"$set": update_data})
+    
+    updated = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    return updated
+
+
+@api_router.delete("/admin/leads/{lead_id}")
+async def delete_lead(lead_id: str, user: AdminUser = Depends(get_current_user)):
+    """Delete a specific lead"""
+    result = await db.leads.delete_one({"id": lead_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    return {"success": True, "message": "Lead deleted"}
+
+
+@api_router.post("/admin/reset-analytics")
+async def reset_analytics(user: AdminUser = Depends(get_current_user)):
+    """Reset all analytics events"""
+    result = await db.analytics_events.delete_many({})
+    return {"success": True, "deleted_count": result.deleted_count}
+
+
+@api_router.post("/admin/cleanup-leads")
+async def cleanup_leads(keep_ids: List[str], user: AdminUser = Depends(get_current_user)):
+    """Delete all leads except the specified ones"""
+    result = await db.leads.delete_many({"id": {"$nin": keep_ids}})
+    return {"success": True, "deleted_count": result.deleted_count}
+
 # ============== SEED ==============
 
 @api_router.post("/seed")
