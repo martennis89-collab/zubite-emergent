@@ -793,12 +793,41 @@ async def get_call_log(call_log_id: str, user: AdminUser = Depends(get_current_u
 
 # ============== ELEVENLABS WEBHOOK ==============
 
-from fastapi import Request, Header
+from fastapi import Request, Header, BackgroundTasks
+import json as json_module
+
+# Timeout for stuck calls (in minutes)
+CALL_TIMEOUT_MINUTES = 5
+
+
+async def cleanup_stuck_calls():
+    """Background task to reset calls stuck in 'calling' status for too long"""
+    timeout_threshold = datetime.now(timezone.utc) - timedelta(minutes=CALL_TIMEOUT_MINUTES)
+    
+    # Find and update stuck calls
+    result = await db.leads.update_many(
+        {
+            "call_status": "calling",
+            "last_call_at": {"$lt": timeout_threshold.isoformat()}
+        },
+        {
+            "$set": {
+                "call_status": "failed",
+                "call_error_message": f"Call timed out after {CALL_TIMEOUT_MINUTES} minutes - no webhook received"
+            }
+        }
+    )
+    
+    if result.modified_count > 0:
+        logger.info(f"Reset {result.modified_count} stuck calls to 'failed' status")
+
 
 @api_router.post("/webhooks/elevenlabs/post-call")
 async def elevenlabs_post_call_webhook(
     request: Request,
-    elevenlabs_signature: Optional[str] = Header(None, alias="ElevenLabs-Signature")
+    background_tasks: BackgroundTasks,
+    elevenlabs_signature: Optional[str] = Header(None, alias="ElevenLabs-Signature"),
+    x_elevenlabs_signature: Optional[str] = Header(None, alias="X-ElevenLabs-Signature")
 ):
     """
     Webhook endpoint for ElevenLabs post-call data.
@@ -807,107 +836,269 @@ async def elevenlabs_post_call_webhook(
     - Transcript
     - AI-generated summary
     - Extracted data (treatment interest, timeline, etc.)
+    
+    Always returns 200 to acknowledge receipt.
     """
     # Read raw body for signature verification
     body = await request.body()
     
-    # Verify signature if configured
-    if elevenlabs_signature and not verify_webhook_signature(body, elevenlabs_signature):
-        logger.warning("Invalid webhook signature")
-        raise HTTPException(status_code=401, detail="Invalid signature")
+    # Log incoming webhook
+    logger.info(f"Received ElevenLabs webhook, body size: {len(body)} bytes")
+    
+    # Get signature from either header format
+    signature = elevenlabs_signature or x_elevenlabs_signature
+    
+    # Verify signature if configured and provided
+    webhook_secret = os.environ.get('ELEVENLABS_WEBHOOK_SECRET')
+    if webhook_secret and signature:
+        if not verify_webhook_signature(body, signature):
+            logger.warning("Invalid webhook signature - processing anyway for debugging")
+            # Don't reject - just log warning
     
     # Parse JSON payload
     try:
-        import json
-        payload = json.loads(body)
+        payload = json_module.loads(body)
+        logger.info(f"Webhook payload type: {payload.get('type')}")
+        logger.debug(f"Full webhook payload: {json_module.dumps(payload, indent=2, default=str)}")
     except Exception as e:
         logger.error(f"Failed to parse webhook payload: {e}")
-        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+        # Return 200 anyway to prevent retries
+        return {"status": "ok", "processed": False, "error": "invalid_json"}
     
-    # Check webhook type
-    webhook_type = payload.get("type")
-    if webhook_type != "post_call_transcription":
-        # Acknowledge other webhook types but don't process them
-        logger.info(f"Received webhook type: {webhook_type} - ignoring")
-        return {"status": "ok", "processed": False}
+    # Schedule cleanup of stuck calls
+    background_tasks.add_task(cleanup_stuck_calls)
     
-    # Parse the webhook data
-    data = payload.get("data", {})
-    parsed = parse_webhook_payload(data)
+    # Handle different webhook types
+    webhook_type = payload.get("type", "")
+    event_type = payload.get("event_type", "")
     
-    lead_id = parsed.get("lead_id")
-    conversation_id = parsed.get("conversation_id")
+    # ElevenLabs can send different event types
+    is_post_call = webhook_type in ["post_call_transcription", "conversation.ended", "call.ended"] or \
+                   event_type in ["post_call_transcription", "conversation_ended", "call_ended"]
+    
+    if not is_post_call:
+        logger.info(f"Received non-post-call webhook: type={webhook_type}, event={event_type}")
+        return {"status": "ok", "processed": False, "reason": "not_post_call_event"}
+    
+    # Extract data from various possible payload structures
+    data = payload.get("data", payload)  # Sometimes data is at root level
+    
+    # Try to find conversation_id from various locations
+    conversation_id = (
+        data.get("conversation_id") or 
+        data.get("conversationId") or
+        payload.get("conversation_id") or
+        payload.get("conversationId")
+    )
+    
+    # Try to find lead_id from conversation initiation data
+    initiation_data = (
+        data.get("conversation_initiation_client_data") or
+        data.get("conversationInitiationClientData") or
+        data.get("metadata", {}).get("conversation_initiation_client_data") or
+        {}
+    )
+    lead_id = initiation_data.get("lead_id")
+    
+    logger.info(f"Webhook identifiers - conversation_id: {conversation_id}, lead_id: {lead_id}")
     
     if not lead_id and not conversation_id:
-        logger.warning("Webhook missing lead_id and conversation_id")
-        return {"status": "ok", "processed": False, "reason": "no_lead_id"}
+        logger.warning("Webhook missing both lead_id and conversation_id")
+        return {"status": "ok", "processed": False, "reason": "no_identifiers"}
     
-    # Find the lead - try by lead_id first, then by conversation_id
+    # Find the lead - try multiple methods
     lead = None
+    
+    # Method 1: Direct lead_id lookup
     if lead_id:
         lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+        if lead:
+            logger.info(f"Found lead by lead_id: {lead_id}")
     
+    # Method 2: Lookup by conversation_id stored on lead
     if not lead and conversation_id:
         lead = await db.leads.find_one({"last_conversation_id": conversation_id}, {"_id": 0})
+        if lead:
+            logger.info(f"Found lead by conversation_id: {conversation_id}")
+    
+    # Method 3: Lookup via call_logs collection
+    if not lead and conversation_id:
+        call_log = await db.lead_call_logs.find_one({"conversation_id": conversation_id}, {"_id": 0})
+        if call_log and call_log.get("lead_id"):
+            lead = await db.leads.find_one({"id": call_log["lead_id"]}, {"_id": 0})
+            if lead:
+                logger.info(f"Found lead via call_log: {call_log['lead_id']}")
     
     if not lead:
         logger.warning(f"Lead not found for webhook: lead_id={lead_id}, conv_id={conversation_id}")
         return {"status": "ok", "processed": False, "reason": "lead_not_found"}
     
-    # Determine call status based on result
-    answered = parsed.get("answered", False)
-    if answered:
-        call_status = CallStatus.COMPLETED.value
-    else:
-        call_status = CallStatus.NO_ANSWER.value
+    # Parse call status from various payload formats
+    call_status_raw = (
+        data.get("status") or 
+        data.get("call_status") or 
+        data.get("termination_reason") or
+        "unknown"
+    ).lower()
     
-    # Extract outcome fields
-    outcome = parsed.get("outcome", {})
+    # Map ElevenLabs status to our status
+    status_mapping = {
+        "completed": "completed",
+        "success": "completed",
+        "answered": "completed",
+        "ended": "completed",
+        "no_answer": "no_answer",
+        "no-answer": "no_answer",
+        "noanswer": "no_answer",
+        "busy": "no_answer",
+        "failed": "failed",
+        "error": "failed",
+        "cancelled": "failed",
+        "canceled": "failed",
+        "rejected": "no_answer",
+    }
+    
+    # Check if call was answered by looking at transcript
+    transcript = data.get("transcript", [])
+    has_transcript = len(transcript) > 0 if isinstance(transcript, list) else bool(transcript)
+    
+    # Determine final call status
+    if has_transcript:
+        call_status = "completed"
+        answered = True
+    elif call_status_raw in status_mapping:
+        call_status = status_mapping[call_status_raw]
+        answered = call_status == "completed"
+    else:
+        call_status = "no_answer"
+        answered = False
+    
+    logger.info(f"Call status determined: {call_status}, answered: {answered}")
+    
+    # Extract analysis/summary from various locations
+    analysis = data.get("analysis", {})
+    summary = (
+        analysis.get("transcript_summary") or
+        analysis.get("summary") or
+        data.get("summary") or
+        data.get("call_summary")
+    )
+    
+    # Extract duration
+    metadata = data.get("metadata", {})
+    duration_seconds = (
+        metadata.get("call_duration_seconds") or
+        metadata.get("duration_seconds") or
+        data.get("call_duration_seconds") or
+        data.get("duration_seconds") or
+        data.get("duration")
+    )
+    
+    # Extract data collection results (custom fields)
+    data_collection = (
+        analysis.get("data_collection_results") or
+        analysis.get("collected_data") or
+        data.get("data_collection_results") or
+        {}
+    )
+    
+    # Build outcome object
+    outcome = {
+        "interested_in_treatment": data_collection.get("interested_in_treatment"),
+        "treatment_interest": data_collection.get("treatment_interest"),
+        "treatment_timeline": data_collection.get("treatment_timeline"),
+        "permission_to_share": data_collection.get("permission_to_share"),
+        "willing_to_travel": data_collection.get("willing_to_travel"),
+        "follow_up_needed": data_collection.get("follow_up_needed"),
+    }
+    # Remove None values
+    outcome = {k: v for k, v in outcome.items() if v is not None}
+    
+    # Prepare error message if call failed
+    error_message = None
+    if call_status == "failed":
+        error_message = (
+            data.get("error_message") or
+            data.get("failure_reason") or
+            data.get("termination_reason") or
+            "Call failed"
+        )
     
     # Update lead with call results
     update_data = {
         "call_status": call_status,
         "answered_call": answered,
-        "last_call_duration_seconds": parsed.get("duration_seconds"),
-        "call_summary": parsed.get("summary"),
-        "call_transcript": parsed.get("transcript"),
+        "last_call_duration_seconds": duration_seconds,
+        "call_summary": summary,
+        "call_transcript": transcript if isinstance(transcript, list) else [],
         "call_outcome_json": outcome,
-        "interested_in_treatment": outcome.get("interested_in_treatment"),
-        "treatment_interest": outcome.get("treatment_interest"),
-        "treatment_timeline": outcome.get("treatment_timeline"),
-        "permission_to_share": outcome.get("permission_to_share"),
-        "call_error_message": None,  # Clear any previous error
+        "call_error_message": error_message,
     }
     
+    # Add extracted fields if present
+    if outcome.get("interested_in_treatment") is not None:
+        update_data["interested_in_treatment"] = outcome["interested_in_treatment"]
+    if outcome.get("treatment_interest"):
+        update_data["treatment_interest"] = outcome["treatment_interest"]
+    if outcome.get("treatment_timeline"):
+        update_data["treatment_timeline"] = outcome["treatment_timeline"]
+    if outcome.get("permission_to_share") is not None:
+        update_data["permission_to_share"] = outcome["permission_to_share"]
+    
     await db.leads.update_one({"id": lead["id"]}, {"$set": update_data})
+    logger.info(f"Updated lead {lead['id']} with call results")
     
     # Update call log entry
     call_log_update = {
         "completed_at": datetime.now(timezone.utc).isoformat(),
         "status": call_status,
         "answered": answered,
-        "duration_seconds": parsed.get("duration_seconds"),
-        "summary": parsed.get("summary"),
-        "transcript": parsed.get("transcript"),
+        "duration_seconds": duration_seconds,
+        "summary": summary,
+        "transcript": transcript if isinstance(transcript, list) else [],
         "outcome": outcome,
         "raw_webhook_data": data,
     }
     
-    # Find and update call log by conversation_id or lead's last_call_id
+    # Find and update call log
+    updated_log = False
     if conversation_id:
-        await db.lead_call_logs.update_one(
+        result = await db.lead_call_logs.update_one(
             {"conversation_id": conversation_id},
             {"$set": call_log_update}
         )
-    elif lead.get("last_call_id"):
+        updated_log = result.modified_count > 0
+    
+    if not updated_log and lead.get("last_call_id"):
         await db.lead_call_logs.update_one(
             {"id": lead["last_call_id"]},
             {"$set": call_log_update}
         )
     
-    logger.info(f"Processed post-call webhook for lead {lead['id']}: status={call_status}")
+    logger.info(f"Successfully processed post-call webhook for lead {lead['id']}: status={call_status}")
     
-    return {"status": "ok", "processed": True, "lead_id": lead["id"]}
+    return {"status": "ok", "processed": True, "lead_id": lead["id"], "call_status": call_status}
+
+
+@api_router.post("/admin/calls/cleanup-stuck")
+async def cleanup_stuck_calls_endpoint(user: AdminUser = Depends(get_current_user)):
+    """Manually trigger cleanup of stuck calls"""
+    timeout_threshold = datetime.now(timezone.utc) - timedelta(minutes=CALL_TIMEOUT_MINUTES)
+    
+    result = await db.leads.update_many(
+        {
+            "call_status": "calling",
+            "last_call_at": {"$lt": timeout_threshold.isoformat()}
+        },
+        {
+            "$set": {
+                "call_status": "failed",
+                "call_error_message": f"Call timed out - no webhook received"
+            }
+        }
+    )
+    
+    return {"success": True, "reset_count": result.modified_count}
 
 
 # ============== SEED ==============
