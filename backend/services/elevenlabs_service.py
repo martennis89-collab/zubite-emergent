@@ -63,6 +63,13 @@ def initiate_outbound_call(
             **patient_context
         }
         
+        logger.info(f"=== INITIATING OUTBOUND CALL ===")
+        logger.info(f"Phone: {phone_number}")
+        logger.info(f"Lead ID: {lead_id}")
+        logger.info(f"Agent ID: {ELEVENLABS_AGENT_ID}")
+        logger.info(f"Phone Number ID: {agent_phone_number_id}")
+        logger.info(f"Conversation Data: {conversation_data}")
+        
         # Check if Twilio is configured
         if not agent_phone_number_id:
             # Twilio not configured - return mock response for testing
@@ -76,6 +83,7 @@ def initiate_outbound_call(
             }
         
         # Make actual outbound call via ElevenLabs/Twilio
+        logger.info("Calling ElevenLabs API...")
         response = client.conversational_ai.twilio.outbound_call(
             agent_id=ELEVENLABS_AGENT_ID,
             agent_phone_number_id=agent_phone_number_id,
@@ -84,22 +92,55 @@ def initiate_outbound_call(
             conversation_initiation_client_data=conversation_data
         )
         
-        # Parse response
-        if hasattr(response, 'success') and response.success:
+        logger.info(f"ElevenLabs API Response: {response}")
+        logger.info(f"Response type: {type(response)}")
+        
+        # Try to extract conversation_id from response
+        conversation_id = None
+        call_sid = None
+        
+        if hasattr(response, 'conversation_id'):
+            conversation_id = response.conversation_id
+        elif hasattr(response, 'conversationId'):
+            conversation_id = response.conversationId
+        elif isinstance(response, dict):
+            conversation_id = response.get('conversation_id') or response.get('conversationId')
+        
+        if hasattr(response, 'call_sid'):
+            call_sid = response.call_sid
+        elif hasattr(response, 'callSid'):
+            call_sid = response.callSid
+        elif isinstance(response, dict):
+            call_sid = response.get('call_sid') or response.get('callSid')
+        
+        logger.info(f"Extracted conversation_id: {conversation_id}")
+        logger.info(f"Extracted call_sid: {call_sid}")
+        
+        # Check for success
+        success = True
+        if hasattr(response, 'success'):
+            success = response.success
+        elif hasattr(response, 'error'):
+            success = not response.error
+        
+        if success:
+            logger.info("Call initiated successfully!")
             return True, {
                 "success": True,
                 "message": "Call initiated successfully",
-                "conversation_id": getattr(response, 'conversation_id', None),
-                "call_sid": getattr(response, 'callSid', None) or getattr(response, 'call_sid', None),
+                "conversation_id": conversation_id,
+                "call_sid": call_sid,
             }
         else:
+            error_msg = str(response)
+            logger.error(f"Call initiation failed: {error_msg}")
             return False, {
                 "success": False,
-                "message": str(response),
+                "message": error_msg,
             }
             
     except Exception as e:
-        logger.error(f"Failed to initiate outbound call: {e}")
+        logger.error(f"Failed to initiate outbound call: {e}", exc_info=True)
         return False, {
             "success": False,
             "message": str(e),
