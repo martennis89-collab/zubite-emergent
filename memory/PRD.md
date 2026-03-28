@@ -33,6 +33,27 @@ Homepage → Quiz (10 questions with micro-insights) → Result Stage → Soft C
 
 ## Completed Work
 
+### ✅ March 28, 2026 - AI Outbound Calling (ElevenLabs)
+- Added AI-powered outbound calling functionality for lead follow-up
+- Integration with ElevenLabs Conversational AI
+- **Features**:
+  - "Call Patient" button in lead modal
+  - Call status tracking (idle/calling/completed/failed/no_answer)
+  - Post-call webhook to receive transcript & AI summary
+  - Extracted data: treatment interest, timeline, permission to share
+  - Full transcript display with timestamps
+  - Call history per lead
+- **Backend**:
+  - `POST /api/admin/leads/{id}/call` - initiate call
+  - `GET /api/admin/leads/{id}/call-logs` - call history
+  - `POST /api/webhooks/elevenlabs/post-call` - webhook receiver
+- **New files**:
+  - `/app/backend/services/elevenlabs_service.py`
+  - `/app/backend/services/patient_context_mapper.py`
+  - `/app/backend/models/call_models.py`
+  - `/app/frontend/components/AICallPanel.tsx`
+- **Note**: Requires Twilio phone number configuration in ElevenLabs for real calls
+
 ### ✅ March 27, 2026 - Blog Traffic Analytics
 - Added unique visitor tracking for blog posts
 - `BlogViewTracker` component tracks views with visitor fingerprinting
@@ -85,13 +106,19 @@ Homepage → Quiz (10 questions with micro-insights) → Result Stage → Soft C
 ├── components/
 │   ├── AnimatedHomeSections.tsx    # Animated homepage sections
 │   ├── MasterQuiz.tsx              # Quiz with tracking
-│   ├── BlogViewTracker.tsx         # NEW: Blog view analytics
+│   ├── BlogViewTracker.tsx         # Blog view analytics
+│   ├── AICallPanel.tsx             # NEW: AI outbound calling UI
 │   ├── MetaPixel.tsx               # Meta Pixel component
 │   ├── CookieConsent.tsx           # GDPR cookie banner
 │   └── ...
 
 /app/backend/
-└── server.py                       # FastAPI with file upload endpoints
+├── server.py                       # FastAPI main server
+├── services/
+│   ├── elevenlabs_service.py       # NEW: ElevenLabs AI calling
+│   └── patient_context_mapper.py   # NEW: Quiz data to AI context
+└── models/
+    └── call_models.py              # NEW: Call data models
 ```
 
 ---
@@ -109,6 +136,11 @@ Homepage → Quiz (10 questions with micro-insights) → Result Stage → Soft C
 - `PUT/DELETE /api/admin/blog/posts/{id}` - Update/delete post
 - `POST /api/blog/track-view` - Track unique blog post views
 - `GET /api/admin/blog/analytics` - Blog traffic analytics
+
+### AI Outbound Calling (NEW)
+- `POST /api/admin/leads/{id}/call` - Initiate AI call to lead
+- `GET /api/admin/leads/{id}/call-logs` - Get call history for lead
+- `POST /api/webhooks/elevenlabs/post-call` - Webhook for call results
 
 ### Analytics
 - `POST /api/analytics/event` - Track quiz events
@@ -132,6 +164,9 @@ Homepage → Quiz (10 questions with micro-insights) → Result Stage → Soft C
 
 ## Pending/Future Tasks
 
+### P0 - Immediate
+- [ ] Configure Twilio phone number in ElevenLabs for real AI calls
+
 ### P1 - High Priority
 - [ ] Add Google Ads Conversion tracking (need Conversion ID)
 
@@ -143,8 +178,23 @@ Homepage → Quiz (10 questions with micro-insights) → Result Stage → Soft C
 - [ ] English translation (`/en/...` routes)
 - [ ] More cities beyond София and Пловдив
 - [ ] Create specific quizzes for other treatments
+- [ ] SMS fallback for unanswered calls
 
 ---
 
-*Last updated: March 27, 2026*
-*Latest changes: Blog traffic analytics feature (unique visitor tracking)*
+## Environment Variables
+
+### Backend (.env)
+```
+MONGO_URL=mongodb://localhost:27017
+DB_NAME=test_database
+ELEVENLABS_API_KEY=sk_xxx (configured)
+ELEVENLABS_AGENT_ID=agent_xxx (configured)
+ELEVENLABS_WEBHOOK_SECRET= (optional, for webhook verification)
+ELEVENLABS_TWILIO_PHONE_ID= (required for real calls)
+```
+
+---
+
+*Last updated: March 28, 2026*
+*Latest changes: AI Outbound Calling feature with ElevenLabs integration*

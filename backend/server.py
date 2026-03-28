@@ -654,6 +654,262 @@ async def cleanup_leads(keep_ids: List[str], user: AdminUser = Depends(get_curre
     result = await db.leads.delete_many({"id": {"$nin": keep_ids}})
     return {"success": True, "deleted_count": result.deleted_count}
 
+
+# ============== AI OUTBOUND CALLING ==============
+
+from services.patient_context_mapper import map_lead_to_patient_context, build_ai_prompt_context, normalize_phone_number
+from services.elevenlabs_service import (
+    initiate_outbound_call, 
+    verify_webhook_signature, 
+    parse_webhook_payload,
+    format_transcript_text,
+    ELEVENLABS_AGENT_ID
+)
+from models.call_models import CallStatus, InitiateCallResponse
+
+# Twilio phone number ID - will be configured later
+TWILIO_PHONE_NUMBER_ID = os.environ.get('ELEVENLABS_TWILIO_PHONE_ID')
+
+
+class CallInitiateRequest(BaseModel):
+    """Request body for initiating a call"""
+    pass  # No additional fields needed - lead_id comes from URL
+
+
+@api_router.post("/admin/leads/{lead_id}/call", response_model=InitiateCallResponse)
+async def initiate_lead_call(lead_id: str, user: AdminUser = Depends(get_current_user)):
+    """
+    Initiate an AI outbound call to a lead.
+    
+    This endpoint:
+    1. Loads the lead and quiz data
+    2. Transforms it into structured patient context
+    3. Calls ElevenLabs to initiate the outbound call
+    4. Updates the lead with call status
+    5. Creates a call log entry
+    """
+    # Load lead
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    # Check if call is already in progress
+    if lead.get('call_status') == CallStatus.CALLING.value:
+        raise HTTPException(
+            status_code=400, 
+            detail="A call is already in progress for this lead"
+        )
+    
+    # Validate phone number
+    phone = lead.get('phone')
+    if not phone:
+        raise HTTPException(status_code=400, detail="Lead has no phone number")
+    
+    # Normalize phone number
+    normalized_phone = normalize_phone_number(phone)
+    if not normalized_phone or len(normalized_phone) < 10:
+        raise HTTPException(status_code=400, detail="Invalid phone number format")
+    
+    # Transform lead to patient context
+    try:
+        patient_context = map_lead_to_patient_context(lead)
+        ai_context = build_ai_prompt_context(patient_context)
+    except Exception as e:
+        logger.error(f"Failed to build patient context: {e}")
+        raise HTTPException(status_code=500, detail="Failed to prepare patient context")
+    
+    # Generate call log ID
+    call_log_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+    
+    # Initiate call via ElevenLabs
+    success, call_response = initiate_outbound_call(
+        phone_number=normalized_phone,
+        lead_id=lead_id,
+        patient_context=ai_context,
+        agent_phone_number_id=TWILIO_PHONE_NUMBER_ID
+    )
+    
+    # Prepare call log entry
+    call_log = {
+        "id": call_log_id,
+        "lead_id": lead_id,
+        "conversation_id": call_response.get("conversation_id"),
+        "call_sid": call_response.get("call_sid"),
+        "initiated_at": now.isoformat(),
+        "initiated_by": user.id,
+        "status": CallStatus.CALLING.value if success else CallStatus.FAILED.value,
+        "patient_context": ai_context,
+        "phone_number": normalized_phone,
+        "error_message": call_response.get("message") if not success else None,
+        "is_mock": call_response.get("mock", False),
+    }
+    
+    # Insert call log
+    await db.lead_call_logs.insert_one(call_log)
+    
+    # Update lead with call status
+    call_attempts = lead.get('call_attempts', 0) + 1
+    update_data = {
+        "call_status": CallStatus.CALLING.value if success else CallStatus.FAILED.value,
+        "call_attempts": call_attempts,
+        "last_call_at": now.isoformat(),
+        "last_call_id": call_log_id,
+        "last_conversation_id": call_response.get("conversation_id"),
+    }
+    
+    if not success:
+        update_data["call_error_message"] = call_response.get("message")
+    
+    await db.leads.update_one({"id": lead_id}, {"$set": update_data})
+    
+    return InitiateCallResponse(
+        success=success,
+        message=call_response.get("message", "Call initiated"),
+        conversation_id=call_response.get("conversation_id"),
+        call_sid=call_response.get("call_sid"),
+        call_log_id=call_log_id
+    )
+
+
+@api_router.get("/admin/leads/{lead_id}/call-logs")
+async def get_lead_call_logs(lead_id: str, user: AdminUser = Depends(get_current_user)):
+    """Get all call logs for a specific lead"""
+    logs = await db.lead_call_logs.find(
+        {"lead_id": lead_id}, 
+        {"_id": 0}
+    ).sort("initiated_at", -1).to_list(50)
+    return {"logs": logs, "total": len(logs)}
+
+
+@api_router.get("/admin/call-logs/{call_log_id}")
+async def get_call_log(call_log_id: str, user: AdminUser = Depends(get_current_user)):
+    """Get a specific call log by ID"""
+    log = await db.lead_call_logs.find_one({"id": call_log_id}, {"_id": 0})
+    if not log:
+        raise HTTPException(status_code=404, detail="Call log not found")
+    return log
+
+
+# ============== ELEVENLABS WEBHOOK ==============
+
+from fastapi import Request, Header
+
+@api_router.post("/webhooks/elevenlabs/post-call")
+async def elevenlabs_post_call_webhook(
+    request: Request,
+    elevenlabs_signature: Optional[str] = Header(None, alias="ElevenLabs-Signature")
+):
+    """
+    Webhook endpoint for ElevenLabs post-call data.
+    
+    This endpoint receives call results after a call ends, including:
+    - Transcript
+    - AI-generated summary
+    - Extracted data (treatment interest, timeline, etc.)
+    """
+    # Read raw body for signature verification
+    body = await request.body()
+    
+    # Verify signature if configured
+    if elevenlabs_signature and not verify_webhook_signature(body, elevenlabs_signature):
+        logger.warning("Invalid webhook signature")
+        raise HTTPException(status_code=401, detail="Invalid signature")
+    
+    # Parse JSON payload
+    try:
+        import json
+        payload = json.loads(body)
+    except Exception as e:
+        logger.error(f"Failed to parse webhook payload: {e}")
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+    
+    # Check webhook type
+    webhook_type = payload.get("type")
+    if webhook_type != "post_call_transcription":
+        # Acknowledge other webhook types but don't process them
+        logger.info(f"Received webhook type: {webhook_type} - ignoring")
+        return {"status": "ok", "processed": False}
+    
+    # Parse the webhook data
+    data = payload.get("data", {})
+    parsed = parse_webhook_payload(data)
+    
+    lead_id = parsed.get("lead_id")
+    conversation_id = parsed.get("conversation_id")
+    
+    if not lead_id and not conversation_id:
+        logger.warning("Webhook missing lead_id and conversation_id")
+        return {"status": "ok", "processed": False, "reason": "no_lead_id"}
+    
+    # Find the lead - try by lead_id first, then by conversation_id
+    lead = None
+    if lead_id:
+        lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    
+    if not lead and conversation_id:
+        lead = await db.leads.find_one({"last_conversation_id": conversation_id}, {"_id": 0})
+    
+    if not lead:
+        logger.warning(f"Lead not found for webhook: lead_id={lead_id}, conv_id={conversation_id}")
+        return {"status": "ok", "processed": False, "reason": "lead_not_found"}
+    
+    # Determine call status based on result
+    answered = parsed.get("answered", False)
+    if answered:
+        call_status = CallStatus.COMPLETED.value
+    else:
+        call_status = CallStatus.NO_ANSWER.value
+    
+    # Extract outcome fields
+    outcome = parsed.get("outcome", {})
+    
+    # Update lead with call results
+    update_data = {
+        "call_status": call_status,
+        "answered_call": answered,
+        "last_call_duration_seconds": parsed.get("duration_seconds"),
+        "call_summary": parsed.get("summary"),
+        "call_transcript": parsed.get("transcript"),
+        "call_outcome_json": outcome,
+        "interested_in_treatment": outcome.get("interested_in_treatment"),
+        "treatment_interest": outcome.get("treatment_interest"),
+        "treatment_timeline": outcome.get("treatment_timeline"),
+        "permission_to_share": outcome.get("permission_to_share"),
+        "call_error_message": None,  # Clear any previous error
+    }
+    
+    await db.leads.update_one({"id": lead["id"]}, {"$set": update_data})
+    
+    # Update call log entry
+    call_log_update = {
+        "completed_at": datetime.now(timezone.utc).isoformat(),
+        "status": call_status,
+        "answered": answered,
+        "duration_seconds": parsed.get("duration_seconds"),
+        "summary": parsed.get("summary"),
+        "transcript": parsed.get("transcript"),
+        "outcome": outcome,
+        "raw_webhook_data": data,
+    }
+    
+    # Find and update call log by conversation_id or lead's last_call_id
+    if conversation_id:
+        await db.lead_call_logs.update_one(
+            {"conversation_id": conversation_id},
+            {"$set": call_log_update}
+        )
+    elif lead.get("last_call_id"):
+        await db.lead_call_logs.update_one(
+            {"id": lead["last_call_id"]},
+            {"$set": call_log_update}
+        )
+    
+    logger.info(f"Processed post-call webhook for lead {lead['id']}: status={call_status}")
+    
+    return {"status": "ok", "processed": True, "lead_id": lead["id"]}
+
+
 # ============== SEED ==============
 
 @api_router.post("/seed")
@@ -1347,6 +1603,8 @@ async def startup():
     await db.leads.create_index("band")
     await db.leads.create_index("status")
     await db.leads.create_index("form_version")
+    await db.leads.create_index("call_status")
+    await db.leads.create_index("last_conversation_id")
     await db.clinics.create_index("id", unique=True)
     await db.clinics.create_index("city_slug")
     await db.admin_users.create_index("username", unique=True)
@@ -1361,6 +1619,11 @@ async def startup():
     await db.uploaded_files.create_index("is_deleted")
     await db.blog_views.create_index([("post_slug", 1), ("visitor_id", 1), ("date", 1)])
     await db.blog_views.create_index("date")
+    # Call logs indexes
+    await db.lead_call_logs.create_index("id", unique=True)
+    await db.lead_call_logs.create_index("lead_id")
+    await db.lead_call_logs.create_index("conversation_id")
+    await db.lead_call_logs.create_index("initiated_at")
     
     # Initialize object storage
     init_storage()
