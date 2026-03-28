@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { 
   Phone, PhoneCall, PhoneOff, PhoneMissed, Loader2, 
   Clock, CheckCircle, XCircle, RefreshCw, ChevronDown, ChevronUp,
@@ -119,11 +119,36 @@ export function AICallPanel({
   const [callLogs, setCallLogs] = useState<CallLog[]>([])
   const [showCallHistory, setShowCallHistory] = useState(false)
   const [loadingHistory, setLoadingHistory] = useState(false)
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   const status = (callData.call_status as CallStatus) || 'idle'
   const statusConfig = CALL_STATUS_CONFIG[status]
   const isCallInProgress = status === 'calling'
   const hasPhoneNumber = !!leadPhone
+
+  // Auto-polling when call is in progress
+  useEffect(() => {
+    if (isCallInProgress && onRefresh) {
+      // Start polling every 5 seconds
+      pollingIntervalRef.current = setInterval(() => {
+        console.log('Auto-refreshing call status...')
+        onRefresh()
+      }, 5000)
+
+      return () => {
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current)
+          pollingIntervalRef.current = null
+        }
+      }
+    } else {
+      // Clear interval when not calling
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current)
+        pollingIntervalRef.current = null
+      }
+    }
+  }, [isCallInProgress, onRefresh])
 
   const initiateCall = async () => {
     if (!hasPhoneNumber) {
