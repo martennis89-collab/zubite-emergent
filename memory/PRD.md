@@ -1,76 +1,64 @@
 # Zubite.bg - Product Requirements Document
 
 ## Project Overview
-Zubite.bg is an educational orthodontic platform helping Bulgarian users understand their dental/orthodontic issues and guide them toward professional evaluation. The platform assesses the user's current stage and captures their contact details so Zubite.bg can recommend 3 suitable clinic options.
+Zubite.bg is an educational orthodontic platform helping Bulgarian users understand their dental/orthodontic issues and guide them toward professional evaluation.
 
 ## Tech Stack
 - **Frontend**: Next.js 15 (App Router) with TypeScript
-- **Backend**: FastAPI with MongoDB
-- **Styling**: Tailwind CSS with white/sky-blue accents
-- **Email**: Resend for lead notifications
-- **Storage**: Emergent Object Storage for blog images
-- **Analytics**: Meta Pixel (ID: 26074948688761177)
-
-## Core User Flow
-```
-Homepage -> Quiz -> Result Stage -> Soft Commit -> Lead Form (A/B) -> Success Screen
-```
+- **Backend**: FastAPI with MongoDB (Motor async)
+- **Styling**: Tailwind CSS
+- **Email**: Resend
+- **Storage**: Emergent Object Storage
+- **Analytics**: Meta Pixel
 
 ---
 
-## Admin Panel
-- **URL**: /admin
-- **Email**: `admin@zubite.bg`
-- **Password**: `password`
+## User Flows
 
-### Features:
-- Dashboard: View and manage leads
-- Analytics: Track quiz funnel metrics
-- Blog Management: Create, edit, delete blog posts with image upload
-- Clinic Applications: View/manage partnership applications
-- File Upload: JPEG, PNG, GIF, WebP (max 5MB)
+### Patient Flow
+```
+Homepage -> Quiz -> Result -> Lead Form -> Success
+```
+
+### Clinic Flow
+```
+/za-kliniki (Apply) -> Admin Approves -> /clinic (Login) -> /clinic/dashboard (Manage Leads)
+```
+
+### Admin Flow
+```
+/admin (Login) -> Dashboard (Leads, Analytics, Blog, Clinic Applications)
+```
 
 ---
 
 ## Completed Work
 
+### April 1, 2026 - Clinic User Accounts & Dashboard
+- **Clinic Auth**: email + password login at `/clinic` with JWT tokens (role="clinic")
+- **DB table `clinics`**: id, clinic_name, city, email, phone, password_hash, status (active/probation/paused), created_at
+- **Dashboard tabs**:
+  - **Overview**: total leads, contacted, pending, no_response stat cards
+  - **Leads**: table with patient_name, phone, treatment_type, status (new/contacted/no_response), actions (mark contacted/no response)
+  - **Profile**: editable clinic info (name, city, phone; email read-only)
+- **Auto-creation on approve**: Admin approves clinic application → account auto-created with temp password shown in admin UI
+- **Lead assignment**: Admin endpoint `PATCH /api/admin/leads/{id}/assign-clinic`
+- **Bug fixes**: DuplicateKeyError on clinics collection, role-based 403 for admin endpoints
+
 ### April 1, 2026 - Admin Clinic Applications Dashboard
-- Created `/admin/clinic-applications` page for managing clinic partnership applications
-- **Table view**: clinic_name, city, contact_name, services (as tags), status (as badges), date
-- **Status filter cards**: All, Pending, Approved, Rejected, Waiting List with counts
-- **Search**: by clinic name, contact, city, or email
-- **Detail modal**: Full submitted data in organized sections (Clinic Info, Contact, Services, Qualification, Positioning, Operations)
-- **Admin actions**: Approve/Reject/Waiting List status buttons, admin notes field with save
-- Added "Клиники" nav link to admin dashboard header
+- `/admin/clinic-applications` page with table, status filters, search, detail modal with status buttons and admin notes
 
 ### April 1, 2026 - Structured Clinic Application Form
-- Upgraded `/za-kliniki` form with 6 structured sections:
-  - **Clinic Info**: clinic_name, city (dropdown: София/Пловдив/Варна/Друг), address, website (optional)
-  - **Contact**: contact_name, phone, email
-  - **Services**: offers_aligners, offers_braces, offers_implants, treats_adults, treats_children (toggle switches)
-  - **Qualification**: years_experience (number), number_of_cases_per_month (range), do_you_use_digital_scans (yes/no)
-  - **Positioning**: what_types_of_patients_are_best_for_you (textarea)
-  - **Operations**: average_response_time (dropdown: <1h, 1-6h, 24h, >24h)
-- System fields: status (default "pending"), created_at, notes (admin only)
-- Admin endpoints: GET list, PATCH status/notes
-- Email notification on new application
-
-### April 1, 2026 - "For Clinics" Partnership Page
-- Created B2B page at `/za-kliniki` with dark/light hybrid design
-- Sections: Hero, How It Works, Differentiators, Requirements, Application Form, Trust
-- Backend: `POST /api/clinic-applications`, `GET /api/admin/clinic-applications`
+- `/za-kliniki` form with 6 sections: Clinic Info, Contact, Services (toggles), Qualification, Positioning, Operations
 
 ### March 28, 2026 - AI Outbound Calling (ElevenLabs)
 - AI-powered outbound calling for lead follow-up
-- ElevenLabs + Twilio integration with webhook
 
 ### March 27, 2026 - Blog Traffic Analytics
 - Unique visitor tracking for blog posts
 
 ### Previous Work
-- Quiz system with micro-insights, soft-commit, A/B testing
-- Blog CMS with image upload, Meta Pixel, GDPR compliance
-- Homepage animations, admin analytics dashboard
+- Quiz system, Blog CMS, Meta Pixel, GDPR compliance, Homepage animations
 
 ---
 
@@ -81,17 +69,19 @@ Homepage -> Quiz -> Result Stage -> Soft Commit -> Lead Form (A/B) -> Success Sc
 ├── app/
 │   ├── page.tsx                    # Homepage
 │   ├── za-kliniki/page.tsx         # For Clinics B2B page
-│   ├── quiz/page.tsx               # Master quiz
-│   ├── admin/                      # Admin panel
-│   └── blog/                       # Blog pages
-├── components/
-│   ├── ForClinicsContent.tsx       # For Clinics page (structured form)
-│   ├── AICallPanel.tsx             # AI calling UI
-│   ├── AnimatedHomeSections.tsx    # Animated homepage
+│   ├── clinic/
+│   │   ├── page.tsx                # Clinic login
+│   │   └── dashboard/page.tsx      # Clinic dashboard
+│   ├── admin/
+│   │   ├── page.tsx                # Admin login
+│   │   ├── dashboard/              # Leads management
+│   │   ├── analytics/              # Analytics
+│   │   ├── blog/                   # Blog management
+│   │   └── clinic-applications/    # Clinic apps management
 │   └── ...
 
 /app/backend/
-├── server.py                       # FastAPI main server
+├── server.py                       # All API logic
 ├── services/
 │   ├── elevenlabs_service.py
 │   └── patient_context_mapper.py
@@ -103,29 +93,43 @@ Homepage -> Quiz -> Result Stage -> Soft Commit -> Lead Form (A/B) -> Success Sc
 
 ## Key API Endpoints
 
-### Clinic Applications
-- `POST /api/clinic-applications` - Submit application (public)
-- `GET /api/admin/clinic-applications` - List all (auth)
-- `PATCH /api/admin/clinic-applications/{id}` - Update status/notes (auth)
+### Clinic Auth & Dashboard
+- `POST /api/clinic/login` - Clinic email+password login
+- `GET /api/clinic/dashboard` - Overview stats
+- `GET /api/clinic/leads` - Assigned leads list
+- `PATCH /api/clinic/leads/{id}/status` - Update lead status (new/contacted/no_response)
+- `GET /api/clinic/profile` - Get profile
+- `PATCH /api/clinic/profile` - Update profile
 
-### Blog, Analytics, AI Calling, File Upload
-- See previous PRD entries
+### Admin Clinic Management
+- `PATCH /api/admin/leads/{id}/assign-clinic` - Assign lead to clinic
+- `GET /api/admin/clinic-accounts` - List clinic accounts
+- `POST/GET/PATCH /api/admin/clinic-applications/*` - Manage applications
+
+### Other
+- Blog, Analytics, AI Calling, File Upload endpoints (see earlier PRD entries)
 
 ---
 
-## DB Schema: clinic_applications
+## DB Collections
+
+### clinics (clinic accounts)
 ```
-{
-  id, clinic_name, city, address, website,
-  contact_name, phone, email,
-  offers_aligners, offers_braces, offers_implants,
-  treats_adults, treats_children,
-  years_experience, number_of_cases_per_month,
-  do_you_use_digital_scans,
-  what_types_of_patients_are_best_for_you,
-  average_response_time,
-  status: "pending", notes: "", created_at
-}
+{id, clinic_name, city, email, phone, password_hash, status, application_id, created_at}
+```
+
+### clinic_applications
+```
+{id, clinic_name, city, address, website, contact_name, phone, email,
+ offers_aligners, offers_braces, offers_implants, treats_adults, treats_children,
+ years_experience, number_of_cases_per_month, do_you_use_digital_scans,
+ what_types_of_patients_are_best_for_you, average_response_time,
+ status, notes, created_at}
+```
+
+### leads (extended)
+```
+{..., assigned_clinic_id, clinic_lead_status (new/contacted/no_response)}
 ```
 
 ---
@@ -133,18 +137,18 @@ Homepage -> Quiz -> Result Stage -> Soft Commit -> Lead Form (A/B) -> Success Sc
 ## Pending/Future Tasks
 
 ### P1 - High Priority
-- [ ] Create specific quizzes for other treatments
-- [ ] Admin UI for viewing/managing clinic applications
+- [ ] Create specific quizzes for other treatments (cosmetic, implants)
 
 ### P2 - Medium Priority
-- [ ] Backend refactoring (split server.py into routers)
+- [ ] Backend refactoring (split server.py ~2000 lines into routers)
 - [ ] Frontend API client centralization
 
 ### P3 - Future
 - [ ] English translation (`/en/...` routes)
-- [ ] More cities
-- [ ] Automated AI calling
-- [ ] Expand admin panel
+- [ ] More cities in lead form
+- [ ] Automated AI calling (X minutes after quiz)
+- [ ] Expand admin panel (homepage text, treatment management)
+- [ ] Clinic password reset flow
 
 ---
 

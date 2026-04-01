@@ -244,6 +244,8 @@ def create_token(user_id: str, username: str) -> str:
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     try:
         payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        if payload.get("role") == "clinic":
+            raise HTTPException(status_code=403, detail="Admin access required")
         return AdminUser(id=payload.get("sub"), username=payload.get("username"))
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")
@@ -2101,6 +2103,11 @@ async def startup():
     await db.leads.create_index("last_conversation_id")
     await db.clinics.create_index("id", unique=True)
     await db.clinics.create_index("city_slug")
+    # Drop legacy compound index that conflicts with clinic accounts
+    try:
+        await db.clinics.drop_index("city_slug_1_clinic_slug_1")
+    except Exception:
+        pass
     await db.admin_users.create_index("username", unique=True)
     await db.blog_posts.create_index("id", unique=True)
     await db.blog_posts.create_index("slug", unique=True)
