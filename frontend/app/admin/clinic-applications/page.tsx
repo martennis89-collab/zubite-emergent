@@ -78,16 +78,20 @@ function ServiceTags({ app }: { app: ClinicApplication }) {
 function DetailView({ app, onClose, onUpdate }: {
   app: ClinicApplication
   onClose: () => void
-  onUpdate: (id: string, data: { status?: string; notes?: string }) => Promise<void>
+  onUpdate: (id: string, data: { status?: string; notes?: string }) => Promise<{ clinic_credentials?: { email: string; temporary_password: string } } | null>
 }) {
   const [notes, setNotes] = useState(app.notes || '')
   const [saving, setSaving] = useState(false)
   const [currentStatus, setCurrentStatus] = useState(app.status)
+  const [credentials, setCredentials] = useState<{ email: string; temporary_password: string } | null>(null)
 
   const handleStatusChange = async (newStatus: string) => {
     setSaving(true)
     setCurrentStatus(newStatus)
-    await onUpdate(app.id, { status: newStatus })
+    const result = await onUpdate(app.id, { status: newStatus })
+    if (result?.clinic_credentials) {
+      setCredentials(result.clinic_credentials)
+    }
     setSaving(false)
   }
 
@@ -143,6 +147,18 @@ function DetailView({ app, onClose, onUpdate }: {
               ))}
             </div>
           </div>
+
+          {/* Credentials Alert (shown after approval) */}
+          {credentials && (
+            <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200" data-testid="credentials-alert">
+              <p className="text-sm font-semibold text-emerald-800 mb-2">Акаунт за клиника е създаден</p>
+              <div className="space-y-1 text-sm text-emerald-700">
+                <p>Имейл: <code className="font-mono bg-emerald-100 px-1.5 py-0.5 rounded">{credentials.email}</code></p>
+                <p>Парола: <code className="font-mono bg-emerald-100 px-1.5 py-0.5 rounded">{credentials.temporary_password}</code></p>
+              </div>
+              <p className="text-xs text-emerald-600 mt-2">Изпратете тези данни на клиниката. Вход: /clinic</p>
+            </div>
+          )}
 
           {/* Clinic Info */}
           <div>
@@ -280,9 +296,9 @@ export default function ClinicApplicationsPage() {
 
   useEffect(() => { fetchApplications() }, [fetchApplications])
 
-  const handleUpdate = async (id: string, data: { status?: string; notes?: string }) => {
+  const handleUpdate = async (id: string, data: { status?: string; notes?: string }): Promise<{ clinic_credentials?: { email: string; temporary_password: string } } | null> => {
     const token = localStorage.getItem('admin_token')
-    if (!token) return
+    if (!token) return null
     try {
       const res = await fetch(`${API_URL}/api/admin/clinic-applications/${id}`, {
         method: 'PATCH',
@@ -290,16 +306,22 @@ export default function ClinicApplicationsPage() {
         body: JSON.stringify(data),
       })
       if (res.ok) {
-        setMessage({ type: 'success', text: data.status ? `Статусът е обновен на "${STATUS_CONFIG[data.status]?.label}"` : 'Бележката е запазена' })
-        // Update local state
+        const result = await res.json()
+        if (result.clinic_account_created) {
+          setMessage({ type: 'success', text: `Акаунт за клиника е създаден. Парола: ${result.clinic_credentials.temporary_password}` })
+        } else {
+          setMessage({ type: 'success', text: data.status ? `Статусът е обновен на "${STATUS_CONFIG[data.status]?.label}"` : 'Бележката е запазена' })
+        }
         setApplications(prev => prev.map(a => a.id === id ? { ...a, ...data } : a))
         if (selectedApp?.id === id) {
           setSelectedApp(prev => prev ? { ...prev, ...data } : prev)
         }
+        return result
       }
     } catch {
       setMessage({ type: 'error', text: 'Грешка при обновяване' })
     }
+    return null
   }
 
   const filtered = applications.filter(a => {

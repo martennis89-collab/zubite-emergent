@@ -1,6 +1,9 @@
 {
+  "/_not-found/page": "app/_not-found/page.js",
   "/page": "app/page.js",
   "/admin/clinic-applications/page": "app/admin/clinic-applications/page.js",
   "/admin/page": "app/admin/page.js",
-  "/admin/dashboard/page": "app/admin/dashboard/page.js"
+  "/admin/dashboard/page": "app/admin/dashboard/page.js",
+  "/clinic/page": "app/clinic/page.js",
+  "/clinic/dashboard/page": "app/clinic/dashboard/page.js"
 }

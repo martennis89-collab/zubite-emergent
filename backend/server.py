@@ -17,8 +17,9 @@ import uuid
 from datetime import datetime, timezone, timedelta
 import jwt
 import bcrypt
-import resend
+import secrets
 
+import resend
 ROOT_DIR = Path(__file__).parent
 STATIC_DIR = ROOT_DIR.parent / 'static'
 load_dotenv(ROOT_DIR / '.env')
@@ -244,6 +245,58 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     try:
         payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         return AdminUser(id=payload.get("sub"), username=payload.get("username"))
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+# ============== CLINIC AUTH ==============
+
+class ClinicLogin(BaseModel):
+    email: str
+    password: str
+
+class ClinicUserOut(BaseModel):
+    id: str
+    clinic_name: str
+    city: str
+    email: str
+    phone: str
+    status: str
+
+class ClinicTokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: ClinicUserOut
+
+class ClinicProfileUpdate(BaseModel):
+    clinic_name: Optional[str] = None
+    phone: Optional[str] = None
+    city: Optional[str] = None
+
+class ClinicLeadStatusUpdate(BaseModel):
+    status: str  # new, contacted, no_response
+
+def create_clinic_token(user_id: str, email: str) -> str:
+    payload = {
+        "sub": user_id,
+        "email": email,
+        "role": "clinic",
+        "exp": datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRATION_HOURS),
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+async def get_current_clinic(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    try:
+        payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        if payload.get("role") != "clinic":
+            raise HTTPException(status_code=403, detail="Not a clinic user")
+        clinic = await db.clinics.find_one({"id": payload.get("sub")}, {"_id": 0, "password_hash": 0})
+        if not clinic:
+            raise HTTPException(status_code=401, detail="Clinic not found")
+        if clinic.get("status") == "paused":
+            raise HTTPException(status_code=403, detail="Account is paused")
+        return clinic
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")
     except jwt.InvalidTokenError:
@@ -1866,17 +1919,161 @@ async def get_clinic_applications(user: AdminUser = Depends(get_current_user)):
 
 @api_router.patch("/admin/clinic-applications/{app_id}")
 async def update_clinic_application(app_id: str, body: dict, user: AdminUser = Depends(get_current_user)):
-    """Update clinic application status or notes (admin only)"""
+    """Update clinic application status or notes. Auto-creates clinic account on approval."""
     allowed = {"status", "notes"}
     update_data = {k: v for k, v in body.items() if k in allowed}
     if not update_data:
         raise HTTPException(status_code=400, detail="No valid fields to update")
+
+    # Fetch the application
+    application = await db.clinic_applications.find_one({"id": app_id}, {"_id": 0})
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
     result = await db.clinic_applications.update_one(
         {"id": app_id}, {"$set": update_data}
     )
+
+    response = {"status": "ok"}
+
+    # Auto-create clinic account when approved
+    new_status = update_data.get("status")
+    if new_status == "approved" and application.get("status") != "approved":
+        # Check if account already exists for this email
+        existing = await db.clinics.find_one({"email": application["email"]})
+        if not existing:
+            temp_password = secrets.token_urlsafe(10)
+            clinic_doc = {
+                "id": str(uuid.uuid4()),
+                "clinic_name": application["clinic_name"],
+                "city": application["city"],
+                "email": application["email"],
+                "phone": application["phone"],
+                "password_hash": hash_password(temp_password),
+                "status": "active",
+                "application_id": app_id,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }
+            await db.clinics.insert_one(clinic_doc)
+            response["clinic_account_created"] = True
+            response["clinic_credentials"] = {
+                "email": application["email"],
+                "temporary_password": temp_password,
+            }
+
+    return response
+
+
+# ─── Clinic Auth & Dashboard ──────────────────────────────
+
+@api_router.post("/clinic/login")
+async def clinic_login(data: ClinicLogin):
+    email = data.email.strip().lower()
+    clinic = await db.clinics.find_one({"email": email}, {"_id": 0})
+    if not clinic or not clinic.get("password_hash"):
+        raise HTTPException(status_code=401, detail="Невалидни данни за вход")
+    if not verify_password(data.password, clinic["password_hash"]):
+        raise HTTPException(status_code=401, detail="Невалидни данни за вход")
+    if clinic.get("status") == "paused":
+        raise HTTPException(status_code=403, detail="Акаунтът е спрян")
+    token = create_clinic_token(clinic["id"], clinic["email"])
+    return ClinicTokenResponse(
+        access_token=token,
+        user=ClinicUserOut(
+            id=clinic["id"],
+            clinic_name=clinic["clinic_name"],
+            city=clinic["city"],
+            email=clinic["email"],
+            phone=clinic["phone"],
+            status=clinic["status"],
+        ),
+    )
+
+@api_router.get("/clinic/profile")
+async def clinic_profile(clinic=Depends(get_current_clinic)):
+    return ClinicUserOut(
+        id=clinic["id"],
+        clinic_name=clinic["clinic_name"],
+        city=clinic["city"],
+        email=clinic["email"],
+        phone=clinic["phone"],
+        status=clinic["status"],
+    )
+
+@api_router.patch("/clinic/profile")
+async def update_clinic_profile(data: ClinicProfileUpdate, clinic=Depends(get_current_clinic)):
+    update_fields = {k: v for k, v in data.model_dump().items() if v is not None}
+    if not update_fields:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    await db.clinics.update_one({"id": clinic["id"]}, {"$set": update_fields})
+    updated = await db.clinics.find_one({"id": clinic["id"]}, {"_id": 0, "password_hash": 0})
+    return ClinicUserOut(**updated)
+
+@api_router.get("/clinic/dashboard")
+async def clinic_dashboard(clinic=Depends(get_current_clinic)):
+    clinic_id = clinic["id"]
+    total = await db.leads.count_documents({"assigned_clinic_id": clinic_id})
+    contacted = await db.leads.count_documents({"assigned_clinic_id": clinic_id, "clinic_lead_status": "contacted"})
+    no_response = await db.leads.count_documents({"assigned_clinic_id": clinic_id, "clinic_lead_status": "no_response"})
+    pending = total - contacted - no_response
+    return {
+        "total_leads": total,
+        "leads_contacted": contacted,
+        "leads_pending": pending,
+        "leads_no_response": no_response,
+    }
+
+@api_router.get("/clinic/leads")
+async def clinic_leads(clinic=Depends(get_current_clinic)):
+    leads = await db.leads.find(
+        {"assigned_clinic_id": clinic["id"]},
+        {"_id": 0, "id": 1, "name": 1, "phone": 1, "email": 1, "treatment_type": 1,
+         "clinic_lead_status": 1, "created_at": 1, "city_slug": 1, "band": 1, "score_total": 1}
+    ).sort("created_at", -1).to_list(500)
+    # Default clinic_lead_status to "new" if not set
+    for lead in leads:
+        if not lead.get("clinic_lead_status"):
+            lead["clinic_lead_status"] = "new"
+    return {"leads": leads}
+
+@api_router.patch("/clinic/leads/{lead_id}/status")
+async def update_clinic_lead_status(lead_id: str, data: ClinicLeadStatusUpdate, clinic=Depends(get_current_clinic)):
+    if data.status not in ("new", "contacted", "no_response"):
+        raise HTTPException(status_code=400, detail="Invalid status")
+    result = await db.leads.update_one(
+        {"id": lead_id, "assigned_clinic_id": clinic["id"]},
+        {"$set": {"clinic_lead_status": data.status}},
+    )
     if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Application not found")
+        raise HTTPException(status_code=404, detail="Lead not found or not assigned to your clinic")
     return {"status": "ok"}
+
+# Admin endpoint to assign leads to clinics
+@api_router.patch("/admin/leads/{lead_id}/assign-clinic")
+async def admin_assign_lead_to_clinic(lead_id: str, body: dict, user: AdminUser = Depends(get_current_user)):
+    clinic_id = body.get("clinic_id")
+    if not clinic_id:
+        raise HTTPException(status_code=400, detail="clinic_id is required")
+    # Verify clinic exists
+    clinic = await db.clinics.find_one({"id": clinic_id, "password_hash": {"$exists": True}}, {"_id": 0, "clinic_name": 1})
+    if not clinic:
+        raise HTTPException(status_code=404, detail="Clinic account not found")
+    result = await db.leads.update_one(
+        {"id": lead_id},
+        {"$set": {"assigned_clinic_id": clinic_id, "clinic_lead_status": "new"}},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    return {"status": "ok", "assigned_to": clinic.get("clinic_name")}
+
+# Admin endpoint to list clinic accounts
+@api_router.get("/admin/clinic-accounts")
+async def admin_list_clinic_accounts(user: AdminUser = Depends(get_current_user)):
+    clinics = await db.clinics.find(
+        {"password_hash": {"$exists": True}},
+        {"_id": 0, "password_hash": 0}
+    ).sort("created_at", -1).to_list(100)
+    return {"clinics": clinics}
 
 
 app.include_router(api_router)
@@ -1925,6 +2122,10 @@ async def startup():
     # Clinic applications indexes
     await db.clinic_applications.create_index("id", unique=True)
     await db.clinic_applications.create_index("status")
+    # Clinic accounts indexes
+    await db.clinics.create_index("email")
+    await db.leads.create_index("assigned_clinic_id")
+    await db.leads.create_index("clinic_lead_status")
     
     # Initialize object storage
     init_storage()
