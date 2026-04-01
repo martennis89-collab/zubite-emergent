@@ -1,4 +1,6 @@
 {
   "/page": "app/page.js",
-  "/za-kliniki/page": "app/za-kliniki/page.js"
+  "/admin/clinic-applications/page": "app/admin/clinic-applications/page.js",
+  "/admin/page": "app/admin/page.js",
+  "/admin/dashboard/page": "app/admin/dashboard/page.js"
 }
