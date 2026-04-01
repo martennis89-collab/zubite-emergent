@@ -1773,6 +1773,60 @@ async def get_analytics(user: AdminUser = Depends(get_current_user)):
     }
 
 
+# ─── Clinic Applications ──────────────────────────────────
+
+class ClinicApplicationCreate(BaseModel):
+    clinic_name: str
+    contact_name: str
+    city: str
+    phone: str
+    email: str
+
+@api_router.post("/clinic-applications")
+async def create_clinic_application(application: ClinicApplicationCreate):
+    """Receive a clinic partnership application"""
+    doc = {
+        "id": str(uuid.uuid4()),
+        "clinic_name": application.clinic_name,
+        "contact_name": application.contact_name,
+        "city": application.city,
+        "phone": application.phone,
+        "email": application.email,
+        "status": "new",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.clinic_applications.insert_one(doc)
+
+    # Send notification email to admin
+    if RESEND_API_KEY and ADMIN_EMAIL:
+        try:
+            resend.Emails.send({
+                "from": SENDER_EMAIL,
+                "to": ADMIN_EMAIL,
+                "subject": f"Нова кандидатура от клиника: {application.clinic_name}",
+                "html": f"""
+                <h2>Нова кандидатура за партньорство</h2>
+                <p><strong>Клиника:</strong> {application.clinic_name}</p>
+                <p><strong>Контакт:</strong> {application.contact_name}</p>
+                <p><strong>Град:</strong> {application.city}</p>
+                <p><strong>Телефон:</strong> {application.phone}</p>
+                <p><strong>Имейл:</strong> {application.email}</p>
+                """
+            })
+        except Exception as e:
+            logging.error(f"Failed to send clinic application email: {e}")
+
+    return {"status": "ok", "id": doc["id"]}
+
+@api_router.get("/admin/clinic-applications")
+async def get_clinic_applications(user: AdminUser = Depends(get_current_user)):
+    """Get all clinic applications (admin only)"""
+    apps = await db.clinic_applications.find(
+        {}, {"_id": 0}
+    ).sort("created_at", -1).to_list(500)
+    return {"applications": apps}
+
+
 app.include_router(api_router)
 
 app.add_middleware(
@@ -1815,6 +1869,10 @@ async def startup():
     await db.lead_call_logs.create_index("lead_id")
     await db.lead_call_logs.create_index("conversation_id")
     await db.lead_call_logs.create_index("initiated_at")
+    
+    # Clinic applications indexes
+    await db.clinic_applications.create_index("id", unique=True)
+    await db.clinic_applications.create_index("status")
     
     # Initialize object storage
     init_storage()

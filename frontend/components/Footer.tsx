@@ -74,6 +74,9 @@ export function Footer({ treatmentSlug }: FooterProps) {
               <Link href="#how-it-works" className="block hover:text-sky-500 transition-colors">
                 Как работи Zubite
               </Link>
+              <Link href="/za-kliniki" className="block hover:text-sky-500 transition-colors">
+                За клиники
+              </Link>
               <Link href="/contact" className="block hover:text-sky-500 transition-colors">
                 Контакти
               </Link>
