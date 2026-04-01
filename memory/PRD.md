@@ -34,6 +34,15 @@ Homepage -> Quiz -> Result Stage -> Soft Commit -> Lead Form (A/B) -> Success Sc
 
 ## Completed Work
 
+### April 1, 2026 - Admin Clinic Applications Dashboard
+- Created `/admin/clinic-applications` page for managing clinic partnership applications
+- **Table view**: clinic_name, city, contact_name, services (as tags), status (as badges), date
+- **Status filter cards**: All, Pending, Approved, Rejected, Waiting List with counts
+- **Search**: by clinic name, contact, city, or email
+- **Detail modal**: Full submitted data in organized sections (Clinic Info, Contact, Services, Qualification, Positioning, Operations)
+- **Admin actions**: Approve/Reject/Waiting List status buttons, admin notes field with save
+- Added "Клиники" nav link to admin dashboard header
+
 ### April 1, 2026 - Structured Clinic Application Form
 - Upgraded `/za-kliniki` form with 6 structured sections:
   - **Clinic Info**: clinic_name, city (dropdown: София/Пловдив/Варна/Друг), address, website (optional)
