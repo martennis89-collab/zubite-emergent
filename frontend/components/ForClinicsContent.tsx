@@ -246,24 +246,80 @@ function RequirementsSection() {
 }
 
 // ─── Application Form CTA ────────────────────────────────
+
+const inputClass = "w-full px-4 py-3 bg-slate-800/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors outline-none"
+const selectClass = "w-full px-4 py-3 bg-slate-800/50 border border-white/10 rounded-xl text-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors outline-none appearance-none cursor-pointer"
+const labelClass = "block text-sm font-medium text-slate-300 mb-2"
+const sectionTitleClass = "font-sans text-xs font-semibold tracking-[0.2em] uppercase text-sky-400 mb-6 flex items-center gap-3"
+
+function SectionDivider({ icon: Icon, label }: { icon: React.ElementType; label: string }) {
+  return (
+    <div className={sectionTitleClass}>
+      <Icon className="w-4 h-4" />
+      <span>{label}</span>
+      <div className="flex-1 h-px bg-white/10" />
+    </div>
+  )
+}
+
+function Toggle({ checked, onChange, label, testId }: { checked: boolean; onChange: (v: boolean) => void; label: string; testId: string }) {
+  return (
+    <label className="flex items-center gap-3 cursor-pointer group" data-testid={testId}>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${checked ? 'bg-sky-500' : 'bg-slate-700'}`}
+      >
+        <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${checked ? 'translate-x-5' : 'translate-x-0'}`} />
+      </button>
+      <span className="text-sm text-slate-300 group-hover:text-white transition-colors">{label}</span>
+    </label>
+  )
+}
+
 function ApplicationSection() {
   const [form, setForm] = useState({
     clinic_name: '',
-    contact_name: '',
     city: '',
+    address: '',
+    website: '',
+    contact_name: '',
     phone: '',
     email: '',
+    offers_aligners: false,
+    offers_braces: false,
+    offers_implants: false,
+    treats_adults: false,
+    treats_children: false,
+    years_experience: '',
+    number_of_cases_per_month: '',
+    do_you_use_digital_scans: '',
+    what_types_of_patients_are_best_for_you: '',
+    average_response_time: '',
   })
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+
+  const set = (key: string, value: string | boolean) => setForm(f => ({ ...f, [key]: value }))
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setStatus('loading')
     try {
+      const payload = {
+        ...form,
+        website: form.website || null,
+        years_experience: form.years_experience ? parseInt(form.years_experience) : null,
+        number_of_cases_per_month: form.number_of_cases_per_month || null,
+        do_you_use_digital_scans: form.do_you_use_digital_scans === 'yes' ? true : form.do_you_use_digital_scans === 'no' ? false : null,
+        what_types_of_patients_are_best_for_you: form.what_types_of_patients_are_best_for_you || null,
+        average_response_time: form.average_response_time || null,
+      }
       const res = await fetch(`${API_URL}/api/clinic-applications`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       })
       if (res.ok) {
         setStatus('success')
@@ -322,94 +378,140 @@ function ApplicationSection() {
             <ScrollReveal animation="fade-up" delay={150}>
               <form 
                 onSubmit={handleSubmit} 
-                className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-2xl p-8 md:p-10 space-y-6"
+                className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-2xl p-8 md:p-10 space-y-8"
                 data-testid="clinic-application-form"
               >
+                {/* ── Clinic Info ── */}
+                <SectionDivider icon={Building2} label="Информация за клиниката" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-2">Име на клиниката</label>
-                    <input
-                      type="text"
-                      required
-                      value={form.clinic_name}
-                      onChange={e => setForm(f => ({ ...f, clinic_name: e.target.value }))}
-                      className="w-full px-4 py-3 bg-slate-800/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors outline-none"
-                      placeholder="Дентал клиник"
-                      data-testid="input-clinic-name"
-                    />
+                    <label className={labelClass}>Име на клиниката *</label>
+                    <input type="text" required value={form.clinic_name} onChange={e => set('clinic_name', e.target.value)} className={inputClass} placeholder="Дентал клиник" data-testid="input-clinic-name" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-2">Лице за контакт</label>
-                    <input
-                      type="text"
-                      required
-                      value={form.contact_name}
-                      onChange={e => setForm(f => ({ ...f, contact_name: e.target.value }))}
-                      className="w-full px-4 py-3 bg-slate-800/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors outline-none"
-                      placeholder="Д-р Иванов"
-                      data-testid="input-contact-name"
-                    />
+                    <label className={labelClass}>Град *</label>
+                    <select required value={form.city} onChange={e => set('city', e.target.value)} className={selectClass} data-testid="input-city">
+                      <option value="" disabled className="bg-slate-900">Изберете град</option>
+                      <option value="София" className="bg-slate-900">София</option>
+                      <option value="Пловдив" className="bg-slate-900">Пловдив</option>
+                      <option value="Варна" className="bg-slate-900">Варна</option>
+                      <option value="Друг" className="bg-slate-900">Друг</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className={labelClass}>Адрес *</label>
+                    <input type="text" required value={form.address} onChange={e => set('address', e.target.value)} className={inputClass} placeholder="ул. Витоша 15" data-testid="input-address" />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Уебсайт</label>
+                    <input type="url" value={form.website} onChange={e => set('website', e.target.value)} className={inputClass} placeholder="https://example.com" data-testid="input-website" />
                   </div>
                 </div>
 
+                {/* ── Contact ── */}
+                <SectionDivider icon={Users} label="Контакт" />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className={labelClass}>Лице за контакт *</label>
+                    <input type="text" required value={form.contact_name} onChange={e => set('contact_name', e.target.value)} className={inputClass} placeholder="Д-р Иванов" data-testid="input-contact-name" />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Телефон *</label>
+                    <input type="tel" required value={form.phone} onChange={e => set('phone', e.target.value)} className={inputClass} placeholder="+359 888 123 456" data-testid="input-phone" />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Имейл *</label>
+                    <input type="email" required value={form.email} onChange={e => set('email', e.target.value)} className={inputClass} placeholder="clinic@example.com" data-testid="input-email" />
+                  </div>
+                </div>
+
+                {/* ── Services ── */}
+                <SectionDivider icon={ClipboardCheck} label="Услуги" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6">
+                  <Toggle checked={form.offers_aligners} onChange={v => set('offers_aligners', v)} label="Алайнери" testId="toggle-aligners" />
+                  <Toggle checked={form.offers_braces} onChange={v => set('offers_braces', v)} label="Брекети" testId="toggle-braces" />
+                  <Toggle checked={form.offers_implants} onChange={v => set('offers_implants', v)} label="Импланти" testId="toggle-implants" />
+                  <Toggle checked={form.treats_adults} onChange={v => set('treats_adults', v)} label="Третира възрастни" testId="toggle-adults" />
+                  <Toggle checked={form.treats_children} onChange={v => set('treats_children', v)} label="Третира деца" testId="toggle-children" />
+                </div>
+
+                {/* ── Qualification ── */}
+                <SectionDivider icon={ShieldCheck} label="Квалификация" />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className={labelClass}>Години опит</label>
+                    <input type="number" min="0" value={form.years_experience} onChange={e => set('years_experience', e.target.value)} className={inputClass} placeholder="10" data-testid="input-years-experience" />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Случаи на месец</label>
+                    <select value={form.number_of_cases_per_month} onChange={e => set('number_of_cases_per_month', e.target.value)} className={selectClass} data-testid="input-cases-per-month">
+                      <option value="" className="bg-slate-900">Изберете</option>
+                      <option value="1-5" className="bg-slate-900">1 – 5</option>
+                      <option value="6-15" className="bg-slate-900">6 – 15</option>
+                      <option value="16-30" className="bg-slate-900">16 – 30</option>
+                      <option value="30+" className="bg-slate-900">30+</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelClass}>Дигитални сканове?</label>
+                    <select value={form.do_you_use_digital_scans} onChange={e => set('do_you_use_digital_scans', e.target.value)} className={selectClass} data-testid="input-digital-scans">
+                      <option value="" className="bg-slate-900">Изберете</option>
+                      <option value="yes" className="bg-slate-900">Да</option>
+                      <option value="no" className="bg-slate-900">Не</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* ── Positioning ── */}
+                <SectionDivider icon={Target} label="Позициониране" />
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Град</label>
-                  <input
-                    type="text"
-                    required
-                    value={form.city}
-                    onChange={e => setForm(f => ({ ...f, city: e.target.value }))}
-                    className="w-full px-4 py-3 bg-slate-800/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors outline-none"
-                    placeholder="София"
-                    data-testid="input-city"
+                  <label className={labelClass}>Какъв тип пациенти са най-подходящи за вас?</label>
+                  <textarea
+                    rows={3}
+                    value={form.what_types_of_patients_are_best_for_you}
+                    onChange={e => set('what_types_of_patients_are_best_for_you', e.target.value)}
+                    className={`${inputClass} resize-none`}
+                    placeholder="Напр. възрастни с леки до средни ортодонтски проблеми..."
+                    data-testid="input-patient-types"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-2">Телефон</label>
-                    <input
-                      type="tel"
-                      required
-                      value={form.phone}
-                      onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-                      className="w-full px-4 py-3 bg-slate-800/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors outline-none"
-                      placeholder="+359 888 123 456"
-                      data-testid="input-phone"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-2">Имейл</label>
-                    <input
-                      type="email"
-                      required
-                      value={form.email}
-                      onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                      className="w-full px-4 py-3 bg-slate-800/50 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors outline-none"
-                      placeholder="clinic@example.com"
-                      data-testid="input-email"
-                    />
-                  </div>
+                {/* ── Operations ── */}
+                <SectionDivider icon={Clock} label="Операции" />
+                <div>
+                  <label className={labelClass}>Средно време за отговор на запитване</label>
+                  <select value={form.average_response_time} onChange={e => set('average_response_time', e.target.value)} className={selectClass} data-testid="input-response-time">
+                    <option value="" className="bg-slate-900">Изберете</option>
+                    <option value="<1h" className="bg-slate-900">Под 1 час</option>
+                    <option value="1-6h" className="bg-slate-900">1 – 6 часа</option>
+                    <option value="24h" className="bg-slate-900">До 24 часа</option>
+                    <option value=">24h" className="bg-slate-900">Над 24 часа</option>
+                  </select>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={status === 'loading'}
-                  className="w-full flex items-center justify-center gap-2 px-8 py-4 bg-sky-500 text-white font-medium rounded-full hover:bg-sky-600 transition-all duration-300 hover:shadow-xl hover:shadow-sky-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
-                  data-testid="footer-apply-btn"
-                >
-                  {status === 'loading' ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Изпращане...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Кандидатствай</span>
-                      <ArrowUpRight className="w-5 h-5" />
-                    </>
-                  )}
-                </button>
+                {/* ── Submit ── */}
+                <div className="pt-4">
+                  <button
+                    type="submit"
+                    disabled={status === 'loading'}
+                    className="w-full flex items-center justify-center gap-2 px-8 py-4 bg-sky-500 text-white font-medium rounded-full hover:bg-sky-600 transition-all duration-300 hover:shadow-xl hover:shadow-sky-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
+                    data-testid="footer-apply-btn"
+                  >
+                    {status === 'loading' ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>Изпращане...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Кандидатствай</span>
+                        <ArrowUpRight className="w-5 h-5" />
+                      </>
+                    )}
+                  </button>
+                </div>
 
                 {status === 'error' && (
                   <p className="text-red-400 text-sm text-center" data-testid="form-error">

@@ -687,6 +687,12 @@ h3{
 .top-8{
   top: 2rem;
 }
+.left-0\.5{
+  left: 0.125rem;
+}
+.top-0\.5{
+  top: 0.125rem;
+}
 .z-10{
   z-index: 10;
 }
@@ -896,6 +902,9 @@ h3{
 .h-full{
   height: 100%;
 }
+.h-px{
+  height: 1px;
+}
 .max-h-0{
   max-height: 0px;
 }
@@ -989,6 +998,9 @@ h3{
 .w-px{
   width: 1px;
 }
+.w-11{
+  width: 2.75rem;
+}
 .min-w-0{
   min-width: 0px;
 }
@@ -1045,6 +1057,10 @@ h3{
 }
 .translate-x-4{
   --tw-translate-x: 1rem;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+.translate-x-5{
+  --tw-translate-x: 1.25rem;
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
 .rotate-180{
@@ -1137,6 +1153,11 @@ h3{
 .list-disc{
   list-style-type: disc;
 }
+.appearance-none{
+  -webkit-appearance: none;
+     -moz-appearance: none;
+          appearance: none;
+}
 .grid-cols-1{
   grid-template-columns: repeat(1, minmax(0, 1fr));
 }
@@ -1205,6 +1226,13 @@ h3{
 }
 .gap-8{
   gap: 2rem;
+}
+.gap-x-6{
+  -moz-column-gap: 1.5rem;
+       column-gap: 1.5rem;
+}
+.gap-y-4{
+  row-gap: 1rem;
 }
 .space-y-1 > :not([hidden]) ~ :not([hidden]){
   --tw-space-y-reverse: 0;
@@ -1580,6 +1608,14 @@ h3{
 }
 .bg-white\/95{
   background-color: rgb(255 255 255 / 0.95);
+}
+.bg-slate-700{
+  --tw-bg-opacity: 1;
+  background-color: rgb(51 65 85 / var(--tw-bg-opacity, 1));
+}
+.bg-slate-900{
+  --tw-bg-opacity: 1;
+  background-color: rgb(15 23 42 / var(--tw-bg-opacity, 1));
 }
 .bg-gradient-to-b{
   background-image: linear-gradient(to bottom, var(--tw-gradient-stops));
@@ -2004,6 +2040,9 @@ h3{
 }
 .tracking-wider{
   letter-spacing: 0.05em;
+}
+.tracking-\[0\.2em\]{
+  letter-spacing: 0.2em;
 }
 .text-amber-400{
   --tw-text-opacity: 1;
@@ -3342,6 +3381,11 @@ h3{
 .group:hover .group-hover\:text-sky-600{
   --tw-text-opacity: 1;
   color: rgb(2 132 199 / var(--tw-text-opacity, 1));
+}
+
+.group:hover .group-hover\:text-white{
+  --tw-text-opacity: 1;
+  color: rgb(255 255 255 / var(--tw-text-opacity, 1));
 }
 
 @media (min-width: 640px){

@@ -1776,28 +1776,51 @@ async def get_analytics(user: AdminUser = Depends(get_current_user)):
 # ─── Clinic Applications ──────────────────────────────────
 
 class ClinicApplicationCreate(BaseModel):
+    # Clinic Info
     clinic_name: str
-    contact_name: str
     city: str
+    address: str
+    website: Optional[str] = None
+    # Contact
+    contact_name: str
     phone: str
     email: str
+    # Services
+    offers_aligners: bool = False
+    offers_braces: bool = False
+    offers_implants: bool = False
+    treats_adults: bool = False
+    treats_children: bool = False
+    # Qualification
+    years_experience: Optional[int] = None
+    number_of_cases_per_month: Optional[str] = None
+    do_you_use_digital_scans: Optional[bool] = None
+    # Positioning
+    what_types_of_patients_are_best_for_you: Optional[str] = None
+    # Operations
+    average_response_time: Optional[str] = None
 
 @api_router.post("/clinic-applications")
 async def create_clinic_application(application: ClinicApplicationCreate):
     """Receive a clinic partnership application"""
     doc = {
         "id": str(uuid.uuid4()),
-        "clinic_name": application.clinic_name,
-        "contact_name": application.contact_name,
-        "city": application.city,
-        "phone": application.phone,
-        "email": application.email,
-        "status": "new",
+        **application.model_dump(),
+        "status": "pending",
+        "notes": "",
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.clinic_applications.insert_one(doc)
 
-    # Send notification email to admin
+    # Build services list for email
+    services = []
+    if application.offers_aligners: services.append("Алайнери")
+    if application.offers_braces: services.append("Брекети")
+    if application.offers_implants: services.append("Импланти")
+    treats = []
+    if application.treats_adults: treats.append("Възрастни")
+    if application.treats_children: treats.append("Деца")
+
     if RESEND_API_KEY and ADMIN_EMAIL:
         try:
             resend.Emails.send({
@@ -1806,11 +1829,26 @@ async def create_clinic_application(application: ClinicApplicationCreate):
                 "subject": f"Нова кандидатура от клиника: {application.clinic_name}",
                 "html": f"""
                 <h2>Нова кандидатура за партньорство</h2>
-                <p><strong>Клиника:</strong> {application.clinic_name}</p>
-                <p><strong>Контакт:</strong> {application.contact_name}</p>
+                <h3>Клиника</h3>
+                <p><strong>Име:</strong> {application.clinic_name}</p>
                 <p><strong>Град:</strong> {application.city}</p>
+                <p><strong>Адрес:</strong> {application.address}</p>
+                <p><strong>Уебсайт:</strong> {application.website or '—'}</p>
+                <h3>Контакт</h3>
+                <p><strong>Лице:</strong> {application.contact_name}</p>
                 <p><strong>Телефон:</strong> {application.phone}</p>
                 <p><strong>Имейл:</strong> {application.email}</p>
+                <h3>Услуги</h3>
+                <p><strong>Предлага:</strong> {', '.join(services) or '—'}</p>
+                <p><strong>Третира:</strong> {', '.join(treats) or '—'}</p>
+                <h3>Квалификация</h3>
+                <p><strong>Години опит:</strong> {application.years_experience or '—'}</p>
+                <p><strong>Случаи/месец:</strong> {application.number_of_cases_per_month or '—'}</p>
+                <p><strong>Дигитални сканове:</strong> {'Да' if application.do_you_use_digital_scans else 'Не' if application.do_you_use_digital_scans is not None else '—'}</p>
+                <h3>Позициониране</h3>
+                <p>{application.what_types_of_patients_are_best_for_you or '—'}</p>
+                <h3>Операции</h3>
+                <p><strong>Средно време за отговор:</strong> {application.average_response_time or '—'}</p>
                 """
             })
         except Exception as e:
@@ -1825,6 +1863,20 @@ async def get_clinic_applications(user: AdminUser = Depends(get_current_user)):
         {}, {"_id": 0}
     ).sort("created_at", -1).to_list(500)
     return {"applications": apps}
+
+@api_router.patch("/admin/clinic-applications/{app_id}")
+async def update_clinic_application(app_id: str, body: dict, user: AdminUser = Depends(get_current_user)):
+    """Update clinic application status or notes (admin only)"""
+    allowed = {"status", "notes"}
+    update_data = {k: v for k, v in body.items() if k in allowed}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No valid fields to update")
+    result = await db.clinic_applications.update_one(
+        {"id": app_id}, {"$set": update_data}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Application not found")
+    return {"status": "ok"}
 
 
 app.include_router(api_router)
