@@ -13,7 +13,7 @@
         "flow": "Lead form submission",
         "issue": "FIXED - .env.local had incorrect NEXT_PUBLIC_API_URL pointing to old domain (bg-dentistry-hub.emergentagent.com/api) causing double /api path",
         "affected_selectors": ["[data-testid='submit-btn']"],
-        "resolution": "Updated .env.local to use correct URL: https://dental-stage.preview.emergentagent.com"
+        "resolution": "Updated .env.local to use correct URL: https://ortho-preview-2.preview.emergentagent.com"
       }
     ],
     "design_issues": []
@@ -68,5 +68,5 @@
   "retest_needed": false,
   "should_main_agent_self_test": false,
 
-  "context_for_next_testing_agent": "Quiz v2 with lead capture fully tested. Key test IDs: option-yes/sometimes/no (quiz answers), quiz-back-btn (navigation), input-name/input-phone/input-email/input-message (form fields), city-sofia/city-plovdiv (city selection), submit-btn (form submit), back-home-btn (success screen). Quiz has 10 questions with 3 answer options each. Three score paths verified: 0-5=early (green/emerald), 6-12=progressing (amber), 13-20=advanced (red). Form requires name, phone, city. Success screen shows 'Получихме твоите данни' with back button. IMPORTANT: .env.local was fixed - NEXT_PUBLIC_API_URL must point to https://dental-stage.preview.emergentagent.com (not the old bg-dentistry-hub domain)."
+  "context_for_next_testing_agent": "Quiz v2 with lead capture fully tested. Key test IDs: option-yes/sometimes/no (quiz answers), quiz-back-btn (navigation), input-name/input-phone/input-email/input-message (form fields), city-sofia/city-plovdiv (city selection), submit-btn (form submit), back-home-btn (success screen). Quiz has 10 questions with 3 answer options each. Three score paths verified: 0-5=early (green/emerald), 6-12=progressing (amber), 13-20=advanced (red). Form requires name, phone, city. Success screen shows 'Получихме твоите данни' with back button. IMPORTANT: .env.local was fixed - NEXT_PUBLIC_API_URL must point to https://ortho-preview-2.preview.emergentagent.com (not the old bg-dentistry-hub domain)."
 }

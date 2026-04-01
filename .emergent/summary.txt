@@ -1,187 +1,134 @@
 <analysis>**original_problem_statement:**
-The user's high-level goal is to build and optimize their Next.js-based website, , an educational platform designed to help users in Bulgaria understand their orthodontic issues and guide them toward the correct treatment path.
-
+The user's high-level goal is to build and optimize their Next.js-based website, , an educational platform designed to help users in Bulgaria understand their orthodontic issues and guide them toward the correct treatment path. 
 **PRODUCT REQUIREMENTS:**
-1.  **Homepage Copy & UX Enhancement:** Update the homepage copy to create psychological tension and increase quiz starts. Avoid a full redesign, focusing on text and micro-interactions to remove the AI-generated feel.
-2.  **Master Quiz Implementation & Refinement:**
-    *   Build a new multi-step quiz at  with specific Bulgarian questions and a scoring system.
-    *   Refactor the quiz results to show one of three stages (Early, Developing, Advanced) with educational content, removing the initial logic that automatically routed users to treatment pages.
-    *   Implement a lead capture form on the results page to allow the Zubite.bg team to follow up with clinic recommendations.
-    *   Enhance the quiz with micro-insight messages between questions to increase engagement and urgency.
-    *   Add a soft commit screen before the lead form to increase conversion.
-    *   A/B test two versions of the lead form (full vs. simplified).
-3.  **SEO & Content:**
-    *   Update SEO-focused pages (, ) with new content and links to the master quiz.
-    *   Add thumbnail images to the blog listing page () and a Recent Articles section to the homepage, ensuring all content is server-side rendered for crawlers.
-4.  **Admin Panel & Analytics:**
-    *   Fix persistent admin login bugs (wrong credentials).
-    *   Fix a bug where new leads were not appearing in the admin panel.
-    *   Create a new analytics dashboard () to track quiz funnel metrics (starts, completion, drop-off), question-level analytics, result distribution, and lead form conversion rates (including the A/B test).
-5.  **Blog Enhancements:**
-    *   Fix a bug where images hosted on Google Drive were not loading in blog posts.
-    *   Implement automatic Cyrillic-to-Latin slug transliteration for better SEO.
-    *   Fix a bug where published blog posts were not appearing on the main  listing page.
-6.  **GDPR & Animations:**
-    *   Add GDPR-compliant pages (Privacy, Cookies, Terms) and a cookie consent popup.
-    *   Add dynamic scroll-triggered animations and hover effects to the homepage.
+1. **Master Quiz Implementation:** Multi-step quiz assessing orthodontic needs, lead capture form with A/B testing, and a dedicated success page for conversion tracking.
+2. **SEO & Content:** Server-side rendered pages (), automatic slug transliteration, and an in-house image uploader using Object Storage.
+3. **Admin Panel & Analytics:** Dashboard to view leads with full text answers, track detailed quiz funnel metrics, and track unique blog traffic analytics.
+4. **AI Outbound Calling (NEW):** Inside each lead profile in the admin dashboard, add a manual “Call Patient” workflow that uses ElevenLabs Conversational AI to call the patient, provides the AI with patient context (quiz answers), receives post-call webhook data (transcript, summary, outcome), and writes it back to the lead profile.
 
-**User's preferred language**: English for conversation and Bulgarian for all user-facing application content.
+**User's preferred language**: **BULGARIAN**. You MUST automatically detect the user's primary language from their messages and INSTRUCT next agent to respond in the user's preferred language only. (Respond in Bulgarian).
 
-**what currently exists?**
-The application is a full-stack Next.js (frontend) and FastAPI (backend) project. The homepage copy has been updated, and a sophisticated, multi-step Master Quiz is in place. The quiz assesses a user's stage of orthodontic need, provides educational results, and captures leads via a form with A/B testing capabilities. A comprehensive admin analytics dashboard exists to track the entire quiz funnel. The blog system has been enhanced with automatic slug transliteration and a fix for displaying Google Drive images. The main blog listing page and homepage both feature thumbnail images for posts, and all content is server-side rendered for SEO. GDPR compliance pages and a cookie consent banner have been implemented. The agent has just started adding dynamic scroll animations.
+**what currently exists?** 
+A full-stack Next.js and FastAPI application. Features include a fully animated homepage, a multi-step master quiz with Meta Pixel tracking, a blog with SSR and Object Storage image uploads, and a detailed admin dashboard for lead management and analytics. Most recently, a complete **AI Outbound Calling** system was integrated. Admins can initiate Twilio-backed ElevenLabs AI calls directly from a lead's profile. The backend securely maps lead data into a structured context for the AI, handles the outbound call, and processes post-call webhooks (via HMAC signature) to save the call transcript, summary, and extracted intent/timeline back to the database.
 
 **Last working item**:
--   Last item agent was working: Adding scroll-triggered animations and enhanced hover effects to the homepage to make it more dynamic and less template-like. The agent created a custom React hook for this purpose.
--   Status: IN PROGRESS
--   Agent Testing Done: N
--   Which testing method agent to use? Frontend testing agent to verify the animations are smooth, not janky, and trigger correctly on scroll. A screenshot can be used for a basic check.
--   User Testing Done: N
+- **Last item agent was working**: Adding auto-polling to the  frontend component so the UI updates automatically while a call is in progress (polling every 5 seconds). The agent also assisted the user with understanding the difference between Full Stack App and Landing Page project templates.
+- **Status**: USER VERIFICATION PENDING (The user needs to deploy the app to production to verify that the ElevenLabs webhook successfully reaches the live server and updates the call status).
+- **Agent Testing Done**: Y
+- **Which testing method agent to use?**: Manual testing via  and  (simulated the webhook payload successfully) and screenshots for the UI.
+- **User Testing Done**: N (User tested the call itself, but the webhook failed on production because they had not deployed the new environment variables yet).
 
 **All Pending/In progress Issue list**:
--   Issue 1: Blog Static Generation Inconsistency (P1)
-
-Issues Detail:
--   Issue 1:
-    -   **Description**: This is an issue carried over from the previous session. When an admin publishes a new blog post, it does not appear on the live site ( and ) immediately. It only appears after the Next.js revalidation period expires (e.g., 60 seconds) or the site is rebuilt. This creates a poor user experience for content creators.
-    -   **Attempted fixes**: None. The agent has fixed other blog-related bugs (listing page not showing posts at all, image issues) but has not implemented on-demand revalidation.
-    -   **Next debug checklist**:
-        1.  Create a new secure API route in the Next.js frontend (e.g., ).
-        2.  This route should accept a secret key (from environment variables) and a path to revalidate (e.g., , , ).
-        3.  Use the  function from  to trigger an on-demand rebuild of the specified pages.
-        4.  Modify the backend blog creation/update endpoints ( and  at ) in .
-        5.  After a post is successfully saved, the backend should make an HTTP request to the new Next.js revalidation API route, triggering an instant update on the frontend.
-    -   **Why fix this issue and what will be achieved with the fix?** This will provide an instant feedback loop for content creators, ensuring published or updated content appears on the public website immediately, which is standard for any CMS.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** Both. Test by creating a new post in the admin panel and immediately checking if it appears on the live  page and the homepage's Recent Articles section.
-    -   **Blocked on other issue**: None
+No active P0 bugs in the codebase. 
 
 **In progress Task List**:
--   Task 1: Implement Homepage Scroll and Hover Animations (P0)
-
-Task Detail:
--   Task 1:
-    -   **Where to resume**: The file  has been created. The next step is to write the hook logic to detect when an element is in the viewport. Then, import and apply this hook to various sections of the homepage component () to add animation classes (e.g., fade-in, slide-up).
-    -   **What will be achieved with this?** A more dynamic and premium user experience on the homepage, addressing the user's request to make the homepage look more dynamic and live and remove the static, vibe-coded feel.
-    -   **Status**: IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?** Frontend.
-    -   **Blocked on something**: None.
+None currently active. The AI Outbound calling feature is complete code-wise.
 
 **Upcoming and Future Tasks**
--   **Upcoming Tasks:**
-    -   **P1: Implement Tracking Pixels:** Integrate Meta Pixel and Google Ads tracking by leveraging the  and  custom events dispatched by the new GDPR banner. This requires getting the respective IDs from the user.
-    -   **P2: Backend Refactoring:** Modularize the monolithic  file by splitting logic into separate files using FastAPI's  (e.g., routers for auth, leads, blog, analytics).
-    -   **P3: Frontend Data Fetching Refactor:** Abstract the data-fetching logic (which currently uses different URLs for server-side vs. client-side) into a single reusable helper function to improve maintainability and reduce errors.
--   **Future Tasks:**
-    -   **P1: Create Specific Quizzes:** Develop new quizzes for other dental treatments (e.g., cosmetic dentistry, implants) to expand the platform's scope.
-    -   **P2: Build English Language Version:** Create content and build out the  routes for an English-speaking audience.
-    -   **P3: Expand Admin Panel:** Add functionality to the admin panel to manage content beyond the blog, such as homepage text and treatment details.
-    -   **P4: Expand City Options:** Add more cities (e.g., Varna, Burgas) to the dropdown in the lead capture form.
+- **P1: Create Specific Quizzes**: Develop new quizzes for other dental treatments (e.g., cosmetic dentistry, implants) to expand the platform's scope.
+- **P2: Backend Refactoring**: Modularize the monolithic  file (currently over 1800 lines) by splitting logic into separate files using FastAPI's  (e.g., routers for auth, leads, blog, analytics, storage, calls).
+- **P3: Frontend Data Fetching Refactor**: Abstract the data-fetching logic into a single reusable helper function to improve maintainability.
+- **P4: Build English Language Version**: Create content and build out the  routes for an English-speaking audience.
+- **P5: Expand Admin Panel**: Add functionality to the admin panel to manage homepage text and treatment details.
+- **P6: Expand City Options**: Add more cities (e.g., Varna, Burgas) to the dropdown in the lead capture form.
+- **P7: Automated AI Calling (Optional)**: Implement automated outbound calling X minutes after a user completes the quiz, instead of relying solely on manual admin triggers.
 
 **Completed work in this session**
--   **Quiz System Overhaul:** Created and iteratively enhanced the master quiz with stage-based results, lead capture, micro-insights, a soft-commit step, and A/B testing.
--   **Admin Panel Enhancements:**
-    -   Fixed critical login and data-fetching bugs by correcting API request paths across all admin pages.
-    -   Built a comprehensive analytics dashboard () to track the entire quiz funnel.
--   **Blog System Fixes & Features:**
-    -   Fixed Google Drive images not displaying by implementing a URL conversion utility ().
-    -   Implemented automatic Cyrillic-to-Latin slug generation for better SEO.
-    -   Fixed a server-side rendering bug preventing posts from showing on the blog list page ().
-    -   Added thumbnail images to the blog list page and a Recent Articles section to the homepage ().
--   **GDPR Compliance:** Implemented Privacy, Cookies, and Terms pages, along with a functional cookie consent banner ().
+- **Blog Traffic Analytics**: Implemented unique visitor tracking () and displayed it in the Admin Blog UI. (DONE)
+- **Analytics Reset functionality**: Added backend endpoints and UI buttons to reset the funnel analytics and blog views. (DONE)
+- **AI Outbound Calling Integration**:
+  - Created  and .
+  - Extended the  DB schema to store call status, duration, transcripts, and extracted outcomes.
+  - Built  to initiate calls via ElevenLabs.
+  - Built  to process post-call webhooks and verify HMAC signatures.
+  - Created  in the frontend to display call status, trigger calls, view transcripts, and auto-poll for updates. (DONE)
 
 **Earlier issues found/mentioned but not fixed**
--   The on-demand revalidation for the blog (listed in All Pending/In progress Issue list) is the only outstanding issue mentioned in the handoff that was not addressed.
+None.
 
 **Known issue recurrence from previous fork**
--   **Issue**: Incorrect frontend API configurations. The handoff summary did not mention this specifically, but a pattern emerged during this session where multiple admin pages failed because API calls were missing the  prefix. The agent had to fix this on , , , and all blog management pages.
--   **Recurrence count**: This issue was the root cause for at least two separate user complaints (admin login failing, leads not showing).
--   **Status**: RESOLVED. The agent manually corrected all identified instances. However, the lack of a centralized API client makes this a potential area for future bugs.
+- **Issue**: Production vs. Preview Environment Confusion. 
+- **Recurrence count**: 2 in this session. The user frequently tests new features on their live production URL () before deploying the new code or adding the required environment variables (like the ElevenLabs Webhook Secret) to the production deployment config.
+- **Status**: RESOLVED (Agent explained the need to deploy and set env vars in the Emergent dashboard). *Note for next agent: Always remind the user that changes/env vars made in preview require a fresh deployment to reflect on production.*
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Frontend**: Next.js (App Router), React (Server & Client Components, Hooks), Tailwind CSS.
--   **Backend**: FastAPI, MongoDB (using ).
--   **State Management**: React  and  for component state.  is used for persisting cookie consent.
--   **A/B Testing**: Simple client-side logic in  to alternate between two form variations.
--   **Server-Side Rendering (SSR)**: Key pages like the homepage and blog listing are now async Server Components that fetch data directly on the server for SEO.
--   **DOM Manipulation**: Runtime script in  to remove the platform's branding badge.
+- **Frontend**: Next.js (App Router), React, Tailwind CSS, Auto-polling ( in React).
+- **Backend**: FastAPI, MongoDB (Motor async).
+- **AI Calling Integration**: ElevenLabs Conversational AI, Twilio (for phone numbers), HMAC Webhook validation.
+- **Analytics Trackers**: Custom tracking logic for blog unique views.
 
 **key DB schema**
--   **admin_users**: Admin authentication.
--   **leads**: Stores user info and quiz results from the lead form.
--   **blog_posts**: Stores blog articles.
--   **quiz_events**: New collection to store analytics events (quiz start, question answer, etc.) for the admin dashboard.
+- : {id, contact_info, answers, created_at, call_status, call_attempts, last_call_at, last_call_duration_seconds, answered_call, interested_in_treatment, treatment_interest, treatment_timeline, permission_to_share, call_summary, call_transcript}
+- : {slug, visitor_id, date}
+- : {event_type, session_id, metadata, created_at}
 
 **changes in tech stack**
--   None.
+- Added  python SDK.
+- Integrated Twilio for outbound phone number routing.
 
 **All files of reference**
--   **Homepage & Animations**: , 
--   **Quiz**: , 
--   **Backend Logic**: 
--   **Admin Panel**:  (specifically , , , )
--   **Blog Content**: , 
--   **Blog Admin**: , 
--   **GDPR & Layout**: , , , 
+-  (Added  and )
+-  (New: Handles ElevenLabs API communication)
+-  (New: Formats raw lead JSON into clean variables for the AI agent)
+-  (New: UI component for the admin to initiate calls and view transcripts)
+-  (Updated to include  inside the lead details modal)
+-  (Updated and integrated into the blog page)
 
 **Areas that need refactoring**:
--   **Backend Modularity**:  is now over 700 lines and contains logic for auth, leads, blog, and analytics. It should be split into multiple  files for maintainability.
--   **Frontend API Client**: API fetch calls are scattered across many admin components. A centralized API client or helper function should be created to standardize requests, handle auth tokens, and unify the API path (), preventing a repeat of the missing /api prefix bugs.
+-  is over 1800 lines long. It urgently needs to be refactored into multiple FastAPI routers () for maintainability.
 
 **key api endpoints**
--   : Creates a new lead from the quiz form.
--   : Tracks a user interaction event in the quiz funnel.
--   : Retrieves aggregated data for the admin analytics dashboard.
--   : Fetches all leads for the admin panel.
--   : Authenticates an admin user.
--   : Admin CRUD for blog posts.
+-  (Initiates ElevenLabs AI call)
+-  (Receives transcript and call summary)
+-  (Fetches latest call status for frontend polling)
+-  (Tracks unique blog views)
+-  (Resets funnel metrics)
 
 **Critical Info for New Agent**
--   **API URL Handling is Dual-Mode**:
-    -   **Client-side fetches** (in most  hooks within admin pages) must now prepend  to the fetch URL (e.g., ). The  env var should NOT contain .
-    -   **Server-side fetches** (in async Server Components like ) must use the full internal backend URL: .
--   **Google Drive Images**: Pasting a standard Google Drive share link into the blog's image field is not sufficient. The frontend code in the admin panel now automatically converts these links into a direct-serving format (). This logic must be preserved.
--   **Admin Credentials**: The correct credentials ( / ) are now working after the agent fixed the API paths on the frontend login page. The admin user is created on backend startup. If login fails, check backend logs and frontend API call paths first.
+- **ElevenLabs & Twilio Config:** The AI calling relies on specific environment variables (, , , , , , ). These are configured in the preview environment.
+- **Webhook Issues on Production:** The user reported that the call status remains calling on their live site. This is because ElevenLabs is sending the webhook to the production URL, but the production deployment does not yet have the updated code or the  environment variable. The frontend was updated with auto-polling to handle real-time status updates once the webhook succeeds.
+- **Language**: You MUST speak in Bulgarian.
 
 **documents and test reports created in this job**
--   /app/test_reports/iteration_20.json
--   /app/test_reports/iteration_21.json
--   /app/memory/PRD.md (updated multiple times)
+-  (Updated with ElevenLabs integration details)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**:  login credentials are not working. (Resolved)
-2.  **User**: Test leads are not showing up in the admin panel. (Resolved)
-3.  **User**: Google Drive image link is not loading on the blog post, and requests automatic Cyrillic-to-Latin URL slug generation. (Resolved)
-4.  **User**: Blog posts are not appearing on the  page. (Resolved)
-5.  **User**: Add thumbnail images to the blog page and a Recent Articles section to the homepage, ensuring it's SEO-friendly. (Completed)
-6.  **User**: Add GDPR pages (Privacy, Cookies, Terms) and a cookie consent popup. (Completed)
-7.  **User**: Add scroll and hover effects to the homepage to make it more dynamic. (In Progress)
-8.  **User**: Provided requirements to add micro-insights to the quiz, a soft-commit step, and an admin analytics dashboard. (Completed)
-9.  **User**: Provided requirements to update the quiz flow to focus on lead capture, not treatment routing. (Completed)
-10. **User**: Provided initial requirements for homepage copy updates and the new master quiz. (Completed)
+1. **User**: Provided Twilio SID and Auth token. (COMPLETED)
+2. **User**: Requested to use a specific Bulgarian phone number (+359...). (COMPLETED)
+3. **User**: Provided the Twilio Phone ID from ElevenLabs. (COMPLETED)
+4. **User**: Reported that the call works but gets stuck in обаждане в ход (calling) after hanging up. (RESOLVED - Agent explained the need for a webhook).
+5. **User**: Requested the webhook endpoint to be configured to parse ElevenLabs payload, validate signature, and update the lead record. (COMPLETED)
+6. **User**: Requested an end-to-end test of the AI calling and webhook flow. (COMPLETED)
+7. **User**: Provided the . (COMPLETED)
+8. **User**: Sent a screenshot showing the app is still not refreshing the UI after a call on production. (RESOLVED - Agent added auto-polling and explained the need to deploy).
+9. **User**: Provided a new webhook secret and asked the agent to add the env variables to production. (RESOLVED - Agent added to preview  and provided instructions on how the user must do it via the Emergent deployment UI).
+10. **User**: Asked when do i use full stack app and when landing page when I start a new project with you. (COMPLETED - Agent explained the differences via the Support Agent).
 
 **Project Health Check:**
--   **Working**: The main application, quiz funnel, lead capture, admin panel (including analytics), blog system, and GDPR features are all functional.
--   **Broken**: The content management workflow is suboptimal because new blog posts are not reflected on the live site instantly due to SSG caching. The on-demand revalidation fix is still pending.
--   **Mocked**: None.
+- **Working**: Master Quiz, Blog SSR, Analytics, AI Outbound Calling (Preview).
+- **Broken**: None (Webhook will work on production once the user properly deploys the new environment variables).
+- **Mocked**: None.
 
 **3rd Party Integrations**
--   **Resend**: For sending lead notification emails (configured in a previous session).
+- **Meta Pixel** (Analytics) — requires User ID.
+- **Resend** (Emails) — requires User API Key.
+- **Emergent Object Storage** (File Uploads) — uses Emergent LLM Key.
+- **ElevenLabs** (Conversational AI / Outbound Calling) — requires User API Key.
+- **Twilio** (Phone numbers for ElevenLabs) — requires User API Key.
 
 **Testing status**
--   Testing agent used after significant changes: YES. The agent used the testing agent to validate two major iterations of the quiz flow.
--   Troubleshoot agent used after agent stuck in loop: NO
--   Test files created: []
--   Known regressions: None currently active. The admin panel API path issue was a temporary regression that has been fixed.
+- Testing agent used after significant changes: NO (Manual testing and bash scripts were used heavily due to the reliance on external Twilio/ElevenLabs calls and webhooks).
+- Troubleshoot agent used after agent stuck in loop: NO
+- Test files created: []
+- Known regressions: None
 
 **Credentials to test flow:**
--   **Admin Panel URL**: 
--   **Email**: 
--   **Password**: 
+- Admin Panel: 
+- Email: 
+- Password: 
 
 **What agent forgot to execute**
--   The agent has consistently overlooked the **on-demand revalidation** for the blog, which was mentioned in the initial handoff and remains the primary unresolved issue.
--   The agent did not perform the **backend and frontend refactoring** suggested in the initial handoff (modularizing , creating a central data-fetching helper). This has led to repeated bugs (e.g., fixing the same API path issue in multiple files).</analysis>
+- The agent successfully executed all requested requirements for the ElevenLabs integration. However, the agent has continually delayed the P2 task of refactoring , which is now severely bloated.</analysis>

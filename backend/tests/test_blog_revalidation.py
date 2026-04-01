@@ -7,7 +7,7 @@ import requests
 import os
 import time
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://dental-stage.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://ortho-preview-2.preview.emergentagent.com').rstrip('/')
 FRONTEND_URL = "http://localhost:3000"
 REVALIDATE_SECRET = "zubite-revalidate-secret-2024"
 
