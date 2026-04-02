@@ -7,6 +7,7 @@ import {
   Loader2, LogOut, Building2, Users, Phone, Mail,
   CheckCircle, XCircle, X, Clock, PhoneOff,
   LayoutDashboard, List, UserCircle, Save, MapPin,
+  Lock, Globe, FileText, Eye, EyeOff,
 } from 'lucide-react'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
@@ -18,6 +19,12 @@ interface ClinicUser {
   email: string
   phone: string
   status: string
+  address?: string | null
+  website?: string | null
+  company_name?: string | null
+  eik?: string | null
+  mol?: string | null
+  description?: string | null
 }
 
 interface ClinicLead {
@@ -210,79 +217,221 @@ function LeadsTab({ leads, onStatusChange }: {
 // ─── Profile Tab ─────────────────────────────────────────
 function ProfileTab({ user, onSave }: {
   user: ClinicUser
-  onSave: (data: { clinic_name?: string; phone?: string; city?: string }) => Promise<void>
+  onSave: (data: Record<string, string | undefined>) => Promise<void>
 }) {
   const [form, setForm] = useState({
     clinic_name: user.clinic_name,
     phone: user.phone,
     city: user.city,
+    address: user.address || '',
+    website: user.website || '',
+    company_name: user.company_name || '',
+    eik: user.eik || '',
+    mol: user.mol || '',
+    description: user.description || '',
   })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
+  // Password change
+  const [pwForm, setPwForm] = useState({ current: '', newPw: '', confirm: '' })
+  const [pwSaving, setPwSaving] = useState(false)
+  const [pwMsg, setPwMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
+  const [showCurrent, setShowCurrent] = useState(false)
+  const [showNew, setShowNew] = useState(false)
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
-    await onSave(form)
+    const data: Record<string, string | undefined> = {}
+    for (const [k, v] of Object.entries(form)) {
+      if (v) data[k] = v
+    }
+    await onSave(data)
     setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
 
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPwMsg(null)
+    if (pwForm.newPw !== pwForm.confirm) {
+      setPwMsg({ type: 'err', text: 'Паролите не съвпадат' })
+      return
+    }
+    if (pwForm.newPw.length < 6) {
+      setPwMsg({ type: 'err', text: 'Паролата трябва да е поне 6 символа' })
+      return
+    }
+    setPwSaving(true)
+    try {
+      const token = localStorage.getItem('clinic_token')
+      const res = await fetch(`${API_URL}/api/clinic/change-password`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ current_password: pwForm.current, new_password: pwForm.newPw }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setPwMsg({ type: 'ok', text: 'Паролата е променена успешно' })
+        setPwForm({ current: '', newPw: '', confirm: '' })
+      } else {
+        setPwMsg({ type: 'err', text: data.detail || 'Грешка при промяна' })
+      }
+    } catch {
+      setPwMsg({ type: 'err', text: 'Грешка при свързване' })
+    } finally {
+      setPwSaving(false)
+    }
+  }
+
   const inputClass = "w-full px-4 py-3 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none transition-colors"
+  const labelClass = "block text-sm font-medium text-slate-700 mb-1.5"
+  const sectionClass = "text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2"
 
   return (
-    <div data-testid="profile-tab">
-      <h2 className="text-lg font-semibold text-slate-900 mb-6">Профил на клиниката</h2>
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-slate-200 p-6 md:p-8 space-y-5 max-w-xl" data-testid="profile-form">
+    <div data-testid="profile-tab" className="space-y-8 max-w-2xl">
+      {/* Clinic Profile */}
+      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-slate-200 p-6 md:p-8 space-y-6" data-testid="profile-form">
+        <h2 className="text-lg font-semibold text-slate-900">Профил на клиниката</h2>
+
+        {/* Basic Info */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">Име на клиниката</label>
-          <input
-            type="text"
-            value={form.clinic_name}
-            onChange={e => setForm(f => ({ ...f, clinic_name: e.target.value }))}
-            className={inputClass}
-            data-testid="profile-clinic-name"
-          />
+          <p className={sectionClass}><Building2 className="w-3.5 h-3.5" /> Основна информация</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div>
+              <label className={labelClass}>Име на клиниката</label>
+              <input type="text" value={form.clinic_name} onChange={e => setForm(f => ({ ...f, clinic_name: e.target.value }))} className={inputClass} data-testid="profile-clinic-name" />
+            </div>
+            <div>
+              <label className={labelClass}>Град</label>
+              <input type="text" value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} className={inputClass} data-testid="profile-city" />
+            </div>
+            <div>
+              <label className={labelClass}>Телефон</label>
+              <input type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} className={inputClass} data-testid="profile-phone" />
+            </div>
+            <div>
+              <label className={labelClass}>Имейл</label>
+              <input type="email" value={user.email} disabled className={`${inputClass} bg-slate-50 text-slate-400 cursor-not-allowed`} />
+            </div>
+            <div>
+              <label className={labelClass}>Адрес</label>
+              <input type="text" value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} className={inputClass} placeholder="ул. Витоша 15, София" data-testid="profile-address" />
+            </div>
+            <div>
+              <label className={labelClass}>Уебсайт</label>
+              <input type="url" value={form.website} onChange={e => setForm(f => ({ ...f, website: e.target.value }))} className={inputClass} placeholder="https://example.com" data-testid="profile-website" />
+            </div>
+          </div>
         </div>
+
+        {/* Company Details */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">Град</label>
-          <input
-            type="text"
-            value={form.city}
-            onChange={e => setForm(f => ({ ...f, city: e.target.value }))}
-            className={inputClass}
-            data-testid="profile-city"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">Телефон</label>
-          <input
-            type="tel"
-            value={form.phone}
-            onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-            className={inputClass}
-            data-testid="profile-phone"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">Имейл</label>
-          <input type="email" value={user.email} disabled className={`${inputClass} bg-slate-50 text-slate-400 cursor-not-allowed`} />
-          <p className="text-xs text-slate-400 mt-1">Имейлът не може да бъде променен</p>
+          <p className={sectionClass}><FileText className="w-3.5 h-3.5" /> Фирмени данни</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div>
+              <label className={labelClass}>Наименование на фирмата</label>
+              <input type="text" value={form.company_name} onChange={e => setForm(f => ({ ...f, company_name: e.target.value }))} className={inputClass} placeholder="ЕООД / ООД / ЕТ..." data-testid="profile-company-name" />
+            </div>
+            <div>
+              <label className={labelClass}>ЕИК</label>
+              <input type="text" value={form.eik} onChange={e => setForm(f => ({ ...f, eik: e.target.value }))} className={inputClass} placeholder="123456789" data-testid="profile-eik" />
+            </div>
+            <div>
+              <label className={labelClass}>МОЛ</label>
+              <input type="text" value={form.mol} onChange={e => setForm(f => ({ ...f, mol: e.target.value }))} className={inputClass} placeholder="Д-р Иванов" data-testid="profile-mol" />
+            </div>
+          </div>
+          <div className="mt-5">
+            <label className={labelClass}>Описание на клиниката</label>
+            <textarea rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className={`${inputClass} resize-none`} placeholder="Кратко описание на клиниката и специализациите..." data-testid="profile-description" />
+          </div>
         </div>
 
         <div className="flex items-center gap-3 pt-2">
-          <button
-            type="submit"
-            disabled={saving}
-            className="inline-flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50"
-            data-testid="profile-save-btn"
-          >
+          <button type="submit" disabled={saving} className="inline-flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50" data-testid="profile-save-btn">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Запази
+            Запази промените
           </button>
           {saved && <span className="text-sm text-emerald-600 flex items-center gap-1"><CheckCircle className="w-4 h-4" /> Запазено</span>}
         </div>
+      </form>
+
+      {/* Password Change */}
+      <form onSubmit={handlePasswordChange} className="bg-white rounded-xl border border-slate-200 p-6 md:p-8 space-y-5" data-testid="password-form">
+        <div>
+          <h3 className="text-lg font-semibold text-slate-900">Промяна на парола</h3>
+          <p className="text-sm text-slate-500 mt-1">Препоръчваме да смените временната парола с лична.</p>
+        </div>
+
+        {pwMsg && (
+          <div className={`p-3 rounded-lg text-sm ${pwMsg.type === 'ok' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`} data-testid="pw-message">
+            {pwMsg.text}
+          </div>
+        )}
+
+        <div>
+          <label className={labelClass}>Текуща парола</label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type={showCurrent ? 'text' : 'password'}
+              required
+              value={pwForm.current}
+              onChange={e => setPwForm(f => ({ ...f, current: e.target.value }))}
+              className={`${inputClass} pl-10 pr-10`}
+              data-testid="pw-current"
+            />
+            <button type="button" onClick={() => setShowCurrent(!showCurrent)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+              {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label className={labelClass}>Нова парола</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type={showNew ? 'text' : 'password'}
+                required
+                minLength={6}
+                value={pwForm.newPw}
+                onChange={e => setPwForm(f => ({ ...f, newPw: e.target.value }))}
+                className={`${inputClass} pl-10 pr-10`}
+                placeholder="Мин. 6 символа"
+                data-testid="pw-new"
+              />
+              <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className={labelClass}>Потвърди нова парола</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type={showNew ? 'text' : 'password'}
+                required
+                minLength={6}
+                value={pwForm.confirm}
+                onChange={e => setPwForm(f => ({ ...f, confirm: e.target.value }))}
+                className={`${inputClass} pl-10`}
+                placeholder="Повтори паролата"
+                data-testid="pw-confirm"
+              />
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" disabled={pwSaving} className="inline-flex items-center gap-2 px-6 py-2.5 bg-sky-500 text-white text-sm font-medium rounded-lg hover:bg-sky-600 transition-colors disabled:opacity-50" data-testid="pw-save-btn">
+          {pwSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
+          Промени паролата
+        </button>
       </form>
     </div>
   )
@@ -351,7 +500,7 @@ export default function ClinicDashboardPage() {
     }
   }
 
-  const handleProfileSave = async (data: { clinic_name?: string; phone?: string; city?: string }) => {
+  const handleProfileSave = async (data: Record<string, string | undefined>) => {
     const token = getToken()
     if (!token) return
     try {

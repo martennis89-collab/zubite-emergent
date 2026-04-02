@@ -265,6 +265,13 @@ class ClinicUserOut(BaseModel):
     email: str
     phone: str
     status: str
+    # Company details
+    address: Optional[str] = None
+    website: Optional[str] = None
+    company_name: Optional[str] = None
+    eik: Optional[str] = None
+    mol: Optional[str] = None
+    description: Optional[str] = None
 
 class ClinicTokenResponse(BaseModel):
     access_token: str
@@ -275,6 +282,16 @@ class ClinicProfileUpdate(BaseModel):
     clinic_name: Optional[str] = None
     phone: Optional[str] = None
     city: Optional[str] = None
+    address: Optional[str] = None
+    website: Optional[str] = None
+    company_name: Optional[str] = None
+    eik: Optional[str] = None
+    mol: Optional[str] = None
+    description: Optional[str] = None
+
+class ClinicPasswordChange(BaseModel):
+    current_password: str
+    new_password: str
 
 class ClinicLeadStatusUpdate(BaseModel):
     status: str  # new, contacted, no_response
@@ -1954,6 +1971,12 @@ async def update_clinic_application(app_id: str, body: dict, user: AdminUser = D
                 "password_hash": hash_password(temp_password),
                 "status": "active",
                 "application_id": app_id,
+                "address": application.get("address", ""),
+                "website": application.get("website"),
+                "company_name": None,
+                "eik": None,
+                "mol": None,
+                "description": None,
                 "created_at": datetime.now(timezone.utc).isoformat(),
             }
             await db.clinics.insert_one(clinic_doc)
@@ -1963,10 +1986,56 @@ async def update_clinic_application(app_id: str, body: dict, user: AdminUser = D
                 "temporary_password": temp_password,
             }
 
+            # Send welcome email with credentials to the clinic
+            if RESEND_API_KEY:
+                try:
+                    resend.Emails.send({
+                        "from": SENDER_EMAIL,
+                        "to": application["email"],
+                        "subject": "Добре дошли в Zubite.bg — Вашият акаунт е одобрен",
+                        "html": f"""
+                        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 0;">
+                            <h1 style="font-size: 22px; color: #0f172a; margin-bottom: 8px;">Добре дошли в Zubite.bg</h1>
+                            <p style="color: #64748b; font-size: 15px; margin-bottom: 24px;">Вашата кандидатура за <strong>{application['clinic_name']}</strong> беше одобрена.</p>
+
+                            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+                                <p style="color: #475569; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 12px;">Данни за вход</p>
+                                <p style="color: #0f172a; font-size: 15px; margin: 0 0 8px;"><strong>Имейл:</strong> {application['email']}</p>
+                                <p style="color: #0f172a; font-size: 15px; margin: 0;"><strong>Парола:</strong> <code style="background: #e2e8f0; padding: 2px 8px; border-radius: 4px;">{temp_password}</code></p>
+                            </div>
+
+                            <p style="color: #64748b; font-size: 14px; margin-bottom: 24px;">Влезте в партньорския портал и сменете паролата си от секция "Профил".</p>
+
+                            <a href="https://zubite.bg/clinic" style="display: inline-block; background: #0ea5e9; color: white; text-decoration: none; padding: 12px 28px; border-radius: 24px; font-weight: 500; font-size: 14px;">Влез в портала</a>
+
+                            <p style="color: #94a3b8; font-size: 13px; margin-top: 32px;">С уважение,<br>Екипът на Zubite.bg</p>
+                        </div>
+                        """
+                    })
+                    logging.info(f"Welcome email sent to {application['email']}")
+                except Exception as e:
+                    logging.error(f"Failed to send welcome email: {e}")
+
     return response
 
 
 # ─── Clinic Auth & Dashboard ──────────────────────────────
+
+def _clinic_to_out(clinic: dict) -> ClinicUserOut:
+    return ClinicUserOut(
+        id=clinic["id"],
+        clinic_name=clinic["clinic_name"],
+        city=clinic["city"],
+        email=clinic["email"],
+        phone=clinic["phone"],
+        status=clinic["status"],
+        address=clinic.get("address"),
+        website=clinic.get("website"),
+        company_name=clinic.get("company_name"),
+        eik=clinic.get("eik"),
+        mol=clinic.get("mol"),
+        description=clinic.get("description"),
+    )
 
 @api_router.post("/clinic/login")
 async def clinic_login(data: ClinicLogin):
@@ -1979,28 +2048,11 @@ async def clinic_login(data: ClinicLogin):
     if clinic.get("status") == "paused":
         raise HTTPException(status_code=403, detail="Акаунтът е спрян")
     token = create_clinic_token(clinic["id"], clinic["email"])
-    return ClinicTokenResponse(
-        access_token=token,
-        user=ClinicUserOut(
-            id=clinic["id"],
-            clinic_name=clinic["clinic_name"],
-            city=clinic["city"],
-            email=clinic["email"],
-            phone=clinic["phone"],
-            status=clinic["status"],
-        ),
-    )
+    return ClinicTokenResponse(access_token=token, user=_clinic_to_out(clinic))
 
 @api_router.get("/clinic/profile")
 async def clinic_profile(clinic=Depends(get_current_clinic)):
-    return ClinicUserOut(
-        id=clinic["id"],
-        clinic_name=clinic["clinic_name"],
-        city=clinic["city"],
-        email=clinic["email"],
-        phone=clinic["phone"],
-        status=clinic["status"],
-    )
+    return _clinic_to_out(clinic)
 
 @api_router.patch("/clinic/profile")
 async def update_clinic_profile(data: ClinicProfileUpdate, clinic=Depends(get_current_clinic)):
@@ -2009,7 +2061,33 @@ async def update_clinic_profile(data: ClinicProfileUpdate, clinic=Depends(get_cu
         raise HTTPException(status_code=400, detail="No fields to update")
     await db.clinics.update_one({"id": clinic["id"]}, {"$set": update_fields})
     updated = await db.clinics.find_one({"id": clinic["id"]}, {"_id": 0, "password_hash": 0})
-    return ClinicUserOut(**updated)
+    return _clinic_to_out(updated)
+
+@api_router.post("/clinic/change-password")
+async def clinic_change_password(data: ClinicPasswordChange, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Change the clinic user's password"""
+    try:
+        payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        if payload.get("role") != "clinic":
+            raise HTTPException(status_code=403, detail="Not a clinic user")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    clinic = await db.clinics.find_one({"id": payload.get("sub")}, {"_id": 0})
+    if not clinic:
+        raise HTTPException(status_code=401, detail="Clinic not found")
+
+    if not verify_password(data.current_password, clinic["password_hash"]):
+        raise HTTPException(status_code=400, detail="Текущата парола е грешна")
+
+    if len(data.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Паролата трябва да е поне 6 символа")
+
+    await db.clinics.update_one(
+        {"id": clinic["id"]},
+        {"$set": {"password_hash": hash_password(data.new_password)}}
+    )
+    return {"status": "ok", "message": "Паролата е променена успешно"}
 
 @api_router.get("/clinic/dashboard")
 async def clinic_dashboard(clinic=Depends(get_current_clinic)):
