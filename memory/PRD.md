@@ -34,6 +34,12 @@ Homepage -> Quiz -> Result -> Lead Form -> Success
 
 ## Completed Work
 
+### April 2, 2026 - Clinic Enhancements (Email, Password, Company Details)
+- **Welcome email**: Auto-sent to clinic on approval with login credentials and portal link
+- **Password change**: `POST /api/clinic/change-password` with current/new password validation (min 6 chars)
+- **Company details in profile**: address, website, company_name, EIK, MOL, description — all editable from Profile tab
+- Frontend: Expanded ProfileTab with "Основна информация" + "Фирмени данни" sections + password change form with visibility toggles
+
 ### April 1, 2026 - Clinic User Accounts & Dashboard
 - **Clinic Auth**: email + password login at `/clinic` with JWT tokens (role="clinic")
 - **DB table `clinics`**: id, clinic_name, city, email, phone, password_hash, status (active/probation/paused), created_at
