@@ -34,6 +34,11 @@ Homepage -> Quiz -> Result -> Lead Form -> Success
 
 ## Completed Work
 
+### April 2, 2026 - Regenerate Clinic Password
+- **New endpoint**: `POST /api/admin/clinic-applications/{app_id}/regenerate-password` — finds clinic by application_id, generates new random password, updates DB, sends email via Resend
+- **Frontend**: "Генерирай нова парола" button in the DetailView modal for approved clinics, shows credentials with copy button and email delivery status
+- Acts as fallback when welcome emails fail or admin forgets to copy initial password
+
 ### April 2, 2026 - Verification Fixes & Table Column
 - **Bug fix**: Email links now use the actual server URL (from request headers) instead of hardcoded PRODUCTION_URL — works on both preview and production
 - **Bug fix**: Lead `verification_status` now updated to "pending" immediately when verification is sent
@@ -174,8 +179,7 @@ Homepage -> Quiz -> Result -> Lead Form -> Success
 - [ ] More cities in lead form
 - [ ] Automated AI calling (X minutes after quiz)
 - [ ] Expand admin panel (homepage text, treatment management)
-- [ ] Clinic password reset flow
 
 ---
 
-*Last updated: April 1, 2026*
+*Last updated: April 2, 2026*

@@ -7,7 +7,7 @@ import {
   Loader2, LogOut, TrendingUp, FileText, Building2, Users,
   CheckCircle, XCircle, X, Clock, Search, ChevronLeft,
   Globe, MapPin, Phone, Mail, Calendar, Shield, Target,
-  MessageSquare, Save, ArrowLeft,
+  MessageSquare, Save, ArrowLeft, KeyRound, Copy, Check,
 } from 'lucide-react'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
@@ -84,6 +84,32 @@ function DetailView({ app, onClose, onUpdate }: {
   const [saving, setSaving] = useState(false)
   const [currentStatus, setCurrentStatus] = useState(app.status)
   const [credentials, setCredentials] = useState<{ email: string; temporary_password: string } | null>(null)
+  const [regenLoading, setRegenLoading] = useState(false)
+  const [regenResult, setRegenResult] = useState<{ email: string; password: string; email_sent: boolean } | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  const handleRegeneratePassword = async () => {
+    setRegenLoading(true)
+    setRegenResult(null)
+    const token = localStorage.getItem('admin_token')
+    try {
+      const res = await fetch(`${API_URL}/api/admin/clinic-applications/${app.id}/regenerate-password`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setRegenResult({ email: data.credentials.email, password: data.credentials.password, email_sent: data.email_sent })
+      }
+    } catch (e) { /* silent */ }
+    setRegenLoading(false)
+  }
+
+  const copyPassword = (text: string) => {
+    navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   const handleStatusChange = async (newStatus: string) => {
     setSaving(true)
@@ -157,6 +183,43 @@ function DetailView({ app, onClose, onUpdate }: {
                 <p>Парола: <code className="font-mono bg-emerald-100 px-1.5 py-0.5 rounded">{credentials.temporary_password}</code></p>
               </div>
               <p className="text-xs text-emerald-600 mt-2">Изпратете тези данни на клиниката. Вход: /clinic</p>
+            </div>
+          )}
+
+          {/* Regenerate Password (only for approved clinics) */}
+          {currentStatus === 'approved' && (
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200" data-testid="regenerate-password-section">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <KeyRound className="w-4 h-4 text-slate-500" />
+                  <p className="text-sm font-medium text-slate-700">Парола за клиника</p>
+                </div>
+                <button
+                  onClick={handleRegeneratePassword}
+                  disabled={regenLoading}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-white text-sm font-medium rounded-lg hover:bg-amber-600 transition-colors disabled:opacity-50"
+                  data-testid="regenerate-password-btn"
+                >
+                  {regenLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+                  Генерирай нова парола
+                </button>
+              </div>
+              {regenResult && (
+                <div className="mt-3 p-3 bg-white border border-slate-200 rounded-lg" data-testid="regenerated-credentials">
+                  <div className="space-y-1 text-sm text-slate-700">
+                    <p>Имейл: <code className="font-mono bg-slate-100 px-1.5 py-0.5 rounded">{regenResult.email}</code></p>
+                    <div className="flex items-center gap-2">
+                      <p>Парола: <code className="font-mono bg-slate-100 px-1.5 py-0.5 rounded">{regenResult.password}</code></p>
+                      <button onClick={() => copyPassword(regenResult.password)} className="p-1 hover:bg-slate-100 rounded transition-colors" data-testid="copy-password-btn">
+                        {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-xs mt-2 text-slate-500">
+                    {regenResult.email_sent ? '✓ Имейл с новата парола е изпратен.' : 'Имейлът не беше изпратен — копирайте паролата ръчно.'}
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
