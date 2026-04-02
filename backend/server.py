@@ -2305,6 +2305,58 @@ async def admin_list_clinic_accounts(user: AdminUser = Depends(get_current_user)
     ).sort("created_at", -1).to_list(100)
     return {"clinics": clinics}
 
+@api_router.post("/admin/clinic-accounts/{clinic_id}/reset-password")
+async def admin_reset_clinic_password(clinic_id: str, request: Request, user: AdminUser = Depends(get_current_user)):
+    """Generate a new password for a clinic and send it via email"""
+    clinic = await db.clinics.find_one({"id": clinic_id, "password_hash": {"$exists": True}}, {"_id": 0})
+    if not clinic:
+        raise HTTPException(status_code=404, detail="Clinic account not found")
+
+    new_password = secrets.token_urlsafe(10)
+    await db.clinics.update_one(
+        {"id": clinic_id},
+        {"$set": {"password_hash": hash_password(new_password)}}
+    )
+
+    email_sent = False
+    if RESEND_API_KEY and clinic.get("email"):
+        # Build portal URL from request
+        forwarded = request.headers.get('x-forwarded-host') or request.headers.get('host')
+        scheme = request.headers.get('x-forwarded-proto', 'https')
+        portal_url = f"{scheme}://{forwarded}/clinic" if forwarded else "https://zubite.bg/clinic"
+        try:
+            resend.Emails.send({
+                "from": SENDER_EMAIL,
+                "to": clinic["email"],
+                "subject": "Нова парола за Zubite.bg",
+                "html": f"""
+                <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 0;">
+                    <h1 style="font-size: 22px; color: #0f172a; margin-bottom: 8px;">Нова парола</h1>
+                    <p style="color: #64748b; font-size: 15px; margin-bottom: 24px;">Паролата за акаунта на <strong>{clinic['clinic_name']}</strong> беше обновена.</p>
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+                        <p style="color: #475569; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 12px;">Данни за вход</p>
+                        <p style="color: #0f172a; font-size: 15px; margin: 0 0 8px;"><strong>Имейл:</strong> {clinic['email']}</p>
+                        <p style="color: #0f172a; font-size: 15px; margin: 0;"><strong>Парола:</strong> <code style="background: #e2e8f0; padding: 2px 8px; border-radius: 4px;">{new_password}</code></p>
+                    </div>
+                    <a href="{portal_url}" style="display: inline-block; background: #0ea5e9; color: white; text-decoration: none; padding: 12px 28px; border-radius: 24px; font-weight: 500; font-size: 14px;">Влез в портала</a>
+                    <p style="color: #94a3b8; font-size: 13px; margin-top: 32px;">С уважение,<br>Екипът на Zubite.bg</p>
+                </div>
+                """
+            })
+            email_sent = True
+            logging.info(f"Password reset email sent to {clinic['email']}")
+        except Exception as e:
+            logging.error(f"Failed to send password reset email: {e}")
+
+    return {
+        "status": "ok",
+        "credentials": {
+            "email": clinic["email"],
+            "password": new_password,
+        },
+        "email_sent": email_sent,
+    }
+
 
 app.include_router(api_router)
 
