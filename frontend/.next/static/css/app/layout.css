@@ -783,6 +783,9 @@ h3{
 .mt-1{
   margin-top: 0.25rem;
 }
+.mt-1\.5{
+  margin-top: 0.375rem;
+}
 .mt-10{
   margin-top: 2.5rem;
 }
@@ -806,9 +809,6 @@ h3{
 }
 .mt-8{
   margin-top: 2rem;
-}
-.mt-1\.5{
-  margin-top: 0.375rem;
 }
 .line-clamp-2{
   overflow: hidden;
@@ -3394,16 +3394,16 @@ h3{
   cursor: not-allowed;
 }
 
+.disabled\:opacity-40:disabled{
+  opacity: 0.4;
+}
+
 .disabled\:opacity-50:disabled{
   opacity: 0.5;
 }
 
 .disabled\:opacity-60:disabled{
   opacity: 0.6;
-}
-
-.disabled\:opacity-40:disabled{
-  opacity: 0.4;
 }
 
 .group:hover .group-hover\:translate-x-1{

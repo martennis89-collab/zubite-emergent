@@ -2150,7 +2150,7 @@ async def admin_assign_lead_to_clinic(lead_id: str, body: dict, user: AdminUser 
 
 PRODUCTION_URL = os.environ.get('PRODUCTION_URL', 'https://zubite.bg')
 
-async def send_verification_email(lead: dict, token: str):
+async def send_verification_email(lead: dict, token: str, base_url: str):
     """Send verification email to the patient"""
     email = lead.get("email")
     name = lead.get("name", "")
@@ -2158,7 +2158,7 @@ async def send_verification_email(lead: dict, token: str):
         logging.warning(f"Lead {lead['id']} has no email — skipping verification")
         return False
 
-    verify_url = f"{PRODUCTION_URL}/verify/{token}"
+    verify_url = f"{base_url}/verify/{token}"
     yes_url = f"{verify_url}?response=yes"
     no_url = f"{verify_url}?response=no"
 
@@ -2196,7 +2196,7 @@ async def send_verification_email(lead: dict, token: str):
         return False
 
 @api_router.post("/admin/leads/{lead_id}/send-verification")
-async def admin_send_verification(lead_id: str, user: AdminUser = Depends(get_current_user)):
+async def admin_send_verification(lead_id: str, request: Request, user: AdminUser = Depends(get_current_user)):
     """Manually trigger verification email for a lead"""
     lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
     if not lead:
@@ -2206,7 +2206,7 @@ async def admin_send_verification(lead_id: str, user: AdminUser = Depends(get_cu
     if not lead.get("email"):
         raise HTTPException(status_code=400, detail="Lead has no email address")
 
-    # Check if verification already sent
+    # Check if verification already sent and not responded
     existing = await db.lead_verifications.find_one({"lead_id": lead_id, "response": {"$exists": False}})
     if existing:
         raise HTTPException(status_code=400, detail="Verification already pending for this lead")
@@ -2222,7 +2222,22 @@ async def admin_send_verification(lead_id: str, user: AdminUser = Depends(get_cu
     }
     await db.lead_verifications.insert_one(doc)
 
-    sent = await send_verification_email(lead, token)
+    # Use request origin for email links (works for both preview and production)
+    base_url = str(request.base_url).rstrip('/')
+    # If behind proxy (Kubernetes ingress), use the forwarded host
+    forwarded = request.headers.get('x-forwarded-host') or request.headers.get('host')
+    scheme = request.headers.get('x-forwarded-proto', 'https')
+    if forwarded:
+        base_url = f"{scheme}://{forwarded}"
+
+    sent = await send_verification_email(lead, token, base_url)
+
+    # Update lead verification status to pending
+    await db.leads.update_one(
+        {"id": lead_id},
+        {"$set": {"verification_status": "pending"}}
+    )
+
     if not sent:
         return {"status": "warning", "message": "Verification record created but email could not be sent"}
 
@@ -2392,7 +2407,8 @@ async def auto_verification_loop():
                     "auto_sent": True,
                 }
                 await db.lead_verifications.insert_one(doc)
-                await send_verification_email(lead, token)
+                auto_base_url = os.environ.get('PRODUCTION_URL', 'https://zubite.bg')
+                await send_verification_email(lead, token, auto_base_url)
                 await db.leads.update_one(
                     {"id": lead["id"]},
                     {"$set": {"verification_status": "pending"}}

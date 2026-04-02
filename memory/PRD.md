@@ -34,6 +34,11 @@ Homepage -> Quiz -> Result -> Lead Form -> Success
 
 ## Completed Work
 
+### April 2, 2026 - Verification Fixes & Table Column
+- **Bug fix**: Email links now use the actual server URL (from request headers) instead of hardcoded PRODUCTION_URL — works on both preview and production
+- **Bug fix**: Lead `verification_status` now updated to "pending" immediately when verification is sent
+- **New**: "ВЕРИФИК." column in admin leads table showing verification status (Да/Не/... badges)
+
 ### April 2, 2026 - Verification Button in Admin Leads Dashboard
 - Added "Клиника & Верификация" panel to lead detail modal
 - **Clinic assignment**: Dropdown with all clinic accounts + "Насочи" button
