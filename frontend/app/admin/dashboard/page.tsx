@@ -6,9 +6,12 @@ import Link from 'next/link'
 import { 
   Loader2, LogOut, Users, TrendingUp, MapPin, Phone, Mail, 
   Calendar, Filter, RefreshCw, CheckCircle, 
-  AlertCircle, XCircle, FileDown, Search, FileText, X, Save, Trash2, RotateCcw
+  AlertCircle, XCircle, FileDown, Search, FileText, X, Save, Trash2, RotateCcw,
+  Building2, ShieldCheck, Send, AlertTriangle, Clock,
 } from 'lucide-react'
 import { AICallPanel } from '@/components/AICallPanel'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
 // Quiz questions mapping
 const QUESTIONS: Record<string, string> = {
@@ -58,6 +61,10 @@ interface Lead {
   call_transcript?: Array<{ role: string; message: string; time_in_call_secs?: number }>
   call_outcome_json?: Record<string, unknown>
   call_error_message?: string
+  // Verification & clinic assignment
+  assigned_clinic_id?: string
+  clinic_lead_status?: string
+  verification_status?: string
 }
 
 interface Stats {
@@ -97,6 +104,145 @@ const STATUS_OPTIONS = [
   { value: 'COMPLETED', label: 'Завършен' },
   { value: 'CANCELLED', label: 'Отказан' }
 ]
+
+const VERIFICATION_STATUS: Record<string, { label: string; color: string; icon: React.ElementType }> = {
+  pending: { label: 'Изпратено', color: 'text-amber-600 bg-amber-50 border-amber-200', icon: Clock },
+  verified: { label: 'Потвърдено', color: 'text-emerald-600 bg-emerald-50 border-emerald-200', icon: CheckCircle },
+  flagged: { label: 'Флагирано', color: 'text-red-600 bg-red-50 border-red-200', icon: AlertTriangle },
+}
+
+interface ClinicOption { id: string; clinic_name: string; city: string }
+
+function ClinicVerificationPanel({ lead, onMessage, onLeadUpdate }: {
+  lead: Lead
+  onMessage: (msg: { type: 'success' | 'error'; text: string }) => void
+  onLeadUpdate: (lead: Lead) => void
+}) {
+  const [clinics, setClinics] = useState<ClinicOption[]>([])
+  const [selectedClinicId, setSelectedClinicId] = useState(lead.assigned_clinic_id || '')
+  const [assigning, setAssigning] = useState(false)
+  const [sendingVerification, setSendingVerification] = useState(false)
+
+  useEffect(() => {
+    const token = localStorage.getItem('admin_token')
+    if (!token) return
+    fetch(`${API_URL}/api/admin/clinic-accounts`, { headers: { 'Authorization': `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => setClinics(d.clinics || []))
+      .catch(() => {})
+  }, [])
+
+  const handleAssign = async () => {
+    if (!selectedClinicId) return
+    const token = localStorage.getItem('admin_token')
+    setAssigning(true)
+    try {
+      const res = await fetch(`${API_URL}/api/admin/leads/${lead.id}/assign-clinic`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clinic_id: selectedClinicId }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        onMessage({ type: 'success', text: `Лийдът е насочен към ${data.assigned_to}` })
+        onLeadUpdate({ ...lead, assigned_clinic_id: selectedClinicId, clinic_lead_status: 'new' })
+      } else {
+        onMessage({ type: 'error', text: data.detail || 'Грешка' })
+      }
+    } catch { onMessage({ type: 'error', text: 'Грешка при свързване' }) }
+    finally { setAssigning(false) }
+  }
+
+  const handleSendVerification = async () => {
+    const token = localStorage.getItem('admin_token')
+    setSendingVerification(true)
+    try {
+      const res = await fetch(`${API_URL}/api/admin/leads/${lead.id}/send-verification`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      })
+      const data = await res.json()
+      if (res.ok) {
+        onMessage({ type: 'success', text: data.message || 'Верификацията е изпратена' })
+        onLeadUpdate({ ...lead, verification_status: 'pending' })
+      } else {
+        onMessage({ type: 'error', text: data.detail || 'Грешка' })
+      }
+    } catch { onMessage({ type: 'error', text: 'Грешка при свързване' }) }
+    finally { setSendingVerification(false) }
+  }
+
+  const assignedClinic = clinics.find(c => c.id === lead.assigned_clinic_id)
+  const vStatus = lead.verification_status ? VERIFICATION_STATUS[lead.verification_status] : null
+
+  return (
+    <div className="bg-slate-50 rounded-xl p-5 space-y-4" data-testid="clinic-verification-panel">
+      <h3 className="font-medium text-slate-900 flex items-center gap-2">
+        <Building2 className="w-4 h-4 text-slate-400" />
+        Клиника & Верификация
+      </h3>
+
+      {/* Assign to Clinic */}
+      <div>
+        <label className="block text-sm font-medium text-slate-600 mb-1.5">Насочи към клиника</label>
+        <div className="flex gap-2">
+          <select
+            value={selectedClinicId}
+            onChange={e => setSelectedClinicId(e.target.value)}
+            className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+            data-testid="assign-clinic-select"
+          >
+            <option value="">Изберете клиника</option>
+            {clinics.map(c => (
+              <option key={c.id} value={c.id}>{c.clinic_name} — {c.city}</option>
+            ))}
+          </select>
+          <button
+            onClick={handleAssign}
+            disabled={assigning || !selectedClinicId}
+            className="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-40 flex items-center gap-1.5"
+            data-testid="assign-clinic-btn"
+          >
+            {assigning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Building2 className="w-4 h-4" />}
+            Насочи
+          </button>
+        </div>
+        {assignedClinic && (
+          <p className="text-xs text-sky-600 mt-1.5 flex items-center gap-1">
+            <CheckCircle className="w-3 h-3" />
+            Насочен към: {assignedClinic.clinic_name}
+          </p>
+        )}
+      </div>
+
+      {/* Verification Status & Send */}
+      <div className="flex items-center justify-between pt-2 border-t border-slate-200">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="w-4 h-4 text-slate-400" />
+          <span className="text-sm text-slate-600">Верификация:</span>
+          {vStatus ? (
+            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${vStatus.color}`} data-testid="verification-badge">
+              <vStatus.icon className="w-3 h-3" />
+              {vStatus.label}
+            </span>
+          ) : (
+            <span className="text-xs text-slate-400">Не е изпратена</span>
+          )}
+        </div>
+        <button
+          onClick={handleSendVerification}
+          disabled={sendingVerification || !lead.assigned_clinic_id || !lead.email}
+          title={!lead.assigned_clinic_id ? 'Лийдът трябва да е насочен към клиника' : !lead.email ? 'Лийдът няма имейл' : 'Изпрати верификация'}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-sky-700 bg-sky-50 border border-sky-200 rounded-lg hover:bg-sky-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          data-testid="send-verification-btn"
+        >
+          {sendingVerification ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+          Изпрати верификация
+        </button>
+      </div>
+    </div>
+  )
+}
 
 export default function AdminDashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
@@ -864,6 +1010,16 @@ export default function AdminDashboardPage() {
                             setLeads(data)
                           }
                         }
+                      }}
+                    />
+
+                    {/* Clinic Assignment & Verification Panel */}
+                    <ClinicVerificationPanel
+                      lead={selectedLead}
+                      onMessage={setMessage}
+                      onLeadUpdate={(updated) => {
+                        setSelectedLead(updated)
+                        setLeads(prev => prev.map(l => l.id === updated.id ? updated : l))
                       }}
                     />
 
