@@ -34,6 +34,15 @@ Homepage -> Quiz -> Result -> Lead Form -> Success
 
 ## Completed Work
 
+### April 2, 2026 - Lead Verification System
+- **Verification flow**: Admin triggers or auto-send 24h after lead assignment → email with "Свърза ли се клиниката с вас?" (Да/Не buttons) → patient clicks → response stored
+- **DB**: `lead_verifications` collection with lead_id, clinic_id, token, response, timestamps
+- **Status updates**: Yes → `verification_status: "verified"`, No → `verification_status: "flagged"`
+- **Auto-send**: Background loop checks every hour for leads assigned 24h+ ago without verification
+- **Admin endpoints**: `POST /api/admin/leads/{id}/send-verification`, `GET /api/admin/verifications`, `GET /api/admin/verifications/flagged`
+- **Public page**: `/verify/[token]` with Да/Не buttons, success messages, error handling
+- **Note**: Email delivery works in production with verified Resend domain
+
 ### April 2, 2026 - Clinic Enhancements (Email, Password, Company Details)
 - **Welcome email**: Auto-sent to clinic on approval with login credentials and portal link
 - **Password change**: `POST /api/clinic/change-password` with current/new password validation (min 6 chars)
