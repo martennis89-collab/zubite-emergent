@@ -34,6 +34,12 @@ Homepage -> Quiz -> Result -> Lead Form -> Success
 
 ## Completed Work
 
+### April 2, 2026 - Verification Button in Admin Leads Dashboard
+- Added "Клиника & Верификация" panel to lead detail modal
+- **Clinic assignment**: Dropdown with all clinic accounts + "Насочи" button
+- **Verification trigger**: "Изпрати верификация" button (disabled if no clinic or no email)
+- **Status badge**: Shows pending (amber) / verified (green) / flagged (red)
+
 ### April 2, 2026 - Lead Verification System
 - **Verification flow**: Admin triggers or auto-send 24h after lead assignment → email with "Свърза ли се клиниката с вас?" (Да/Не buttons) → patient clicks → response stored
 - **DB**: `lead_verifications` collection with lead_id, clinic_id, token, response, timestamps
