@@ -4,7 +4,5 @@
   "/za-kliniki/page": "app/za-kliniki/page.js",
   "/page": "app/page.js",
   "/clinic/dashboard/page": "app/clinic/dashboard/page.js",
-  "/clinic/page": "app/clinic/page.js",
-  "/admin/page": "app/admin/page.js",
-  "/admin/dashboard/page": "app/admin/dashboard/page.js"
+  "/verify/[token]/page": "app/verify/[token]/page.js"
 }

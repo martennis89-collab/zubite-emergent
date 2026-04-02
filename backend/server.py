@@ -2146,6 +2146,141 @@ async def admin_assign_lead_to_clinic(lead_id: str, body: dict, user: AdminUser 
         raise HTTPException(status_code=404, detail="Lead not found")
     return {"status": "ok", "assigned_to": clinic.get("clinic_name")}
 
+# ─── Lead Verification System ─────────────────────────────
+
+PRODUCTION_URL = os.environ.get('PRODUCTION_URL', 'https://zubite.bg')
+
+async def send_verification_email(lead: dict, token: str):
+    """Send verification email to the patient"""
+    email = lead.get("email")
+    name = lead.get("name", "")
+    if not email:
+        logging.warning(f"Lead {lead['id']} has no email — skipping verification")
+        return False
+
+    verify_url = f"{PRODUCTION_URL}/verify/{token}"
+    yes_url = f"{verify_url}?response=yes"
+    no_url = f"{verify_url}?response=no"
+
+    if not RESEND_API_KEY:
+        logging.warning("RESEND_API_KEY not set — skipping verification email")
+        return False
+
+    try:
+        resend.Emails.send({
+            "from": SENDER_EMAIL,
+            "to": email,
+            "subject": "Свърза ли се клиниката с вас? — Zubite.bg",
+            "html": f"""
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 0;">
+                <h1 style="font-size: 20px; color: #0f172a; margin-bottom: 8px;">Здравейте{(' ' + name) if name else ''},</h1>
+                <p style="color: #64748b; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">
+                    Наскоро ви свързахме с дентална клиника чрез Zubite.bg. Искаме да проверим дали клиниката се свърза с вас.
+                </p>
+
+                <p style="color: #334155; font-size: 16px; font-weight: 600; margin-bottom: 20px;">Свърза ли се клиниката с вас?</p>
+
+                <div style="display: flex; gap: 12px; margin-bottom: 32px;">
+                    <a href="{yes_url}" style="display: inline-block; background: #10b981; color: white; text-decoration: none; padding: 14px 32px; border-radius: 24px; font-weight: 500; font-size: 15px;">Да</a>
+                    <a href="{no_url}" style="display: inline-block; background: #ef4444; color: white; text-decoration: none; padding: 14px 32px; border-radius: 24px; font-weight: 500; font-size: 15px;">Не</a>
+                </div>
+
+                <p style="color: #94a3b8; font-size: 13px;">Вашият отговор ни помага да подобрим качеството на услугата.<br>С уважение, Екипът на Zubite.bg</p>
+            </div>
+            """
+        })
+        logging.info(f"Verification email sent to {email} for lead {lead['id']}")
+        return True
+    except Exception as e:
+        logging.error(f"Failed to send verification email: {e}")
+        return False
+
+@api_router.post("/admin/leads/{lead_id}/send-verification")
+async def admin_send_verification(lead_id: str, user: AdminUser = Depends(get_current_user)):
+    """Manually trigger verification email for a lead"""
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    if not lead.get("assigned_clinic_id"):
+        raise HTTPException(status_code=400, detail="Lead is not assigned to a clinic")
+    if not lead.get("email"):
+        raise HTTPException(status_code=400, detail="Lead has no email address")
+
+    # Check if verification already sent
+    existing = await db.lead_verifications.find_one({"lead_id": lead_id, "response": {"$exists": False}})
+    if existing:
+        raise HTTPException(status_code=400, detail="Verification already pending for this lead")
+
+    token = secrets.token_urlsafe(32)
+    doc = {
+        "id": str(uuid.uuid4()),
+        "lead_id": lead_id,
+        "clinic_id": lead.get("assigned_clinic_id"),
+        "token": token,
+        "sent_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.lead_verifications.insert_one(doc)
+
+    sent = await send_verification_email(lead, token)
+    if not sent:
+        return {"status": "warning", "message": "Verification record created but email could not be sent"}
+
+    return {"status": "ok", "message": "Verification email sent"}
+
+@api_router.get("/verify/{token}")
+async def verify_lead(token: str, response: str):
+    """Public endpoint — patient clicks yes/no from email"""
+    if response not in ("yes", "no"):
+        raise HTTPException(status_code=400, detail="Invalid response")
+
+    verification = await db.lead_verifications.find_one({"token": token}, {"_id": 0})
+    if not verification:
+        raise HTTPException(status_code=404, detail="Verification not found")
+
+    if verification.get("response"):
+        return {"status": "already_responded", "response": verification["response"]}
+
+    now = datetime.now(timezone.utc).isoformat()
+    await db.lead_verifications.update_one(
+        {"token": token},
+        {"$set": {"response": response, "responded_at": now}}
+    )
+
+    # Update lead status
+    lead_id = verification["lead_id"]
+    if response == "yes":
+        await db.leads.update_one(
+            {"id": lead_id},
+            {"$set": {"verification_status": "verified", "clinic_lead_status": "contacted"}}
+        )
+    else:
+        await db.leads.update_one(
+            {"id": lead_id},
+            {"$set": {"verification_status": "flagged"}}
+        )
+
+    return {"status": "ok", "response": response}
+
+@api_router.get("/admin/verifications")
+async def admin_get_verifications(user: AdminUser = Depends(get_current_user)):
+    """Get all verification records"""
+    verifications = await db.lead_verifications.find(
+        {}, {"_id": 0}
+    ).sort("created_at", -1).to_list(500)
+    return {"verifications": verifications}
+
+@api_router.get("/admin/verifications/flagged")
+async def admin_get_flagged(user: AdminUser = Depends(get_current_user)):
+    """Get leads flagged by patients (clinic didn't contact them)"""
+    flagged = await db.leads.find(
+        {"verification_status": "flagged"},
+        {"_id": 0, "id": 1, "name": 1, "phone": 1, "email": 1, "assigned_clinic_id": 1,
+         "created_at": 1, "verification_status": 1, "treatment_type": 1}
+    ).sort("created_at", -1).to_list(200)
+    return {"flagged_leads": flagged}
+
+
 # Admin endpoint to list clinic accounts
 @api_router.get("/admin/clinic-accounts")
 async def admin_list_clinic_accounts(user: AdminUser = Depends(get_current_user)):
@@ -2212,8 +2347,62 @@ async def startup():
     await db.leads.create_index("assigned_clinic_id")
     await db.leads.create_index("clinic_lead_status")
     
+    # Lead verifications indexes
+    await db.lead_verifications.create_index("token", unique=True)
+    await db.lead_verifications.create_index("lead_id")
+    await db.lead_verifications.create_index("clinic_id")
+    await db.leads.create_index("verification_status")
+
     # Initialize object storage
     init_storage()
+
+    # Start background auto-verification task
+    asyncio.create_task(auto_verification_loop())
+
+async def auto_verification_loop():
+    """Background: every hour, check for leads assigned 24h+ ago without verification sent"""
+    while True:
+        try:
+            await asyncio.sleep(3600)  # Check every hour
+            cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+            # Find leads assigned to clinics more than 24h ago, with email, not yet verified
+            leads = await db.leads.find(
+                {
+                    "assigned_clinic_id": {"$exists": True, "$ne": None},
+                    "email": {"$exists": True, "$ne": None, "$ne": ""},
+                    "verification_status": {"$exists": False},
+                    "created_at": {"$lt": cutoff},
+                },
+                {"_id": 0}
+            ).to_list(50)
+
+            for lead in leads:
+                # Skip if verification already exists
+                existing = await db.lead_verifications.find_one({"lead_id": lead["id"]})
+                if existing:
+                    continue
+                token = secrets.token_urlsafe(32)
+                doc = {
+                    "id": str(uuid.uuid4()),
+                    "lead_id": lead["id"],
+                    "clinic_id": lead.get("assigned_clinic_id"),
+                    "token": token,
+                    "sent_at": datetime.now(timezone.utc).isoformat(),
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "auto_sent": True,
+                }
+                await db.lead_verifications.insert_one(doc)
+                await send_verification_email(lead, token)
+                await db.leads.update_one(
+                    {"id": lead["id"]},
+                    {"$set": {"verification_status": "pending"}}
+                )
+                await asyncio.sleep(2)  # Rate limit
+
+            if leads:
+                logging.info(f"Auto-verification: processed {len(leads)} leads")
+        except Exception as e:
+            logging.error(f"Auto-verification loop error: {e}")
 
 @app.on_event("shutdown")
 async def shutdown():

@@ -46,10 +46,10 @@
       "static/chunks/main-app.js",
       "static/chunks/app/clinic/dashboard/page.js"
     ],
-    "/_not-found/page": [
+    "/verify/[token]/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/_not-found/page.js"
+      "static/chunks/app/verify/[token]/page.js"
     ]
   }
 }
