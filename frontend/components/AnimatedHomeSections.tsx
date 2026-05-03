@@ -2,7 +2,7 @@
 
 import { ReactNode } from 'react'
 import Link from 'next/link'
-import { ArrowRight, ChevronRight, AlertTriangle, TrendingUp, Clock, Target, BookOpen, Calendar, ClipboardList, Eye, MessageSquare } from 'lucide-react'
+import { ArrowRight, ChevronRight, AlertTriangle, TrendingUp, Clock, Target, BookOpen, Calendar, ClipboardList, Eye, MessageSquare, Shield, CheckCircle } from 'lucide-react'
 import { ScrollReveal, StaggerChildren } from '../hooks/useScrollAnimation'
 
 // Self-recognition symptoms
@@ -67,41 +67,156 @@ const CATEGORY_NAMES: Record<string, string> = {
   news: 'Новини',
 }
 
-// Hero Section with Animations
+// Hero Section — High-converting above-the-fold
 export function AnimatedHero() {
   return (
-    <section className="relative pt-28 md:pt-44 pb-16 md:pb-32 bg-gradient-to-b from-sky-50 to-white" aria-labelledby="hero-heading">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-        <ScrollReveal animation="fade-up" duration={800}>
-          <h1 id="hero-heading" className="font-serif text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-semibold leading-tight mb-6 md:mb-8">
-            <span className="text-slate-900">Около 75% от хората имат криви зъби.</span>
-            <br />
-            <span className="text-slate-500">Това не е само естетичен проблем —</span>
-            <br />
-            <span className="text-sky-600">може да доведе до здравословни проблеми.</span>
-          </h1>
-        </ScrollReveal>
-        
-        <ScrollReveal animation="fade-up" delay={150} duration={800}>
-          <p className="text-base md:text-xl text-slate-600 max-w-2xl mx-auto mb-8 md:mb-10 px-2">
-            Отговори на няколко въпроса и виж дали пропускаш ранни признаци. Отнема 60 секунди. Без регистрация. Без задължения.
-          </p>
-        </ScrollReveal>
-        
-        <ScrollReveal animation="zoom" delay={300} duration={800}>
-          <div>
-            <Link
-              href="/quiz"
-              className="inline-flex items-center gap-2 md:gap-3 px-6 md:px-8 py-3 md:py-4 bg-sky-500 text-white text-base md:text-lg font-medium rounded-full hover:bg-sky-600 hover:shadow-xl hover:shadow-sky-500/30 hover:-translate-y-1 active:translate-y-0 transition-all duration-300 group"
-              data-testid="hero-cta"
-            >
-              <span>Провери къде се намираш</span>
-              <ArrowRight className="w-4 h-4 md:w-5 md:h-5 group-hover:translate-x-1 transition-transform" />
-            </Link>
+    <section
+      className="relative min-h-[100svh] flex items-center overflow-hidden bg-[#fafbfc]"
+      aria-labelledby="hero-heading"
+      data-testid="hero-section"
+    >
+      {/* Subtle grid background */}
+      <div className="absolute inset-0 opacity-[0.035]" style={{
+        backgroundImage: 'radial-gradient(circle at 1px 1px, #94a3b8 1px, transparent 0)',
+        backgroundSize: '32px 32px',
+      }} />
+
+      {/* Accent glow */}
+      <div className="absolute top-20 -right-40 w-[600px] h-[600px] rounded-full bg-sky-200/20 blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-20 -left-20 w-[400px] h-[400px] rounded-full bg-sky-100/30 blur-3xl pointer-events-none" />
+
+      <div className="relative max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 pt-28 md:pt-36 pb-16 md:pb-24 w-full">
+        <div className="grid lg:grid-cols-[1fr_0.75fr] gap-12 lg:gap-16 items-center">
+
+          {/* Left — Copy */}
+          <div className="max-w-2xl">
+            <ScrollReveal animation="fade-up" duration={900}>
+              <h1
+                id="hero-heading"
+                className="font-serif text-[1.75rem] sm:text-[2.25rem] md:text-[2.75rem] lg:text-[3.25rem] font-semibold leading-[1.15] tracking-[-0.02em] text-slate-900 mb-5 md:mb-6"
+              >
+                Около 75% от хората имат проблем със захапката
+                <span className="text-slate-400"> — </span>
+                <span className="text-sky-600">повечето го разбират твърде късно.</span>
+              </h1>
+            </ScrollReveal>
+
+            <ScrollReveal animation="fade-up" delay={120} duration={800}>
+              <p className="text-base md:text-lg text-slate-500 leading-relaxed max-w-xl mb-8 md:mb-10">
+                Това не е само естетика. Може да доведе до износване на зъбите, болки и по-скъпо лечение по-късно.
+              </p>
+            </ScrollReveal>
+
+            {/* CTA Card */}
+            <ScrollReveal animation="fade-up" delay={240} duration={800}>
+              <div className="relative bg-white rounded-2xl border border-slate-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.04)] p-6 sm:p-7 max-w-lg" data-testid="cta-card">
+                <p className="text-[15px] sm:text-base font-medium text-slate-800 mb-4">
+                  Отговори на няколко въпроса и виж на кой етап си
+                </p>
+
+                {/* Micro details */}
+                <div className="flex flex-wrap gap-x-5 gap-y-2 mb-5">
+                  <span className="inline-flex items-center gap-1.5 text-xs sm:text-[13px] text-slate-400">
+                    <Clock className="w-3.5 h-3.5" />
+                    Отнема 60 секунди
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 text-xs sm:text-[13px] text-slate-400">
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    Без регистрация
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 text-xs sm:text-[13px] text-slate-400">
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    Без ангажимент
+                  </span>
+                </div>
+
+                {/* Primary CTA */}
+                <Link
+                  href="/quiz"
+                  className="group inline-flex items-center gap-2.5 px-7 py-3.5 bg-sky-500 text-white text-[15px] font-semibold rounded-xl hover:bg-sky-600 hover:shadow-lg hover:shadow-sky-500/25 hover:-translate-y-0.5 active:translate-y-0 active:shadow-md transition-all duration-300"
+                  data-testid="hero-cta"
+                >
+                  Провери своя случай
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-300" />
+                </Link>
+              </div>
+            </ScrollReveal>
+
+            {/* Trust micro-line */}
+            <ScrollReveal animation="fade-up" delay={380} duration={700}>
+              <p className="flex items-center gap-1.5 mt-5 text-xs text-slate-400" data-testid="hero-trust">
+                <Shield className="w-3.5 h-3.5 text-slate-300" />
+                Без регистрация. Без спам. Само ясни отговори.
+              </p>
+            </ScrollReveal>
           </div>
-        </ScrollReveal>
+
+          {/* Right — Abstract Visual */}
+          <ScrollReveal animation="fade-left" delay={300} duration={1000}>
+            <div className="hidden lg:flex items-center justify-center" aria-hidden="true">
+              <HeroVisual />
+            </div>
+          </ScrollReveal>
+        </div>
       </div>
     </section>
+  )
+}
+
+/** Abstract dental alignment visual — pure SVG + CSS, no stock photos */
+function HeroVisual() {
+  return (
+    <div className="relative w-full max-w-[420px] aspect-square">
+      {/* Outer ring */}
+      <div className="absolute inset-0 rounded-full border border-slate-200/60" />
+      <div className="absolute inset-4 rounded-full border border-dashed border-slate-200/40" />
+
+      {/* Center orb */}
+      <div className="absolute inset-[28%] rounded-full bg-gradient-to-br from-sky-50 to-sky-100/80 flex items-center justify-center shadow-inner">
+        <svg viewBox="0 0 120 120" className="w-3/5 h-3/5" fill="none" xmlns="http://www.w3.org/2000/svg">
+          {/* Stylised jaw arch */}
+          <path
+            d="M26 52 C26 32, 40 18, 60 18 C80 18, 94 32, 94 52 C94 72, 82 90, 60 92 C38 90, 26 72, 26 52Z"
+            stroke="#0ea5e9" strokeWidth="2.5" strokeLinecap="round" fill="none" opacity="0.8"
+          />
+          {/* Teeth dots – upper arch */}
+          {[
+            [38, 30], [48, 22], [60, 19.5], [72, 22], [82, 30],
+            [88, 42], [90, 54], [87, 66], [80, 76],
+            [32, 42], [30, 54], [33, 66], [40, 76],
+          ].map(([cx, cy], i) => (
+            <circle key={i} cx={cx} cy={cy} r="3.2" fill="#0ea5e9" opacity={0.15 + (i % 3) * 0.15}
+              className="animate-pulse" style={{ animationDelay: `${i * 220}ms`, animationDuration: '3s' }}
+            />
+          ))}
+          {/* Center crosshair */}
+          <circle cx="60" cy="55" r="6" stroke="#0ea5e9" strokeWidth="1.5" fill="none" opacity="0.4" />
+          <line x1="60" y1="48" x2="60" y2="62" stroke="#0ea5e9" strokeWidth="1" opacity="0.3" />
+          <line x1="53" y1="55" x2="67" y2="55" stroke="#0ea5e9" strokeWidth="1" opacity="0.3" />
+        </svg>
+      </div>
+
+      {/* Floating data labels */}
+      {[
+        { top: '8%', left: '50%', label: 'Захапка', ml: '-translate-x-1/2' },
+        { top: '44%', right: '0%', label: 'Позиция', ml: '' },
+        { bottom: '12%', left: '50%', label: 'Натиск', ml: '-translate-x-1/2' },
+      ].map((item, i) => (
+        <div
+          key={i}
+          className={`absolute text-[11px] font-medium text-slate-400 tracking-wide uppercase ${item.ml}`}
+          style={{ top: item.top, left: item.left, right: item.right, bottom: item.bottom }}
+        >
+          <span className="inline-flex items-center gap-1.5 bg-white/90 backdrop-blur-sm border border-slate-100 rounded-full px-3 py-1 shadow-sm">
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+            {item.label}
+          </span>
+        </div>
+      ))}
+
+      {/* Animated scan line */}
+      <div className="absolute left-[15%] right-[15%] h-px bg-gradient-to-r from-transparent via-sky-400/40 to-transparent animate-hero-scan" />
+    </div>
   )
 }
 

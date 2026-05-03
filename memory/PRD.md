@@ -56,6 +56,7 @@ Educational platform for orthodontic awareness in Bulgaria. Guides users through
 - Lead Verification System (auto-email + manual trigger)
 - Regenerate Clinic Password (admin panel button)
 - **Backend Refactoring** (April 2, 2026) - Split 2500+ line monolithic server.py into 16 modular files
+- **Hero Section Redesign** (May 3, 2026) - Premium above-the-fold hero with CTA card, micro-details, trust element, and abstract dental visual
 
 ## Remaining Backlog
 ### P1

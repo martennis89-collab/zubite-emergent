@@ -112,6 +112,18 @@
   animation: fadeInDown 0.5s ease-out forwards;
 }
 
+/* Hero scan line animation */
+@keyframes heroScan {
+  0%   { top: 15%; opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { top: 85%; opacity: 0; }
+}
+
+.animate-hero-scan {
+  animation: heroScan 4s ease-in-out infinite;
+}
+
 /* ====================================
    SCROLL REVEAL CLASSES
    ==================================== */
