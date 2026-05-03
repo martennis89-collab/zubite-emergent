@@ -102,35 +102,39 @@ async def auto_verification_loop():
             leads = await db.leads.find(
                 {
                     "assigned_clinic_id": {"$exists": True, "$ne": None},
-                    "email": {"$exists": True, "$ne": None, "$ne": ""},
+                    "email": {"$nin": [None, ""]},
                     "verification_status": {"$exists": False},
                     "created_at": {"$lt": cutoff},
                 },
                 {"_id": 0}
             ).to_list(50)
 
+            sent_count = 0
             for lead in leads:
                 existing = await db.lead_verifications.find_one({"lead_id": lead["id"]})
                 if existing:
+                    await db.leads.update_one({"id": lead["id"]}, {"$set": {"verification_status": "pending"}})
                     continue
                 token = secrets.token_urlsafe(32)
-                doc = {
-                    "id": str(uuid.uuid4()),
-                    "lead_id": lead["id"],
-                    "clinic_id": lead.get("assigned_clinic_id"),
-                    "token": token,
-                    "sent_at": datetime.now(timezone.utc).isoformat(),
-                    "created_at": datetime.now(timezone.utc).isoformat(),
-                    "auto_sent": True,
-                }
-                await db.lead_verifications.insert_one(doc)
                 auto_base_url = PRODUCTION_URL
-                await send_verification_email(lead, token, auto_base_url)
+                email_sent = await send_verification_email(lead, token, auto_base_url)
+                if email_sent:
+                    doc = {
+                        "id": str(uuid.uuid4()),
+                        "lead_id": lead["id"],
+                        "clinic_id": lead.get("assigned_clinic_id"),
+                        "token": token,
+                        "sent_at": datetime.now(timezone.utc).isoformat(),
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                        "auto_sent": True,
+                    }
+                    await db.lead_verifications.insert_one(doc)
+                    sent_count += 1
                 await db.leads.update_one({"id": lead["id"]}, {"$set": {"verification_status": "pending"}})
                 await asyncio.sleep(2)
 
-            if leads:
-                logger.info(f"Auto-verification: processed {len(leads)} leads")
+            if sent_count:
+                logger.info(f"Auto-verification: sent {sent_count} emails out of {len(leads)} leads")
         except Exception as e:
             logger.error(f"Auto-verification loop error: {e}")
 
