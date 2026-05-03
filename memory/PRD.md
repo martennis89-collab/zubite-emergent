@@ -57,6 +57,7 @@ Educational platform for orthodontic awareness in Bulgaria. Guides users through
 - Regenerate Clinic Password (admin panel button)
 - **Backend Refactoring** (April 2, 2026) - Split 2500+ line monolithic server.py into 16 modular files
 - **Hero Section Redesign** (May 3, 2026) - Premium above-the-fold hero with CTA card, micro-details, trust element, and abstract dental visual
+- **Multi-Path Diagnostic Quiz** (May 3, 2026) - 3-segment quiz (Adult 10Q / Teen 8Q / Child 8Q) with branching logic, visual SVG teeth questions, micro-progressions, segment-specific results with severity scoring and flag tags
 
 ## Remaining Backlog
 ### P1
