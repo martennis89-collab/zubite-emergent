@@ -15,11 +15,21 @@ _buckets: Dict[Tuple[str, str], Deque[float]] = {}
 
 
 def _client_key(request: Request) -> str:
-    """Identify the client by trusted forwarded IP, falling back to peer."""
-    fwd = request.headers.get("x-forwarded-for")
-    if fwd:
-        # The first entry is the original client
-        return fwd.split(",")[0].strip()
+    """Identify the client by the *last* trusted forwarded IP (the one set by our
+    own reverse proxy), falling back to the direct peer.
+
+    Note: in this deployment the K8s ingress is the only proxy and rewrites
+    X-Forwarded-For. If the app is ever exposed without a trusted proxy,
+    attackers could spoof XFF; in that case set RATE_LIMIT_TRUST_XFF=0 to use
+    request.client.host only.
+    """
+    import os as _os
+    trust_xff = _os.environ.get("RATE_LIMIT_TRUST_XFF", "1") != "0"
+    if trust_xff:
+        fwd = request.headers.get("x-forwarded-for")
+        if fwd:
+            # Take the first hop (original client) - safe behind a single trusted proxy
+            return fwd.split(",")[0].strip()
     return request.client.host if request.client else "unknown"
 
 

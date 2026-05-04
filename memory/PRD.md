@@ -1,96 +1,65 @@
-# Zubite.bg - Product Requirements Document
+# Zubite.bg — Product Requirements Document
 
-## Problem Statement
-Educational platform for orthodontic awareness in Bulgaria. Guides users through quizzes, captures leads, connects them with dental clinics, and provides an admin dashboard for lead and clinic management.
+## Original Problem Statement
+Build and optimize **Zubite.bg**, an educational orthodontic platform for the Bulgarian market that helps users understand their orthodontic issues and guides them toward the correct treatment path. Built with Next.js (frontend) + FastAPI (backend) + MongoDB.
 
-## Core Features
-1. **Master Quiz** - Multi-step quiz assessing orthodontic needs with scoring & lead capture
-2. **Blog with SSR** - Server-side rendered blog with Object Storage image uploads
-3. **Admin Dashboard** - Lead management, analytics, blog management, clinic management
-4. **AI Outbound Calling** - ElevenLabs + Twilio integration for patient follow-up calls
-5. **B2B Clinic Onboarding** - Application form, admin approval, clinic dashboard, lead distribution
-6. **Lead Verification** - Automated 24h email verification to check if clinics contacted leads
+**Language**: All UI/emails/content in **Bulgarian**.
 
-## Architecture (Post-Refactoring April 2, 2026)
-```
-/app/backend/
-├── server.py          # Thin FastAPI app shell (~130 lines)
-├── config.py          # Environment variables and constants
-├── database.py        # MongoDB connection (Motor async)
-├── auth.py            # JWT, password utils, auth dependencies
-├── schemas.py         # All Pydantic models
-├── storage.py         # Object storage helpers
-├── scoring.py         # Lead score calculator
-├── emails.py          # Email sending helpers (Resend)
-├── routers/
-│   ├── public.py      # /, /cities, /leads, /seed
-│   ├── admin.py       # Admin login, leads CRUD, stats, CSV export
-│   ├── blog.py        # Blog: public + admin + file uploads + analytics
-│   ├── analytics.py   # Quiz funnel analytics
-│   ├── clinics.py     # Clinic apps, auth, dashboard, password mgmt
-│   ├── calls.py       # AI calling + ElevenLabs webhook
-│   ├── verification.py # Lead verification system
-│   └── seo.py         # SEO HTML pages
-├── models/
-│   └── call_models.py # ElevenLabs call models
-├── services/
-│   ├── elevenlabs_service.py
-│   └── patient_context_mapper.py
-└── tests/
-    └── test_refactored_api.py
+## Core Product Requirements
+1. **Master Quiz** — Multi-step diagnostic with Adult/Teen/Child branching, severity scoring, lead capture, segment-specific success pages.
+2. **SEO & Content** — SSR `/blog`, object-storage image uploads, sitemaps.
+3. **AI Outbound Calling** — ElevenLabs Conversational AI with patient context, transcript retrieval.
+4. **B2B Clinic Onboarding** — `/za-kliniki` application form, structured admin review, clinic dashboards, lead distribution.
+5. **Lead Verification** — Automated 24h-after-assignment email loop asking patients to confirm clinic contact.
 
-/app/frontend/
-├── app/
-│   ├── (main)/        # Public pages, /za-kliniki, /verify/[token]
-│   ├── admin/         # Admin dashboards (Leads, Analytics, Clinics)
-│   └── clinic/        # Clinic authentication & dashboard
-├── components/        # React components
-```
+## What's Implemented (current state)
+- Full backend modularization (`server.py` → `routers/*.py` + `auth.py`, `database.py`, `emails.py`, `scoring.py`).
+- High-converting animated hero (`AnimatedHomeSections.tsx`) and 10-question multi-path quiz (`MasterQuiz.tsx`).
+- Segment-aware success pages (`quiz/success/page.tsx`).
+- Resend-based admin notification + patient confirmation emails.
+- ElevenLabs outbound calling with proper webhook signature verification (`t=ts,v0=hash` format with 30-min replay window).
+- Clinic application/approval/credential flow with welcome email.
+- Auto-verification background loop (every hour, scans 24h+ assigned leads).
+- **Comprehensive security hardening (Feb 2026)** — 22 fixes; see CHANGELOG.md.
 
-## Completed Work
-- Master Quiz with Meta Pixel tracking
-- Blog with SSR and Object Storage image uploads
-- Admin Dashboard (leads, analytics, blog management)
-- AI Outbound Calling (ElevenLabs + Twilio)
-- B2B Clinic Onboarding (application, admin approval, clinic dashboard)
-- Lead Verification System (auto-email + manual trigger)
-- Regenerate Clinic Password (admin panel button)
-- **Backend Refactoring** (April 2, 2026) - Split 2500+ line monolithic server.py into 16 modular files
-- **Hero Section Redesign** (May 3, 2026) - Premium above-the-fold hero with CTA card, micro-details, trust element, and abstract dental visual
-- **Multi-Path Diagnostic Quiz** (May 3, 2026) - 3-segment quiz (Adult 10Q / Teen 8Q / Child 8Q) with branching logic, visual SVG teeth questions, micro-progressions, segment-specific results with severity scoring and flag tags
-- **Segment-Specific Success Pages** (May 3, 2026) - Thank you pages adapt per segment (adult/teen/child) and result band (low/moderate/high) with unique messaging, urgency levels, and next steps
+## Tech Stack
+- **Frontend**: Next.js 14 (App Router), React, Tailwind, shadcn/ui.
+- **Backend**: FastAPI + Motor (MongoDB async) + Pydantic v2 + bcrypt + python-jose.
+- **Integrations**: Resend (email), ElevenLabs (AI calls), Twilio (telephony), Emergent Object Storage (uploads), Meta Pixel (analytics).
 
-## Remaining Backlog
-### P1
-- [ ] Create specific quizzes (cosmetic dentistry, implants)
+## Key Database Collections
+- `leads` — quiz results, contact, assigned_clinic_id, verification_status, scoring band.
+- `clinic_applications` — partnership applications, status, notes.
+- `clinics` — approved clinic accounts (password_hash, profile).
+- `lead_verifications` — 24h verification tokens & responses.
+- `blog_posts`, `blog_views`, `analytics_events`, `lead_call_logs`, `uploaded_files`, `admin_users`.
 
-### P2
-- [ ] Frontend data fetching refactor (centralized API helper)
+## Security Posture (post-audit Feb 2026)
+- JWT_SECRET fail-fast (min 24 chars, ~144 bits).
+- CORS strict by default (zubite.bg + preview regex).
+- Rate limiting on login/lead/contact/verify endpoints.
+- NoSQL injection guards on dict-based body endpoints.
+- ElevenLabs webhook strictly enforces HMAC signature with replay protection.
+- PII excluded from public lead lookup endpoints.
+- Pydantic EmailStr + length validation across input schemas.
+- 60-min edit window on `/leads/{id}/contact` to prevent late tampering.
 
-### P3 - Future
-- [ ] English translation (/en/... routes)
-- [ ] More cities in lead form
-- [ ] Automated AI calling (X minutes after quiz)
-- [ ] Expand admin panel (homepage text, treatment management)
+## Roadmap
+### P1 — Frontend
+- Centralize data-fetching helper (DRY for fetch patterns across pages).
 
-## 3rd Party Integrations
-- **Meta Pixel** - Analytics tracking
-- **Resend** - Email delivery
-- **Emergent Object Storage** - File uploads
-- **ElevenLabs** - Conversational AI / Outbound Calling
-- **Twilio** - Phone numbers for ElevenLabs
+### P2 — Localization
+- English version under `/en/...`.
 
-## Key DB Collections
-- `leads` - Quiz results, contact info, call status, verification status
-- `clinics` - Seed clinics + partner clinic accounts
-- `clinic_applications` - Partnership applications
-- `lead_verifications` - Verification tokens and responses
-- `blog_posts` - Blog content
-- `analytics_events` - Quiz funnel tracking
-- `blog_views` - Blog traffic tracking
-- `lead_call_logs` - AI call history
-- `admin_users` - Admin accounts
-- `uploaded_files` - Object storage references
+### P3 — Admin CMS
+- Inline editing for homepage text, treatment details.
 
----
-*Last updated: April 2, 2026*
+### P4 — Geo Expansion
+- Add Varna, Burgas, Ruse to city dropdown + service availability.
+
+### P5 — Infrastructure
+- Replace in-memory rate limiter with Redis when horizontally scaling.
+- Add JWT_SECRET fail-fast unit test (subprocess boot).
+
+## Test Credentials
+See `/app/memory/test_credentials.md`.

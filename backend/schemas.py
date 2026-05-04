@@ -75,12 +75,12 @@ class LeadStatusUpdate(BaseModel):
 
 
 class LeadUpdate(BaseModel):
-    name: Optional[str] = None
-    phone: Optional[str] = None
-    email: Optional[str] = None
-    city_slug: Optional[str] = None
-    status: Optional[str] = None
-    notes: Optional[str] = None
+    name: Optional[str] = Field(default=None, max_length=200)
+    phone: Optional[str] = Field(default=None, max_length=50)
+    email: Optional[EmailStr] = None
+    city_slug: Optional[str] = Field(default=None, max_length=50)
+    status: Optional[str] = Field(default=None, max_length=50)
+    notes: Optional[str] = Field(default=None, max_length=5000)
 
 
 class AdminLogin(BaseModel):

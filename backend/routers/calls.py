@@ -141,7 +141,7 @@ async def elevenlabs_post_call_webhook(
         logger.info(f"Webhook payload type: {payload.get('type')}")
     except Exception as e:
         logger.error(f"Failed to parse webhook payload: {e}")
-        return {"status": "ok", "processed": False, "error": "invalid_json"}
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
 
     background_tasks.add_task(cleanup_stuck_calls)
 

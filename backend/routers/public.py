@@ -104,10 +104,26 @@ async def get_lead(lead_id: str):
 
 @router.patch("/leads/{lead_id}/contact", dependencies=[Depends(rate_limit("update_contact", 10, 300))])
 async def update_lead_contact(lead_id: str, data: LeadContactUpdate):
-    update_data = {k: v for k, v in data.model_dump().items() if v is not None or k == "consent"}
-    result = await db.leads.update_one({"id": lead_id}, {"$set": update_data})
-    if result.matched_count == 0:
+    # Look up the lead and enforce a short edit window after creation to prevent
+    # arbitrary tampering by anyone who guesses/obtains a lead UUID later on.
+    existing = await db.leads.find_one({"id": lead_id}, {"_id": 0, "id": 1, "created_at": 1, "consent": 1})
+    if not existing:
         raise HTTPException(status_code=404, detail="Lead not found")
+
+    created_at_raw = existing.get("created_at")
+    try:
+        created_at_dt = datetime.fromisoformat(created_at_raw) if isinstance(created_at_raw, str) else created_at_raw
+        if created_at_dt and created_at_dt.tzinfo is None:
+            created_at_dt = created_at_dt.replace(tzinfo=timezone.utc)
+        age_seconds = (datetime.now(timezone.utc) - created_at_dt).total_seconds() if created_at_dt else 0
+    except Exception:
+        age_seconds = 0
+    # Allow updates only within 60 minutes of lead creation
+    if age_seconds > 3600:
+        raise HTTPException(status_code=403, detail="Edit window expired")
+
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None or k == "consent"}
+    await db.leads.update_one({"id": lead_id}, {"$set": update_data})
     # Return only minimal info; never leak full PII to public callers
     lead = await db.leads.find_one(
         {"id": lead_id},
