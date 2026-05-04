@@ -127,9 +127,14 @@ async def elevenlabs_post_call_webhook(
 
     signature = elevenlabs_signature or x_elevenlabs_signature
     webhook_secret = os.environ.get('ELEVENLABS_WEBHOOK_SECRET')
-    if webhook_secret and signature:
+    if webhook_secret:
+        # If a secret is configured, signature MUST be present and valid
+        if not signature:
+            logger.warning("Webhook rejected: missing signature header")
+            raise HTTPException(status_code=401, detail="Missing webhook signature")
         if not verify_webhook_signature(body, signature):
-            logger.warning("Invalid webhook signature - processing anyway for debugging")
+            logger.warning("Webhook rejected: invalid signature")
+            raise HTTPException(status_code=401, detail="Invalid webhook signature")
 
     try:
         payload = json_module.loads(body)

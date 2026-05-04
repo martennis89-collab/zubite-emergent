@@ -150,28 +150,63 @@ def initiate_outbound_call(
 
 def verify_webhook_signature(payload: bytes, signature: str) -> bool:
     """
-    Verify ElevenLabs webhook signature using HMAC.
+    Verify ElevenLabs webhook signature using HMAC-SHA256.
+    
+    ElevenLabs sends the signature header in the format:
+        t=<unix_timestamp>,v0=<hex_sha256>
+    
+    The signed payload is `<timestamp>.<body>`.
     
     Args:
         payload: Raw request body bytes
-        signature: Signature from ElevenLabs-Signature header
+        signature: Signature header value from ElevenLabs-Signature
         
     Returns:
-        True if signature is valid
+        True if signature is valid and recent (<30 min old)
     """
     if not ELEVENLABS_WEBHOOK_SECRET:
         logger.warning("ELEVENLABS_WEBHOOK_SECRET not configured - skipping signature verification")
         return True  # Allow in dev mode
     
+    if not signature:
+        return False
+    
     try:
-        # ElevenLabs uses HMAC-SHA256
+        # Parse signature header
+        parts = {}
+        for part in signature.split(","):
+            if "=" in part:
+                k, v = part.split("=", 1)
+                parts[k.strip()] = v.strip()
+        
+        timestamp = parts.get("t")
+        provided_sig = parts.get("v0")
+        
+        if not provided_sig:
+            # Fallback: legacy format with just the hex digest
+            expected = hmac.new(ELEVENLABS_WEBHOOK_SECRET.encode(), payload, hashlib.sha256).hexdigest()
+            return hmac.compare_digest(expected, signature)
+        
+        # Reject signatures older than 30 minutes (replay protection)
+        if timestamp:
+            try:
+                ts_int = int(timestamp)
+                now = int(datetime.now(timezone.utc).timestamp())
+                if abs(now - ts_int) > 1800:
+                    logger.warning(f"Webhook signature timestamp too old/new: {ts_int} vs {now}")
+                    return False
+            except ValueError:
+                logger.warning(f"Invalid timestamp in signature: {timestamp}")
+                return False
+        
+        signed_payload = f"{timestamp}.{payload.decode('utf-8', errors='replace')}".encode()
         expected_signature = hmac.new(
             ELEVENLABS_WEBHOOK_SECRET.encode(),
-            payload,
+            signed_payload,
             hashlib.sha256
         ).hexdigest()
         
-        return hmac.compare_digest(expected_signature, signature)
+        return hmac.compare_digest(expected_signature, provided_sig)
     except Exception as e:
         logger.error(f"Webhook signature verification failed: {e}")
         return False

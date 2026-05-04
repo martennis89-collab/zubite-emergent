@@ -11,8 +11,13 @@ load_dotenv(ROOT_DIR / '.env')
 MONGO_URL = os.environ['MONGO_URL']
 DB_NAME = os.environ['DB_NAME']
 
-# JWT
-JWT_SECRET = os.environ.get('JWT_SECRET', 'zubite-bg-secret-key-2024')
+# JWT - fail fast if missing or weak
+JWT_SECRET = os.environ.get('JWT_SECRET')
+if not JWT_SECRET or len(JWT_SECRET) < 24:
+    raise RuntimeError(
+        "JWT_SECRET must be set and at least 24 characters long (≥144 bits of entropy). "
+        "Generate one with: python -c \"import secrets; print(secrets.token_urlsafe(48))\""
+    )
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 24
 
@@ -21,8 +26,16 @@ RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
 ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'martennis89@gmail.com')
 
-# Revalidation for Next.js ISR
-REVALIDATE_SECRET = os.environ.get('REVALIDATE_SECRET', 'zubite-revalidate-secret-2024')
+# Revalidation for Next.js ISR - fail fast if missing
+REVALIDATE_SECRET = os.environ.get('REVALIDATE_SECRET')
+if not REVALIDATE_SECRET or len(REVALIDATE_SECRET) < 16:
+    # Generate ephemeral one so server still boots, but log warning so revalidation must be re-configured
+    import secrets as _secrets
+    REVALIDATE_SECRET = _secrets.token_urlsafe(32)
+    logging.warning(
+        "REVALIDATE_SECRET not set - generated ephemeral one. "
+        "Next.js ISR webhooks will fail until REVALIDATE_SECRET is configured in both backend/.env and frontend/.env"
+    )
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
 
 # Object Storage

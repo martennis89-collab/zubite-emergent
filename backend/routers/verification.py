@@ -7,6 +7,7 @@ from database import db
 from schemas import AdminUser
 from auth import get_current_user
 from emails import send_verification_email
+from rate_limit import rate_limit
 
 router = APIRouter()
 
@@ -50,10 +51,13 @@ async def admin_send_verification(lead_id: str, request: Request, user: AdminUse
     return {"status": "ok", "message": "Verification email sent"}
 
 
-@router.get("/verify/{token}")
+@router.get("/verify/{token}", dependencies=[Depends(rate_limit("verify_token", 20, 600))])
 async def verify_lead(token: str, response: str):
     if response not in ("yes", "no"):
         raise HTTPException(status_code=400, detail="Invalid response")
+    # Token must look like a base64url string of expected length (~43 chars for 32 bytes)
+    if not token or len(token) < 32 or len(token) > 100:
+        raise HTTPException(status_code=400, detail="Invalid token")
 
     verification = await db.lead_verifications.find_one({"token": token}, {"_id": 0})
     if not verification:

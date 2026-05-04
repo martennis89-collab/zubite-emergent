@@ -1,0 +1,42 @@
+{
+  "summary": "Backend security audit validation of 17 fixes for Zubite.bg. Created /app/backend/tests/test_security_audit.py with 25 tests covering JWT fail-fast logic, CORS strictness, rate limiting (5 endpoints), NoSQL injection guards (2 endpoints), PII reduction (2 endpoints), Pydantic validation (EmailStr + length), ElevenLabs webhook signature enforcement, clinic password change min_length, and regression of admin/clinic/public flows. Result: 25/25 passing (100%) at backend layer. One important infrastructure caveat: the Kubernetes ingress/edge proxy injects 'Access-Control-Allow-Origin: *' on OPTIONS preflight responses, overriding the backend's strict CORS — backend code itself is correctly hardened (verified via localhost:8001).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "ingress/CORS", "issue": "K8s ingress overrides backend's restrictive CORS with 'Access-Control-Allow-Origin: *' on OPTIONS preflight at the edge proxy. Backend code is correct (verified internally), but external behavior is permissive due to platform-level CORS in the reverse proxy. Cannot be fixed at app layer; would require ingress config or removing platform CORS so the backend's headers are not overwritten."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_security_audit.py",
+    "/app/test_reports/pytest/security_audit_results.xml"
+  ],
+  "action_items": [
+    "INFRA: Investigate K8s ingress / edge proxy CORS handler that returns 'Access-Control-Allow-Origin: *' on OPTIONS preflight to *.preview.emergentagent.com — this defeats the strict backend CORS for browsers using the preview URL. Production zubite.bg likely has its own ingress so verify there separately.",
+    "Optional: add unit-level test for JWT_SECRET fail-fast (boot a subprocess with JWT_SECRET unset and assert non-zero exit) since current test only inspects code presence."
+  ],
+  "critical_code_review_comments": [
+    "rate_limit.py is in-memory and per-process: with multiple workers/replicas the effective limit is N×configured. Acceptable for current single-worker deploy, but document this and switch to Redis once horizontally scaled.",
+    "rate_limit._client_key trusts the first X-Forwarded-For entry; behind the K8s ingress this is fine, but if the app is ever exposed without a trusted proxy, attackers could spoof XFF to bypass limits. Consider using a server-side trusted-proxy whitelist or request.client.host fallback only when XFF is absent.",
+    "config.py raises RuntimeError if JWT_SECRET <24 chars but only WARNs for REVALIDATE_SECRET — inconsistent. Recommend fail-fast on REVALIDATE_SECRET in production mode (gated by env=='production').",
+    "public.py update_lead_contact has no auth and no ownership check — anyone with the lead_id can overwrite name/phone/email/consent. Rate limit helps but not enough. Recommend adding a one-time edit token issued at create time, or restrict to a short window after creation.",
+    "calls.py webhook handler returns 200 with {processed: false} on invalid JSON instead of 400; downstream observers cannot distinguish success from silent failure. Recommend 400 for malformed payloads after signature has passed.",
+    "CORS_ORIGINS='*' in /app/backend/.env is misleading — server.py treats it as 'use safe defaults'. Recommend setting CORS_ORIGINS to the explicit comma-separated list to remove the implicit override and make config self-documenting.",
+    "schemas.py LeadUpdate (admin) has no length/email constraints — admin can write malformed data. Mirror the public LeadCreate validators for consistency.",
+    "verification.py token format check (len 32–100) is a soft guard; consider validating base64url charset too."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_security_audit.py"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "skipped"},
+  "test_credentials": "admin@zubite.bg / password (admin); contact@orthobg.bg / dPRN_ZXjuANYzw (clinic) — both verified working.",
+  "seed_data_creation": "Tests create transient TEST_-prefixed leads and one TEST_RL clinic-application via the public endpoints. No teardown (low volume); main agent can run db.leads.delete_many({name: {$regex: '^TEST_'}}) if needed.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Security suite is at /app/backend/tests/test_security_audit.py (25 tests, full pass). To bypass rate-limit cooldown between scenarios use unique X-Forwarded-For per call (helper _xff(suffix)). The rate limiter is in-memory, so a `sudo supervisorctl restart backend` resets all buckets. CORS is correct at backend (localhost:8001) but K8s ingress adds Access-Control-Allow-Origin:* — flagged as infra issue, not app bug.",
+  "rca of the issue": "External CORS leakage: backend code in server.py (lines 39-61) correctly restricts origins to zubite.bg domains plus a regex for *.preview.emergentagent.com when CORS_ORIGINS is unset or '*'. Verified internally: evil.com gets no ACAO header, preview URL is echoed back. Externally however the K8s ingress/Emergent edge proxy injects Access-Control-Allow-Origin:* and access-control-allow-headers:* on OPTIONS, overriding the backend response. Mitigation requires platform-level config (disable proxy CORS or whitelist app's CORS headers to pass through unchanged). Reproduction: curl -I -X OPTIONS https://ortho-preview-2.preview.emergentagent.com/api/cities -H 'Origin: https://evil.com' -H 'Access-Control-Request-Method: GET' returns ACAO:*, while the same against http://localhost:8001 returns no ACAO header for evil.com."
+}

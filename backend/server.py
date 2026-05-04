@@ -36,12 +36,28 @@ api_router.include_router(seo.router)
 
 app.include_router(api_router)
 
+# CORS - restrictive by default; "*" only allowed if credentials disabled
+_cors_raw = os.environ.get('CORS_ORIGINS', '').strip()
+_cors_origins = [o.strip() for o in _cors_raw.split(',') if o.strip()]
+
+if not _cors_origins or _cors_origins == ['*']:
+    # Production-safe default: known origins only
+    _cors_origins = [
+        "https://zubite.bg",
+        "https://www.zubite.bg",
+    ]
+    # Allow Emergent preview URLs (any *.preview.emergentagent.com)
+    _cors_regex = r"https://[a-z0-9-]+\.preview\.emergentagent\.com"
+else:
+    _cors_regex = None
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_cors_origins,
+    allow_origin_regex=_cors_regex,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "ElevenLabs-Signature", "X-ElevenLabs-Signature"],
 )
 
 if STATIC_DIR.exists():

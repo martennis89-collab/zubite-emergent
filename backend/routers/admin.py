@@ -8,11 +8,12 @@ from io import StringIO
 from database import db
 from schemas import AdminLogin, AdminUser, TokenResponse, LeadStatusUpdate, LeadUpdate
 from auth import verify_password, create_token, get_current_user
+from rate_limit import rate_limit
 
 router = APIRouter()
 
 
-@router.post("/admin/login", response_model=TokenResponse)
+@router.post("/admin/login", response_model=TokenResponse, dependencies=[Depends(rate_limit("admin_login", 5, 300))])
 async def admin_login(data: AdminLogin):
     user = await db.admin_users.find_one({"username": data.username}, {"_id": 0})
     if not user or not verify_password(data.password, user["password_hash"]):

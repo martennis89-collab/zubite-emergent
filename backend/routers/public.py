@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime, timezone
 import asyncio
 import uuid
@@ -9,6 +9,7 @@ from auth import hash_password
 from config import CITIES
 from scoring import calculate_score
 from emails import send_lead_notification_email, send_lead_confirmation_email
+from rate_limit import rate_limit
 
 router = APIRouter()
 
@@ -37,7 +38,7 @@ async def get_clinics():
     return clinics
 
 
-@router.post("/leads", response_model=Lead)
+@router.post("/leads", response_model=Lead, dependencies=[Depends(rate_limit("create_lead", 5, 300))])
 async def create_lead(data: LeadCreate):
     score_total, band, score_breakdown = calculate_score(data.treatment_type, data.answers, data.can_travel)
 
@@ -88,7 +89,12 @@ async def create_lead(data: LeadCreate):
 
 @router.get("/leads/{lead_id}")
 async def get_lead(lead_id: str):
-    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    """Public lead lookup. Returns only minimal, non-PII fields (used by quiz success page)."""
+    lead = await db.leads.find_one(
+        {"id": lead_id},
+        {"_id": 0, "id": 1, "city_slug": 1, "treatment_type": 1, "band": 1,
+         "score_total": 1, "created_at": 1, "answers": 1}
+    )
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
     if isinstance(lead.get('created_at'), str):
@@ -96,28 +102,37 @@ async def get_lead(lead_id: str):
     return lead
 
 
-@router.patch("/leads/{lead_id}/contact")
+@router.patch("/leads/{lead_id}/contact", dependencies=[Depends(rate_limit("update_contact", 10, 300))])
 async def update_lead_contact(lead_id: str, data: LeadContactUpdate):
     update_data = {k: v for k, v in data.model_dump().items() if v is not None or k == "consent"}
     result = await db.leads.update_one({"id": lead_id}, {"$set": update_data})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Lead not found")
-    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
-    if isinstance(lead.get('created_at'), str):
-        lead['created_at'] = datetime.fromisoformat(lead['created_at'])
+    # Return only minimal info; never leak full PII to public callers
+    lead = await db.leads.find_one(
+        {"id": lead_id},
+        {"_id": 0, "id": 1, "city_slug": 1, "treatment_type": 1, "band": 1, "score_total": 1, "consent": 1}
+    )
 
     if data.consent and (data.name or data.email):
-        asyncio.create_task(send_lead_notification_email(lead))
+        # Re-fetch full lead for internal email use only
+        full_lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+        asyncio.create_task(send_lead_notification_email(full_lead))
         if data.email:
-            asyncio.create_task(send_lead_confirmation_email(lead))
+            asyncio.create_task(send_lead_confirmation_email(full_lead))
 
     return lead
 
 
 @router.post("/seed")
 async def seed():
+    """Idempotent seed; runs only on first call when DB is empty.
+    Once seeded, becomes a no-op forever to prevent re-seeding attacks."""
     existing = await db.clinics.find_one({"city_slug": "sofia"})
     if existing:
+        return {"message": "Already seeded"}
+    admin_exists = await db.admin_users.find_one({"username": "admin@zubite.bg"})
+    if admin_exists:
         return {"message": "Already seeded"}
 
     clinics = [
@@ -136,12 +151,14 @@ async def seed():
         doc['created_at'] = doc['created_at'].isoformat()
         await db.clinics.insert_one(doc)
 
-    admin_exists = await db.admin_users.find_one({"username": "admin@zubite.bg"})
-    if not admin_exists:
+    admin_exists_check = await db.admin_users.find_one({"username": "admin@zubite.bg"})
+    if not admin_exists_check:
+        import os as _os
+        seed_admin_password = _os.environ.get('SEED_ADMIN_PASSWORD', 'password')
         await db.admin_users.insert_one({
             "id": str(uuid.uuid4()),
             "username": "admin@zubite.bg",
-            "password_hash": hash_password("password"),
+            "password_hash": hash_password(seed_admin_password),
             "role": "admin",
             "created_at": datetime.now(timezone.utc).isoformat()
         })

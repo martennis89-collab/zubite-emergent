@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 import uuid
@@ -18,26 +18,26 @@ class Clinic(BaseModel):
 
 
 class LeadCreate(BaseModel):
-    city_slug: str
-    treatment_type: str
+    city_slug: str = Field(min_length=1, max_length=50)
+    treatment_type: str = Field(min_length=1, max_length=50)
     answers: Dict[str, Any] = {}
     can_travel: bool = True
-    name: Optional[str] = None
-    phone: Optional[str] = None
-    email: Optional[str] = None
+    name: Optional[str] = Field(default=None, max_length=200)
+    phone: Optional[str] = Field(default=None, max_length=50)
+    email: Optional[EmailStr] = None
     consent: bool = False
-    source: Optional[str] = None
-    utm_source: Optional[str] = None
-    utm_campaign: Optional[str] = None
-    utm_adset: Optional[str] = None
-    utm_ad: Optional[str] = None
-    page_path: Optional[str] = None
+    source: Optional[str] = Field(default=None, max_length=100)
+    utm_source: Optional[str] = Field(default=None, max_length=200)
+    utm_campaign: Optional[str] = Field(default=None, max_length=200)
+    utm_adset: Optional[str] = Field(default=None, max_length=200)
+    utm_ad: Optional[str] = Field(default=None, max_length=200)
+    page_path: Optional[str] = Field(default=None, max_length=500)
 
 
 class LeadContactUpdate(BaseModel):
-    name: Optional[str] = None
-    phone: Optional[str] = None
-    email: Optional[str] = None
+    name: Optional[str] = Field(default=None, max_length=200)
+    phone: Optional[str] = Field(default=None, max_length=50)
+    email: Optional[EmailStr] = None
     consent: bool = False
 
 
@@ -84,8 +84,8 @@ class LeadUpdate(BaseModel):
 
 
 class AdminLogin(BaseModel):
-    username: str
-    password: str
+    username: str = Field(min_length=1, max_length=200)
+    password: str = Field(min_length=1, max_length=200)
 
 
 class AdminUser(BaseModel):
@@ -103,8 +103,8 @@ class TokenResponse(BaseModel):
 # ─── Clinic Models ─────────────────────────────────────────
 
 class ClinicLogin(BaseModel):
-    email: str
-    password: str
+    email: EmailStr
+    password: str = Field(min_length=1, max_length=200)
 
 
 class ClinicUserOut(BaseModel):
@@ -141,8 +141,8 @@ class ClinicProfileUpdate(BaseModel):
 
 
 class ClinicPasswordChange(BaseModel):
-    current_password: str
-    new_password: str
+    current_password: str = Field(min_length=1, max_length=200)
+    new_password: str = Field(min_length=8, max_length=200)
 
 
 class ClinicLeadStatusUpdate(BaseModel):
@@ -150,23 +150,23 @@ class ClinicLeadStatusUpdate(BaseModel):
 
 
 class ClinicApplicationCreate(BaseModel):
-    clinic_name: str
-    city: str
-    address: str
-    website: Optional[str] = None
-    contact_name: str
-    phone: str
-    email: str
+    clinic_name: str = Field(min_length=2, max_length=200)
+    city: str = Field(min_length=2, max_length=100)
+    address: str = Field(min_length=2, max_length=500)
+    website: Optional[str] = Field(default=None, max_length=500)
+    contact_name: str = Field(min_length=2, max_length=200)
+    phone: str = Field(min_length=5, max_length=50)
+    email: EmailStr
     offers_aligners: bool = False
     offers_braces: bool = False
     offers_implants: bool = False
     treats_adults: bool = False
     treats_children: bool = False
-    years_experience: Optional[int] = None
-    number_of_cases_per_month: Optional[str] = None
+    years_experience: Optional[int] = Field(default=None, ge=0, le=100)
+    number_of_cases_per_month: Optional[str] = Field(default=None, max_length=100)
     do_you_use_digital_scans: Optional[bool] = None
-    what_types_of_patients_are_best_for_you: Optional[str] = None
-    average_response_time: Optional[str] = None
+    what_types_of_patients_are_best_for_you: Optional[str] = Field(default=None, max_length=2000)
+    average_response_time: Optional[str] = Field(default=None, max_length=100)
 
 
 # ─── Blog Models ───────────────────────────────────────────

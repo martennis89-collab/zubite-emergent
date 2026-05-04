@@ -4,7 +4,6 @@ import uuid
 import secrets
 import logging
 import resend
-import jwt
 
 from database import db
 from schemas import (
@@ -13,9 +12,10 @@ from schemas import (
 )
 from auth import (
     get_current_user, get_current_clinic, hash_password, verify_password,
-    create_clinic_token, security
+    create_clinic_token,
 )
-from config import RESEND_API_KEY, SENDER_EMAIL, ADMIN_EMAIL, JWT_SECRET, JWT_ALGORITHM
+from config import RESEND_API_KEY, SENDER_EMAIL, ADMIN_EMAIL
+from rate_limit import rate_limit
 
 router = APIRouter()
 
@@ -32,7 +32,7 @@ def _clinic_to_out(clinic: dict) -> ClinicUserOut:
 
 # ─── Public Application ───────────────────────────────────
 
-@router.post("/clinic-applications")
+@router.post("/clinic-applications", dependencies=[Depends(rate_limit("clinic_apply", 3, 600))])
 async def create_clinic_application(application: ClinicApplicationCreate):
     doc = {
         "id": str(uuid.uuid4()),
@@ -97,7 +97,14 @@ async def get_clinic_applications(user: AdminUser = Depends(get_current_user)):
 @router.patch("/admin/clinic-applications/{app_id}")
 async def update_clinic_application(app_id: str, body: dict, user: AdminUser = Depends(get_current_user)):
     allowed = {"status", "notes"}
-    update_data = {k: v for k, v in body.items() if k in allowed}
+    update_data = {}
+    for k, v in body.items():
+        if k not in allowed:
+            continue
+        # Reject any operator-style or non-primitive values to prevent NoSQL injection
+        if not isinstance(v, (str, type(None))):
+            raise HTTPException(status_code=400, detail=f"Invalid value for {k}")
+        update_data[k] = v
     if not update_data:
         raise HTTPException(status_code=400, detail="No valid fields to update")
 
@@ -227,8 +234,9 @@ async def admin_reset_clinic_password(clinic_id: str, request: Request, user: Ad
 @router.patch("/admin/leads/{lead_id}/assign-clinic")
 async def admin_assign_lead_to_clinic(lead_id: str, body: dict, user: AdminUser = Depends(get_current_user)):
     clinic_id = body.get("clinic_id")
-    if not clinic_id:
-        raise HTTPException(status_code=400, detail="clinic_id is required")
+    # Strict type check to prevent NoSQL injection via {"clinic_id": {"$ne": ""}}
+    if not clinic_id or not isinstance(clinic_id, str):
+        raise HTTPException(status_code=400, detail="clinic_id is required and must be a string")
     clinic = await db.clinics.find_one({"id": clinic_id, "password_hash": {"$exists": True}}, {"_id": 0, "clinic_name": 1})
     if not clinic:
         raise HTTPException(status_code=404, detail="Clinic account not found")
@@ -240,7 +248,7 @@ async def admin_assign_lead_to_clinic(lead_id: str, body: dict, user: AdminUser 
 
 # ─── Clinic Auth & Dashboard ──────────────────────────────
 
-@router.post("/clinic/login")
+@router.post("/clinic/login", dependencies=[Depends(rate_limit("clinic_login", 5, 300))])
 async def clinic_login(data: ClinicLogin):
     email = data.email.strip().lower()
     clinic = await db.clinics.find_one({"email": email}, {"_id": 0})
@@ -270,21 +278,15 @@ async def update_clinic_profile(data: ClinicProfileUpdate, clinic=Depends(get_cu
 
 
 @router.post("/clinic/change-password")
-async def clinic_change_password(data: ClinicPasswordChange, credentials=Depends(security)):
-    try:
-        payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        if payload.get("role") != "clinic":
-            raise HTTPException(status_code=403, detail="Not a clinic user")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-    clinic = await db.clinics.find_one({"id": payload.get("sub")}, {"_id": 0})
-    if not clinic:
+async def clinic_change_password(data: ClinicPasswordChange, clinic=Depends(get_current_clinic)):
+    # `get_current_clinic` already validates the JWT, role, and account status.
+    # It returns the clinic dict without password_hash, so re-fetch for verification.
+    full_clinic = await db.clinics.find_one({"id": clinic["id"]}, {"_id": 0})
+    if not full_clinic:
         raise HTTPException(status_code=401, detail="Clinic not found")
-    if not verify_password(data.current_password, clinic["password_hash"]):
+    if not verify_password(data.current_password, full_clinic["password_hash"]):
         raise HTTPException(status_code=400, detail="Текущата парола е грешна")
-    if len(data.new_password) < 6:
-        raise HTTPException(status_code=400, detail="Паролата трябва да е поне 6 символа")
+    # Minimum length now enforced by Pydantic (8 chars)
     await db.clinics.update_one({"id": clinic["id"]}, {"$set": {"password_hash": hash_password(data.new_password)}})
     return {"status": "ok", "message": "Паролата е променена успешно"}
 
