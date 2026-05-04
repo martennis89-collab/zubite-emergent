@@ -57,7 +57,9 @@ CITIES = {
 TREATMENT_NAMES = {
     "invisalign": "Инвизалайн",
     "implants": "Зъбни импланти",
-    "full_mouth": "Пълна уста"
+    "full_mouth": "Пълна уста",
+    "diagnostic_quiz": "Диагностичен тест",
+    "orthodontics": "Ортодонтия",
 }
 
 BAND_NAMES = {

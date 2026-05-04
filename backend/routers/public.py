@@ -8,7 +8,7 @@ from schemas import Clinic, LeadCreate, LeadContactUpdate, Lead
 from auth import hash_password
 from config import CITIES
 from scoring import calculate_score
-from emails import send_lead_notification_email
+from emails import send_lead_notification_email, send_lead_confirmation_email
 
 router = APIRouter()
 
@@ -80,6 +80,8 @@ async def create_lead(data: LeadCreate):
 
     if data.consent and (data.name or data.email):
         asyncio.create_task(send_lead_notification_email(doc))
+        if data.email:
+            asyncio.create_task(send_lead_confirmation_email(doc))
 
     return lead
 
@@ -106,6 +108,8 @@ async def update_lead_contact(lead_id: str, data: LeadContactUpdate):
 
     if data.consent and (data.name or data.email):
         asyncio.create_task(send_lead_notification_email(lead))
+        if data.email:
+            asyncio.create_task(send_lead_confirmation_email(lead))
 
     return lead
 

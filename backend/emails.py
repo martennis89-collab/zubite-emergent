@@ -66,6 +66,63 @@ async def send_lead_notification_email(lead_data: dict):
         return None
 
 
+async def send_lead_confirmation_email(lead_data: dict):
+    """Send confirmation email to the lead (patient) after quiz submission."""
+    if not RESEND_API_KEY:
+        return None
+    email = lead_data.get('email')
+    if not email:
+        return None
+
+    name = lead_data.get('name', '')
+    greeting = f"Здравейте{(' ' + name) if name else ''}"
+    city_name = CITIES.get(lead_data.get('city_slug', ''), lead_data.get('city_slug', ''))
+
+    html = f"""
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 540px; margin: 0 auto; padding: 32px 0;">
+        <h1 style="font-size: 22px; color: #0f172a; margin-bottom: 8px;">Получихме вашите отговори</h1>
+        <p style="color: #64748b; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">
+            {greeting}, благодарим ви, че попълнихте теста в Zubite.bg.
+        </p>
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+            <p style="color: #475569; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 16px;">Какво следва?</p>
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="padding: 8px 0; color: #0ea5e9; font-weight: 700; width: 28px; vertical-align: top;">1.</td>
+                    <td style="padding: 8px 0; color: #334155; font-size: 15px;">Ще прегледаме вашите отговори и ще подберем подходящи клиники{(' в ' + city_name) if city_name else ''}.</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: #0ea5e9; font-weight: 700; vertical-align: top;">2.</td>
+                    <td style="padding: 8px 0; color: #334155; font-size: 15px;">Ще се свържем с вас по телефон в рамките на 24–48 часа.</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: #0ea5e9; font-weight: 700; vertical-align: top;">3.</td>
+                    <td style="padding: 8px 0; color: #334155; font-size: 15px;">Ще ви помогнем да запазите консултация при специалист — без ангажимент.</td>
+                </tr>
+            </table>
+        </div>
+        <p style="color: #94a3b8; font-size: 13px; line-height: 1.5;">
+            Ако имате въпроси, отговорете директно на този имейл.<br>
+            С уважение, Екипът на <a href="https://zubite.bg" style="color: #0ea5e9; text-decoration: none;">Zubite.bg</a>
+        </p>
+    </div>
+    """
+
+    try:
+        result = await asyncio.to_thread(resend.Emails.send, {
+            "from": SENDER_EMAIL,
+            "to": [email],
+            "subject": "Получихме вашите отговори — Zubite.bg",
+            "html": html,
+        })
+        logging.info(f"Lead confirmation email sent to {email}, email_id: {result.get('id')}")
+        return result
+    except Exception as e:
+        logging.error(f"Failed to send lead confirmation email to {email}: {e}")
+        return None
+
+
+
 async def send_verification_email(lead: dict, token: str, base_url: str):
     """Send verification email to the patient"""
     email = lead.get("email")
