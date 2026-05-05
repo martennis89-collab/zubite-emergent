@@ -80,6 +80,15 @@ export interface ParsedCta {
   type?: string
 }
 
+export interface ParsedImageAsset {
+  type: string
+  fileName: string
+  alt: string
+  title: string
+  caption: string
+  placement: string
+}
+
 export interface ParsedArticle {
   title: string
   seoTitle: string
@@ -104,6 +113,7 @@ export interface ParsedArticle {
   articleSchema: object | null
   faqSchemaError?: string
   articleSchemaError?: string
+  imageAssets: ParsedImageAsset[]
   /** Names of sections that were not found in the source. */
   missingSections: string[]
 }
@@ -121,6 +131,7 @@ const FLAT_SECTIONS = [
   'EXTERNAL_SOURCES',
   'CTA_BLOCK',
   'IMAGE_ALT_TEXTS',
+  'IMAGE_ASSETS',
   'FAQ_SCHEMA_JSON_LD',
   'ARTICLE_SCHEMA_JSON_LD',
 ] as const
@@ -298,6 +309,19 @@ export function parseArticlePackage(raw: string): ParsedArticle {
   const faqSchemaParsed = tryParseJson(sections.FAQ_SCHEMA_JSON_LD || '')
   const articleSchemaParsed = tryParseJson(sections.ARTICLE_SCHEMA_JSON_LD || '')
 
+  // IMAGE_ASSETS — list of items with Type/File Name/Alt/Title/Caption/Placement
+  const assetsRaw = parseItemList(sections.IMAGE_ASSETS || '')
+  const imageAssets: ParsedImageAsset[] = assetsRaw
+    .map((a) => ({
+      type: (a.type || '').trim(),
+      fileName: (a['file name'] || a.filename || '').trim(),
+      alt: (a.alt || '').trim(),
+      title: (a.title || '').trim(),
+      caption: (a.caption || '').trim(),
+      placement: (a.placement || '').trim().toLowerCase(),
+    }))
+    .filter((a) => a.fileName || a.type)
+
   // FAQ — pairs of "Q: ..." and "A: ..."
   const faq: ParsedFaqItem[] = []
   if (faqRaw) {
@@ -354,6 +378,7 @@ export function parseArticlePackage(raw: string): ParsedArticle {
     articleSchema: articleSchemaParsed.value,
     faqSchemaError: faqSchemaParsed.error,
     articleSchemaError: articleSchemaParsed.error,
+    imageAssets,
     missingSections: missing,
   }
 }
@@ -419,4 +444,113 @@ export function generateSlug(title: string): string {
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
+}
+
+// ─── Image placement helpers (ZIP importer) ───────────────────────
+
+export interface UploadedImage {
+  asset: ParsedImageAsset
+  url: string
+}
+
+/** Build the markdown snippet inserted for a given image. */
+function imageMarkdown(img: UploadedImage): string {
+  const alt = (img.asset.alt || img.asset.title || '').replace(/[\]\[]/g, '')
+  const title = img.asset.title ? ` "${img.asset.title.replace(/"/g, '')}"` : ''
+  const imgLine = `![${alt}](${img.url}${title})`
+  return img.asset.caption
+    ? `\n\n${imgLine}\n\n*${img.asset.caption}*\n\n`
+    : `\n\n${imgLine}\n\n`
+}
+
+/**
+ * Replace `{{image:TYPE}}` placeholders in the body with actual image markdown.
+ * Returns both the new body and the set of types consumed.
+ */
+export function replaceImagePlaceholders(
+  body: string,
+  images: UploadedImage[],
+): { body: string; consumed: Set<string> } {
+  const consumed = new Set<string>()
+  const byType = new Map(images.map((i) => [i.asset.type.toLowerCase(), i]))
+  const next = body.replace(/\{\{\s*image\s*:\s*([A-Za-z0-9_-]+)\s*\}\}/gi, (_, type: string) => {
+    const key = type.toLowerCase()
+    const img = byType.get(key)
+    if (!img) return ''
+    consumed.add(key)
+    return imageMarkdown(img).trim()
+  })
+  return { body: next, consumed }
+}
+
+/** Heuristic: find the first paragraph after any H1/H2 intro. */
+function insertAfterIntro(body: string, markdown: string): string {
+  const lines = body.split('\n')
+  let insertAt = -1
+  let passedIntroHeading = false
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    if (/^#{1,2}\s+/.test(line)) {
+      passedIntroHeading = true
+      continue
+    }
+    if (passedIntroHeading && line.trim() === '') {
+      insertAt = i
+      break
+    }
+  }
+  if (insertAt === -1) return body + markdown
+  lines.splice(insertAt, 0, markdown.trim(), '')
+  return lines.join('\n')
+}
+
+/** Heuristic: insert before the section whose heading contains keyword. */
+function insertBeforeHeading(body: string, markdown: string, keywords: string[]): string {
+  const lines = body.split('\n')
+  const lower = keywords.map((k) => k.toLowerCase())
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    if (/^#{2,3}\s+/.test(line)) {
+      const headingText = line.replace(/^#+\s+/, '').toLowerCase()
+      if (lower.some((k) => headingText.includes(k))) {
+        lines.splice(i, 0, markdown.trim(), '')
+        return lines.join('\n')
+      }
+    }
+  }
+  return body + markdown
+}
+
+/**
+ * For images not already placed via a {{image:TYPE}} placeholder, auto-insert
+ * them based on their `placement` field. `social_only` images are skipped.
+ * `featured_image` images are never inserted into the body.
+ */
+export function autoInsertRemainingImages(
+  body: string,
+  images: UploadedImage[],
+  alreadyConsumed: Set<string>,
+): string {
+  let out = body
+  for (const img of images) {
+    const placement = (img.asset.placement || '').toLowerCase()
+    if (placement === 'featured_image') continue
+    if (placement === 'social_only') continue
+    if (alreadyConsumed.has(img.asset.type.toLowerCase())) continue
+    const md = imageMarkdown(img)
+    switch (placement) {
+      case 'after_intro':
+        out = insertAfterIntro(out, md)
+        break
+      case 'hygiene_section':
+        out = insertBeforeHeading(out, md, ['хигиена', 'миене', 'грижа', 'hygiene'])
+        break
+      case 'faq_section':
+        out = insertBeforeHeading(out, md, ['често задавани', 'faq', 'въпроси'])
+        break
+      default:
+        out = out + md
+    }
+  }
+  return out
 }

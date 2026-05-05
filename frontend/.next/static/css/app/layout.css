@@ -837,6 +837,12 @@ h3{
 .mt-8{
   margin-top: 2rem;
 }
+.line-clamp-1{
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
 .line-clamp-2{
   overflow: hidden;
   display: -webkit-box;
@@ -2183,6 +2189,9 @@ h3{
 }
 .text-\[1\.75rem\]{
   font-size: 1.75rem;
+}
+.text-\[10px\]{
+  font-size: 10px;
 }
 .text-\[11px\]{
   font-size: 11px;

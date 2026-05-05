@@ -3,19 +3,24 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import JSZip from 'jszip'
 import {
   ArrowLeft, Upload, FileText, Save, Send, AlertTriangle, CheckCircle2,
-  Plus, Trash2, Eye, Loader2, Sparkles,
+  Plus, Trash2, Eye, Loader2, Sparkles, Package, Image as ImageIcon, X,
 } from 'lucide-react'
 import {
   parseArticlePackage,
   validateArticle,
   generateSlug,
+  replaceImagePlaceholders,
+  autoInsertRemainingImages,
   ParsedArticle,
   ParsedFaqItem,
   ParsedLinkItem,
   ParsedSourceItem,
   ParsedCta,
+  ParsedImageAsset,
+  UploadedImage,
 } from '@/lib/articleParser'
 
 const TEMPLATE = `# ZUBITE_ARTICLE_PACKAGE
@@ -37,10 +42,14 @@ Status: draft
 <!-- ARTICLE_BODY_START -->
 # Главно заглавие на статията
 
+{{image:hero}}
+
 Тук започва markdown съдържанието. Може да съдържате всякакви заглавия:
 
 ## Първо подзаглавие
 Параграф с обяснения. Може да има **bold** и *italic* форматиране.
+
+{{image:infographic}}
 
 ## Второ подзаглавие
 - Списък точка 1
@@ -90,6 +99,28 @@ Featured Image Alt: Описание на главното изображени�
 - Alt: Алт текст 2
 - Alt: Алт текст 3
 
+<!-- IMAGE_ASSETS -->
+- Type: hero
+  File Name: example-hero.webp
+  Alt: Алт текст за главно изображение
+  Title: Главно изображение
+  Caption:
+  Placement: featured_image
+
+- Type: infographic
+  File Name: example-infographic.webp
+  Alt: Алт текст за инфографиката
+  Title: Инфографика
+  Caption: Графика на основните точки
+  Placement: after_intro
+
+- Type: social_cover
+  File Name: example-social.webp
+  Alt: Социална визия
+  Title: Кратко заглавие
+  Caption:
+  Placement: social_only
+
 <!-- FAQ_SCHEMA_JSON_LD -->
 {
   "@context": "https://schema.org",
@@ -116,12 +147,19 @@ const CATEGORIES = [
 export default function ArticleImporterPage() {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const zipInputRef = useRef<HTMLInputElement>(null)
   const [token, setToken] = useState<string | null>(null)
   const [rawMd, setRawMd] = useState('')
   const [parsed, setParsed] = useState<ParsedArticle | null>(null)
   const [parseError, setParseError] = useState<string>('')
   const [isSaving, setIsSaving] = useState<'draft' | 'publish' | null>(null)
   const [savedMessage, setSavedMessage] = useState('')
+  // ZIP import state
+  const [zipFiles, setZipFiles] = useState<Map<string, Blob>>(new Map())
+  const [zipFileName, setZipFileName] = useState('')
+  const [isExtractingZip, setIsExtractingZip] = useState(false)
+  const [isImportingZip, setIsImportingZip] = useState(false)
+  const [zipImportProgress, setZipImportProgress] = useState('')
 
   useEffect(() => {
     const t = localStorage.getItem('admin_token')
@@ -244,6 +282,194 @@ export default function ArticleImporterPage() {
     }
   }
 
+  // ─── ZIP Import ───────────────────────────────────────────────
+
+  const handleZipUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setIsExtractingZip(true)
+    setParseError('')
+    setSavedMessage('')
+    try {
+      const zip = await JSZip.loadAsync(file)
+      let articleMd = ''
+      const images = new Map<string, Blob>()
+      const allowedExt = ['.webp', '.jpg', '.jpeg', '.png']
+
+      const entries = Object.entries(zip.files)
+      for (const [path, entry] of entries) {
+        if (entry.dir) continue
+        const baseName = path.split('/').pop() || ''
+        const lowerPath = path.toLowerCase()
+        if (lowerPath.endsWith('article.md')) {
+          articleMd = await entry.async('string')
+        } else if (lowerPath.includes('/images/') || lowerPath.startsWith('images/')) {
+          const ext = baseName.toLowerCase().match(/\.[a-z]+$/)?.[0] || ''
+          if (allowedExt.includes(ext)) {
+            const blob = await entry.async('blob')
+            images.set(baseName, blob)
+          }
+        }
+      }
+
+      if (!articleMd) {
+        throw new Error('article.md не е намерен в ZIP-а.')
+      }
+
+      setRawMd(articleMd)
+      setZipFiles(images)
+      setZipFileName(file.name)
+      // Auto-parse so the user immediately sees the mapping
+      try {
+        const result = parseArticlePackage(articleMd)
+        if (!result.slug && result.title) result.slug = generateSlug(result.title)
+        if (!result.seoTitle && result.title) result.seoTitle = result.title
+        setParsed(result)
+      } catch (parseErr) {
+        setParseError(parseErr instanceof Error ? parseErr.message : 'Грешка при разбор.')
+      }
+    } catch (err) {
+      setParseError(err instanceof Error ? err.message : 'Грешка при разпакетиране на ZIP.')
+      setZipFiles(new Map())
+      setZipFileName('')
+    } finally {
+      setIsExtractingZip(false)
+      if (zipInputRef.current) zipInputRef.current.value = ''
+    }
+  }
+
+  const clearZipState = () => {
+    setZipFiles(new Map())
+    setZipFileName('')
+  }
+
+  /**
+   * Cross-validate IMAGE_ASSETS vs files actually present in the ZIP.
+   * Returns lists of missing & orphan files.
+   */
+  const zipValidation = useMemo(() => {
+    if (!parsed || zipFiles.size === 0) {
+      return { missing: [] as string[], orphans: [] as string[], ok: true }
+    }
+    const declared = new Set(parsed.imageAssets.map((a) => a.fileName))
+    const present = new Set(zipFiles.keys())
+    const missing = [...declared].filter((n) => n && !present.has(n))
+    const orphans = [...present].filter((n) => !declared.has(n))
+    return { missing, orphans, ok: missing.length === 0 && orphans.length === 0 }
+  }, [parsed, zipFiles])
+
+  const uploadOneImage = async (
+    blob: Blob,
+    fileName: string,
+  ): Promise<string> => {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+    const fd = new FormData()
+    fd.append('file', blob, fileName)
+    const res = await fetch(`${API_URL}/api/admin/upload`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: fd,
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(`${fileName}: ${err.detail || res.statusText}`)
+    }
+    const data = await res.json()
+    return `${API_URL}${data.url}`
+  }
+
+  const handleZipImport = async () => {
+    if (!parsed || !token) return
+    if (zipValidation.missing.length > 0) {
+      setSavedMessage(
+        `❌ Липсващи файлове в ZIP: ${zipValidation.missing.join(', ')}`,
+      )
+      return
+    }
+
+    setIsImportingZip(true)
+    setSavedMessage('')
+
+    try {
+      // 1. Upload each image listed in IMAGE_ASSETS
+      const uploaded: UploadedImage[] = []
+      for (let i = 0; i < parsed.imageAssets.length; i++) {
+        const asset = parsed.imageAssets[i]
+        const blob = zipFiles.get(asset.fileName)
+        if (!blob) continue // already validated above
+        setZipImportProgress(`Качване на ${i + 1}/${parsed.imageAssets.length}: ${asset.fileName}`)
+        const url = await uploadOneImage(blob, asset.fileName)
+        uploaded.push({ asset, url })
+      }
+
+      // 2. Replace {{image:TYPE}} placeholders + auto-place remaining (skip social_only & featured)
+      setZipImportProgress('Подмяна на placeholders в тялото…')
+      const { body: bodyAfterPh, consumed } = replaceImagePlaceholders(
+        parsed.contentMarkdown,
+        uploaded,
+      )
+      const finalBody = autoInsertRemainingImages(bodyAfterPh, uploaded, consumed)
+
+      // 3. Featured image = the asset marked Placement: featured_image
+      const featuredImage = uploaded.find(
+        (u) => (u.asset.placement || '').toLowerCase() === 'featured_image',
+      )
+      const featuredAlt =
+        featuredImage?.asset.alt || parsed.featuredImageAlt || null
+      const featuredUrl = featuredImage?.url || null
+
+      // 4. Save as DRAFT
+      setZipImportProgress('Запис в базата…')
+      const payload = {
+        title: parsed.title,
+        slug: parsed.slug,
+        excerpt: parsed.excerpt || parsed.metaDescription || parsed.title.slice(0, 160),
+        content: finalBody,
+        featured_image: featuredUrl,
+        category: parsed.category,
+        tags: parsed.tags,
+        meta_title: parsed.seoTitle,
+        meta_description: parsed.metaDescription,
+        is_published: false,
+        seo_title: parsed.seoTitle,
+        language: parsed.language || 'bg',
+        reviewed_by: parsed.reviewedBy || null,
+        last_reviewed: parsed.lastReviewed || null,
+        faq: parsed.faq,
+        internal_links: parsed.internalLinks,
+        external_sources: parsed.externalSources,
+        cta: parsed.cta,
+        featured_image_alt: featuredAlt,
+        image_alt_texts: parsed.imageAltTexts,
+        faq_schema: parsed.faqSchema,
+        article_schema: parsed.articleSchema,
+      }
+
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+      const res = await fetch(`${API_URL}/api/admin/blog/posts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.detail || res.statusText)
+      }
+      const data = await res.json()
+      setSavedMessage(
+        `✅ Импортирано като чернова (${uploaded.length} изображения качени). /blog/${data.slug}`,
+      )
+      setTimeout(() => router.push('/admin/blog'), 2000)
+    } catch (err) {
+      setSavedMessage(
+        `❌ Грешка при импорт: ${err instanceof Error ? err.message : 'unknown'}`,
+      )
+    } finally {
+      setIsImportingZip(false)
+      setZipImportProgress('')
+    }
+  }
+
   if (!token) return null
 
   return (
@@ -272,6 +498,28 @@ export default function ArticleImporterPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-slate-900">Структуриран Markdown</h2>
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => zipInputRef.current?.click()}
+                disabled={isExtractingZip}
+                className="text-sm inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100 disabled:opacity-50"
+                data-testid="importer-zip-upload-btn"
+              >
+                {isExtractingZip ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Package className="w-4 h-4" />
+                )}
+                Качи ZIP
+              </button>
+              <input
+                ref={zipInputRef}
+                type="file"
+                accept=".zip,application/zip"
+                hidden
+                onChange={handleZipUpload}
+                data-testid="importer-zip-file-input"
+              />
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
@@ -305,6 +553,24 @@ export default function ArticleImporterPage() {
             className="w-full h-[480px] font-mono text-sm border border-slate-200 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
             data-testid="importer-textarea"
           />
+          {/* ZIP package status */}
+          {zipFileName && (
+            <div className="mt-3 flex items-center gap-2 text-xs bg-sky-50 border border-sky-200 rounded-lg p-2.5" data-testid="importer-zip-status">
+              <Package className="w-4 h-4 text-sky-600 flex-shrink-0" />
+              <span className="flex-1 text-slate-700">
+                <strong>{zipFileName}</strong> — {zipFiles.size} изображения извлечени
+              </span>
+              <button
+                type="button"
+                onClick={clearZipState}
+                className="p-1 text-slate-400 hover:text-red-500"
+                data-testid="importer-zip-clear"
+                aria-label="Изчисти ZIP"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
           <div className="mt-4 flex items-center gap-3">
             <button
               type="button"
@@ -531,6 +797,103 @@ export default function ArticleImporterPage() {
                 error={parsed.articleSchemaError}
                 testId="importer-field-article-schema"
               />
+
+              {/* Image assets mapping (only when assets declared) */}
+              {parsed.imageAssets.length > 0 && (
+                <div className="border-t border-slate-200 pt-4" data-testid="importer-image-mapping">
+                  <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                    <ImageIcon className="w-4 h-4 text-sky-500" />
+                    Image Assets ({parsed.imageAssets.length})
+                  </h3>
+
+                  {/* ZIP cross-validation */}
+                  {zipFiles.size > 0 && (
+                    <div className="space-y-2 mb-3">
+                      {zipValidation.missing.map((m) => (
+                        <div
+                          key={`miss-${m}`}
+                          className="flex items-start gap-2 text-xs bg-red-50 text-red-700 border border-red-100 rounded-lg p-2"
+                          data-testid="importer-zip-missing"
+                        >
+                          <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                          <span>
+                            Файл <code className="font-mono">{m}</code> е в IMAGE_ASSETS, но липсва в /images.
+                          </span>
+                        </div>
+                      ))}
+                      {zipValidation.orphans.map((o) => (
+                        <div
+                          key={`orph-${o}`}
+                          className="flex items-start gap-2 text-xs bg-amber-50 text-amber-700 border border-amber-100 rounded-lg p-2"
+                          data-testid="importer-zip-orphan"
+                        >
+                          <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                          <span>
+                            Файл <code className="font-mono">{o}</code> е в /images, но не е в IMAGE_ASSETS.
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    {parsed.imageAssets.map((a, i) => {
+                      const inZip = zipFiles.has(a.fileName)
+                      return (
+                        <div
+                          key={`asset-${i}`}
+                          className="border border-slate-200 rounded-lg p-2.5 text-xs"
+                          data-testid={`importer-asset-${i}`}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-[10px]">
+                              {a.type || '—'}
+                            </span>
+                            <span className="px-2 py-0.5 rounded bg-sky-100 text-sky-700 text-[10px]">
+                              {a.placement || '—'}
+                            </span>
+                            {zipFiles.size > 0 && (
+                              <span
+                                className={
+                                  inZip
+                                    ? 'px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px]'
+                                    : 'px-2 py-0.5 rounded bg-red-100 text-red-700 text-[10px]'
+                                }
+                              >
+                                {inZip ? '✓ намерен' : '✗ липсва'}
+                              </span>
+                            )}
+                          </div>
+                          <div className="font-mono text-slate-600 truncate">{a.fileName}</div>
+                          {a.alt && <div className="text-slate-500 mt-0.5 line-clamp-1">Alt: {a.alt}</div>}
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {zipFiles.size > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleZipImport}
+                      disabled={
+                        isImportingZip ||
+                        zipValidation.missing.length > 0 ||
+                        !parsed.title ||
+                        !parsed.slug
+                      }
+                      className="mt-4 w-full inline-flex items-center justify-center gap-2 h-11 px-5 rounded-full bg-emerald-500 text-white font-medium hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                      data-testid="importer-zip-import-btn"
+                    >
+                      {isImportingZip ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Package className="w-4 h-4" />
+                      )}
+                      {isImportingZip ? zipImportProgress || 'Импортиране…' : 'Импорт от ZIP като чернова'}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
