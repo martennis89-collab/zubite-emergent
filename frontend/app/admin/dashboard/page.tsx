@@ -810,7 +810,7 @@ export default function AdminDashboardPage() {
                   filteredLeads.map((lead) => (
                     <tr 
                       key={lead.id} 
-                      onClick={() => openLeadModal(lead)}
+                      onClick={() => router.push(`/admin/leads/${lead.id}`)}
                       className={`hover:bg-slate-50 transition-colors cursor-pointer ${selectedIds.has(lead.id) ? 'bg-sky-50' : ''}`}
                     >
                       <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
