@@ -18,7 +18,9 @@ import {
   ParsedCta,
 } from '@/lib/articleParser'
 
-const TEMPLATE = `<!-- ARTICLE_META -->
+const TEMPLATE = `# ZUBITE_ARTICLE_PACKAGE
+
+<!-- ARTICLE_META -->
 Title: Заглавие на статията
 SEO Title: До 60 символа за Google
 Meta Description: До 155 символа описание за SERP-а
@@ -27,6 +29,8 @@ Slug: zaglavie-na-statiyata
 Category: orthodontics
 Tags: алайнери, ортодонтия, зъби
 Author: Zubite.bg редакция
+Reviewed By: д-р Име Фамилия, ортодонт
+Last Reviewed: 2026-02-01
 Language: bg
 Status: draft
 
@@ -84,6 +88,7 @@ Type: primary
 Featured Image Alt: Описание на главното изображение
 - Alt: Алт текст 1
 - Alt: Алт текст 2
+- Alt: Алт текст 3
 
 <!-- FAQ_SCHEMA_JSON_LD -->
 {
@@ -201,6 +206,8 @@ export default function ArticleImporterPage() {
       is_published: publish,
       seo_title: parsed.seoTitle,
       language: parsed.language || 'bg',
+      reviewed_by: parsed.reviewedBy || null,
+      last_reviewed: parsed.lastReviewed || null,
       faq: parsed.faq,
       internal_links: parsed.internalLinks,
       external_sources: parsed.externalSources,
@@ -423,6 +430,20 @@ export default function ArticleImporterPage() {
                   value={parsed.language}
                   onChange={(v) => updateField('language', v)}
                   testId="importer-field-language"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <FieldText
+                  label="Reviewed By (медицински рецензент)"
+                  value={parsed.reviewedBy}
+                  onChange={(v) => updateField('reviewedBy', v)}
+                  testId="importer-field-reviewed-by"
+                />
+                <FieldText
+                  label="Last Reviewed (YYYY-MM-DD)"
+                  value={parsed.lastReviewed}
+                  onChange={(v) => updateField('lastReviewed', v)}
+                  testId="importer-field-last-reviewed"
                 />
               </div>
               <FieldTextArea

@@ -208,6 +208,8 @@ class BlogPostCreate(BaseModel):
     # Extended structured fields (article importer)
     seo_title: Optional[str] = None
     language: Optional[str] = "bg"
+    reviewed_by: Optional[str] = None
+    last_reviewed: Optional[str] = None
     content_html: Optional[str] = None
     faq: List[FaqItem] = []
     internal_links: List[LinkItem] = []
@@ -233,6 +235,8 @@ class BlogPostUpdate(BaseModel):
     # Extended structured fields
     seo_title: Optional[str] = None
     language: Optional[str] = None
+    reviewed_by: Optional[str] = None
+    last_reviewed: Optional[str] = None
     content_html: Optional[str] = None
     faq: Optional[List[FaqItem]] = None
     internal_links: Optional[List[LinkItem]] = None
@@ -266,6 +270,8 @@ class BlogPost(BaseModel):
     # Extended structured fields (added Feb 2026 with Article Importer)
     seo_title: Optional[str] = None
     language: Optional[str] = "bg"
+    reviewed_by: Optional[str] = None
+    last_reviewed: Optional[str] = None
     content_html: Optional[str] = None
     faq: List[FaqItem] = []
     internal_links: List[LinkItem] = []

@@ -89,6 +89,8 @@ export interface ParsedArticle {
   category: string
   tags: string[]
   author: string
+  reviewedBy: string
+  lastReviewed: string
   language: string
   status: string
   contentMarkdown: string
@@ -333,6 +335,8 @@ export function parseArticlePackage(raw: string): ParsedArticle {
     category: meta.category || 'orthodontics',
     tags: parseTags(meta.tags || ''),
     author: meta.author || '',
+    reviewedBy: meta['reviewed by'] || meta.reviewedby || '',
+    lastReviewed: meta['last reviewed'] || meta.lastreviewed || '',
     language: meta.language || 'bg',
     status: (meta.status || 'draft').toLowerCase(),
     contentMarkdown: body,
