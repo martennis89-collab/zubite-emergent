@@ -4,7 +4,9 @@ import { notFound } from 'next/navigation'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { BlogViewTracker } from '@/components/BlogViewTracker'
-import { Calendar, ArrowLeft, ArrowRight, Tag, User } from 'lucide-react'
+import { ArticleBreadcrumbs } from '@/components/ArticleBreadcrumbs'
+import { TrackedLink } from '@/components/TrackedLink'
+import { Calendar, ArrowRight, Tag, User, Shield } from 'lucide-react'
 
 // Force dynamic rendering - do not pre-render at build time
 export const dynamic = 'force-dynamic'
@@ -38,6 +40,8 @@ interface BlogPost {
   // Extended structured fields (from article importer)
   seo_title?: string | null
   language?: string | null
+  reviewed_by?: string | null
+  last_reviewed?: string | null
   faq?: FaqItem[] | null
   internal_links?: LinkItem[] | null
   external_sources?: SourceItem[] | null
@@ -131,6 +135,8 @@ function parseMarkdown(content: string): string {
     .replace(/^### (.*$)/gim, '<h3 class="font-serif text-xl font-semibold text-slate-900 mt-8 mb-4">$1</h3>')
     .replace(/^## (.*$)/gim, '<h2 class="font-serif text-2xl font-semibold text-slate-900 mt-10 mb-4">$1</h2>')
     .replace(/^# (.*$)/gim, '<h1 class="font-serif text-3xl font-semibold text-slate-900 mt-10 mb-4">$1</h1>')
+    // Blockquotes (used for "Накратко" callout boxes etc.)
+    .replace(/^> (.*$)/gim, '<blockquote class="article-callout">$1</blockquote>')
     // Bold and Italic
     .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>')
     .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold">$1</strong>')
@@ -177,95 +183,218 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
     notFound()
   }
 
+  // FAQ in body? If markdown contains an "Често задавани въпроси" or "FAQ" heading
+  // we skip the dedicated FAQ section visually (schema is still emitted for SEO).
+  const bodyHasFaqHeading = /^##\s+(?:често\s+задавани|faq)/im.test(post.content || '')
+  const showFaqSection = post.faq && post.faq.length > 0 && !bodyHasFaqHeading
+
   return (
     <main className="min-h-screen bg-white">
       <Header />
-      <BlogViewTracker postSlug={params.slug} />
+      <BlogViewTracker postSlug={params.slug} postTitle={post.title} />
 
-      {/* Article Header */}
+      {/* JSON-LD: FAQ + Article schemas (in <head> alternative — emitted in DOM, valid for Google) */}
+      {post.faq_schema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(post.faq_schema) }}
+        />
+      )}
+      {post.article_schema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(post.article_schema) }}
+        />
+      )}
+
+      {/* Article */}
       <article className="pt-24 md:pt-32">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
-          {/* Breadcrumb */}
-          <div className="mb-8">
-            <Link 
-              href="/blog"
-              className="inline-flex items-center gap-2 text-slate-500 hover:text-sky-500 transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Назад към блога
-            </Link>
-          </div>
+          {/* 1. Breadcrumbs */}
+          <ArticleBreadcrumbs
+            items={[
+              { label: 'Начало', href: '/' },
+              {
+                label: CATEGORY_NAMES[post.category] || post.category,
+                href: `/blog?category=${post.category}`,
+              },
+              { label: post.title },
+            ]}
+          />
 
-          {/* Meta */}
-          <div className="flex flex-wrap items-center gap-3 mb-6 text-sm">
-            <span className="px-3 py-1 rounded-full bg-sky-50 text-sky-600 font-medium">
-              {CATEGORY_NAMES[post.category] || post.category}
-            </span>
-            <span className="flex items-center gap-1.5 text-slate-400">
-              <Calendar className="w-4 h-4" />
-              {new Date(post.published_at).toLocaleDateString('bg-BG', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric'
-              })}
-            </span>
+          {/* 2. Title */}
+          <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 mb-5 leading-tight">
+            {post.title}
+          </h1>
+
+          {/* 3. Excerpt */}
+          {post.excerpt && (
+            <p className="text-lg sm:text-xl text-slate-600 mb-6 leading-relaxed">
+              {post.excerpt}
+            </p>
+          )}
+
+          {/* 4. Author / reviewer / date metadata */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-8 text-sm text-slate-500 border-y border-slate-100 py-4">
             {post.author_name && (
-              <span className="flex items-center gap-1.5 text-slate-400">
+              <span className="inline-flex items-center gap-1.5">
                 <User className="w-4 h-4" />
                 {post.author_name}
               </span>
             )}
+            {post.reviewed_by && (
+              <span className="inline-flex items-center gap-1.5 text-slate-700" data-testid="article-reviewer">
+                <Shield className="w-4 h-4 text-emerald-500" />
+                Медицински прегледано: <strong className="font-medium">{post.reviewed_by}</strong>
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1.5">
+              <Calendar className="w-4 h-4" />
+              {new Date(post.published_at).toLocaleDateString('bg-BG', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+              })}
+            </span>
+            {post.last_reviewed && (
+              <span className="inline-flex items-center gap-1.5 text-slate-400">
+                Последно ревю: {new Date(post.last_reviewed).toLocaleDateString('bg-BG')}
+              </span>
+            )}
           </div>
 
-          {/* Title */}
-          <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 mb-6 leading-tight">
-            {post.title}
-          </h1>
-
-          {/* Excerpt */}
-          <p className="text-xl text-slate-600 mb-8 leading-relaxed">
-            {post.excerpt}
-          </p>
-
-          {/* Featured Image */}
+          {/* 5. Featured Image */}
           {post.featured_image && (
             <div className="mb-10 rounded-2xl overflow-hidden">
-              <img 
-                src={post.featured_image} 
+              <img
+                src={post.featured_image}
                 alt={post.featured_image_alt || post.title}
                 className="w-full h-auto"
               />
             </div>
           )}
 
-          {/* JSON-LD: FAQ schema */}
-          {post.faq_schema && (
-            <script
-              type="application/ld+json"
-              dangerouslySetInnerHTML={{ __html: JSON.stringify(post.faq_schema) }}
-            />
-          )}
-          {/* JSON-LD: Article schema */}
-          {post.article_schema && (
-            <script
-              type="application/ld+json"
-              dangerouslySetInnerHTML={{ __html: JSON.stringify(post.article_schema) }}
-            />
-          )}
-
-          {/* Content */}
-          <div 
-            className="prose prose-slate max-w-none mb-12"
+          {/* 6. Article body */}
+          <div
+            className="prose prose-slate max-w-none mb-10"
             dangerouslySetInnerHTML={{ __html: parseMarkdown(post.content) }}
           />
 
-          {/* FAQ Section */}
-          {post.faq && post.faq.length > 0 && (
-            <section className="mb-12 border-t border-slate-200 pt-10">
+          {/* 7. CTA — uses imported CTA block when present, falls back to default */}
+          {post.cta && (post.cta.title || post.cta.text) ? (
+            <div className="bg-sky-50 border border-sky-100 rounded-2xl p-8 md:p-10 mt-4 mb-12 text-center" data-testid="article-cta">
+              {post.cta.title && (
+                <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-3">
+                  {post.cta.title}
+                </h2>
+              )}
+              {post.cta.text && (
+                <p className="text-slate-600 mb-6">{post.cta.text}</p>
+              )}
+              {post.cta.url && post.cta.button && (
+                <TrackedLink
+                  href={post.cta.url}
+                  event="article_cta_click"
+                  slug={post.slug}
+                  title={post.title}
+                  cta={post.cta.button}
+                  external={/^https?:\/\//.test(post.cta.url)}
+                  className="inline-flex items-center justify-center gap-2 h-12 px-8 rounded-full bg-sky-500 text-white font-medium hover:bg-sky-600 transition-all"
+                  testId="article-cta-button"
+                >
+                  {post.cta.button}
+                  <ArrowRight className="w-4 h-4" />
+                </TrackedLink>
+              )}
+            </div>
+          ) : (
+            <div className="bg-sky-50 border border-sky-100 rounded-2xl p-8 md:p-10 mt-4 mb-12 text-center" data-testid="article-cta">
+              <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-3">
+                Имате въпроси за ортодонтията?
+              </h2>
+              <p className="text-slate-600 mb-6">
+                Направете безплатна оценка и разберете кое лечение е подходящо за вас.
+              </p>
+              <TrackedLink
+                href="/assessment"
+                event="article_cta_click"
+                slug={post.slug}
+                title={post.title}
+                cta="Направете оценка"
+                className="inline-flex items-center justify-center gap-2 h-12 px-8 rounded-full bg-sky-500 text-white font-medium hover:bg-sky-600 transition-all"
+                testId="article-cta-button"
+              >
+                Направете оценка
+                <ArrowRight className="w-4 h-4" />
+              </TrackedLink>
+            </div>
+          )}
+
+          {/* 8. Related articles */}
+          {post.internal_links && post.internal_links.length > 0 && (
+            <section className="mb-12 border-t border-slate-200 pt-10" data-testid="article-related">
+              <h2 className="font-serif text-xl font-semibold text-slate-900 mb-1">
+                Полезни следващи стъпки
+              </h2>
+              <p className="text-sm text-slate-500 mb-5">Свързани статии, които може да са ви полезни.</p>
+              <ul className="grid sm:grid-cols-2 gap-3">
+                {post.internal_links.map((link, i) => (
+                  <li key={i}>
+                    <TrackedLink
+                      href={link.url}
+                      event="related_article_click"
+                      slug={post.slug}
+                      title={post.title}
+                      external={/^https?:\/\//.test(link.url)}
+                      className="flex items-center gap-2 p-4 bg-white border border-slate-200 rounded-xl hover:border-sky-300 hover:shadow-sm transition-all group"
+                      testId={`article-related-${i}`}
+                    >
+                      <span className="text-slate-700 group-hover:text-sky-600 flex-1">
+                        {link.label}
+                      </span>
+                      <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-sky-500 group-hover:translate-x-0.5 transition-all" />
+                    </TrackedLink>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {/* 9. Sources */}
+          {post.external_sources && post.external_sources.length > 0 && (
+            <section className="mb-12" data-testid="article-sources">
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-6">
+                <h2 className="font-serif text-base font-semibold text-slate-700 mb-3">
+                  Източници
+                </h2>
+                <ul className="space-y-1.5 text-sm">
+                  {post.external_sources.map((src, i) => (
+                    <li key={i}>
+                      <TrackedLink
+                        href={src.url}
+                        event="external_source_click"
+                        slug={post.slug}
+                        title={post.title}
+                        external
+                        className="text-sky-700 hover:text-sky-800 hover:underline"
+                        testId={`article-source-${i}`}
+                      >
+                        {src.title}
+                      </TrackedLink>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+          )}
+
+          {/* 10. FAQ — only when not duplicated by FAQ heading inside body */}
+          {showFaqSection && post.faq && (
+            <section className="mb-12 border-t border-slate-200 pt-10" data-testid="article-faq">
               <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-6">
                 Често задавани въпроси
               </h2>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {post.faq.map((item, i) => (
                   <details
                     key={i}
@@ -284,104 +413,18 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
             </section>
           )}
 
-          {/* Internal Links */}
-          {post.internal_links && post.internal_links.length > 0 && (
-            <section className="mb-12 border-t border-slate-200 pt-10">
-              <h2 className="font-serif text-xl font-semibold text-slate-900 mb-4">
-                Свързани статии
-              </h2>
-              <ul className="grid sm:grid-cols-2 gap-3">
-                {post.internal_links.map((link, i) => (
-                  <li key={i}>
-                    <Link
-                      href={link.url}
-                      className="flex items-center gap-2 p-4 bg-white border border-slate-200 rounded-xl hover:border-sky-300 hover:shadow-sm transition-all group"
-                    >
-                      <span className="text-slate-700 group-hover:text-sky-600 flex-1">
-                        {link.label}
-                      </span>
-                      <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-sky-500 group-hover:translate-x-0.5 transition-all" />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {/* External Sources */}
-          {post.external_sources && post.external_sources.length > 0 && (
-            <section className="mb-12 border-t border-slate-200 pt-10">
-              <h2 className="font-serif text-lg font-semibold text-slate-900 mb-4">
-                Източници
-              </h2>
-              <ul className="space-y-2 text-sm">
-                {post.external_sources.map((src, i) => (
-                  <li key={i}>
-                    <a
-                      href={src.url}
-                      target="_blank"
-                      rel="noopener noreferrer nofollow"
-                      className="text-sky-600 hover:underline"
-                    >
-                      {src.title}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {/* Tags */}
+          {/* 11. Tags */}
           {post.tags && post.tags.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 py-6 border-t border-slate-200">
+            <div className="flex flex-wrap items-center gap-2 py-6 border-t border-slate-200" data-testid="article-tags">
               <Tag className="w-4 h-4 text-slate-400" />
               {post.tags.map((tag) => (
-                <span 
+                <span
                   key={tag}
                   className="px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-sm"
                 >
                   {tag}
                 </span>
               ))}
-            </div>
-          )}
-
-          {/* CTA — uses imported CTA block when present, falls back to default */}
-          {post.cta && (post.cta.title || post.cta.text) ? (
-            <div className="bg-gradient-to-br from-sky-50 to-sky-100 rounded-2xl p-8 md:p-10 mt-8 mb-12 text-center">
-              {post.cta.title && (
-                <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-3">
-                  {post.cta.title}
-                </h2>
-              )}
-              {post.cta.text && (
-                <p className="text-slate-600 mb-6">{post.cta.text}</p>
-              )}
-              {post.cta.url && post.cta.button && (
-                <Link
-                  href={post.cta.url}
-                  className="inline-flex items-center justify-center gap-2 h-12 px-8 rounded-full bg-sky-500 text-white font-medium hover:bg-sky-600 transition-all"
-                >
-                  {post.cta.button}
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              )}
-            </div>
-          ) : (
-            <div className="bg-gradient-to-br from-sky-50 to-sky-100 rounded-2xl p-8 md:p-10 mt-8 mb-12 text-center">
-              <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-3">
-                Имате въпроси за ортодонтията?
-              </h2>
-              <p className="text-slate-600 mb-6">
-                Направете безплатна оценка и разберете кое лечение е подходящо за вас.
-              </p>
-              <Link
-                href="/assessment"
-                className="inline-flex items-center justify-center gap-2 h-12 px-8 rounded-full bg-sky-500 text-white font-medium hover:bg-sky-600 transition-all"
-              >
-                Направете оценка
-                <ArrowRight className="w-4 h-4" />
-              </Link>
             </div>
           )}
         </div>

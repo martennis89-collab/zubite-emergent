@@ -1,9 +1,11 @@
 'use client'
 
 import { useEffect } from 'react'
+import { trackArticleEvent } from '@/lib/articleAnalytics'
 
 interface BlogViewTrackerProps {
   postSlug: string
+  postTitle?: string
 }
 
 // Generate a simple visitor ID based on browser fingerprint
@@ -50,7 +52,7 @@ function getVisitorId(): string {
   return visitorId
 }
 
-export function BlogViewTracker({ postSlug }: BlogViewTrackerProps) {
+export function BlogViewTracker({ postSlug, postTitle }: BlogViewTrackerProps) {
   useEffect(() => {
     const trackView = async () => {
       try {
@@ -69,6 +71,12 @@ export function BlogViewTracker({ postSlug }: BlogViewTrackerProps) {
             user_agent: navigator.userAgent
           })
         })
+        // Fire the higher-level article_view event so analytics consumers
+        // (Meta Pixel, /api/analytics/events) get a consistent signal.
+        trackArticleEvent('article_view', {
+          slug: postSlug,
+          title: postTitle || postSlug,
+        })
       } catch (error) {
         // Silently fail - tracking is not critical
         console.debug('View tracking failed:', error)
@@ -79,7 +87,7 @@ export function BlogViewTracker({ postSlug }: BlogViewTrackerProps) {
     const timeout = setTimeout(trackView, 2000)
     
     return () => clearTimeout(timeout)
-  }, [postSlug])
+  }, [postSlug, postTitle])
   
   // This component renders nothing
   return null

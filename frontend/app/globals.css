@@ -678,3 +678,18 @@
   color: #64748b;
   text-align: center;
 }
+
+/* ─── Article callout (Накратко block) ─── */
+.article-callout {
+  margin: 2rem 0;
+  padding: 1.25rem 1.5rem;
+  background: #f0f9ff;
+  border-left: 3px solid #0ea5e9;
+  border-radius: 12px;
+  color: #1e293b;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+.article-callout strong:first-child {
+  color: #0c4a6e;
+}
