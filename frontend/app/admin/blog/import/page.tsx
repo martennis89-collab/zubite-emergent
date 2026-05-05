@@ -363,8 +363,20 @@ export default function ArticleImporterPage() {
     fileName: string,
   ): Promise<string> => {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+    // JSZip returns blobs without MIME type; infer from filename extension so
+    // the backend's content_type check accepts the upload.
+    const ext = fileName.toLowerCase().match(/\.[a-z]+$/)?.[0] || ''
+    const mimeMap: Record<string, string> = {
+      '.webp': 'image/webp',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+      '.gif': 'image/gif',
+    }
+    const mime = mimeMap[ext] || blob.type || 'application/octet-stream'
+    const typedFile = new File([blob], fileName, { type: mime })
     const fd = new FormData()
-    fd.append('file', blob, fileName)
+    fd.append('file', typedFile)
     const res = await fetch(`${API_URL}/api/admin/upload`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
