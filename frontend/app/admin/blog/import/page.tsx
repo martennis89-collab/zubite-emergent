@@ -18,12 +18,11 @@ import {
   ParsedCta,
 } from '@/lib/articleParser'
 
-const TEMPLATE = `# ZUBITE_ARTICLE_PACKAGE
-
-## ARTICLE_META
+const TEMPLATE = `<!-- ARTICLE_META -->
 Title: Заглавие на статията
 SEO Title: До 60 символа за Google
 Meta Description: До 155 символа описание за SERP-а
+Excerpt: Кратко резюме (1–2 изречения), което се показва в листинга на блога.
 Slug: zaglavie-na-statiyata
 Category: orthodontics
 Tags: алайнери, ортодонтия, зъби
@@ -31,50 +30,69 @@ Author: Zubite.bg редакция
 Language: bg
 Status: draft
 
-## ARTICLE_BODY
-Тук започва markdown съдържанието на статията.
+<!-- ARTICLE_BODY_START -->
+# Главно заглавие на статията
 
-## Подзаглавие
-Параграфи и обяснения.
+Тук започва markdown съдържанието. Може да съдържате всякакви заглавия:
 
-## FAQ
+## Първо подзаглавие
+Параграф с обяснения. Може да има **bold** и *italic* форматиране.
+
+## Второ подзаглавие
+- Списък точка 1
+- Списък точка 2
+
+### Дори вложени заглавия
+Без проблем — парсерът няма да ги обърка със системните секции.
+<!-- ARTICLE_BODY_END -->
+
+<!-- FAQ -->
 Q: Първи въпрос?
 A: Отговор на първия въпрос.
 
 Q: Втори въпрос?
 A: Отговор на втория въпрос.
 
-## INTERNAL_LINKS
+Q: Трети въпрос?
+A: Отговор на третия въпрос.
+
+Q: Четвърти въпрос?
+A: Отговор на четвъртия въпрос.
+
+Q: Пети въпрос?
+A: Отговор на петия въпрос.
+
+<!-- INTERNAL_LINKS -->
 - Label: Какво е Инвизалайн
   URL: /what-is-invisalign
 
 - Label: Цени на импланти
   URL: /implant-price
 
-## EXTERNAL_SOURCES
+<!-- EXTERNAL_SOURCES -->
 - Title: AAO — American Association of Orthodontists
   URL: https://www.aaoinfo.org
 
-## CTA_BLOCK
+<!-- CTA_BLOCK -->
 Title: Готови ли сте за първата стъпка?
 Text: Направете безплатен тест за 60 секунди.
 Button: Започнете теста
 URL: /quiz
 Type: primary
 
-## IMAGE_ALT_TEXTS
+<!-- IMAGE_ALT_TEXTS -->
 Featured Image Alt: Описание на главното изображение
 - Alt: Алт текст 1
 - Alt: Алт текст 2
 
-## FAQ_SCHEMA_JSON_LD
+<!-- FAQ_SCHEMA_JSON_LD -->
 {
   "@context": "https://schema.org",
   "@type": "FAQPage",
   "mainEntity": []
 }
 
-## ARTICLE_SCHEMA_JSON_LD
+<!-- ARTICLE_SCHEMA_JSON_LD -->
 {
   "@context": "https://schema.org",
   "@type": "Article",
@@ -173,7 +191,7 @@ export default function ArticleImporterPage() {
     const payload = {
       title: parsed.title,
       slug: parsed.slug,
-      excerpt: parsed.metaDescription || parsed.title.slice(0, 160),
+      excerpt: parsed.excerpt || parsed.metaDescription || parsed.title.slice(0, 160),
       content: parsed.contentMarkdown,
       featured_image: null,
       category: parsed.category,
@@ -356,6 +374,13 @@ export default function ArticleImporterPage() {
                 rows={2}
                 hasError={parsed.metaDescription.length > 155}
                 testId="importer-field-meta-desc"
+              />
+              <FieldTextArea
+                label="Excerpt (показва се в листинга)"
+                value={parsed.excerpt}
+                onChange={(v) => updateField('excerpt', v)}
+                rows={2}
+                testId="importer-field-excerpt"
               />
               <div className="grid grid-cols-2 gap-3">
                 <FieldText

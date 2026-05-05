@@ -2,14 +2,16 @@
  * Zubite.bg Article Package Parser
  *
  * Parses a structured Markdown article package into a typed object.
- * Format spec:
+ * System sections are delimited by HTML comments so the article body itself
+ * can contain any markdown headings (#, ##, ###) without confusing the parser.
  *
- *   # ZUBITE_ARTICLE_PACKAGE
+ * Format:
  *
- *   ## ARTICLE_META
+ *   <!-- ARTICLE_META -->
  *   Title: ...
  *   SEO Title: ...
  *   Meta Description: ...
+ *   Excerpt: ...
  *   Slug: ...
  *   Category: ...
  *   Tags: tag1, tag2
@@ -17,40 +19,42 @@
  *   Language: bg
  *   Status: draft|published
  *
- *   ## ARTICLE_BODY
- *   <markdown body>
+ *   <!-- ARTICLE_BODY_START -->
+ *   # Free-form markdown
+ *   ## any subheadings allowed
+ *   <!-- ARTICLE_BODY_END -->
  *
- *   ## FAQ
+ *   <!-- FAQ -->
  *   Q: ...
  *   A: ...
  *
- *   ## INTERNAL_LINKS
+ *   <!-- INTERNAL_LINKS -->
  *   - Label: ...
  *     URL: ...
  *
- *   ## EXTERNAL_SOURCES
+ *   <!-- EXTERNAL_SOURCES -->
  *   - Title: ...
  *     URL: ...
  *
- *   ## CTA_BLOCK
+ *   <!-- CTA_BLOCK -->
  *   Title: ...
  *   Text: ...
  *   Button: ...
  *   URL: ...
  *   Type: ...
  *
- *   ## IMAGE_ALT_TEXTS
+ *   <!-- IMAGE_ALT_TEXTS -->
  *   Featured Image Alt: ...
  *   - Alt: ...
  *
- *   ## FAQ_SCHEMA_JSON_LD
+ *   <!-- FAQ_SCHEMA_JSON_LD -->
  *   {...}
  *
- *   ## ARTICLE_SCHEMA_JSON_LD
+ *   <!-- ARTICLE_SCHEMA_JSON_LD -->
  *   {...}
  *
- * The parser is tolerant to extra whitespace and case-insensitive on key
- * labels, but the section headings must be present exactly as `## SECTION_NAME`.
+ * The parser is tolerant of extra whitespace and case-insensitive on key
+ * labels, but the section markers must be `<!-- NAME -->` (uppercase + underscore).
  */
 
 export interface ParsedFaqItem {
@@ -80,6 +84,7 @@ export interface ParsedArticle {
   title: string
   seoTitle: string
   metaDescription: string
+  excerpt: string
   slug: string
   category: string
   tags: string[]
@@ -97,6 +102,8 @@ export interface ParsedArticle {
   articleSchema: object | null
   faqSchemaError?: string
   articleSchemaError?: string
+  /** Names of sections that were not found in the source. */
+  missingSections: string[]
 }
 
 export interface ValidationResult {
@@ -105,9 +112,8 @@ export interface ValidationResult {
   warnings: string[]
 }
 
-const SECTION_HEADERS = [
+const FLAT_SECTIONS = [
   'ARTICLE_META',
-  'ARTICLE_BODY',
   'FAQ',
   'INTERNAL_LINKS',
   'EXTERNAL_SOURCES',
@@ -117,38 +123,62 @@ const SECTION_HEADERS = [
   'ARTICLE_SCHEMA_JSON_LD',
 ] as const
 
+type SectionMap = Record<string, string>
+
 /**
- * Split the raw markdown into a map of {sectionName: rawContent}.
+ * Find the content for a section delimited by `<!-- NAME -->` (next-marker
+ * stops the section, end-of-string is also a valid stop).
+ *
+ * Whitespace inside the marker (e.g. `<!--   NAME   -->`) is tolerated.
  */
-function splitSections(raw: string): Record<string, string> {
-  const lines = raw.split(/\r?\n/)
-  const sections: Record<string, string> = {}
-  let currentName: string | null = null
-  let buffer: string[] = []
+function findFlatSection(raw: string, name: string): string | null {
+  const startRegex = new RegExp(`<!--\\s*${name}\\s*-->`, 'i')
+  const startMatch = raw.match(startRegex)
+  if (!startMatch || startMatch.index === undefined) return null
+  const startIdx = startMatch.index + startMatch[0].length
+  // Find the next ANY system marker after this one
+  const tail = raw.slice(startIdx)
+  const nextMarker = tail.match(/<!--\s*[A-Z_]+(?:_START|_END)?\s*-->/i)
+  const endIdx = nextMarker && nextMarker.index !== undefined ? nextMarker.index : tail.length
+  return tail.slice(0, endIdx).trim()
+}
 
-  const headerRegex = /^##\s+([A-Z_]+)\s*$/
+/**
+ * Find the article body between `<!-- ARTICLE_BODY_START -->` and
+ * `<!-- ARTICLE_BODY_END -->`. Returns null when either marker is missing.
+ */
+function findBodySection(raw: string): string | null {
+  const start = raw.match(/<!--\s*ARTICLE_BODY_START\s*-->/i)
+  const end = raw.match(/<!--\s*ARTICLE_BODY_END\s*-->/i)
+  if (!start || !end || start.index === undefined || end.index === undefined) return null
+  if (end.index < start.index) return null
+  const startIdx = start.index + start[0].length
+  return raw.slice(startIdx, end.index).trim()
+}
 
-  for (const line of lines) {
-    const m = line.match(headerRegex)
-    if (m && SECTION_HEADERS.includes(m[1] as (typeof SECTION_HEADERS)[number])) {
-      if (currentName) {
-        sections[currentName] = buffer.join('\n').trim()
-      }
-      currentName = m[1]
-      buffer = []
-    } else {
-      if (currentName) buffer.push(line)
-    }
+/**
+ * Build the section map from raw markdown.
+ */
+function splitSections(raw: string): { sections: SectionMap; missing: string[] } {
+  const sections: SectionMap = {}
+  const missing: string[] = []
+
+  for (const name of FLAT_SECTIONS) {
+    const content = findFlatSection(raw, name)
+    if (content === null) missing.push(name)
+    else sections[name] = content
   }
-  if (currentName) {
-    sections[currentName] = buffer.join('\n').trim()
-  }
-  return sections
+
+  const body = findBodySection(raw)
+  if (body === null) missing.push('ARTICLE_BODY')
+  else sections.ARTICLE_BODY = body
+
+  return { sections, missing }
 }
 
 /**
  * Parse a section body that contains Key: Value pairs (multi-line values
- * supported up to next Key: line or blank line).
+ * supported up to next Key: line).
  */
 function parseKeyValue(body: string): Record<string, string> {
   const result: Record<string, string> = {}
@@ -189,11 +219,6 @@ function parseTags(raw: string): string[] {
 /**
  * Parse a section that lists items with leading `-` markers, each
  * containing one or more Key: Value pairs.
- *
- *   - Label: Foo
- *     URL: https://...
- *   - Label: Bar
- *     URL: https://...
  */
 function parseItemList(body: string): Record<string, string>[] {
   if (!body) return []
@@ -211,7 +236,6 @@ function parseItemList(body: string): Record<string, string>[] {
     const line = rawLine
     if (/^\s*-\s+/.test(line)) {
       flush()
-      // Strip the leading "- " so the first key is parseable.
       currentBlock.push(line.replace(/^\s*-\s+/, ''))
     } else if (currentBlock.length > 0) {
       currentBlock.push(line.trim())
@@ -221,10 +245,6 @@ function parseItemList(body: string): Record<string, string>[] {
   return items
 }
 
-/**
- * Parse the IMAGE_ALT_TEXTS section. Has both a top-level "Featured Image Alt: ..."
- * and a list of "- Alt: ..." entries.
- */
 function parseImageAlts(body: string): { featured: string; alts: string[] } {
   if (!body) return { featured: '', alts: [] }
   const lines = body.split(/\r?\n/)
@@ -247,7 +267,6 @@ function parseImageAlts(body: string): { featured: string; alts: string[] } {
 
 function tryParseJson(body: string): { value: object | null; error?: string } {
   if (!body) return { value: null }
-  // Strip code-fence wrappers ```json ... ```
   let cleaned = body.trim()
   cleaned = cleaned.replace(/^```(?:json|JSON|json-ld)?\s*/i, '')
   cleaned = cleaned.replace(/```\s*$/i, '')
@@ -265,9 +284,7 @@ function tryParseJson(body: string): { value: object | null; error?: string } {
 }
 
 export function parseArticlePackage(raw: string): ParsedArticle {
-  // Strip the optional "# ZUBITE_ARTICLE_PACKAGE" header
-  const cleaned = raw.replace(/^#\s+ZUBITE_ARTICLE_PACKAGE\s*$/im, '').trim()
-  const sections = splitSections(cleaned)
+  const { sections, missing } = splitSections(raw)
 
   const meta = parseKeyValue(sections.ARTICLE_META || '')
   const body = sections.ARTICLE_BODY || ''
@@ -279,7 +296,7 @@ export function parseArticlePackage(raw: string): ParsedArticle {
   const faqSchemaParsed = tryParseJson(sections.FAQ_SCHEMA_JSON_LD || '')
   const articleSchemaParsed = tryParseJson(sections.ARTICLE_SCHEMA_JSON_LD || '')
 
-  // FAQ — "Q: ...\nA: ..." pairs
+  // FAQ — pairs of "Q: ..." and "A: ..."
   const faq: ParsedFaqItem[] = []
   if (faqRaw) {
     const blocks = faqRaw.split(/\n\s*\n/)
@@ -304,7 +321,6 @@ export function parseArticlePackage(raw: string): ParsedArticle {
       url: ctaRaw.url || undefined,
       type: ctaRaw.type || undefined,
     }
-    // If all values are empty strings → treat as null
     if (!cta.title && !cta.text && !cta.button && !cta.url && !cta.type) cta = null
   }
 
@@ -312,6 +328,7 @@ export function parseArticlePackage(raw: string): ParsedArticle {
     title: meta.title || '',
     seoTitle: meta['seo title'] || meta.seotitle || '',
     metaDescription: meta['meta description'] || meta.metadescription || '',
+    excerpt: meta.excerpt || '',
     slug: meta.slug || '',
     category: meta.category || 'orthodontics',
     tags: parseTags(meta.tags || ''),
@@ -333,13 +350,12 @@ export function parseArticlePackage(raw: string): ParsedArticle {
     articleSchema: articleSchemaParsed.value,
     faqSchemaError: faqSchemaParsed.error,
     articleSchemaError: articleSchemaParsed.error,
+    missingSections: missing,
   }
 }
 
 /**
  * Validate parsed article. Critical = blocks publish. Warning = allowed.
- * If `requirePublish=false`, criticals are still reported but the caller
- * can choose to save as draft anyway.
  */
 export function validateArticle(a: ParsedArticle): ValidationResult {
   const errors: string[] = []
@@ -372,12 +388,14 @@ export function validateArticle(a: ParsedArticle): ValidationResult {
   if (a.externalSources.length < 1)
     warnings.push('Препоръчителен е поне 1 външен клиничен източник.')
 
+  // Friendly warning per missing section so the user knows where to look.
+  for (const name of a.missingSections) {
+    warnings.push(`Секция <!-- ${name} --> липсва в подадения markdown.`)
+  }
+
   return { ok: errors.length === 0, errors, warnings }
 }
 
-/**
- * Slug-ify Bulgarian text (transliteration).
- */
 const cyrillicToLatin: Record<string, string> = {
   а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ж: 'zh',
   з: 'z', и: 'i', й: 'y', к: 'k', л: 'l', м: 'm', н: 'n',
