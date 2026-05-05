@@ -9,6 +9,17 @@ import { Calendar, ArrowLeft, ArrowRight, Tag, User } from 'lucide-react'
 // Force dynamic rendering - do not pre-render at build time
 export const dynamic = 'force-dynamic'
 
+interface FaqItem { q: string; a: string }
+interface LinkItem { label: string; url: string }
+interface SourceItem { title: string; url: string }
+interface CtaBlock {
+  title?: string | null
+  text?: string | null
+  button?: string | null
+  url?: string | null
+  type?: string | null
+}
+
 interface BlogPost {
   id: string
   title: string
@@ -24,6 +35,16 @@ interface BlogPost {
   updated_at: string
   view_count: number
   author_name: string
+  // Extended structured fields (from article importer)
+  seo_title?: string | null
+  language?: string | null
+  faq?: FaqItem[] | null
+  internal_links?: LinkItem[] | null
+  external_sources?: SourceItem[] | null
+  cta?: CtaBlock | null
+  featured_image_alt?: string | null
+  faq_schema?: object | null
+  article_schema?: object | null
 }
 
 const CATEGORY_NAMES: Record<string, string> = {
@@ -65,13 +86,13 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   }
   
   return {
-    title: `${post.meta_title || post.title} | Zubite.bg`,
+    title: `${post.seo_title || post.meta_title || post.title} | Zubite.bg`,
     description: post.meta_description || post.excerpt,
     alternates: {
       canonical: `https://zubite.bg/blog/${post.slug}`,
     },
     openGraph: {
-      title: post.meta_title || post.title,
+      title: post.seo_title || post.meta_title || post.title,
       description: post.meta_description || post.excerpt,
       url: `https://zubite.bg/blog/${post.slug}`,
       siteName: 'Zubite',
@@ -83,7 +104,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     },
     twitter: {
       card: 'summary_large_image',
-      title: post.meta_title || post.title,
+      title: post.seo_title || post.meta_title || post.title,
       description: post.meta_description || post.excerpt,
     },
   }
@@ -181,10 +202,25 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
             <div className="mb-10 rounded-2xl overflow-hidden">
               <img 
                 src={post.featured_image} 
-                alt={post.title}
+                alt={post.featured_image_alt || post.title}
                 className="w-full h-auto"
               />
             </div>
+          )}
+
+          {/* JSON-LD: FAQ schema */}
+          {post.faq_schema && (
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{ __html: JSON.stringify(post.faq_schema) }}
+            />
+          )}
+          {/* JSON-LD: Article schema */}
+          {post.article_schema && (
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{ __html: JSON.stringify(post.article_schema) }}
+            />
           )}
 
           {/* Content */}
@@ -192,6 +228,78 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
             className="prose prose-slate max-w-none mb-12"
             dangerouslySetInnerHTML={{ __html: parseMarkdown(post.content) }}
           />
+
+          {/* FAQ Section */}
+          {post.faq && post.faq.length > 0 && (
+            <section className="mb-12 border-t border-slate-200 pt-10">
+              <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-6">
+                Често задавани въпроси
+              </h2>
+              <div className="space-y-4">
+                {post.faq.map((item, i) => (
+                  <details
+                    key={i}
+                    className="group bg-slate-50 rounded-xl p-5 open:bg-sky-50 transition-colors"
+                  >
+                    <summary className="font-medium text-slate-900 cursor-pointer list-none flex items-center justify-between">
+                      <span>{item.q}</span>
+                      <span className="text-sky-500 ml-4 group-open:rotate-45 transition-transform">+</span>
+                    </summary>
+                    <div className="mt-3 text-slate-700 leading-relaxed whitespace-pre-line">
+                      {item.a}
+                    </div>
+                  </details>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Internal Links */}
+          {post.internal_links && post.internal_links.length > 0 && (
+            <section className="mb-12 border-t border-slate-200 pt-10">
+              <h2 className="font-serif text-xl font-semibold text-slate-900 mb-4">
+                Свързани статии
+              </h2>
+              <ul className="grid sm:grid-cols-2 gap-3">
+                {post.internal_links.map((link, i) => (
+                  <li key={i}>
+                    <Link
+                      href={link.url}
+                      className="flex items-center gap-2 p-4 bg-white border border-slate-200 rounded-xl hover:border-sky-300 hover:shadow-sm transition-all group"
+                    >
+                      <span className="text-slate-700 group-hover:text-sky-600 flex-1">
+                        {link.label}
+                      </span>
+                      <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-sky-500 group-hover:translate-x-0.5 transition-all" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {/* External Sources */}
+          {post.external_sources && post.external_sources.length > 0 && (
+            <section className="mb-12 border-t border-slate-200 pt-10">
+              <h2 className="font-serif text-lg font-semibold text-slate-900 mb-4">
+                Източници
+              </h2>
+              <ul className="space-y-2 text-sm">
+                {post.external_sources.map((src, i) => (
+                  <li key={i}>
+                    <a
+                      href={src.url}
+                      target="_blank"
+                      rel="noopener noreferrer nofollow"
+                      className="text-sky-600 hover:underline"
+                    >
+                      {src.title}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           {/* Tags */}
           {post.tags && post.tags.length > 0 && (
@@ -208,22 +316,44 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
             </div>
           )}
 
-          {/* CTA */}
-          <div className="bg-gradient-to-br from-sky-50 to-sky-100 rounded-2xl p-8 md:p-10 mt-8 mb-12 text-center">
-            <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-3">
-              Имате въпроси за ортодонтията?
-            </h2>
-            <p className="text-slate-600 mb-6">
-              Направете безплатна оценка и разберете кое лечение е подходящо за вас.
-            </p>
-            <Link
-              href="/assessment"
-              className="inline-flex items-center justify-center gap-2 h-12 px-8 rounded-full bg-sky-500 text-white font-medium hover:bg-sky-600 transition-all"
-            >
-              Направете оценка
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
+          {/* CTA — uses imported CTA block when present, falls back to default */}
+          {post.cta && (post.cta.title || post.cta.text) ? (
+            <div className="bg-gradient-to-br from-sky-50 to-sky-100 rounded-2xl p-8 md:p-10 mt-8 mb-12 text-center">
+              {post.cta.title && (
+                <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-3">
+                  {post.cta.title}
+                </h2>
+              )}
+              {post.cta.text && (
+                <p className="text-slate-600 mb-6">{post.cta.text}</p>
+              )}
+              {post.cta.url && post.cta.button && (
+                <Link
+                  href={post.cta.url}
+                  className="inline-flex items-center justify-center gap-2 h-12 px-8 rounded-full bg-sky-500 text-white font-medium hover:bg-sky-600 transition-all"
+                >
+                  {post.cta.button}
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              )}
+            </div>
+          ) : (
+            <div className="bg-gradient-to-br from-sky-50 to-sky-100 rounded-2xl p-8 md:p-10 mt-8 mb-12 text-center">
+              <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-3">
+                Имате въпроси за ортодонтията?
+              </h2>
+              <p className="text-slate-600 mb-6">
+                Направете безплатна оценка и разберете кое лечение е подходящо за вас.
+              </p>
+              <Link
+                href="/assessment"
+                className="inline-flex items-center justify-center gap-2 h-12 px-8 rounded-full bg-sky-500 text-white font-medium hover:bg-sky-600 transition-all"
+              >
+                Направете оценка
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          )}
         </div>
       </article>
 

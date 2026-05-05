@@ -171,6 +171,29 @@ class ClinicApplicationCreate(BaseModel):
 
 # ─── Blog Models ───────────────────────────────────────────
 
+class FaqItem(BaseModel):
+    q: str = Field(min_length=1, max_length=500)
+    a: str = Field(min_length=1, max_length=5000)
+
+
+class LinkItem(BaseModel):
+    label: str = Field(min_length=1, max_length=200)
+    url: str = Field(min_length=1, max_length=1000)
+
+
+class SourceItem(BaseModel):
+    title: str = Field(min_length=1, max_length=300)
+    url: str = Field(min_length=1, max_length=1000)
+
+
+class CtaBlock(BaseModel):
+    title: Optional[str] = Field(default=None, max_length=300)
+    text: Optional[str] = Field(default=None, max_length=2000)
+    button: Optional[str] = Field(default=None, max_length=200)
+    url: Optional[str] = Field(default=None, max_length=1000)
+    type: Optional[str] = Field(default=None, max_length=50)
+
+
 class BlogPostCreate(BaseModel):
     title: str
     slug: str
@@ -182,6 +205,18 @@ class BlogPostCreate(BaseModel):
     meta_title: Optional[str] = None
     meta_description: Optional[str] = None
     is_published: bool = False
+    # Extended structured fields (article importer)
+    seo_title: Optional[str] = None
+    language: Optional[str] = "bg"
+    content_html: Optional[str] = None
+    faq: List[FaqItem] = []
+    internal_links: List[LinkItem] = []
+    external_sources: List[SourceItem] = []
+    cta: Optional[CtaBlock] = None
+    featured_image_alt: Optional[str] = None
+    image_alt_texts: List[str] = []
+    faq_schema: Optional[Dict[str, Any]] = None
+    article_schema: Optional[Dict[str, Any]] = None
 
 
 class BlogPostUpdate(BaseModel):
@@ -195,6 +230,18 @@ class BlogPostUpdate(BaseModel):
     meta_title: Optional[str] = None
     meta_description: Optional[str] = None
     is_published: Optional[bool] = None
+    # Extended structured fields
+    seo_title: Optional[str] = None
+    language: Optional[str] = None
+    content_html: Optional[str] = None
+    faq: Optional[List[FaqItem]] = None
+    internal_links: Optional[List[LinkItem]] = None
+    external_sources: Optional[List[SourceItem]] = None
+    cta: Optional[CtaBlock] = None
+    featured_image_alt: Optional[str] = None
+    image_alt_texts: Optional[List[str]] = None
+    faq_schema: Optional[Dict[str, Any]] = None
+    article_schema: Optional[Dict[str, Any]] = None
 
 
 class BlogPost(BaseModel):
@@ -216,6 +263,18 @@ class BlogPost(BaseModel):
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     published_at: Optional[datetime] = None
     view_count: int = 0
+    # Extended structured fields (added Feb 2026 with Article Importer)
+    seo_title: Optional[str] = None
+    language: Optional[str] = "bg"
+    content_html: Optional[str] = None
+    faq: List[FaqItem] = []
+    internal_links: List[LinkItem] = []
+    external_sources: List[SourceItem] = []
+    cta: Optional[CtaBlock] = None
+    featured_image_alt: Optional[str] = None
+    image_alt_texts: List[str] = []
+    faq_schema: Optional[Dict[str, Any]] = None
+    article_schema: Optional[Dict[str, Any]] = None
 
 
 class BlogViewEvent(BaseModel):

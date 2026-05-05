@@ -239,6 +239,14 @@ export default function AdminBlogPage() {
             <Plus className="w-5 h-5" />
             Нова публикация
           </Link>
+          <Link
+            href="/admin/blog/import"
+            className="inline-flex items-center justify-center gap-2 h-11 px-6 bg-white border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors"
+            data-testid="import-article-btn"
+          >
+            <FileText className="w-5 h-5" />
+            Импорт от Markdown
+          </Link>
         </div>
 
         {/* Stats Summary */}
