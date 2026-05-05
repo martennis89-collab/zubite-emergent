@@ -5,8 +5,11 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Loader2, ArrowLeft, Save, Trash2, CheckCircle, XCircle } from 'lucide-react'
 
-// Quiz questions mapping
+// Quiz questions mapping — covers both legacy (q1-q10) and new MasterQuiz
+// segments (a1-a10 adult, t1-t8 teen, c1-c8 child). Keep both so old leads
+// still render, while new multi-segment leads also show their answers.
 const QUESTIONS: Record<string, string> = {
+  // Legacy single-track quiz
   q1: 'Усещаш ли, че дъвчеш повече от едната страна на устата?',
   q2: 'Имаш ли зъби, които изглеждат леко струпани или застъпени?',
   q3: 'Усещаш ли понякога, че захапката ти не е съвсем равномерна?',
@@ -16,16 +19,55 @@ const QUESTIONS: Record<string, string> = {
   q7: 'Имаш ли чувствителност към студено или горещо в определени зъби?',
   q8: 'Забелязваш ли, че венците ти се оттеглят на някои места?',
   q9: 'Имаш ли главоболие или болки във врата, които не можеш да обясниш?',
-  q10: 'Получавал/а ли си коментари от зъболекар за неправилна захапка?'
+  q10: 'Получавал/а ли си коментари от зъболекар за неправилна захапка?',
+  // Adult segment
+  a1: 'Коя от тези усмивки е най-близка до твоята?',
+  a2: 'Когато се усмихваш, криеш ли зъбите си?',
+  a3: 'Когато захапеш, усещаш ли зъбите си напълно равномерно?',
+  a4: 'Дъвчеш ли повече от едната страна, без да се замисляш?',
+  a5: 'Случва ли се да дишаш през устата (особено нощем)?',
+  a6: 'Чуваш ли щракане или пукане при отваряне на устата?',
+  a7: 'Събуждаш ли се с напрежение в челюстта или лицето?',
+  a8: 'Забелязал/а ли си зъбите ти да изглеждат по-износени с времето?',
+  a9: 'Имаш ли главоболие, напрежение във врата или ушите без ясна причина?',
+  a10: 'Преди този тест мислеше ли, че имаш проблем със зъбите?',
+  // Teen segment
+  t1: 'Коя от тези усмивки е най-близка до тази на детето?',
+  t2: 'Притеснява ли се детето от усмивката си?',
+  t3: 'Изглежда ли захапката му/ѝ неравномерна?',
+  t4: 'Дъвче ли повече от едната страна?',
+  t5: 'Има ли вече постоянни зъби, които са струпани или нямат място?',
+  t6: 'Диша ли често през устата?',
+  t7: 'Има ли затруднения с говор или произнасяне на определени звуци?',
+  t8: 'Мислиш ли, че ще има нужда от ортодонтско лечение?',
+  // Child segment
+  c1: 'Как изглеждат зъбите на детето?',
+  c2: 'Диша ли често през устата (особено нощем)?',
+  c3: 'Хърка ли или има неспокоен сън?',
+  c4: 'Смуче ли пръст или използва ли биберон дълго време?',
+  c5: 'Изглежда ли челюстта тясна или зъбите нямат достатъчно място?',
+  c6: 'Има ли видима разлика в захапката (горни/долни зъби)?',
+  c7: 'Държи ли устата си често отворена през деня?',
+  c8: 'Мислиш ли, че има нужда от преглед при ортодонт?',
 }
 
-// Answer labels
+// Answer labels — covers both legacy yes/no/sometimes and MasterQuiz visual values
 const ANSWER_LABELS: Record<string, string> = {
   yes: 'Да',
   sometimes: 'Понякога',
   unsure: 'Не съм сигурен/а',
-  no: 'Не'
+  no: 'Не',
+  crowded: 'Видимо струпани',
+  mild: 'Леко струпани',
+  aligned: 'Подредени',
+  past: 'Преди да, вече не',
 }
+
+// Reserved keys we never want to render as a question row
+const RESERVED_ANSWER_KEYS = new Set([
+  'quiz_score', 'quiz_band', 'quiz_flags', 'segment', 'form_version',
+  'session_id', 'source',
+])
 
 // Status labels
 const STATUS_OPTIONS = [
@@ -182,11 +224,23 @@ export default function LeadDetailPage() {
     )
   }
   
-  // Extract quiz answers from answers object
+  // Extract quiz answers from answers object — support legacy q1..q10 and new
+  // MasterQuiz segments a1-a10 (adult), t1-t8 (teen), c1-c8 (child).
   const quizAnswers = lead.answers || {}
+  const segment = (quizAnswers.segment as string) || ''
+  const segmentLabel: Record<string, string> = { adult: 'Възрастен', teen: 'Тийнейджър', child: 'Дете' }
   const answeredQuestions = Object.entries(quizAnswers)
-    .filter(([key]) => key.startsWith('q') && key.length <= 3)
-    .sort((a, b) => parseInt(a[0].slice(1)) - parseInt(b[0].slice(1)))
+    .filter(([key, value]) => {
+      if (RESERVED_ANSWER_KEYS.has(key)) return false
+      if (typeof value !== 'string') return false
+      // Match q1, q10, a1, a10, t1, c8 — letter prefix + 1-2 digits
+      return /^[qatc]\d{1,2}$/i.test(key)
+    })
+    .sort((a, b) => {
+      const numA = parseInt(a[0].slice(1), 10)
+      const numB = parseInt(b[0].slice(1), 10)
+      return numA - numB
+    })
   
   return (
     <main className="min-h-screen bg-slate-50">
@@ -348,6 +402,12 @@ export default function LeadDetailPage() {
                     <span className="text-slate-900">{quizAnswers.form_version}</span>
                   </div>
                 )}
+                {segment && (
+                  <div className="flex justify-between" data-testid="lead-segment">
+                    <span className="text-slate-500">Сегмент</span>
+                    <span className="text-slate-900">{segmentLabel[segment] || segment}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -373,8 +433,8 @@ export default function LeadDetailPage() {
                             <p className="text-slate-900">{questionText}</p>
                           </div>
                           <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                            value === 'yes' ? 'bg-red-100 text-red-700' :
-                            value === 'sometimes' ? 'bg-amber-100 text-amber-700' :
+                            value === 'yes' || value === 'crowded' ? 'bg-red-100 text-red-700' :
+                            value === 'sometimes' || value === 'mild' || value === 'past' ? 'bg-amber-100 text-amber-700' :
                             value === 'unsure' ? 'bg-slate-200 text-slate-700' :
                             'bg-emerald-100 text-emerald-700'
                           }`}>
