@@ -851,13 +851,28 @@ export default function ArticleImporterPage() {
                   <div className="space-y-2">
                     {parsed.imageAssets.map((a, i) => {
                       const inZip = zipFiles.has(a.fileName)
+                      const placement = (a.placement || '').toLowerCase()
+                      const hasPh = parsed.contentMarkdown.includes(`{{image:${a.type}}}`)
+                      let bodyState: { label: string; cls: string }
+                      if (placement === 'social_only') {
+                        bodyState = { label: 'само социална (не в тялото)', cls: 'bg-slate-100 text-slate-600' }
+                      } else if (placement === 'featured_image' && !hasPh) {
+                        bodyState = { label: 'само featured (не в тялото)', cls: 'bg-purple-100 text-purple-700' }
+                      } else if (hasPh) {
+                        bodyState = { label: `placeholder {{image:${a.type}}}`, cls: 'bg-emerald-100 text-emerald-700' }
+                      } else if (['after_intro','after_first_h2','hygiene_section','braces_aligners_section','before_faq'].includes(placement)) {
+                        bodyState = { label: `авто-вмъкване (${placement})`, cls: 'bg-emerald-100 text-emerald-700' }
+                      } else {
+                        bodyState = { label: 'няма placement → пропусната', cls: 'bg-amber-100 text-amber-700' }
+                      }
+                      const snippet = `<figure class="article-image article-image-${a.type}"><img src="[uploadedUrl]" alt="${a.alt}"${a.title ? ` title="${a.title}"` : ''} loading="lazy" />${a.caption ? `<figcaption>${a.caption}</figcaption>` : ''}</figure>`
                       return (
                         <div
                           key={`asset-${i}`}
                           className="border border-slate-200 rounded-lg p-2.5 text-xs"
                           data-testid={`importer-asset-${i}`}
                         >
-                          <div className="flex items-center gap-2 mb-1">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-[10px]">
                               {a.type || '—'}
                             </span>
@@ -875,9 +890,18 @@ export default function ArticleImporterPage() {
                                 {inZip ? '✓ намерен' : '✗ липсва'}
                               </span>
                             )}
+                            <span className={`px-2 py-0.5 rounded text-[10px] ${bodyState.cls}`}>
+                              {bodyState.label}
+                            </span>
                           </div>
                           <div className="font-mono text-slate-600 truncate">{a.fileName}</div>
                           {a.alt && <div className="text-slate-500 mt-0.5 line-clamp-1">Alt: {a.alt}</div>}
+                          <details className="mt-1.5">
+                            <summary className="text-slate-400 cursor-pointer hover:text-slate-600 text-[11px]">
+                              Финален HTML
+                            </summary>
+                            <pre className="mt-1 p-2 bg-slate-50 border border-slate-100 rounded text-[10px] font-mono overflow-x-auto whitespace-pre-wrap break-all">{snippet}</pre>
+                          </details>
                         </div>
                       )
                     })}

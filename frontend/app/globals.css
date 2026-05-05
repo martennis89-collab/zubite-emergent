@@ -659,3 +659,22 @@
   box-shadow: 0 0 20px rgba(14, 165, 233, 0.3);
 }
 
+
+/* ─── Article Image (importer-generated <figure> blocks) ─── */
+.article-image {
+  margin: 2rem 0;
+}
+
+.article-image img {
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+  display: block;
+}
+
+.article-image figcaption {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #64748b;
+  text-align: center;
+}

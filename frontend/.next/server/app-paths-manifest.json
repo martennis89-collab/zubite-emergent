@@ -3,5 +3,7 @@
   "/admin/blog/import/page": "app/admin/blog/import/page.js",
   "/admin/dashboard/page": "app/admin/dashboard/page.js",
   "/admin/blog/page": "app/admin/blog/page.js",
-  "/api/revalidate/route": "app/api/revalidate/route.js"
+  "/page": "app/page.js",
+  "/api/revalidate/route": "app/api/revalidate/route.js",
+  "/blog/[slug]/page": "app/blog/[slug]/page.js"
 }

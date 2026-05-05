@@ -1414,6 +1414,12 @@ h3{
 .whitespace-pre-line{
   white-space: pre-line;
 }
+.whitespace-pre-wrap{
+  white-space: pre-wrap;
+}
+.break-all{
+  word-break: break-all;
+}
 .rounded{
   border-radius: 0.25rem;
 }
@@ -2428,6 +2434,10 @@ h3{
 .text-white\/90{
   color: rgb(255 255 255 / 0.9);
 }
+.text-purple-700{
+  --tw-text-opacity: 1;
+  color: rgb(126 34 206 / var(--tw-text-opacity, 1));
+}
 .underline{
   text-decoration-line: underline;
 }
@@ -3242,6 +3252,26 @@ h3{
 
 .glow-on-hover:hover {
   box-shadow: 0 0 20px rgba(14, 165, 233, 0.3);
+}
+
+
+/* ─── Article Image (importer-generated <figure> blocks) ─── */
+.article-image {
+  margin: 2rem 0;
+}
+
+.article-image img {
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+  display: block;
+}
+
+.article-image figcaption {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #64748b;
+  text-align: center;
 }
 
 .last\:border-0:last-child{
@@ -4231,5 +4261,4 @@ h3{
     font-size: 3.25rem;
   }
 }
-
 

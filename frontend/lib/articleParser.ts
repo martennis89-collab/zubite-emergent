@@ -453,18 +453,31 @@ export interface UploadedImage {
   url: string
 }
 
-/** Build the markdown snippet inserted for a given image. */
-function imageMarkdown(img: UploadedImage): string {
-  const alt = (img.asset.alt || img.asset.title || '').replace(/[\]\[]/g, '')
-  const title = img.asset.title ? ` "${img.asset.title.replace(/"/g, '')}"` : ''
-  const imgLine = `![${alt}](${img.url}${title})`
-  return img.asset.caption
-    ? `\n\n${imgLine}\n\n*${img.asset.caption}*\n\n`
-    : `\n\n${imgLine}\n\n`
+/** Build the HTML figure snippet inserted for a given image. */
+function imageHtml(img: UploadedImage): string {
+  const escAttr = (s: string) =>
+    s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
+  const escText = (s: string) =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  const typeClass = (img.asset.type || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+  const cls = typeClass
+    ? `article-image article-image-${typeClass}`
+    : 'article-image'
+  const alt = escAttr(img.asset.alt || img.asset.title || '')
+  const titleAttr = img.asset.title ? ` title="${escAttr(img.asset.title)}"` : ''
+  const captionHtml = img.asset.caption
+    ? `<figcaption>${escText(img.asset.caption)}</figcaption>`
+    : ''
+  // Single-line so the markdown paragraph splitter doesn't mangle it.
+  return `\n\n<figure class="${cls}"><img src="${escAttr(img.url)}" alt="${alt}"${titleAttr} loading="lazy" />${captionHtml}</figure>\n\n`
 }
 
 /**
- * Replace `{{image:TYPE}}` placeholders in the body with actual image markdown.
+ * Replace `{{image:TYPE}}` placeholders in the body with actual image HTML.
  * Returns both the new body and the set of types consumed.
  */
 export function replaceImagePlaceholders(
@@ -478,7 +491,7 @@ export function replaceImagePlaceholders(
     const img = byType.get(key)
     if (!img) return ''
     consumed.add(key)
-    return imageMarkdown(img).trim()
+    return imageHtml(img).trim()
   })
   return { body: next, consumed }
 }
@@ -502,6 +515,18 @@ function insertAfterIntro(body: string, markdown: string): string {
   if (insertAt === -1) return body + markdown
   lines.splice(insertAt, 0, markdown.trim(), '')
   return lines.join('\n')
+}
+
+/** Insert the markdown right after the first H2 heading line. */
+function insertAfterFirstH2(body: string, markdown: string): string {
+  const lines = body.split('\n')
+  for (let i = 0; i < lines.length; i++) {
+    if (/^##\s+/.test(lines[i])) {
+      lines.splice(i + 1, 0, '', markdown.trim(), '')
+      return lines.join('\n')
+    }
+  }
+  return body + markdown
 }
 
 /** Heuristic: insert before the section whose heading contains keyword. */
@@ -537,19 +562,26 @@ export function autoInsertRemainingImages(
     if (placement === 'featured_image') continue
     if (placement === 'social_only') continue
     if (alreadyConsumed.has(img.asset.type.toLowerCase())) continue
-    const md = imageMarkdown(img)
+    const md = imageHtml(img)
     switch (placement) {
       case 'after_intro':
         out = insertAfterIntro(out, md)
         break
+      case 'after_first_h2':
+        out = insertAfterFirstH2(out, md)
+        break
       case 'hygiene_section':
         out = insertBeforeHeading(out, md, ['хигиена', 'миене', 'грижа', 'hygiene'])
         break
-      case 'faq_section':
+      case 'braces_aligners_section':
+        out = insertBeforeHeading(out, md, ['брекет', 'алайнер', 'braces', 'aligner'])
+        break
+      case 'before_faq':
         out = insertBeforeHeading(out, md, ['често задавани', 'faq', 'въпроси'])
         break
       default:
-        out = out + md
+        // Unknown placement → skip body insertion to avoid dumping at the bottom.
+        break
     }
   }
   return out
