@@ -13,7 +13,8 @@ import { AICallPanel } from '@/components/AICallPanel'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
-// Quiz questions mapping
+// Quiz questions mapping — covers both legacy q1-q10 and new MasterQuiz
+// segments (a1-a10 adult, t1-t8 teen, c1-c8 child).
 const QUESTIONS: Record<string, string> = {
   q1: 'Усещаш ли, че дъвчеш повече от едната страна на устата?',
   q2: 'Имаш ли зъби, които изглеждат леко струпани или застъпени?',
@@ -24,15 +25,50 @@ const QUESTIONS: Record<string, string> = {
   q7: 'Имаш ли чувствителност към студено или горещо в определени зъби?',
   q8: 'Забелязваш ли, че венците ти се оттеглят на някои места?',
   q9: 'Имаш ли главоболие или болки във врата, които не можеш да обясниш?',
-  q10: 'Получавал/а ли си коментари от зъболекар за неправилна захапка?'
+  q10: 'Получавал/а ли си коментари от зъболекар за неправилна захапка?',
+  a1: 'Коя от тези усмивки е най-близка до твоята?',
+  a2: 'Когато се усмихваш, криеш ли зъбите си?',
+  a3: 'Когато захапеш, усещаш ли зъбите си напълно равномерно?',
+  a4: 'Дъвчеш ли повече от едната страна, без да се замисляш?',
+  a5: 'Случва ли се да дишаш през устата (особено нощем)?',
+  a6: 'Чуваш ли щракане или пукане при отваряне на устата?',
+  a7: 'Събуждаш ли се с напрежение в челюстта или лицето?',
+  a8: 'Забелязал/а ли си зъбите ти да изглеждат по-износени с времето?',
+  a9: 'Имаш ли главоболие, напрежение във врата или ушите без ясна причина?',
+  a10: 'Преди този тест мислеше ли, че имаш проблем със зъбите?',
+  t1: 'Коя от тези усмивки е най-близка до тази на детето?',
+  t2: 'Притеснява ли се детето от усмивката си?',
+  t3: 'Изглежда ли захапката му/ѝ неравномерна?',
+  t4: 'Дъвче ли повече от едната страна?',
+  t5: 'Има ли вече постоянни зъби, които са струпани или нямат място?',
+  t6: 'Диша ли често през устата?',
+  t7: 'Има ли затруднения с говор или произнасяне на определени звуци?',
+  t8: 'Мислиш ли, че ще има нужда от ортодонтско лечение?',
+  c1: 'Как изглеждат зъбите на детето?',
+  c2: 'Диша ли често през устата (особено нощем)?',
+  c3: 'Хърка ли или има неспокоен сън?',
+  c4: 'Смуче ли пръст или използва ли биберон дълго време?',
+  c5: 'Изглежда ли челюстта тясна или зъбите нямат достатъчно място?',
+  c6: 'Има ли видима разлика в захапката (горни/долни зъби)?',
+  c7: 'Държи ли устата си често отворена през деня?',
+  c8: 'Мислиш ли, че има нужда от преглед при ортодонт?',
 }
 
 const ANSWER_LABELS: Record<string, string> = {
   yes: 'Да',
   sometimes: 'Понякога',
   unsure: 'Не съм сигурен/а',
-  no: 'Не'
+  no: 'Не',
+  crowded: 'Видимо струпани',
+  mild: 'Леко струпани',
+  aligned: 'Подредени',
+  past: 'Преди да, вече не',
 }
+
+const RESERVED_ANSWER_KEYS = new Set([
+  'quiz_score', 'quiz_band', 'quiz_flags', 'segment', 'form_version',
+  'session_id', 'source',
+])
 
 interface Lead {
   id: string
@@ -520,12 +556,17 @@ export default function AdminDashboardPage() {
     }
   }
 
-  // Extract quiz answers from a lead
+  // Extract quiz answers — supports legacy q1-q10 and new MasterQuiz segments
+  // a1-a10 (adult), t1-t8 (teen), c1-c8 (child).
   const getQuizAnswers = (lead: Lead) => {
     const answers = lead.answers || {}
     return Object.entries(answers)
-      .filter(([key]) => key.startsWith('q') && key.length <= 3)
-      .sort((a, b) => parseInt(a[0].slice(1)) - parseInt(b[0].slice(1)))
+      .filter(([key, value]) => {
+        if (RESERVED_ANSWER_KEYS.has(key)) return false
+        if (typeof value !== 'string') return false
+        return /^[qatc]\d{1,2}$/i.test(key)
+      })
+      .sort((a, b) => parseInt(a[0].slice(1), 10) - parseInt(b[0].slice(1), 10))
   }
   
   const filteredLeads = leads.filter(lead => {
@@ -1091,13 +1132,13 @@ export default function AdminDashboardPage() {
                                 <div className="flex items-start justify-between gap-3">
                                   <div className="flex-1">
                                     <p className="text-xs font-medium text-slate-400 mb-1">
-                                      Въпрос {key.replace('q', '')}
+                                      Въпрос {key.replace(/^[qatc]/i, '')}
                                     </p>
                                     <p className="text-sm text-slate-900">{questionText}</p>
                                   </div>
                                   <div className={`flex-shrink-0 px-2.5 py-1 rounded-full text-xs font-medium ${
-                                    answerValue === 'yes' ? 'bg-red-100 text-red-700' :
-                                    answerValue === 'sometimes' ? 'bg-amber-100 text-amber-700' :
+                                    answerValue === 'yes' || answerValue === 'crowded' ? 'bg-red-100 text-red-700' :
+                                    answerValue === 'sometimes' || answerValue === 'mild' || answerValue === 'past' ? 'bg-amber-100 text-amber-700' :
                                     answerValue === 'unsure' ? 'bg-slate-200 text-slate-700' :
                                     'bg-emerald-100 text-emerald-700'
                                   }`}>
