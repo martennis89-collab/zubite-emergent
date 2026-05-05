@@ -1,7 +1,29 @@
 import { MetadataRoute } from 'next'
 import { CITIES, TREATMENTS } from '@/lib/data'
 
-export default function sitemap(): MetadataRoute.Sitemap {
+interface BlogSitemapEntry {
+  slug: string
+  updated_at?: string
+  published_at?: string
+}
+
+async function fetchPublishedBlogPosts(): Promise<BlogSitemapEntry[]> {
+  try {
+    const API_URL =
+      process.env.NEXT_PUBLIC_API_URL || process.env.REACT_APP_BACKEND_URL || ''
+    if (!API_URL) return []
+    const res = await fetch(`${API_URL}/api/blog/posts?limit=500`, {
+      next: { revalidate: 300 }, // refresh every 5 min
+    })
+    if (!res.ok) return []
+    const data = await res.json()
+    return (data?.posts || []) as BlogSitemapEntry[]
+  } catch {
+    return []
+  }
+}
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://zubite.bg'
   
   // Static pages
@@ -99,5 +121,24 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }
   }
   
-  return [...staticPages, ...seoContentPages, ...treatmentPages, ...cityTreatmentPages]
+  // Blog posts (published only) — pulled from API
+  const posts = await fetchPublishedBlogPosts()
+  const blogIndex: MetadataRoute.Sitemap = [
+    {
+      url: `${baseUrl}/blog`,
+      lastModified: new Date(),
+      changeFrequency: 'daily' as const,
+      priority: 0.7,
+    },
+  ]
+  const blogPages: MetadataRoute.Sitemap = posts
+    .filter((p) => p.slug)
+    .map((p) => ({
+      url: `${baseUrl}/blog/${p.slug}`,
+      lastModified: new Date(p.updated_at || p.published_at || Date.now()),
+      changeFrequency: 'monthly' as const,
+      priority: 0.8,
+    }))
+
+  return [...staticPages, ...seoContentPages, ...treatmentPages, ...cityTreatmentPages, ...blogIndex, ...blogPages]
 }

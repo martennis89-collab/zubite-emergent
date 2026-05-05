@@ -91,6 +91,11 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     alternates: {
       canonical: `https://zubite.bg/blog/${post.slug}`,
     },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: { index: true, follow: true, 'max-image-preview': 'large' },
+    },
     openGraph: {
       title: post.seo_title || post.meta_title || post.title,
       description: post.meta_description || post.excerpt,

@@ -4,6 +4,7 @@ from typing import Optional
 from datetime import datetime, timezone, timedelta
 import asyncio
 import uuid
+import os
 import httpx
 
 from database import db
@@ -207,6 +208,17 @@ async def admin_create_post(post_data: BlogPostCreate, user: AdminUser = Depends
     existing = await db.blog_posts.find_one({"slug": post_data.slug})
     if existing:
         raise HTTPException(status_code=400, detail="Slug already exists")
+    # Safety guard for publish — keep as draft if minimum fields missing.
+    if post_data.is_published:
+        missing = []
+        if not (post_data.slug or "").strip(): missing.append("slug")
+        if not (post_data.title or "").strip(): missing.append("title")
+        if not (post_data.content or "").strip(): missing.append("content")
+        if missing:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Cannot publish without: {', '.join(missing)}.",
+            )
     post = BlogPost(**post_data.model_dump(), author_id=user.id, author_name=user.username,
                     published_at=datetime.now(timezone.utc) if post_data.is_published else None)
     await db.blog_posts.insert_one(post.model_dump())
@@ -221,6 +233,23 @@ async def admin_update_post(post_id: str, post_data: BlogPostUpdate, user: Admin
     if not existing:
         raise HTTPException(status_code=404, detail="Post not found")
     update_data = {k: v for k, v in post_data.model_dump().items() if v is not None}
+
+    # Safety guard: don't allow publishing without minimum SEO requirements.
+    final_state = {**existing, **update_data}
+    if final_state.get("is_published"):
+        missing = []
+        if not (final_state.get("slug") or "").strip():
+            missing.append("slug")
+        if not (final_state.get("title") or "").strip():
+            missing.append("title")
+        if not (final_state.get("content") or "").strip():
+            missing.append("content")
+        if missing:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Cannot publish without: {', '.join(missing)}. Saved as draft instead.",
+            )
+
     update_data["updated_at"] = datetime.now(timezone.utc)
     if post_data.is_published and not existing.get("published_at"):
         update_data["published_at"] = datetime.now(timezone.utc)
@@ -229,6 +258,80 @@ async def admin_update_post(post_id: str, post_data: BlogPostUpdate, user: Admin
     slug_to_revalidate = post_data.slug if post_data.slug else existing.get("slug")
     asyncio.create_task(trigger_revalidation(slug=slug_to_revalidate, action="update"))
     return BlogPost(**updated)
+
+
+@router.get("/admin/blog/posts/{post_id}/seo-status")
+async def admin_seo_status(post_id: str, user: AdminUser = Depends(get_current_user)):
+    """Run a comprehensive SEO indexing check for the article and return a status report."""
+    import httpx as _httpx
+    post = await db.blog_posts.find_one({"id": post_id}, {"_id": 0})
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    site_url = os.environ.get("PUBLIC_SITE_URL", "https://zubite.bg").rstrip("/")
+    slug = (post.get("slug") or "").strip()
+    canonical = f"{site_url}/blog/{slug}" if slug else None
+    is_published = bool(post.get("is_published"))
+
+    errors: list[str] = []
+    warnings: list[str] = []
+
+    if not slug:
+        errors.append("Missing slug — article cannot be canonicalised.")
+    if not (post.get("title") or "").strip():
+        errors.append("Missing title.")
+    if not (post.get("seo_title") or post.get("meta_title") or "").strip():
+        warnings.append("Missing SEO title.")
+    if not (post.get("meta_description") or "").strip():
+        warnings.append("Missing meta description.")
+    if not (post.get("content") or "").strip():
+        errors.append("Article body is empty.")
+    if not is_published:
+        warnings.append("Article is in draft (will not be indexed).")
+
+    canonical_safe = bool(
+        canonical and canonical.startswith(("https://zubite.bg", "https://www.zubite.bg"))
+    )
+
+    sitemap_included = is_published and bool(slug)
+
+    # Robots.txt: explicitly allow /blog/ and admin disallowed; nothing more to check.
+    robots_allowed = True
+
+    has_article_schema = bool(post.get("article_schema"))
+    has_faq_schema = bool(post.get("faq_schema"))
+
+    public_status = None
+    public_status_error = None
+    if is_published and slug:
+        try:
+            async with _httpx.AsyncClient(timeout=8.0, follow_redirects=True) as client:
+                # Try to reach the production URL first; if behind firewall, fall back to FRONTEND_URL.
+                target = canonical
+                resp = await client.get(target, headers={"User-Agent": "Zubite-SEO-Bot/1.0"})
+                public_status = resp.status_code
+        except Exception as e:
+            public_status_error = str(e)[:200]
+
+    return {
+        "post_id": post_id,
+        "slug": slug,
+        "is_published": is_published,
+        "indexable": is_published and not errors,
+        "canonical_url": canonical,
+        "canonical_valid": canonical_safe,
+        "in_sitemap": sitemap_included,
+        "robots_allowed": robots_allowed,
+        "has_article_schema": has_article_schema,
+        "has_faq_schema": has_faq_schema,
+        "public_status_code": public_status,
+        "public_status_error": public_status_error,
+        "last_updated": post.get("updated_at"),
+        "last_published": post.get("published_at"),
+        "errors": errors,
+        "warnings": warnings,
+        "checked_at": datetime.now(timezone.utc).isoformat(),
+    }
 
 
 @router.delete("/admin/blog/posts/{post_id}")

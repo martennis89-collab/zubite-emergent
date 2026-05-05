@@ -7,6 +7,7 @@ import {
   Loader2, LogOut, ArrowLeft, Save, Eye, EyeOff,
   Image as ImageIcon, Tag, FileText, Trash2, RefreshCw, Upload
 } from 'lucide-react'
+import { SeoStatusPanel } from '@/components/SeoStatusPanel'
 
 export default function EditBlogPostPage() {
   const [isLoading, setIsLoading] = useState(true)
@@ -356,6 +357,11 @@ export default function EditBlogPostPage() {
             {error}
           </div>
         )}
+
+        {/* SEO Indexing Status */}
+        <div className="mb-6">
+          <SeoStatusPanel postId={postId} autoFetch={formData.is_published} />
+        </div>
 
         <form onSubmit={(e) => handleSubmit(e)} className="space-y-6">
           {/* Main Content */}

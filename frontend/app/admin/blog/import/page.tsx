@@ -265,7 +265,16 @@ export default function ArticleImporterPage() {
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        setSavedMessage(`❌ Грешка: ${err.detail || res.statusText}`)
+        const detail = err.detail || res.statusText
+        if (typeof detail === 'string' && detail.toLowerCase().includes('slug already exists')) {
+          // Suggest a unique slug by appending a short numeric suffix
+          const suggestion = `${parsed.slug}-${Math.random().toString(36).slice(2, 6)}`
+          setSavedMessage(
+            `❌ Slug "${parsed.slug}" вече съществува. Предложение: "${suggestion}". Редактирайте полето Slug и опитайте отново.`,
+          )
+        } else {
+          setSavedMessage(`❌ Грешка: ${detail}`)
+        }
       } else {
         const data = await res.json()
         setSavedMessage(
@@ -465,7 +474,14 @@ export default function ArticleImporterPage() {
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error(err.detail || res.statusText)
+        const detail = err.detail || res.statusText
+        if (typeof detail === 'string' && detail.toLowerCase().includes('slug already exists')) {
+          const suggestion = `${parsed.slug}-${Math.random().toString(36).slice(2, 6)}`
+          throw new Error(
+            `Slug "${parsed.slug}" вече съществува. Опитайте: "${suggestion}".`,
+          )
+        }
+        throw new Error(detail)
       }
       const data = await res.json()
       setSavedMessage(
