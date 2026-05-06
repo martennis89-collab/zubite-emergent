@@ -1305,6 +1305,9 @@ h3{
 .items-center{
   align-items: center;
 }
+.items-baseline{
+  align-items: baseline;
+}
 .justify-start{
   justify-content: flex-start;
 }
@@ -1480,6 +1483,10 @@ h3{
 .rounded-t{
   border-top-left-radius: 0.25rem;
   border-top-right-radius: 0.25rem;
+}
+.rounded-t-2xl{
+  border-top-left-radius: 1rem;
+  border-top-right-radius: 1rem;
 }
 .border{
   border-width: 1px;
@@ -4180,6 +4187,10 @@ h3{
 
   .lg\:grid-cols-\[1fr_0\.75fr\]{
     grid-template-columns: 1fr 0.75fr;
+  }
+
+  .lg\:grid-cols-\[260px_1fr\]{
+    grid-template-columns: 260px 1fr;
   }
 
   .lg\:flex-row{

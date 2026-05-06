@@ -22,6 +22,7 @@ import {
   ParsedImageAsset,
   UploadedImage,
 } from '@/lib/articleParser'
+import { TestRenderModal } from '@/components/TestRenderModal'
 
 const TEMPLATE = `# ZUBITE_ARTICLE_PACKAGE
 
@@ -160,6 +161,8 @@ export default function ArticleImporterPage() {
   const [isExtractingZip, setIsExtractingZip] = useState(false)
   const [isImportingZip, setIsImportingZip] = useState(false)
   const [zipImportProgress, setZipImportProgress] = useState('')
+  // Test Render modal
+  const [showTestRender, setShowTestRender] = useState(false)
 
   useEffect(() => {
     const t = localStorage.getItem('admin_token')
@@ -961,6 +964,15 @@ export default function ArticleImporterPage() {
             <div className="mt-6 pt-6 border-t border-slate-200 flex items-center gap-3 flex-wrap">
               <button
                 type="button"
+                onClick={() => setShowTestRender(true)}
+                className="inline-flex items-center gap-2 h-11 px-5 rounded-full border border-sky-300 bg-sky-50 text-sky-700 font-medium hover:bg-sky-100"
+                data-testid="importer-test-render-btn"
+              >
+                <Eye className="w-4 h-4" />
+                Test Render
+              </button>
+              <button
+                type="button"
                 onClick={() => handleSave(false)}
                 disabled={isSaving !== null}
                 className="inline-flex items-center gap-2 h-11 px-5 rounded-full border border-slate-300 text-slate-700 font-medium hover:bg-slate-50 disabled:opacity-50"
@@ -988,6 +1000,15 @@ export default function ArticleImporterPage() {
           )}
         </section>
       </div>
+      {parsed && (
+        <TestRenderModal
+          open={showTestRender}
+          onClose={() => setShowTestRender(false)}
+          parsed={parsed}
+          rawMd={rawMd}
+          zipBlobs={zipFiles}
+        />
+      )}
     </main>
   )
 }
