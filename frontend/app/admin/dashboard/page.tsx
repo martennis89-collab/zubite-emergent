@@ -101,6 +101,17 @@ interface Lead {
   assigned_clinic_id?: string
   clinic_lead_status?: string
   verification_status?: string
+  // Attribution (Feb 2026)
+  first_lead_source_type?: string | null
+  latest_lead_source_type?: string | null
+  latest_utm_source?: string | null
+  latest_utm_medium?: string | null
+  latest_utm_campaign?: string | null
+  latest_utm_adset?: string | null
+  latest_utm_ad?: string | null
+  first_article_slug?: string | null
+  latest_article_slug?: string | null
+  blog_assisted_conversion?: boolean | null
 }
 
 interface Stats {
@@ -569,13 +580,21 @@ export default function AdminDashboardPage() {
       .sort((a, b) => parseInt(a[0].slice(1), 10) - parseInt(b[0].slice(1), 10))
   }
   
+  const [filterSource, setFilterSource] = useState<string>('')
   const filteredLeads = leads.filter(lead => {
+    if (filterSource) {
+      const t = lead.latest_lead_source_type || lead.first_lead_source_type
+      if (filterSource === 'blog_assisted' && !lead.blog_assisted_conversion) return false
+      if (filterSource !== 'blog_assisted' && t !== filterSource) return false
+    }
     if (!searchTerm) return true
     const search = searchTerm.toLowerCase()
     return (
       lead.name?.toLowerCase().includes(search) ||
       lead.email?.toLowerCase().includes(search) ||
-      lead.phone?.includes(search)
+      lead.phone?.includes(search) ||
+      (lead.latest_utm_campaign || '').toLowerCase().includes(search) ||
+      (lead.latest_article_slug || '').toLowerCase().includes(search)
     )
   })
   
@@ -725,6 +744,24 @@ export default function AdminDashboardPage() {
                   <option key={slug} value={slug}>{name}</option>
                 ))}
               </select>
+
+              <select
+                value={filterSource}
+                onChange={e => setFilterSource(e.target.value)}
+                className="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-sky-500"
+                data-testid="filter-source"
+              >
+                <option value="">Всички източници</option>
+                <option value="paid">Paid</option>
+                <option value="organic_search">Organic search</option>
+                <option value="organic_social">Organic social</option>
+                <option value="referral">Referral</option>
+                <option value="direct">Direct</option>
+                <option value="blog">Blog landing</option>
+                <option value="internal_content">Internal content</option>
+                <option value="blog_assisted">Blog-assisted</option>
+                <option value="unknown">Unknown</option>
+              </select>
               
               <div className="relative">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -794,6 +831,8 @@ export default function AdminDashboardPage() {
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Контакт</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Град</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Резултат</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Източник</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Кампания</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Статус</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Верифик.</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Дата</th>
@@ -802,7 +841,7 @@ export default function AdminDashboardPage() {
               <tbody className="divide-y divide-slate-100">
                 {filteredLeads.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-12 text-center text-slate-500">
+                    <td colSpan={10} className="px-4 py-12 text-center text-slate-500">
                       Няма намерени лийдове
                     </td>
                   </tr>
@@ -876,6 +915,52 @@ export default function AdminDashboardPage() {
                           {getBandBadge(lead.band)}
                           <span className="text-sm text-slate-500">{lead.score_total || 0}pt</span>
                         </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        {(() => {
+                          const t = lead.latest_lead_source_type || lead.first_lead_source_type
+                          if (!t) return <span className="text-slate-300 text-xs">—</span>
+                          const colors: Record<string, string> = {
+                            paid: 'bg-purple-100 text-purple-700',
+                            organic_search: 'bg-emerald-100 text-emerald-700',
+                            organic_social: 'bg-pink-100 text-pink-700',
+                            referral: 'bg-amber-100 text-amber-700',
+                            direct: 'bg-slate-100 text-slate-700',
+                            blog: 'bg-sky-100 text-sky-700',
+                            internal_content: 'bg-indigo-100 text-indigo-700',
+                            unknown: 'bg-slate-100 text-slate-500',
+                          }
+                          return (
+                            <div className="flex flex-col gap-1">
+                              <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium w-fit ${colors[t] || colors.unknown}`}>
+                                {t}
+                              </span>
+                              {lead.blog_assisted_conversion && (
+                                <span className="text-[10px] text-sky-600">📄 blog-assist</span>
+                              )}
+                            </div>
+                          )
+                        })()}
+                      </td>
+                      <td className="px-4 py-4 max-w-[180px]">
+                        {lead.latest_utm_campaign ? (
+                          <div className="text-xs">
+                            <div className="text-slate-700 truncate" title={lead.latest_utm_campaign}>
+                              {lead.latest_utm_campaign}
+                            </div>
+                            {lead.latest_utm_adset && (
+                              <div className="text-slate-400 truncate" title={lead.latest_utm_adset}>
+                                {lead.latest_utm_adset}
+                              </div>
+                            )}
+                          </div>
+                        ) : lead.latest_article_slug ? (
+                          <div className="text-xs text-sky-600 truncate" title={lead.latest_article_slug}>
+                            /blog/{lead.latest_article_slug}
+                          </div>
+                        ) : (
+                          <span className="text-slate-300 text-xs">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-4">
                         <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600">

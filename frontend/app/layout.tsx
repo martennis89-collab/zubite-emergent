@@ -3,6 +3,8 @@ import './globals.css'
 import { generateOrganizationSchema, generateWebSiteSchema } from '@/lib/schema'
 import { CookieConsent } from '@/components/CookieConsent'
 import { MetaPixel } from '@/components/MetaPixel'
+import { AttributionTracker } from '@/components/AttributionTracker'
+import { Suspense } from 'react'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://zubite.bg'),
@@ -80,6 +82,9 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased overflow-x-hidden">
+        <Suspense fallback={null}>
+          <AttributionTracker />
+        </Suspense>
         {children}
         <CookieConsent />
         <MetaPixel />

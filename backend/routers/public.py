@@ -52,28 +52,21 @@ async def create_lead(data: LeadCreate):
         if clinic:
             assigned_clinic_id = clinic.get("id")
 
-    lead = Lead(
-        city_slug=data.city_slug,
-        treatment_type=data.treatment_type,
-        answers=data.answers,
-        score_breakdown=score_breakdown,
-        score_total=score_total,
-        band=band,
-        assigned_clinic_id=assigned_clinic_id,
-        can_travel=data.can_travel,
-        name=data.name,
-        phone=data.phone,
-        email=data.email,
-        consent=data.consent,
-        utm_source=data.utm_source,
-        utm_campaign=data.utm_campaign,
-        utm_adset=data.utm_adset,
-        utm_ad=data.utm_ad,
-        page_path=data.page_path
-    )
-
+    # Build the lead from the create payload directly. Lead's `extra="ignore"`
+    # config drops any unknown fields, but everything we explicitly typed in
+    # LeadCreate (incl. all attribution fields) flows straight through.
+    payload = data.model_dump(exclude_none=True)
+    # Override with the calculated scoring + assignment fields
+    payload.update({
+        "score_total": score_total,
+        "band": band,
+        "score_breakdown": score_breakdown,
+        "assigned_clinic_id": assigned_clinic_id,
+    })
+    # `source` is not a Lead field — store it in answers so it survives.
     if data.source:
-        lead.answers['source'] = data.source
+        payload.setdefault("answers", {})["source"] = data.source
+    lead = Lead(**payload)
 
     doc = lead.model_dump()
     doc['created_at'] = doc['created_at'].isoformat()

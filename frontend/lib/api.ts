@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { attachAttributionToLead } from './attribution';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
@@ -24,7 +25,13 @@ export interface Lead {
 }
 
 export const createLead = async (leadData: Lead) => {
-  const response = await api.post('/leads', leadData);
+  // Attach the captured first/latest-touch attribution. The helper is safe and
+  // returns an empty object if storage is blocked.
+  let attribution = {} as Record<string, unknown>;
+  try {
+    if (typeof window !== 'undefined') attribution = attachAttributionToLead();
+  } catch { /* never block lead submission */ }
+  const response = await api.post('/leads', { ...leadData, ...attribution });
   return response.data;
 };
 

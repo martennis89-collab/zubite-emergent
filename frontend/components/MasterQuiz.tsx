@@ -604,6 +604,10 @@ export function MasterQuiz() {
         band: bandMap[result?.band || 'low'],
         name: formData.name || '', phone: formData.phone, email: formData.email || '',
         consent: true, source: 'diagnostic_quiz_v1', form_version: formVersion,
+        // ─── Attribution data — never throws (returns {} if storage blocked) ───
+        ...(typeof window !== 'undefined'
+          ? (await import('@/lib/attribution')).attachAttributionToLead()
+          : {}),
       }
       const response = await fetch(`${API_URL}/api/leads`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(leadData) })
       if (!response.ok) throw new Error('Failed')

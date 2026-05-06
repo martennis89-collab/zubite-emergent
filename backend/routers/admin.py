@@ -146,3 +146,109 @@ async def reset_blog_views(user: AdminUser = Depends(get_current_user)):
 async def cleanup_leads(keep_ids: List[str], user: AdminUser = Depends(get_current_user)):
     result = await db.leads.delete_many({"id": {"$nin": keep_ids}})
     return {"success": True, "deleted_count": result.deleted_count}
+
+
+# ─── Attribution Summary Endpoints ─────────────────────────────────────
+
+@router.get("/admin/attribution/summary")
+async def attribution_summary(user: AdminUser = Depends(get_current_user)):
+    """Aggregated counts per source-type and per campaign (latest-touch)."""
+    leads = await db.leads.find(
+        {},
+        {"_id": 0, "first_lead_source_type": 1, "latest_lead_source_type": 1,
+         "latest_utm_source": 1, "latest_utm_medium": 1, "latest_utm_campaign": 1,
+         "latest_utm_adset": 1, "latest_utm_ad": 1, "blog_assisted_conversion": 1,
+         "internal_content_assisted_conversion": 1, "status": 1, "band": 1,
+         "first_article_slug": 1, "first_article_title": 1,
+         "latest_article_slug": 1, "latest_article_title": 1,
+         "content_path_before_conversion": 1}
+    ).to_list(10000)
+
+    # Source type counts
+    src_counts: dict[str, int] = {}
+    for L in leads:
+        t = L.get("latest_lead_source_type") or L.get("first_lead_source_type") or "unknown"
+        src_counts[t] = src_counts.get(t, 0) + 1
+
+    blog_assisted = sum(1 for L in leads if L.get("blog_assisted_conversion"))
+    internal_assisted = sum(1 for L in leads if L.get("internal_content_assisted_conversion"))
+
+    # Campaign breakdown by latest-touch
+    campaigns: dict[str, dict] = {}
+    for L in leads:
+        key = (
+            (L.get("latest_lead_source_type") or "unknown"),
+            (L.get("latest_utm_source") or "—"),
+            (L.get("latest_utm_medium") or "—"),
+            (L.get("latest_utm_campaign") or "—"),
+            (L.get("latest_utm_adset") or "—"),
+            (L.get("latest_utm_ad") or "—"),
+        )
+        c = campaigns.setdefault("|".join(key), {
+            "source_type": key[0], "source": key[1], "medium": key[2],
+            "campaign": key[3], "adset": key[4], "ad": key[5],
+            "total_leads": 0, "qualified": 0, "contacted": 0,
+            "sent_to_clinic": 0, "booked": 0, "unqualified": 0,
+        })
+        c["total_leads"] += 1
+        status = (L.get("status") or "").upper()
+        band = (L.get("band") or "").upper()
+        if band == "GREEN" or status in {"QUALIFIED", "BOOKED"}:
+            c["qualified"] += 1
+        if status == "CONTACTED":
+            c["contacted"] += 1
+        if status in {"ASSIGNED", "SENT_TO_CLINIC", "VERIFIED"}:
+            c["sent_to_clinic"] += 1
+        if status == "BOOKED":
+            c["booked"] += 1
+        if status == "UNQUALIFIED" or band == "RED":
+            c["unqualified"] += 1
+
+    # Content / article breakdown
+    articles: dict[str, dict] = {}
+    for L in leads:
+        # First-touch article
+        if L.get("first_article_slug"):
+            slug = L["first_article_slug"]
+            a = articles.setdefault(slug, {
+                "slug": slug, "title": L.get("first_article_title") or slug,
+                "first_touch": 0, "latest_touch": 0, "assisted": 0,
+                "direct_conv": 0, "organic_search_conv": 0, "paid_assisted": 0,
+            })
+            a["first_touch"] += 1
+        if L.get("latest_article_slug"):
+            slug = L["latest_article_slug"]
+            a = articles.setdefault(slug, {
+                "slug": slug, "title": L.get("latest_article_title") or slug,
+                "first_touch": 0, "latest_touch": 0, "assisted": 0,
+                "direct_conv": 0, "organic_search_conv": 0, "paid_assisted": 0,
+            })
+            a["latest_touch"] += 1
+        # Assisted: article appeared anywhere in the path
+        path = L.get("content_path_before_conversion") or []
+        seen_in_path: set[str] = set()
+        for p in path:
+            if isinstance(p, dict) and p.get("article_slug"):
+                seen_in_path.add(p["article_slug"])
+        for slug in seen_in_path:
+            a = articles.setdefault(slug, {
+                "slug": slug, "title": slug,
+                "first_touch": 0, "latest_touch": 0, "assisted": 0,
+                "direct_conv": 0, "organic_search_conv": 0, "paid_assisted": 0,
+            })
+            a["assisted"] += 1
+            # Categorise the conversion
+            t = L.get("latest_lead_source_type") or "unknown"
+            if t == "direct": a["direct_conv"] += 1
+            elif t == "organic_search": a["organic_search_conv"] += 1
+            elif t == "paid": a["paid_assisted"] += 1
+
+    return {
+        "total_leads": len(leads),
+        "source_type_counts": src_counts,
+        "blog_assisted_count": blog_assisted,
+        "internal_content_assisted_count": internal_assisted,
+        "campaigns": list(campaigns.values()),
+        "articles": list(articles.values()),
+        "note": "Attribution summary is based on latest-touch attribution by default.",
+    }

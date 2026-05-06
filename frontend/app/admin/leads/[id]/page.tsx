@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Loader2, ArrowLeft, Save, Trash2, CheckCircle, XCircle } from 'lucide-react'
+import { LeadAttributionPanel } from '@/components/LeadAttributionPanel'
 
 // Quiz questions mapping — covers both legacy (q1-q10) and new MasterQuiz
 // segments (a1-a10 adult, t1-t8 teen, c1-c8 child). Keep both so old leads
@@ -452,6 +453,11 @@ export default function LeadDetailPage() {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Attribution panel — full width below the two-column layout */}
+        <div className="mt-6">
+          <LeadAttributionPanel lead={lead as unknown as Parameters<typeof LeadAttributionPanel>[0]['lead']} />
         </div>
       </div>
     </main>
