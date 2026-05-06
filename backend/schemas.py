@@ -424,3 +424,5 @@ class AnalyticsEvent(BaseModel):
     city: Optional[str] = None
     has_name: Optional[bool] = None
     has_email: Optional[bool] = None
+    segment: Optional[str] = None
+    flags: Optional[List[str]] = None

@@ -6,10 +6,12 @@ import Link from 'next/link'
 import { 
   Loader2, LogOut, ArrowLeft, RefreshCw,
   Users, TrendingUp, Clock, Target, 
-  BarChart3, PieChart, Activity, FileText, Trash2
+  BarChart3, PieChart, Activity, FileText, Trash2,
+  Calendar, Info
 } from 'lucide-react'
 
 interface Analytics {
+  range: { start: string | null; end: string | null; label: string }
   total_starts: number
   total_completions: number
   completion_rate: number
@@ -18,16 +20,41 @@ interface Analytics {
   question_stats: Record<string, Record<string, number>>
   result_distribution: Record<string, number>
   funnel: Record<string, number>
+  starts_per_day: Array<{ date: string; count: number }>
   leads_per_day: Array<{ date: string; count: number }>
   leads_by_city: Record<string, number>
   form_version_stats: Record<string, number>
   total_leads?: number
+  total_leads_in_range?: number
+  starts_by_segment: Record<string, number>
+  completions_by_segment: Record<string, number>
+  sanity: {
+    raw_quiz_start_events: number
+    unique_started_sessions: number
+    raw_quiz_completed_events: number
+    unique_completed_sessions: number
+    duplicate_starts_per_session: number
+  }
+}
+
+type RangePreset = 'today' | '7d' | '30d' | 'all' | 'custom'
+
+function todayStr(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+function daysAgoStr(n: number): string {
+  const d = new Date()
+  d.setUTCDate(d.getUTCDate() - n)
+  return d.toISOString().slice(0, 10)
 }
 
 export default function AdminAnalyticsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isResetting, setIsResetting] = useState(false)
   const [analytics, setAnalytics] = useState<Analytics | null>(null)
+  const [preset, setPreset] = useState<RangePreset>('30d')
+  const [customFrom, setCustomFrom] = useState<string>(daysAgoStr(7))
+  const [customTo, setCustomTo] = useState<string>(todayStr())
   const router = useRouter()
 
   const fetchAnalytics = useCallback(async () => {
@@ -37,9 +64,17 @@ export default function AdminAnalyticsPage() {
       return
     }
 
+    // Build ?from/&to params from preset
+    let qs = ''
+    if (preset === 'today') qs = `?from=${todayStr()}&to=${todayStr()}`
+    else if (preset === '7d') qs = `?from=${daysAgoStr(6)}&to=${todayStr()}`
+    else if (preset === '30d') qs = `?from=${daysAgoStr(29)}&to=${todayStr()}`
+    else if (preset === 'all') qs = `?from=all`
+    else if (preset === 'custom') qs = `?from=${customFrom}&to=${customTo}`
+
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
-      const response = await fetch(`${API_URL}/api/admin/analytics`, {
+      const response = await fetch(`${API_URL}/api/admin/analytics${qs}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -62,7 +97,7 @@ export default function AdminAnalyticsPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [router])
+  }, [router, preset, customFrom, customTo])
 
   const resetAnalytics = async () => {
     if (!confirm('⚠️ Сигурни ли сте, че искате да нулирате ВСИЧКИ analytics данни?\n\nТова ще изтрие:\n- Данни за започнати/завършени тестове\n- Отговори по въпроси\n- Soft commit статистика\n\nЛийдовете НЯМА да бъдат изтрити.')) {
@@ -239,6 +274,65 @@ export default function AdminAnalyticsPage() {
 
         {analytics && (
           <>
+            {/* Date Range Filter */}
+            <div
+              className="bg-white rounded-xl border border-slate-200 p-4 mb-6 flex flex-col sm:flex-row sm:items-center gap-3 flex-wrap"
+              data-testid="analytics-range-filter"
+            >
+              <div className="flex items-center gap-2 text-slate-600 text-sm font-medium">
+                <Calendar className="w-4 h-4 text-slate-400" />
+                Период:
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                {([
+                  { key: 'today', label: 'Днес' },
+                  { key: '7d', label: '7 дни' },
+                  { key: '30d', label: '30 дни' },
+                  { key: 'all', label: 'Всичко' },
+                  { key: 'custom', label: 'По дати' },
+                ] as const).map((p) => (
+                  <button
+                    key={p.key}
+                    type="button"
+                    onClick={() => setPreset(p.key)}
+                    data-testid={`analytics-preset-${p.key}`}
+                    className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                      preset === p.key
+                        ? 'bg-sky-500 text-white border-sky-500'
+                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+              {preset === 'custom' && (
+                <div className="flex items-center gap-2 text-sm">
+                  <input
+                    type="date"
+                    value={customFrom}
+                    onChange={(e) => setCustomFrom(e.target.value)}
+                    className="border border-slate-200 rounded-lg px-2 py-1.5"
+                    data-testid="analytics-custom-from"
+                  />
+                  <span className="text-slate-400">до</span>
+                  <input
+                    type="date"
+                    value={customTo}
+                    onChange={(e) => setCustomTo(e.target.value)}
+                    className="border border-slate-200 rounded-lg px-2 py-1.5"
+                    data-testid="analytics-custom-to"
+                  />
+                </div>
+              )}
+              <span
+                className="ml-auto text-xs text-slate-500 font-mono"
+                data-testid="analytics-range-label"
+              >
+                {analytics.range.label}
+              </span>
+            </div>
+
             {/* Overview Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               <div className="bg-white rounded-xl border border-slate-200 p-5">
@@ -279,6 +373,94 @@ export default function AdminAnalyticsPage() {
                 </div>
                 <p className="text-2xl font-bold text-slate-900">{analytics.funnel.form_submitted}</p>
                 <p className="text-sm text-slate-500">Изпратени форми</p>
+              </div>
+            </div>
+
+            {/* Segment breakdown + Sanity check */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+              <div
+                className="bg-white rounded-xl border border-slate-200 p-5"
+                data-testid="analytics-segment-breakdown"
+              >
+                <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4 text-slate-400" />
+                  Started vs Completed по сегмент
+                </h3>
+                <div className="space-y-2">
+                  {(['adult', 'teen', 'child', 'unknown'] as const).map((seg) => {
+                    const started = analytics.starts_by_segment[seg] || 0
+                    const completed = analytics.completions_by_segment[seg] || 0
+                    const rate = started > 0 ? Math.round((completed / started) * 100) : 0
+                    if (started === 0 && seg !== 'unknown') return null
+                    if (seg === 'unknown' && started === 0) return null
+                    const segLabel: Record<string, string> = {
+                      adult: 'Възрастни', teen: 'Тийнейджъри', child: 'Деца', unknown: 'Неизвестен'
+                    }
+                    return (
+                      <div
+                        key={seg}
+                        className="flex items-center justify-between text-sm"
+                        data-testid={`analytics-segment-${seg}`}
+                      >
+                        <span className="text-slate-600">{segLabel[seg]}</span>
+                        <div className="flex items-center gap-3 font-mono">
+                          <span className="text-slate-900">{started}</span>
+                          <span className="text-slate-300">→</span>
+                          <span className="text-emerald-600">{completed}</span>
+                          <span className="text-slate-400 text-xs w-10 text-right">{rate}%</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                  {analytics.starts_by_segment.unknown > 0 && (
+                    <div className="text-xs text-slate-400 pt-2 border-t border-slate-100 mt-2">
+                      Сегмент „Неизвестен" = стари сесии преди да се записва segment полето.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div
+                className="bg-white rounded-xl border border-slate-200 p-5"
+                data-testid="analytics-sanity-check"
+              >
+                <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                  <Info className="w-4 h-4 text-slate-400" />
+                  Sanity check
+                </h3>
+                <div className="space-y-2 text-sm">
+                  <SanityRow
+                    label="quiz_start събития (raw)"
+                    value={analytics.sanity.raw_quiz_start_events}
+                  />
+                  <SanityRow
+                    label="Уникални започнали сесии"
+                    value={analytics.sanity.unique_started_sessions}
+                  />
+                  <SanityRow
+                    label="quiz_completed събития (raw)"
+                    value={analytics.sanity.raw_quiz_completed_events}
+                  />
+                  <SanityRow
+                    label="Уникални завършили сесии"
+                    value={analytics.sanity.unique_completed_sessions}
+                  />
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                    <span className="text-slate-500">Дублирани starts в същата сесия</span>
+                    <span
+                      className={
+                        analytics.sanity.duplicate_starts_per_session > 0
+                          ? 'text-amber-600 font-mono font-semibold'
+                          : 'text-emerald-600 font-mono font-semibold'
+                      }
+                      data-testid="analytics-sanity-duplicates"
+                    >
+                      {analytics.sanity.duplicate_starts_per_session === 0
+                        ? '0 (чисто)'
+                        : analytics.sanity.duplicate_starts_per_session}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -501,3 +683,13 @@ export default function AdminAnalyticsPage() {
     </main>
   )
 }
+
+function SanityRow({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="flex items-center justify-between text-sm">
+      <span className="text-slate-600">{label}</span>
+      <span className="font-mono text-slate-900 font-semibold">{value}</span>
+    </div>
+  )
+}
+

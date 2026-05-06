@@ -1,5 +1,18 @@
 # Zubite.bg — Changelog
 
+## 2026-02-06 — Analytics Date Filter + Segment Breakdown + Sanity (P0)
+- Backend `/api/admin/analytics` now accepts `?from=YYYY-MM-DD&to=YYYY-MM-DD` query params (or `?from=all`). **Default changed from all-time to last 30 days** — older numbers (e.g. "229 starts") were cumulative, not "past 2 days".
+- Added `segment` field to `AnalyticsEvent` schema (was being silently stripped) — adult/teen/child breakdown for started + completed sessions now visible in admin.
+- New `sanity` block in API response: `raw_quiz_start_events`, `unique_started_sessions`, `raw_quiz_completed_events`, `unique_completed_sessions`, `duplicate_starts_per_session` — confirms whether the count is inflated by within-session re-fires (current data: 0 duplicates, logic is clean).
+- Added `starts_per_day` time-series + range-aware `leads_per_day` for daily breakdown.
+- Frontend `/admin/analytics` page:
+  - 5 preset chips: **Днес / 7 дни / 30 дни / Всичко / По дати** (custom date range pickers).
+  - Live range label (`YYYY-MM-DD..YYYY-MM-DD`) shown on the right.
+  - "Started vs Completed по сегмент" card with adult/teen/child + completion %.
+  - "Sanity check" card surfacing the 5 backend counters; flags duplicate starts in green/amber.
+- All cards & funnel re-fetch automatically when preset/dates change.
+
+
 ## 2026-02-06 — Admin Test Render Modal (P1)
 - New "Test Render" button next to Save/Publish in `/admin/blog/import` — opens a full-screen modal that previews the article exactly as a reader will see it.
 - Reuses the public blog page's markdown renderer — `parseMarkdown()` extracted to shared `lib/markdownToHtml.ts` (no behaviour change for live blog).
