@@ -868,13 +868,21 @@ export default function ArticleImporterPage() {
                     {parsed.imageAssets.map((a, i) => {
                       const inZip = zipFiles.has(a.fileName)
                       const placement = (a.placement || '').toLowerCase()
-                      const hasPh = parsed.contentMarkdown.includes(`{{image:${a.type}}}`)
+                      const explicitPh = (a.placeholder || '').trim()
+                      const hasExplicitPh = explicitPh.length > 0 && parsed.contentMarkdown.includes(explicitPh)
+                      const hasGenericPh = parsed.contentMarkdown.includes(`{{image:${a.type}}}`)
+                      const hasPh = hasExplicitPh || hasGenericPh
                       let bodyState: { label: string; cls: string }
-                      if (placement === 'social_only') {
+                      if (placement === 'featured_image') {
+                        // Featured image is NEVER inserted into body, even with a placeholder
+                        bodyState = hasPh
+                          ? { label: 'featured (placeholder премахнат от тялото)', cls: 'bg-purple-100 text-purple-700' }
+                          : { label: 'само featured (не в тялото)', cls: 'bg-purple-100 text-purple-700' }
+                      } else if (placement === 'social_only') {
                         bodyState = { label: 'само социална (не в тялото)', cls: 'bg-slate-100 text-slate-600' }
-                      } else if (placement === 'featured_image' && !hasPh) {
-                        bodyState = { label: 'само featured (не в тялото)', cls: 'bg-purple-100 text-purple-700' }
-                      } else if (hasPh) {
+                      } else if (hasExplicitPh) {
+                        bodyState = { label: `placeholder ${explicitPh}`, cls: 'bg-emerald-100 text-emerald-700' }
+                      } else if (hasGenericPh) {
                         bodyState = { label: `placeholder {{image:${a.type}}}`, cls: 'bg-emerald-100 text-emerald-700' }
                       } else if (['after_intro','after_first_h2','hygiene_section','braces_aligners_section','before_faq'].includes(placement)) {
                         bodyState = { label: `авто-вмъкване (${placement})`, cls: 'bg-emerald-100 text-emerald-700' }

@@ -21,6 +21,9 @@ Build and optimize **Zubite.bg**, an educational orthodontic platform for the Bu
 - Clinic application/approval/credential flow with welcome email.
 - Auto-verification background loop (every hour, scans 24h+ assigned leads).
 - **Comprehensive security hardening (Feb 2026)** — 22 fixes; see CHANGELOG.md.
+- **Article ZIP Importer** (`/admin/blog/import`) — structured markdown + image bundle parser with SEO validation, JSON-LD, sitemap auto-update.
+- **Image placement engine** — explicit `Placeholder: {{image:x}}` tokens beat generic `Placement` rules; featured images never inserted in body. Unit-tested via `lib/_imageParser.test.ts` (Feb 2026).
+- **Lead Attribution System** — first/latest-touch UTM, click IDs, referrer & internal content path captured client-side and visible in admin lead detail.
 
 ## Tech Stack
 - **Frontend**: Next.js 14 (App Router), React, Tailwind, shadcn/ui.

@@ -1,5 +1,14 @@
 # Zubite.bg — Changelog
 
+## 2026-02-06 — Article Importer: Image Placement Fix (P0)
+- Explicit `Placeholder: {{image:x}}` field in IMAGE_ASSETS now overrides generic `Placement` rules — image is inserted exactly at the token, NOT auto-placed afterwards.
+- Featured images (`Type: featured` or `Placement: featured_image`) are NEVER inserted into the article body, even when a placeholder is present in the markdown (token is consumed silently).
+- Generic `{{image:TYPE}}` tokens still work for assets without an explicit `Placeholder`.
+- All occurrences of an explicit placeholder are replaced (supports re-using the same image twice).
+- Admin importer preview badge now shows the explicit placeholder string when present (e.g. `placeholder {{image:support_1}}`).
+- Verified via `frontend/lib/_imageParser.test.ts` — 17 assertions across 6 scenarios, all passing.
+
+
 ## 2026-02 — Security Audit & Hardening (P0)
 **Status**: 25/25 backend security tests passing (`/app/test_reports/iteration_32.json`).
 
