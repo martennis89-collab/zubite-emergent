@@ -87,6 +87,10 @@ export interface ParsedImageAsset {
   title: string
   caption: string
   placement: string
+  /** Optional explicit placeholder, e.g. "{{image:support_1}}". When present
+   *  this beats `placement` — the importer replaces the exact placeholder
+   *  inside ARTICLE_BODY with the figure HTML. */
+  placeholder: string
 }
 
 export interface ParsedArticle {
@@ -309,7 +313,7 @@ export function parseArticlePackage(raw: string): ParsedArticle {
   const faqSchemaParsed = tryParseJson(sections.FAQ_SCHEMA_JSON_LD || '')
   const articleSchemaParsed = tryParseJson(sections.ARTICLE_SCHEMA_JSON_LD || '')
 
-  // IMAGE_ASSETS — list of items with Type/File Name/Alt/Title/Caption/Placement
+  // IMAGE_ASSETS — list of items with Type/File Name/Alt/Title/Caption/Placement/Placeholder
   const assetsRaw = parseItemList(sections.IMAGE_ASSETS || '')
   const imageAssets: ParsedImageAsset[] = assetsRaw
     .map((a) => ({
@@ -319,6 +323,7 @@ export function parseArticlePackage(raw: string): ParsedArticle {
       title: (a.title || '').trim(),
       caption: (a.caption || '').trim(),
       placement: (a.placement || '').trim().toLowerCase(),
+      placeholder: (a.placeholder || '').trim(),
     }))
     .filter((a) => a.fileName || a.type)
 
@@ -477,23 +482,59 @@ function imageHtml(img: UploadedImage): string {
 }
 
 /**
- * Replace `{{image:TYPE}}` placeholders in the body with actual image HTML.
- * Returns both the new body and the set of types consumed.
+ * Replace placeholders in the body with actual image HTML.
+ *
+ * Two kinds of placeholders are supported, in priority order:
+ *   1. The exact `Placeholder` field on the IMAGE_ASSETS item (e.g.
+ *      "{{image:support_1}}"). If set, this beats everything else.
+ *   2. A generic `{{image:TYPE}}` token derived from the asset's `Type`.
+ *
+ * `featured_image` assets are never inserted into the body — even if a
+ * placeholder is present in the article body, it is consumed but produces
+ * no output. The featured image is set on the article record itself.
  */
 export function replaceImagePlaceholders(
   body: string,
   images: UploadedImage[],
 ): { body: string; consumed: Set<string> } {
   const consumed = new Set<string>()
-  const byType = new Map(images.map((i) => [i.asset.type.toLowerCase(), i]))
-  const next = body.replace(/\{\{\s*image\s*:\s*([A-Za-z0-9_-]+)\s*\}\}/gi, (_, type: string) => {
+  let out = body
+
+  // Pass 1 — explicit Placeholder field beats type-based tokens
+  for (const img of images) {
+    const ph = (img.asset.placeholder || '').trim()
+    if (!ph) continue
+    if (!out.includes(ph)) continue
+    const placement = (img.asset.placement || '').toLowerCase()
+    const isFeatured = (img.asset.type || '').toLowerCase() === 'featured' || placement === 'featured_image'
+    const replacement = isFeatured ? '' : imageHtml(img).trim()
+    // Replace ALL occurrences of the explicit placeholder
+    out = out.split(ph).join(replacement)
+    consumed.add(img.asset.type.toLowerCase())
+    // Also mark the placeholder itself (so later auto-fallback knows it's done)
+    consumed.add(ph.toLowerCase())
+  }
+
+  // Pass 2 — generic {{image:TYPE}} tokens (for assets without Placeholder)
+  const byType = new Map<string, UploadedImage>()
+  for (const img of images) {
+    const t = img.asset.type.toLowerCase()
+    if (!t) continue
+    // Only register when no explicit Placeholder was used for this image
+    if (img.asset.placeholder) continue
+    if (!byType.has(t)) byType.set(t, img)
+  }
+  out = out.replace(/\{\{\s*image\s*:\s*([A-Za-z0-9_-]+)\s*\}\}/gi, (_, type: string) => {
     const key = type.toLowerCase()
     const img = byType.get(key)
     if (!img) return ''
     consumed.add(key)
-    return imageHtml(img).trim()
+    const placement = (img.asset.placement || '').toLowerCase()
+    const isFeatured = (img.asset.type || '').toLowerCase() === 'featured' || placement === 'featured_image'
+    return isFeatured ? '' : imageHtml(img).trim()
   })
-  return { body: next, consumed }
+
+  return { body: out, consumed }
 }
 
 /** Heuristic: find the first paragraph after any H1/H2 intro. */
