@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { CITIES } from '@/lib/data'
+import { ALL_CITIES } from '@/lib/data'
 import { createLead } from '@/lib/api'
 import { Phone, CheckCircle, Loader2, ArrowRight } from 'lucide-react'
 
@@ -128,7 +128,7 @@ export function LeadCaptureForm({ treatmentType, source = 'treatment_page', vari
           data-testid="lead-form-city"
         >
           <option value="">Изберете град</option>
-          {Object.values(CITIES).map((city) => (
+          {ALL_CITIES.map((city) => (
             <option key={city.slug} value={city.slug}>{city.name}</option>
           ))}
         </select>

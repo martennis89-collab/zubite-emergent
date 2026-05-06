@@ -59,12 +59,19 @@ if RESEND_API_KEY:
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("zubite")
 
-# City mapping
+# City mapping — top 10 Bulgarian cities for lead routing & email labels
 CITIES = {
     "sofia": "София",
     "plovdiv": "Пловдив",
     "varna": "Варна",
-    "haskovo": "Хасково"
+    "burgas": "Бургас",
+    "ruse": "Русе",
+    "stara-zagora": "Стара Загора",
+    "pleven": "Плевен",
+    "sliven": "Сливен",
+    "dobrich": "Добрич",
+    "shumen": "Шумен",
+    "haskovo": "Хасково",
 }
 
 TREATMENT_NAMES = {

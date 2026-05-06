@@ -114,7 +114,14 @@ const QUIZ_QUESTIONS = [
 const CITIES = [
   { value: 'sofia', label: 'София' },
   { value: 'plovdiv', label: 'Пловдив' },
-  { value: 'varna', label: 'Варна' }
+  { value: 'varna', label: 'Варна' },
+  { value: 'burgas', label: 'Бургас' },
+  { value: 'ruse', label: 'Русе' },
+  { value: 'stara-zagora', label: 'Стара Загора' },
+  { value: 'pleven', label: 'Плевен' },
+  { value: 'sliven', label: 'Сливен' },
+  { value: 'dobrich', label: 'Добрич' },
+  { value: 'shumen', label: 'Шумен' },
 ]
 
 // Calculate score and determine result band

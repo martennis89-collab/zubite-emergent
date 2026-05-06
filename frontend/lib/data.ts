@@ -6,6 +6,23 @@ export const CITIES = {
   varna: { slug: 'varna', name: 'Варна', nameEn: 'Varna' }
 } as const;
 
+// Top 10 Bulgarian cities — used in the quiz dropdown, lead form and analytics.
+// `CITIES` above keeps the 3 cities that have dedicated landing-page content.
+// Adding new cities below keeps the quiz truly pan-Bulgarian without forcing
+// us to author per-city pages for every one of them.
+export const ALL_CITIES: { slug: string; name: string; nameEn: string }[] = [
+  { slug: 'sofia', name: 'София', nameEn: 'Sofia' },
+  { slug: 'plovdiv', name: 'Пловдив', nameEn: 'Plovdiv' },
+  { slug: 'varna', name: 'Варна', nameEn: 'Varna' },
+  { slug: 'burgas', name: 'Бургас', nameEn: 'Burgas' },
+  { slug: 'ruse', name: 'Русе', nameEn: 'Ruse' },
+  { slug: 'stara-zagora', name: 'Стара Загора', nameEn: 'Stara Zagora' },
+  { slug: 'pleven', name: 'Плевен', nameEn: 'Pleven' },
+  { slug: 'sliven', name: 'Сливен', nameEn: 'Sliven' },
+  { slug: 'dobrich', name: 'Добрич', nameEn: 'Dobrich' },
+  { slug: 'shumen', name: 'Шумен', nameEn: 'Shumen' },
+];
+
 export const TREATMENTS = {
   orthodontics: { 
     slug: 'orthodontics', 
