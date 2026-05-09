@@ -25,6 +25,7 @@ Build and optimize **Zubite.bg**, an educational orthodontic platform for the Bu
 - **Image placement engine** — explicit `Placeholder: {{image:x}}` tokens beat generic `Placement` rules; featured images never inserted in body. Unit-tested via `lib/_imageParser.test.ts` (Feb 2026).
 - **Test Render preview** — admin can click "Test Render" before publishing to see the exact reader-view HTML, featured image, CTA, FAQ, metadata + a 13-point validation checklist (errors block publish, warnings allow save). Uses the same `parseMarkdown()` renderer as the live blog page (`lib/markdownToHtml.ts`). Regression-tested via `lib/_testRender.test.ts` (27 assertions / 10 scenarios).
 - **Lead Attribution System** — first/latest-touch UTM, click IDs, referrer & internal content path captured client-side and visible in admin lead detail.
+- **Consultation Workflow MVP (Feb 2026)** — clinic-side request management: when admin assigns a lead to a clinic, a `ConsultationRequest` is auto-created and surfaced on `/clinic/dashboard/requests`. Clinics perform 11 actions (call_attempted, book_consultation, mark_attended, …); each emits an immutable event in `consultation_events`. Booked consultations land in the internal `clinic_appointments` calendar. Admin sees the full event timeline at `/admin/consultation-requests/[id]`. Backend tested via 25-case regression suite (`/app/test_reports/iteration_36.json`).
 
 ## Tech Stack
 - **Frontend**: Next.js 14 (App Router), React, Tailwind, shadcn/ui.
