@@ -70,9 +70,11 @@ async def admin_update_lead(lead_id: str, data: LeadStatusUpdate, user: AdminUse
     return lead
 
 
-@router.get("/admin/clinics")
-async def admin_clinics(user: AdminUser = Depends(get_current_user)):
-    return await db.clinics.find({}, {"_id": 0}).to_list(100)
+@router.get("/admin/seed-clinics")
+async def admin_seed_clinics(user: AdminUser = Depends(get_current_user)):
+    """Legacy endpoint: returns the static city-directory clinics seeded at install
+    time. Distinct from the partner clinics in /api/admin/clinics."""
+    return await db.clinics.find({"name": {"$exists": True}}, {"_id": 0}).to_list(100)
 
 
 @router.get("/admin/stats")

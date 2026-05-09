@@ -628,12 +628,28 @@ export default function AdminDashboardPage() {
                 <span className="hidden sm:inline">Анализи</span>
               </Link>
               <Link
+                href="/admin/clinics"
+                className="flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors"
+                data-testid="nav-partner-clinics"
+              >
+                <FileText className="w-5 h-5" />
+                <span className="hidden sm:inline">Партньори</span>
+              </Link>
+              <Link
+                href="/admin/consultation-requests"
+                className="flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors"
+                data-testid="nav-consultation-requests"
+              >
+                <FileText className="w-5 h-5" />
+                <span className="hidden sm:inline">Заявки</span>
+              </Link>
+              <Link
                 href="/admin/clinic-applications"
                 className="flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors"
                 data-testid="nav-clinic-apps"
               >
                 <FileText className="w-5 h-5" />
-                <span className="hidden sm:inline">Клиники</span>
+                <span className="hidden sm:inline">Кандидатури</span>
               </Link>
               <Link
                 href="/admin/blog"

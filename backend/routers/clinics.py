@@ -237,12 +237,25 @@ async def admin_assign_lead_to_clinic(lead_id: str, body: dict, user: AdminUser 
     # Strict type check to prevent NoSQL injection via {"clinic_id": {"$ne": ""}}
     if not clinic_id or not isinstance(clinic_id, str):
         raise HTTPException(status_code=400, detail="clinic_id is required and must be a string")
-    clinic = await db.clinics.find_one({"id": clinic_id, "password_hash": {"$exists": True}}, {"_id": 0, "clinic_name": 1})
+    clinic = await db.clinics.find_one({"id": clinic_id, "password_hash": {"$exists": True}}, {"_id": 0, "clinic_name": 1, "email": 1, "notification_email": 1, "id": 1})
     if not clinic:
         raise HTTPException(status_code=404, detail="Clinic account not found")
     result = await db.leads.update_one({"id": lead_id}, {"$set": {"assigned_clinic_id": clinic_id, "clinic_lead_status": "new"}})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Lead not found")
+
+    # Auto-create a ConsultationRequest linked to this lead (idempotent).
+    # The consultation workflow is the new clinic-side surface; old /clinic/leads
+    # endpoint stays for backward compatibility.
+    try:
+        from routers.consultations import _ensure_consultation_for_lead, _send_clinic_assignment_email
+        lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+        if lead:
+            req = await _ensure_consultation_for_lead(lead, clinic_id)
+            await _send_clinic_assignment_email(clinic, req)
+    except Exception as exc:
+        logging.warning(f"Auto-create consultation_request failed for lead {lead_id}: {exc}")
+
     return {"status": "ok", "assigned_to": clinic.get("clinic_name")}
 
 

@@ -164,3 +164,22 @@ async def send_verification_email(lead: dict, token: str, base_url: str):
     except Exception as e:
         logging.error(f"Failed to send verification email: {e}")
         return False
+
+
+
+async def _send_email(to: str, subject: str, html: str, *, sender: str = None) -> bool:
+    """Generic Resend wrapper used by ad-hoc workflows (clinic notifications,
+    etc.). Returns True on success, False on failure. Never raises."""
+    if not RESEND_API_KEY:
+        logging.warning("RESEND_API_KEY not configured — skipping email")
+        return False
+    try:
+        resend.api_key = RESEND_API_KEY
+        from_addr = sender or SENDER_EMAIL
+        params = {"from": from_addr, "to": [to], "subject": subject, "html": html}
+        await asyncio.to_thread(resend.Emails.send, params)
+        logging.info(f"Email sent to {to}: {subject}")
+        return True
+    except Exception as e:
+        logging.error(f"_send_email failed to {to}: {e}")
+        return False

@@ -12,7 +12,7 @@ from database import db, client
 from storage import init_storage
 from emails import send_verification_email
 
-from routers import public, admin, blog, analytics, clinics, calls, verification, seo
+from routers import public, admin, blog, analytics, clinics, calls, verification, seo, consultations
 
 # Root-level health endpoint
 app = FastAPI(title="Zubite.bg API")
@@ -33,6 +33,7 @@ api_router.include_router(clinics.router)
 api_router.include_router(calls.router)
 api_router.include_router(verification.router)
 api_router.include_router(seo.router)
+api_router.include_router(consultations.router)
 
 app.include_router(api_router)
 
@@ -104,6 +105,21 @@ async def startup():
     await db.lead_verifications.create_index("token", unique=True)
     await db.lead_verifications.create_index("lead_id")
     await db.lead_verifications.create_index("clinic_id")
+
+    # Consultation workflow indexes (Feb 2026)
+    await db.consultation_requests.create_index("id", unique=True)
+    await db.consultation_requests.create_index("assigned_clinic_id")
+    await db.consultation_requests.create_index("status")
+    await db.consultation_requests.create_index("lead_id")
+    await db.consultation_requests.create_index([("assigned_clinic_id", 1), ("lead_id", 1)])
+    await db.consultation_requests.create_index("created_at")
+    await db.consultation_events.create_index("id", unique=True)
+    await db.consultation_events.create_index("consultation_request_id")
+    await db.consultation_events.create_index("created_at")
+    await db.clinic_appointments.create_index("id", unique=True)
+    await db.clinic_appointments.create_index("clinic_id")
+    await db.clinic_appointments.create_index("consultation_request_id")
+    await db.clinic_appointments.create_index([("clinic_id", 1), ("start_time", 1)])
 
     init_storage()
     asyncio.create_task(auto_verification_loop())

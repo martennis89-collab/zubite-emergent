@@ -426,3 +426,145 @@ class AnalyticsEvent(BaseModel):
     has_email: Optional[bool] = None
     segment: Optional[str] = None
     flags: Optional[List[str]] = None
+
+
+
+# ─── Consultation Workflow Models (Feb 2026) ───────────────
+# Separate from Lead. Lead = patient/source/quiz object.
+# ConsultationRequest = clinic workflow object linked back to a lead.
+
+CLINIC_STATUS_VALUES = (
+    "evaluation_partner", "active_partner", "premium_partner",
+    "probation", "waiting_list", "inactive",
+)
+SUBSCRIPTION_STATUS_VALUES = (
+    "trial", "active", "past_due", "cancelled", "unpaid",
+)
+CONSULTATION_STATUS_VALUES = (
+    "new", "assigned", "clinic_viewed", "call_attempted",
+    "patient_contacted", "no_answer", "booked", "rescheduled",
+    "patient_declined", "not_suitable", "attended", "no_show",
+    "cancelled", "expired", "disputed",
+)
+APPOINTMENT_STATUS_VALUES = (
+    "booked", "confirmed", "rescheduled", "cancelled",
+    "attended", "no_show",
+)
+APPOINTMENT_TYPE_VALUES = (
+    "orthodontic_consultation", "invisalign_consultation",
+    "braces_consultation", "implant_consultation",
+    "cosmetic_consultation", "full_mouth_rehab_consultation",
+    "general_consultation",
+)
+ACTION_TYPE_VALUES = (
+    "mark_viewed", "call_attempted", "patient_contacted", "no_answer",
+    "book_consultation", "reschedule", "patient_declined",
+    "not_suitable", "mark_attended", "mark_no_show", "cancel",
+    "admin_note",
+)
+
+
+class ClinicCreate(BaseModel):
+    """Admin-side clinic creation. Mirrors the existing `clinics` collection
+    fields and adds the new workflow/subscription fields."""
+    model_config = ConfigDict(extra="ignore")
+    clinic_name: str = Field(min_length=1, max_length=200)
+    city: str = Field(min_length=1, max_length=100)
+    email: EmailStr
+    phone: str = Field(min_length=1, max_length=50)
+    address: Optional[str] = Field(default=None, max_length=500)
+    website: Optional[str] = Field(default=None, max_length=500)
+    contact_person: Optional[str] = Field(default=None, max_length=200)
+    treatments_offered: List[str] = []
+    clinic_status: str = "evaluation_partner"
+    subscription_status: str = "trial"
+    monthly_plan: Optional[str] = Field(default=None, max_length=100)
+    notification_email: Optional[EmailStr] = None
+
+
+class ClinicAdminUpdate(BaseModel):
+    """Admin can patch any of these. All optional."""
+    model_config = ConfigDict(extra="ignore")
+    clinic_name: Optional[str] = Field(default=None, max_length=200)
+    city: Optional[str] = Field(default=None, max_length=100)
+    address: Optional[str] = Field(default=None, max_length=500)
+    phone: Optional[str] = Field(default=None, max_length=50)
+    email: Optional[EmailStr] = None
+    website: Optional[str] = Field(default=None, max_length=500)
+    contact_person: Optional[str] = Field(default=None, max_length=200)
+    treatments_offered: Optional[List[str]] = None
+    clinic_status: Optional[str] = None
+    subscription_status: Optional[str] = None
+    monthly_plan: Optional[str] = Field(default=None, max_length=100)
+    notification_email: Optional[EmailStr] = None
+    description: Optional[str] = Field(default=None, max_length=2000)
+
+
+class ConsultationRequestCreate(BaseModel):
+    """Admin creates a consultation request directly (rare — usually
+    auto-created from a lead assign). Allows manual entry too."""
+    model_config = ConfigDict(extra="ignore")
+    patient_name: str = Field(min_length=1, max_length=200)
+    patient_phone: str = Field(min_length=1, max_length=50)
+    patient_email: Optional[EmailStr] = None
+    patient_city: Optional[str] = Field(default=None, max_length=100)
+    treatment_interest: str = Field(min_length=1, max_length=100)
+    preferred_contact_time: Optional[str] = Field(default=None, max_length=200)
+    urgency: Optional[str] = Field(default=None, max_length=50)
+    readiness: Optional[str] = Field(default=None, max_length=50)
+    quiz_result_id: Optional[str] = None
+    lead_id: Optional[str] = None
+    source: Optional[str] = Field(default=None, max_length=100)
+    utm_source: Optional[str] = Field(default=None, max_length=300)
+    utm_campaign: Optional[str] = Field(default=None, max_length=300)
+    utm_adset: Optional[str] = Field(default=None, max_length=300)
+    utm_ad: Optional[str] = Field(default=None, max_length=300)
+    assigned_clinic_id: Optional[str] = None
+
+
+class ConsultationAssignClinic(BaseModel):
+    clinic_id: str = Field(min_length=1, max_length=100)
+
+
+class ConsultationAdminPatch(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    status: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=5000)
+
+
+class AppointmentDetails(BaseModel):
+    """Embedded payload when clinic books or reschedules a consultation."""
+    appointment_type: str
+    start_time: str  # ISO 8601
+    end_time: str  # ISO 8601
+    notes: Optional[str] = Field(default=None, max_length=2000)
+
+
+class ConsultationActionRequest(BaseModel):
+    """Body for /api/clinic/consultation-requests/{id}/action."""
+    action_type: str
+    note: Optional[str] = Field(default=None, max_length=2000)
+    appointment: Optional[AppointmentDetails] = None
+
+
+class ClinicAppointmentCreate(BaseModel):
+    """Direct calendar entry (clinic creates an appointment without a request).
+    Rare — usually appointments are created via the action endpoint."""
+    model_config = ConfigDict(extra="ignore")
+    consultation_request_id: Optional[str] = None
+    patient_name: str = Field(min_length=1, max_length=200)
+    patient_phone: str = Field(min_length=1, max_length=50)
+    treatment_category: Optional[str] = Field(default=None, max_length=100)
+    appointment_type: str
+    start_time: str
+    end_time: str
+    notes: Optional[str] = Field(default=None, max_length=2000)
+
+
+class ClinicAppointmentPatch(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    appointment_type: Optional[str] = None
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    status: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=2000)
