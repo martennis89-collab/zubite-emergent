@@ -1,6 +1,1 @@
-{
-  "/clinic/dashboard/page": "app/clinic/dashboard/page.js",
-  "/admin/clinics/page": "app/admin/clinics/page.js",
-  "/admin/page": "app/admin/page.js",
-  "/admin/consultation-requests/page": "app/admin/consultation-requests/page.js"
-}
+{}
