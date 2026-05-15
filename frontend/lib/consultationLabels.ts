@@ -72,6 +72,107 @@ export const EVENT_LABELS: Record<string, string> = {
   admin_status_change: 'Промяна на статус (админ)',
 }
 
+// Identifies who originated an event row (best-effort from the event payload).
+export type EventActorKey = 'clinic' | 'zubite' | 'admin' | 'system' | 'patient'
+
+export const EVENT_ACTOR_LABELS: Record<EventActorKey, string> = {
+  clinic: 'Клиника',
+  zubite: 'Zubite',
+  admin: 'Админ',
+  system: 'Система',
+  patient: 'Пациент',
+}
+
+export function inferEventActor(ev: EventItem): EventActorKey {
+  // Heuristic: if event was authored by a clinic user, `clinic_id` is set;
+  // admin-emitted events have `admin_` prefix; otherwise it's the system.
+  if (ev.event_type?.startsWith('admin_')) return 'admin'
+  if (ev.clinic_id) return 'clinic'
+  if (ev.event_type === 'patient_declined') return 'patient'
+  if (ev.event_type === 'assigned_to_clinic' || ev.event_type === 'reassigned_to_clinic') return 'zubite'
+  return 'system'
+}
+
+// 5-stage progress strip for the clinic request workflow.
+// `idx` is the canonical index a request reaches under each status. Some
+// statuses are terminal/dead-ends and trigger a separate "terminal" panel.
+export interface ProgressStage { key: string; label: string }
+export const PROGRESS_STAGES: ProgressStage[] = [
+  { key: 'new',        label: 'Нова заявка' },
+  { key: 'viewed',     label: 'Видяна' },
+  { key: 'contacted',  label: 'Свързан пациент' },
+  { key: 'booked',     label: 'Резервирана' },
+  { key: 'attended',   label: 'Посетила' },
+]
+
+export type ProgressShape =
+  | { kind: 'progress'; reached: number /* 0..4 */ }
+  | { kind: 'terminal'; tone: 'positive' | 'negative' | 'neutral'; label: string }
+
+export function progressFromStatus(status?: string | null): ProgressShape {
+  switch (status) {
+    case 'new':
+    case 'assigned':
+      return { kind: 'progress', reached: 0 }
+    case 'clinic_viewed':
+      return { kind: 'progress', reached: 1 }
+    case 'call_attempted':
+    case 'no_answer':
+      // Call started but patient not yet talked to — between viewed and contacted.
+      return { kind: 'progress', reached: 1 }
+    case 'patient_contacted':
+      return { kind: 'progress', reached: 2 }
+    case 'booked':
+    case 'rescheduled':
+      return { kind: 'progress', reached: 3 }
+    case 'attended':
+      return { kind: 'progress', reached: 4 }
+    case 'no_show':
+      return { kind: 'terminal', tone: 'negative', label: 'Пациентът не се яви' }
+    case 'patient_declined':
+      return { kind: 'terminal', tone: 'negative', label: 'Пациентът отказа консултация' }
+    case 'not_suitable':
+      return { kind: 'terminal', tone: 'neutral', label: 'Заявката беше маркирана като неподходяща' }
+    case 'cancelled':
+      return { kind: 'terminal', tone: 'neutral', label: 'Заявката е отменена' }
+    case 'expired':
+      return { kind: 'terminal', tone: 'neutral', label: 'Заявката е изтекла' }
+    case 'disputed':
+      return { kind: 'terminal', tone: 'negative', label: 'Заявката е в спор' }
+    default:
+      return { kind: 'progress', reached: 0 }
+  }
+}
+
+export type CtaStage = 'new' | 'contact' | 'after_contact' | 'after_booking' | 'completed' | 'unknown'
+
+export function ctaStageFromStatus(status?: string | null): CtaStage {
+  switch (status) {
+    case 'new':
+    case 'assigned':
+    case 'clinic_viewed':
+      return 'contact'
+    case 'call_attempted':
+    case 'no_answer':
+      return 'contact'
+    case 'patient_contacted':
+      return 'after_contact'
+    case 'booked':
+    case 'rescheduled':
+      return 'after_booking'
+    case 'attended':
+    case 'no_show':
+    case 'patient_declined':
+    case 'not_suitable':
+    case 'cancelled':
+    case 'expired':
+    case 'disputed':
+      return 'completed'
+    default:
+      return 'unknown'
+  }
+}
+
 export const READINESS_LABELS: Record<string, string> = {
   ready_now: 'Готов веднага',
   ready: 'Готов',

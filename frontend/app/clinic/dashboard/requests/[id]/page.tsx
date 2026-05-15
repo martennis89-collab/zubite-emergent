@@ -5,15 +5,18 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft, Phone, Mail, MapPin, User, Tag, Calendar as CalIcon,
-  CheckCircle2, X, Loader2,
+  CheckCircle2, X, Loader2, ChevronDown, ChevronUp,
 } from 'lucide-react'
 import { ClinicShell } from '@/components/ClinicShell'
+import { RequestProgressStrip } from '@/components/clinic/RequestProgressStrip'
 import {
   ConsultationRequest, Appointment, EventItem,
   statusBadge, formatDate, TREATMENT_LABELS, EVENT_LABELS,
   APPOINTMENT_TYPE_LABELS, APPOINTMENT_TYPES,
   readinessLabel, urgencyLabel, apptStatusLabel,
   actionSuccessMessage, statusTransitionPhrase,
+  EVENT_ACTOR_LABELS, inferEventActor,
+  progressFromStatus, ctaStageFromStatus,
 } from '@/lib/consultationLabels'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
@@ -29,11 +32,12 @@ const ACTIONS_PRIMARY: Array<{ type: string; label: string; cls: string }> = [
   { type: 'patient_contacted', label: 'Свързано с пациента', cls: 'bg-emerald-500 hover:bg-emerald-600 text-white' },
   { type: 'no_answer', label: 'Без отговор', cls: 'bg-slate-100 hover:bg-slate-200 text-slate-700' },
 ]
-const ACTIONS_SECONDARY: Array<{ type: string; label: string; cls: string }> = [
-  { type: 'patient_declined', label: 'Пациентът отказа', cls: 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200' },
-  { type: 'not_suitable', label: 'Неподходяща', cls: 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200' },
-  { type: 'mark_attended', label: 'Посетила', cls: 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200' },
-  { type: 'mark_no_show', label: 'Не се яви', cls: 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200' },
+
+// Destructive / negative actions — always rendered behind a collapsed expander.
+const ACTIONS_TERTIARY: Array<{ type: string; label: string; confirmMsg: string }> = [
+  { type: 'patient_declined', label: 'Пациентът отказа', confirmMsg: 'Да маркирам ли заявката като „пациентът отказа“?' },
+  { type: 'not_suitable',     label: 'Неподходяща заявка', confirmMsg: 'Да маркирам ли заявката като неподходяща?' },
+  { type: 'cancel',           label: 'Отмени заявката', confirmMsg: 'Сигурни ли сте, че искате да отмените заявката?' },
 ]
 
 export default function ClinicRequestDetailPage() {
@@ -87,6 +91,14 @@ export default function ClinicRequestDetailPage() {
   const appt = data?.appointment
   const events = data?.events || []
   const sb = useMemo(() => statusBadge(req?.status), [req?.status])
+  const progress = useMemo(() => progressFromStatus(req?.status), [req?.status])
+  const stage = useMemo(() => ctaStageFromStatus(req?.status), [req?.status])
+  const [showTertiary, setShowTertiary] = useState(false)
+
+  const confirmAction = (type: string, msg: string) => {
+    if (typeof window !== 'undefined' && !window.confirm(msg)) return
+    performAction(type)
+  }
 
   return (
     <ClinicShell>
@@ -105,6 +117,8 @@ export default function ClinicRequestDetailPage() {
           <div className="text-slate-400">Заявката не е намерена.</div>
         ) : (
           <>
+            <RequestProgressStrip shape={progress} />
+
             <div className="bg-white border border-slate-200 rounded-2xl p-6">
               <div className="flex items-start justify-between flex-wrap gap-3">
                 <div>
@@ -165,66 +179,155 @@ export default function ClinicRequestDetailPage() {
               </div>
             )}
 
-            {/* Action panel */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-5">
-              <h2 className="font-medium text-slate-900 mb-3">Действия</h2>
-              <div className="flex flex-wrap gap-2">
-                {ACTIONS_PRIMARY.map((a) => (
-                  <button
-                    key={a.type}
-                    type="button"
-                    disabled={busy}
-                    onClick={() => performAction(a.type)}
-                    data-testid={`action-${a.type}`}
-                    className={`h-9 px-4 rounded-full text-sm font-medium ${a.cls} disabled:opacity-50`}
-                  >
-                    {a.label}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => setShowBook('book_consultation')}
-                  data-testid="action-book_consultation"
-                  className="h-9 px-4 rounded-full text-sm font-medium bg-sky-500 hover:bg-sky-600 text-white disabled:opacity-50"
-                >
-                  Резервирай консултация
-                </button>
-                {appt && (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => setShowBook('reschedule')}
-                    data-testid="action-reschedule"
-                    className="h-9 px-4 rounded-full text-sm font-medium border border-slate-200 hover:bg-slate-50 text-slate-700 disabled:opacity-50"
-                  >
-                    Премести
-                  </button>
-                )}
-              </div>
-              <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap gap-2">
-                {ACTIONS_SECONDARY.map((a) => (
-                  <button
-                    key={a.type}
-                    type="button"
-                    disabled={busy}
-                    onClick={() => performAction(a.type)}
-                    data-testid={`action-${a.type}`}
-                    className={`h-8 px-3 rounded-full text-xs font-medium ${a.cls} disabled:opacity-50`}
-                  >
-                    {a.label}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => performAction('cancel')}
-                  data-testid="action-cancel"
-                  className="h-8 px-3 rounded-full text-xs font-medium bg-slate-50 hover:bg-slate-100 text-slate-500 border border-slate-200 disabled:opacity-50"
-                >
-                  Отмени заявката
-                </button>
-              </div>
+            {/* Action panel — contextual hierarchy by current stage. */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-5" data-testid="action-panel">
+              {stage === 'completed' ? (
+                <div className="text-center py-3">
+                  <div className="text-sm text-slate-500">Заявката е приключена</div>
+                  <div className="mt-1 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 text-slate-700 text-sm font-medium">
+                    <CheckCircle2 className="w-4 h-4 text-slate-400" />
+                    {sb.label}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <h2 className="font-medium text-slate-900 mb-1">Какво следва?</h2>
+                  <p className="text-xs text-slate-500 mb-3">
+                    {stage === 'contact' && 'Свържете се с пациента и запишете резултата.'}
+                    {stage === 'after_contact' && 'Резервирайте консултация в подходящ момент.'}
+                    {stage === 'after_booking' && 'След консултацията маркирайте дали пациентът е посетил.'}
+                    {stage === 'unknown' && 'Изберете подходящо действие.'}
+                  </p>
+
+                  {/* Primary CTA block — depends on stage. */}
+                  <div className="flex flex-wrap gap-2" data-testid="action-primary">
+                    {stage === 'contact' && (
+                      <>
+                        <a
+                          href={`tel:${req.patient_phone}`}
+                          className="inline-flex items-center gap-1.5 h-10 px-4 rounded-full bg-sky-500 hover:bg-sky-600 text-white text-sm font-medium"
+                          data-testid="action-call-phone"
+                        >
+                          <Phone className="w-4 h-4" />
+                          Обади се на пациента
+                        </a>
+                        {ACTIONS_PRIMARY.map((a) => (
+                          <button
+                            key={a.type}
+                            type="button"
+                            disabled={busy}
+                            onClick={() => performAction(a.type)}
+                            data-testid={`action-${a.type}`}
+                            className={`h-10 px-4 rounded-full text-sm font-medium ${a.cls} disabled:opacity-50`}
+                          >
+                            {a.label}
+                          </button>
+                        ))}
+                      </>
+                    )}
+                    {stage === 'after_contact' && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => setShowBook('book_consultation')}
+                        data-testid="action-book_consultation"
+                        className="h-10 px-5 rounded-full bg-sky-500 hover:bg-sky-600 text-white text-sm font-semibold shadow-sm disabled:opacity-50 inline-flex items-center gap-2"
+                      >
+                        <CalIcon className="w-4 h-4" />
+                        Резервирай консултация
+                      </button>
+                    )}
+                    {stage === 'after_booking' && (
+                      <>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => performAction('mark_attended')}
+                          data-testid="action-mark_attended"
+                          className="h-10 px-4 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium disabled:opacity-50"
+                        >
+                          Маркирай като посетила
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => performAction('mark_no_show')}
+                          data-testid="action-mark_no_show"
+                          className="h-10 px-4 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-sm font-medium disabled:opacity-50"
+                        >
+                          Пациентът не се яви
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => setShowBook('reschedule')}
+                          data-testid="action-reschedule"
+                          className="h-10 px-4 rounded-full border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium disabled:opacity-50"
+                        >
+                          Премести консултацията
+                        </button>
+                      </>
+                    )}
+                    {stage === 'unknown' && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => setShowBook('book_consultation')}
+                        data-testid="action-book_consultation"
+                        className="h-10 px-5 rounded-full bg-sky-500 hover:bg-sky-600 text-white text-sm font-semibold disabled:opacity-50"
+                      >
+                        Резервирай консултация
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Secondary actions for `contact` stage — booking is here when not the primary. */}
+                  {stage === 'contact' && (
+                    <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap gap-2" data-testid="action-secondary">
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => setShowBook('book_consultation')}
+                        data-testid="action-book_consultation"
+                        className="h-9 px-3.5 rounded-full border border-sky-200 text-sky-700 bg-sky-50 hover:bg-sky-100 text-xs font-medium disabled:opacity-50 inline-flex items-center gap-1.5"
+                      >
+                        <CalIcon className="w-3.5 h-3.5" />
+                        Резервирай директно
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Tertiary destructive actions — collapsed by default. */}
+                  <div className="mt-3 pt-3 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setShowTertiary((v) => !v)}
+                      className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700"
+                      data-testid="toggle-tertiary"
+                    >
+                      {showTertiary ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                      Други опции
+                    </button>
+                    {showTertiary && (
+                      <div className="mt-2 flex flex-wrap gap-2" data-testid="action-tertiary">
+                        {ACTIONS_TERTIARY.map((a) => (
+                          <button
+                            key={a.type}
+                            type="button"
+                            disabled={busy}
+                            onClick={() => confirmAction(a.type, a.confirmMsg)}
+                            data-testid={`action-${a.type}`}
+                            className="h-8 px-3 rounded-full text-xs font-medium bg-slate-50 hover:bg-rose-50 text-slate-600 hover:text-rose-700 border border-slate-200 hover:border-rose-200 disabled:opacity-50"
+                          >
+                            {a.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+
               {actionMsg && (
                 <div
                   className={`mt-3 text-sm rounded-lg px-3 py-2 ${
@@ -252,27 +355,41 @@ export default function ClinicRequestDetailPage() {
                 {events.length === 0 && (
                   <li className="text-sm text-slate-400">Няма събития.</li>
                 )}
-                {events.map((ev) => (
-                  <li key={ev.id} className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-full bg-sky-50 grid place-items-center mt-0.5 flex-shrink-0">
-                      <CheckCircle2 className="w-4 h-4 text-sky-500" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-slate-900">
-                        {EVENT_LABELS[ev.event_type] || ev.event_type}
+                {events.map((ev) => {
+                  const actor = inferEventActor(ev)
+                  const actorCls =
+                    actor === 'clinic' ? 'bg-sky-50 text-sky-700' :
+                    actor === 'zubite' ? 'bg-violet-50 text-violet-700' :
+                    actor === 'admin'  ? 'bg-amber-50 text-amber-700' :
+                    actor === 'patient' ? 'bg-rose-50 text-rose-700' :
+                    'bg-slate-50 text-slate-600'
+                  return (
+                    <li key={ev.id} className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-full bg-sky-50 grid place-items-center mt-0.5 flex-shrink-0">
+                        <CheckCircle2 className="w-4 h-4 text-sky-500" />
                       </div>
-                      <div className="text-xs text-slate-500">
-                        {formatDate(ev.created_at)}
-                        {ev.previous_status && ev.new_status && (
-                          <span> · {statusTransitionPhrase(ev.previous_status, ev.new_status)}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <div className="text-sm font-medium text-slate-900">
+                            {EVENT_LABELS[ev.event_type] || ev.event_type.replace(/_/g, ' ')}
+                          </div>
+                          <span className={`text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full font-medium ${actorCls}`}>
+                            {EVENT_ACTOR_LABELS[actor]}
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {formatDate(ev.created_at)}
+                          {ev.previous_status && ev.new_status && (
+                            <span> · {statusTransitionPhrase(ev.previous_status, ev.new_status)}</span>
+                          )}
+                        </div>
+                        {ev.note && (
+                          <div className="text-xs text-slate-600 mt-1">{ev.note}</div>
                         )}
                       </div>
-                      {ev.note && (
-                        <div className="text-xs text-slate-600 mt-1">{ev.note}</div>
-                      )}
-                    </div>
-                  </li>
-                ))}
+                    </li>
+                  )
+                })}
               </ol>
             </div>
 
@@ -290,6 +407,7 @@ export default function ClinicRequestDetailPage() {
         <BookingModal
           mode={showBook}
           existing={appt || null}
+          patientName={req?.patient_name || ''}
           onClose={() => setShowBook(null)}
           onSubmit={async (payload) => {
             await performAction(showBook, payload.note, {
@@ -328,10 +446,11 @@ interface BookingPayload {
 }
 
 function BookingModal({
-  mode, existing, onClose, onSubmit, busy,
+  mode, existing, patientName, onClose, onSubmit, busy,
 }: {
   mode: 'book_consultation' | 'reschedule'
   existing: Appointment | null
+  patientName: string
   onClose: () => void
   onSubmit: (p: BookingPayload) => Promise<void>
   busy: boolean
@@ -383,11 +502,16 @@ function BookingModal({
         className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md p-6 space-y-4"
         data-testid="booking-modal"
       >
-        <div className="flex items-center justify-between">
-          <h3 className="font-serif text-lg font-semibold text-slate-900">
-            {mode === 'reschedule' ? 'Премести консултация' : 'Резервирай консултация'}
-          </h3>
-          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-700">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <h3 className="font-serif text-lg font-semibold text-slate-900">
+              {mode === 'reschedule' ? 'Премести консултация' : 'Резервирай консултация'}
+            </h3>
+            {patientName && (
+              <p className="text-sm text-slate-500 mt-0.5">Пациент: <span className="font-medium text-slate-700">{patientName}</span></p>
+            )}
+          </div>
+          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-700 -mt-1">
             <X className="w-5 h-5" />
           </button>
         </div>

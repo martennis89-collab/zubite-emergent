@@ -1,5 +1,58 @@
 # Zubite.bg — Changelog
 
+## 2026-02-10 — Clinic Portal UX — Batch C2 (Request Detail Hierarchy & Progress Strip)
+
+### Frontend — clinic request detail clarity pass
+- **`frontend/lib/consultationLabels.ts`** — extensions:
+  - `PROGRESS_STAGES` (5-stage canonical workflow: Нова заявка → Видяна → Свързан пациент → Резервирана → Посетила).
+  - `ProgressShape` discriminated union + `progressFromStatus(status)` helper. Terminal statuses (`no_show`, `patient_declined`, `not_suitable`, `cancelled`, `expired`, `disputed`) map to dedicated terminal banners with tone (`negative` / `neutral` / `positive`).
+  - `ctaStageFromStatus(status)` → one of `contact | after_contact | after_booking | completed | unknown` for primary-CTA selection.
+  - `EVENT_ACTOR_LABELS` + `inferEventActor(ev)` for human-readable actor pills on timeline entries (Клиника / Zubite / Админ / Система / Пациент).
+- **NEW `frontend/components/clinic/RequestProgressStrip.tsx`** — small clinic-only component rendering either:
+  - The 5-stage strip with completed stages in emerald + checkmark, the current stage in sky-blue with ring focus, future stages in slate.
+  - A terminal banner (rose / slate / emerald based on tone) for closed-out requests.
+  - Responsive: stages horizontally on desktop, compact icons + labels on mobile, no horizontal overflow at 375px.
+- **`frontend/app/clinic/dashboard/requests/[id]/page.tsx`** — major restructure of the action panel + timeline:
+  - **Progress strip** rendered at the very top of the detail (before the patient summary card).
+  - **Action panel header changed** from "Действия" to context-aware "Какво следва?" with a 1-line subtitle that explains the recommended next step per stage.
+  - **Contextual primary CTA** (replaces the previous flat two-row layout):
+    - `contact` stage (`new` / `assigned` / `clinic_viewed` / `call_attempted` / `no_answer`): primary = "Обади се на пациента" (tel: link) + "Опит за обаждане" / "Свързано с пациента" / "Без отговор" siblings; secondary row offers "Резервирай директно" for clinics that want to skip ahead.
+    - `after_contact` stage (`patient_contacted`): single large primary "Резервирай консултация" with calendar icon.
+    - `after_booking` stage (`booked` / `rescheduled`): three peer buttons "Маркирай като посетила" / "Пациентът не се яви" / "Премести консултацията".
+    - `completed` stage (any terminal status): no large primary CTA — read-only completion panel with status badge + "Заявката е приключена" copy.
+    - `unknown` stage: safe fallback with "Резервирай консултация" only.
+  - **Tertiary destructive actions** (`patient_declined`, `not_suitable`, `cancel`) hidden behind a collapsed "Други опции" toggle (`ChevronDown` / `ChevronUp`). Each tertiary action triggers a `window.confirm(...)` with a Bulgarian prompt before posting — prevents accidental clicks during a demo.
+  - **Action labels** use the C1 friendly Bulgarian messages (no enum keys leaked).
+- **Timeline humanisation**:
+  - Each event row gains an **actor pill** (Клиника / Zubite / Админ / Пациент / Система) colour-coded per actor.
+  - Event label falls back to `event_type.replace(/_/g, ' ')` (sentence-case-ish) if `EVENT_LABELS` is missing the key — no more raw `appointment_booked` slug.
+  - Status transition phrase already humanised in C1; kept.
+- **Booking modal context** (small polish):
+  - Title row split into two lines: heading + new sub-line "Пациент: <name>" in slate-500 with the patient name in slate-700 medium.
+  - Past-date guard from C1 retained.
+- **Mobile 375px**: verified no horizontal scroll, primary CTA visible without scroll, progress strip remains usable.
+
+### TypeScript
+- `npx tsc --noEmit` — only the pre-existing `TS2802` (Map iteration in `calendar/page.tsx`, untouched by C2). Zero new errors.
+
+### Live preview verification (Playwright + screenshots, 1920×800 and 375×812)
+- Progress strip visible on detail (stage 2 highlighted for a `clinic_viewed` request). ✅
+- Action panel: contextual CTAs rendered per stage. ✅
+- Tertiary "Други опции" toggle expands to show destructive actions, each with a `confirm()` prompt. ✅
+- Booking modal: "Пациент: TEST_Patient_b04382a9" subtitle visible. `<input type="date">` carries `min=2026-05-15`. ✅
+- Timeline events show actor pills (КЛИНИКА). ✅
+- Mobile 375px: no horizontal overflow, primary CTA above the fold. ✅
+
+### Explicitly out of scope of C2 (deferred)
+- No mobile request *list* card view (C3).
+- No dashboard overview redesign (C4).
+- No calendar week-view (C5).
+- No performance charts (C6).
+- No login page illustration (C7).
+- No styled confirmation modal — using native `window.confirm` per spec (out-of-scope: full modal).
+- No backend changes; `action_type` payload values unchanged.
+
+
 ## 2026-02-10 — Clinic Portal UX — Batch C1 (Quick Wins & Bug Fixes)
 
 ### Frontend — clinic portal demo-readiness pass
