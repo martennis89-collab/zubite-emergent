@@ -65,6 +65,19 @@ PRODUCTION_URL = os.environ.get('PRODUCTION_URL', 'https://zubite.bg')
 # Default is enabled.
 AUDIT_LOGS_ENABLED = os.environ.get('AUDIT_LOGS_ENABLED', '1') != '0'
 
+# Auth cookie configuration (P2 — Batch E1)
+# httpOnly cookies as an alternative to localStorage Bearer tokens. During E1
+# Bearer tokens remain fully supported; cookies are additive.
+AUTH_COOKIE_SECURE = os.environ.get('AUTH_COOKIE_SECURE', '1') != '0'
+AUTH_COOKIE_SAMESITE = (os.environ.get('AUTH_COOKIE_SAMESITE') or 'lax').strip().lower()
+if AUTH_COOKIE_SAMESITE not in {'lax', 'strict', 'none'}:
+    AUTH_COOKIE_SAMESITE = 'lax'
+AUTH_COOKIE_NAME_ADMIN = os.environ.get('AUTH_COOKIE_NAME_ADMIN', 'zubite_admin_session').strip() or 'zubite_admin_session'
+AUTH_COOKIE_NAME_CLINIC = os.environ.get('AUTH_COOKIE_NAME_CLINIC', 'zubite_clinic_session').strip() or 'zubite_clinic_session'
+AUTH_COOKIE_MAX_AGE_SECONDS = JWT_EXPIRATION_HOURS * 3600
+# Reserved for E4 — when True, drop Bearer-header support entirely. Not enforced in E1.
+AUTH_REQUIRE_COOKIE = os.environ.get('AUTH_REQUIRE_COOKIE', '0') == '1'
+
 # Initialize resend
 import resend as _resend
 if RESEND_API_KEY:

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, Response
 from fastapi.responses import StreamingResponse
 from typing import Optional, List
 from datetime import datetime, timezone
@@ -12,7 +12,11 @@ from schemas import (
     RESET_ANALYTICS_TOKEN, RESET_BLOG_VIEWS_TOKEN, CLEANUP_LEADS_TOKEN,
 )
 from auth import verify_password, create_token, get_current_user
-from config import IS_PRODUCTION, logger
+from config import (
+    IS_PRODUCTION, logger,
+    AUTH_COOKIE_NAME_ADMIN, AUTH_COOKIE_SECURE, AUTH_COOKIE_SAMESITE,
+    AUTH_COOKIE_MAX_AGE_SECONDS,
+)
 from rate_limit import rate_limit
 from audit import audit_log, diff_fields
 
@@ -37,7 +41,7 @@ router = APIRouter()
 
 
 @router.post("/admin/login", response_model=TokenResponse, dependencies=[Depends(rate_limit("admin_login", 5, 300))])
-async def admin_login(data: AdminLogin, request: Request):
+async def admin_login(data: AdminLogin, request: Request, response: Response):
     user = await db.admin_users.find_one({"username": data.username}, {"_id": 0})
     if not user or not verify_password(data.password, user["password_hash"]):
         await audit_log(
@@ -53,6 +57,17 @@ async def admin_login(data: AdminLogin, request: Request):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     token = create_token(user["id"], user["username"])
     admin_user = AdminUser(id=user["id"], username=user["username"])
+    # E1: additionally set the httpOnly admin session cookie. Bearer token
+    # remains in the response body for backward compatibility (E2/E3 cutover).
+    response.set_cookie(
+        key=AUTH_COOKIE_NAME_ADMIN,
+        value=token,
+        max_age=AUTH_COOKIE_MAX_AGE_SECONDS,
+        httponly=True,
+        secure=AUTH_COOKIE_SECURE,
+        samesite=AUTH_COOKIE_SAMESITE,
+        path="/",
+    )
     await audit_log(
         "auth.admin_login_succeeded",
         actor=admin_user,
@@ -63,6 +78,34 @@ async def admin_login(data: AdminLogin, request: Request):
         request=request,
     )
     return TokenResponse(access_token=token, user=admin_user)
+
+
+@router.post("/admin/logout")
+async def admin_logout(request: Request, response: Response):
+    """Idempotent admin logout (E1).
+
+    Does NOT require a valid session — always clears the cookie. Audit row
+    is best-effort: emitted only when a cookie was actually present, so we
+    don't flood the log with empty-state hits.
+    """
+    had_cookie = bool(request.cookies.get(AUTH_COOKIE_NAME_ADMIN))
+    response.delete_cookie(
+        key=AUTH_COOKIE_NAME_ADMIN,
+        path="/",
+        secure=AUTH_COOKIE_SECURE,
+        samesite=AUTH_COOKIE_SAMESITE,
+        httponly=True,
+    )
+    if had_cookie:
+        await audit_log(
+            "auth.admin_logout",
+            actor_type="admin",
+            target_type="system",
+            target_id=None,
+            severity="info",
+            request=request,
+        )
+    return {"status": "ok"}
 
 
 @router.get("/admin/me")

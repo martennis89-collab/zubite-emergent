@@ -1,5 +1,72 @@
 # Zubite.bg — Changelog
 
+## 2026-02-10 — P2 Auth/Session Hardening — Batch E1 (P1)
+
+### Backend — cookie-or-Bearer auth foundation (fully additive)
+- **`config.py` + `.env.example`** — new env vars:
+  - `AUTH_COOKIE_SECURE` (default `1`; set `0` only for local HTTP dev).
+  - `AUTH_COOKIE_SAMESITE` (default `lax`; allowed: `lax|strict|none`).
+  - `AUTH_COOKIE_NAME_ADMIN` (default `zubite_admin_session`).
+  - `AUTH_COOKIE_NAME_CLINIC` (default `zubite_clinic_session`).
+  - `AUTH_COOKIE_MAX_AGE_SECONDS` (derived from `JWT_EXPIRATION_HOURS * 3600`).
+  - `AUTH_REQUIRE_COOKIE` (default `0`; reserved for E4 — NOT enforced in E1).
+- **`auth.py`** — full rewrite (preserving behaviour):
+  - `HTTPBearer(auto_error=False)` so we can fall back to a cookie when the Authorization header is absent.
+  - `get_current_user(request, credentials)` now reads `Authorization: Bearer` first; if absent, reads the **`zubite_admin_session`** cookie. Clinic JWT still rejected with 403. The clinic cookie is never consulted on admin routes.
+  - `get_current_clinic(request, credentials)` mirrors the above with the **`zubite_clinic_session`** cookie. Admin JWT still rejected with 403.
+  - Invalid / expired / tampered tokens (from either source) → 401.
+  - New `_enforce_csrf_for_cookie_auth(...)` helper: when the request was authenticated via cookie AND method is `POST|PUT|PATCH|DELETE`, requires `Origin` (preferred) or `Referer` to match an allow-list (`zubite.bg`, `www.zubite.bg`, `*.preview.emergentagent.com`, plus any host in `CORS_ORIGINS`). On failure, emits `auth.csrf_origin_mismatch` audit (`severity=warning`, metadata = `{reason_code, origin_host, method, path}` — no cookie value, no Authorization header, no secrets) and raises 403.
+  - **Bearer-authenticated requests bypass CSRF entirely** — the existing frontend keeps working without changes.
+- **`routers/admin.py`**:
+  - `POST /api/admin/login` — **also** sets `Set-Cookie: zubite_admin_session=<jwt>; HttpOnly; SameSite=Lax; Path=/; Max-Age=86400` (+ `Secure` when `AUTH_COOKIE_SECURE=1`). `TokenResponse` body unchanged (still returns `access_token`).
+  - New **`POST /api/admin/logout`** — clears the admin cookie with matching attributes; idempotent (no auth required); emits `auth.admin_logout` audit only when a cookie was actually present.
+- **`routers/clinics.py`**:
+  - `POST /api/clinic/login` — mirrors admin: sets `zubite_clinic_session` cookie; response body unchanged.
+  - New **`POST /api/clinic/logout`** — same pattern; emits `auth.clinic_logout`.
+- **`audit.py`** — added action keys: `auth.admin_logout`, `auth.clinic_logout`, `auth.csrf_origin_mismatch`. (`auth.clinic_login_failed` and `auth.clinic_login_blocked_paused` were already in `ACTION_KEYS` from D1; they remain unused — wiring deferred to E5 per the plan.)
+- **CORS** unchanged. Already `allow_credentials=True` with strict origins — cookie auth was always wire-compatible.
+
+### Behaviour matrix
+| Request shape | Result |
+|---|---|
+| `Authorization: Bearer <admin>` to admin endpoint | 200 (unchanged) |
+| `Authorization: Bearer <admin>` to admin POST, no Origin | 200 (CSRF bypassed for Bearer) |
+| `Cookie: zubite_admin_session=<admin>` to admin endpoint (GET) | 200 |
+| `Cookie: zubite_admin_session=<admin>` to admin POST + `Origin: https://zubite.bg` | 200 |
+| `Cookie: zubite_admin_session=<admin>` to admin POST, no Origin | **403** + `auth.csrf_origin_mismatch` |
+| `Cookie: zubite_admin_session=<admin>` to admin POST + `Origin: https://evil.example.com` | **403** + audit |
+| `Cookie: zubite_admin_session=<clinic JWT>` to admin endpoint | 403 (role check) |
+| `Cookie: zubite_clinic_session=<admin JWT>` to clinic endpoint | 403 (role check) |
+| Bearer admin + bogus admin cookie | 200 (Bearer takes precedence) |
+| Tampered / expired JWT in cookie | 401 |
+| No credentials | 401 |
+| Public endpoints (`/api/leads`, `/api/analytics/events`, `/api/blog/track-view`, webhooks, etc.) | Unchanged — CSRF guard only fires inside `get_current_user`/`get_current_clinic`, not on public routes. |
+
+### Tests
+- **New `backend/tests/test_p2_e1_auth_cookies.py`** — 29 tests across 7 classes:
+  - TestAdminCookieLogin (6): cookie attrs, body still returns `access_token`, cookie-only auth, Bearer-only auth, Bearer precedence with bogus cookie, missing-creds → 401.
+  - TestClinicCookieLogin (3): cookie attrs, cookie-only on `/api/clinic/dashboard`, Bearer-only.
+  - TestRoleSeparation (2): clinic-JWT-in-admin-cookie → 403; admin-JWT-in-clinic-cookie → 403; "no admin cookie present" → 401.
+  - TestInvalidSessions (2): expired JWT in cookie → 401, tampered JWT → 401.
+  - TestLogout (5): admin/clinic logout `Set-Cookie` deletion + `Max-Age=0`, idempotent on empty session, `auth.admin_logout` audit emitted when cookie present, NOT emitted when no cookie.
+  - TestCsrfGuard (8): allowed Origin (zubite.bg + preview regex) succeed, missing Origin → 403, evil Origin → 403, Bearer bypass, safe GET no-CSRF, `auth.csrf_origin_mismatch` audit row contains `reason_code` + safe origin host + method + path AND zero cookie/Bearer values, clinic POST CSRF gating.
+  - TestPublicEndpointsUnaffected (3): `POST /api/leads`, `/api/analytics/events`, `/api/blog/track-view` not CSRF-gated.
+- Safety contract identical to D3: isolated `zubite_test_p2_e1` DB, autouse rate-limit + audit reset, mocked Resend/storage, no real provider IO, `AUTH_COOKIE_SECURE=0` forced at module load so `http://testserver` can receive the cookie.
+- **Result: 29/29 PASS in 6.15s.**
+
+### Full Phase 2 + Phase 3 + P2 E1 regression (per-file, isolated DBs)
+- A 24 / B 31 / C 21 / D1 30 / D2a 32 / D2b 22 / D3 20 / **E1 29** = **209 tests, 0 failures**.
+
+### Explicitly out of scope of E1 (deferred to E2–E5)
+- No frontend changes (no localStorage removal, no Bearer header removal in fetch calls).
+- No removal of `access_token` from login response bodies.
+- No `sessions` collection; no token revocation; no `jti` in JWTs.
+- No JWT expiry change (still 24h).
+- No admin self-service password change.
+- No `clinic_status` login-block changes.
+- `AUTH_REQUIRE_COOKIE` env var declared but not enforced.
+
+
 ## 2026-02-10 — Phase 3 Audit Read API — Batch D3 (P1)
 
 ### Backend — admin-only read API for `admin_audit_logs`

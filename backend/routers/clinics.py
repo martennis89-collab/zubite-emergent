@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, Response
 from datetime import datetime, timezone
 import uuid
 import secrets
@@ -14,7 +14,11 @@ from auth import (
     get_current_user, get_current_clinic, hash_password, verify_password,
     create_clinic_token,
 )
-from config import RESEND_API_KEY, SENDER_EMAIL, ADMIN_EMAIL
+from config import (
+    RESEND_API_KEY, SENDER_EMAIL, ADMIN_EMAIL,
+    AUTH_COOKIE_NAME_CLINIC, AUTH_COOKIE_SECURE, AUTH_COOKIE_SAMESITE,
+    AUTH_COOKIE_MAX_AGE_SECONDS,
+)
 from rate_limit import rate_limit
 from audit import audit_log
 
@@ -370,7 +374,7 @@ async def admin_assign_lead_to_clinic(lead_id: str, body: dict, request: Request
 # ─── Clinic Auth & Dashboard ──────────────────────────────
 
 @router.post("/clinic/login", dependencies=[Depends(rate_limit("clinic_login", 5, 300))])
-async def clinic_login(data: ClinicLogin):
+async def clinic_login(data: ClinicLogin, request: Request, response: Response):
     email = data.email.strip().lower()
     clinic = await db.clinics.find_one({"email": email}, {"_id": 0})
     if not clinic or not clinic.get("password_hash"):
@@ -380,7 +384,40 @@ async def clinic_login(data: ClinicLogin):
     if clinic.get("status") == "paused":
         raise HTTPException(status_code=403, detail="Акаунтът е спрян")
     token = create_clinic_token(clinic["id"], clinic["email"])
+    # E1: additionally set httpOnly clinic session cookie. Bearer remains.
+    response.set_cookie(
+        key=AUTH_COOKIE_NAME_CLINIC,
+        value=token,
+        max_age=AUTH_COOKIE_MAX_AGE_SECONDS,
+        httponly=True,
+        secure=AUTH_COOKIE_SECURE,
+        samesite=AUTH_COOKIE_SAMESITE,
+        path="/",
+    )
     return ClinicTokenResponse(access_token=token, user=_clinic_to_out(clinic))
+
+
+@router.post("/clinic/logout")
+async def clinic_logout(request: Request, response: Response):
+    """Idempotent clinic logout (E1)."""
+    had_cookie = bool(request.cookies.get(AUTH_COOKIE_NAME_CLINIC))
+    response.delete_cookie(
+        key=AUTH_COOKIE_NAME_CLINIC,
+        path="/",
+        secure=AUTH_COOKIE_SECURE,
+        samesite=AUTH_COOKIE_SAMESITE,
+        httponly=True,
+    )
+    if had_cookie:
+        await audit_log(
+            "auth.clinic_logout",
+            actor_type="clinic",
+            target_type="system",
+            target_id=None,
+            severity="info",
+            request=request,
+        )
+    return {"status": "ok"}
 
 
 @router.get("/clinic/profile")

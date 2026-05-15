@@ -95,8 +95,11 @@ ACTION_KEYS: frozenset[str] = frozenset({
     # Auth & security
     "auth.admin_login_succeeded",
     "auth.admin_login_failed",
+    "auth.admin_logout",
+    "auth.clinic_logout",
     "auth.clinic_login_failed",
     "auth.clinic_login_blocked_paused",
+    "auth.csrf_origin_mismatch",
     "seed.blocked_production",
     "seed.rejected_weak_password",
     "seed.executed",
