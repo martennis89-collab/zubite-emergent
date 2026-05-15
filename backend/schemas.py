@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, ConfigDict, EmailStr
+from pydantic import BaseModel, Field, ConfigDict, EmailStr, field_validator
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 import uuid
@@ -187,6 +187,11 @@ class LeadStatusUpdate(BaseModel):
     assigned_clinic_id: Optional[str] = None
     notes: Optional[str] = None
 
+    @field_validator("status")
+    @classmethod
+    def _validate_status(cls, v: Optional[str]) -> Optional[str]:
+        return _validate_lead_status(v)
+
 
 class LeadUpdate(BaseModel):
     name: Optional[str] = Field(default=None, max_length=200)
@@ -195,6 +200,29 @@ class LeadUpdate(BaseModel):
     city_slug: Optional[str] = Field(default=None, max_length=50)
     status: Optional[str] = Field(default=None, max_length=50)
     notes: Optional[str] = Field(default=None, max_length=5000)
+
+    @field_validator("status")
+    @classmethod
+    def _validate_status(cls, v: Optional[str]) -> Optional[str]:
+        return _validate_lead_status(v)
+
+
+# ─── Lead status allow-list (Phase 2A) ────────────────────────────
+# Backward-compatible: existing DB only contains NEW and CONTACTED.
+# Reject anything outside this set with a 422 from Pydantic.
+LEAD_STATUS_ALLOWED = frozenset({"NEW", "CONTACTED", "SCHEDULED", "COMPLETED", "CANCELLED"})
+
+
+def _validate_lead_status(v: Optional[str]) -> Optional[str]:
+    if v is None:
+        return v
+    if not isinstance(v, str):
+        raise ValueError("status must be a string")
+    if v not in LEAD_STATUS_ALLOWED:
+        raise ValueError(
+            f"status must be one of {sorted(LEAD_STATUS_ALLOWED)}; got '{v}'"
+        )
+    return v
 
 
 class AdminLogin(BaseModel):

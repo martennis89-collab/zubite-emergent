@@ -8,6 +8,7 @@ import os
 import httpx
 
 from database import db
+from rate_limit import rate_limit
 from schemas import (
     BlogPostCreate, BlogPostUpdate, BlogPost, BlogViewEvent, AdminUser
 )
@@ -61,7 +62,10 @@ async def get_post_by_slug(slug: str):
     return post
 
 
-@router.post("/blog/track-view")
+@router.post(
+    "/blog/track-view",
+    dependencies=[Depends(rate_limit("blog_track_view", max_calls=60, window_seconds=60))],
+)
 async def track_blog_view(event: BlogViewEvent):
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     existing = await db.blog_views.find_one({

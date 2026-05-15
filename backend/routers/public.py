@@ -133,7 +133,10 @@ async def update_lead_contact(lead_id: str, data: LeadContactUpdate):
     return lead
 
 
-@router.post("/seed")
+@router.post(
+    "/seed",
+    dependencies=[Depends(rate_limit("seed", max_calls=3, window_seconds=600))],
+)
 async def seed():
     """Idempotent seed; runs only on first call when DB is empty.
     Once seeded, becomes a no-op forever to prevent re-seeding attacks."""

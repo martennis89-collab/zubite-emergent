@@ -7,6 +7,16 @@ ROOT_DIR = Path(__file__).parent
 STATIC_DIR = ROOT_DIR.parent / 'static'
 load_dotenv(ROOT_DIR / '.env')
 
+# Environment detection (canonical: APP_ENV; legacy fallbacks: ENVIRONMENT, NODE_ENV).
+# Default 'development' so a missing var never accidentally enables prod guards.
+APP_ENV = (
+    os.environ.get('APP_ENV')
+    or os.environ.get('ENVIRONMENT')
+    or os.environ.get('NODE_ENV')
+    or 'development'
+).lower().strip()
+IS_PRODUCTION = APP_ENV == 'production'
+
 # MongoDB
 MONGO_URL = os.environ['MONGO_URL']
 DB_NAME = os.environ['DB_NAME']

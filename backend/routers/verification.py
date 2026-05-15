@@ -12,7 +12,10 @@ from rate_limit import rate_limit
 router = APIRouter()
 
 
-@router.post("/admin/leads/{lead_id}/send-verification")
+@router.post(
+    "/admin/leads/{lead_id}/send-verification",
+    dependencies=[Depends(rate_limit("send_verification", max_calls=5, window_seconds=300))],
+)
 async def admin_send_verification(lead_id: str, request: Request, user: AdminUser = Depends(get_current_user)):
     lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
     if not lead:

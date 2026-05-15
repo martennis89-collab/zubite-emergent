@@ -315,10 +315,24 @@ async def clinic_dashboard(clinic=Depends(get_current_clinic)):
 
 @router.get("/clinic/leads")
 async def clinic_leads(clinic=Depends(get_current_clinic)):
+    """Return minimal operational fields only — clinics are partners, not admins.
+    DO NOT expose: answers, score_total, band, attribution, utm_*, content_path,
+    admin notes, call transcripts, duplicate-detection metadata, internal scoring.
+    """
     leads = await db.leads.find(
         {"assigned_clinic_id": clinic["id"]},
-        {"_id": 0, "id": 1, "name": 1, "phone": 1, "email": 1, "treatment_type": 1,
-         "clinic_lead_status": 1, "created_at": 1, "city_slug": 1, "band": 1, "score_total": 1}
+        {
+            "_id": 0,
+            "id": 1,
+            "name": 1,
+            "phone": 1,
+            "email": 1,
+            "city_slug": 1,
+            "treatment_type": 1,
+            "clinic_lead_status": 1,
+            "verification_status": 1,
+            "created_at": 1,
+        },
     ).sort("created_at", -1).to_list(500)
     for lead in leads:
         if not lead.get("clinic_lead_status"):

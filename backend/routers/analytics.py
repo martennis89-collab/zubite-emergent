@@ -6,11 +6,15 @@ import uuid
 from database import db
 from schemas import AnalyticsEvent, AdminUser
 from auth import get_current_user
+from rate_limit import rate_limit
 
 router = APIRouter()
 
 
-@router.post("/analytics/events")
+@router.post(
+    "/analytics/events",
+    dependencies=[Depends(rate_limit("analytics_events", max_calls=60, window_seconds=60))],
+)
 async def track_analytics_event(event: AnalyticsEvent):
     doc = {
         "id": str(uuid.uuid4()),

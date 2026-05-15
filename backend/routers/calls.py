@@ -6,6 +6,7 @@ import uuid
 import json as json_module
 
 from database import db
+from rate_limit import rate_limit
 from schemas import AdminUser
 from auth import get_current_user
 from config import TWILIO_PHONE_NUMBER_ID, CALL_TIMEOUT_MINUTES, logger
@@ -103,7 +104,10 @@ async def get_call_log(call_log_id: str, user: AdminUser = Depends(get_current_u
     return log
 
 
-@router.post("/admin/calls/cleanup-stuck")
+@router.post(
+    "/admin/calls/cleanup-stuck",
+    dependencies=[Depends(rate_limit("calls_cleanup_stuck", max_calls=5, window_seconds=300))],
+)
 async def cleanup_stuck_calls_endpoint(user: AdminUser = Depends(get_current_user)):
     timeout_threshold = datetime.now(timezone.utc) - timedelta(minutes=CALL_TIMEOUT_MINUTES)
     result = await db.leads.update_many(
