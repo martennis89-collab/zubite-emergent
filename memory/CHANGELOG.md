@@ -1,5 +1,26 @@
 # Zubite.bg — Changelog
 
+## 2026-02-10 — Phase 2 Security Hardening — Batch A tests fixed (P0)
+
+### Tests
+- Refactored `/app/backend/tests/test_phase2_batch_a.py` to run **in-process** via `httpx.AsyncClient` + `ASGITransport(app=app)` — no real HTTP, no network IO, no real provider calls (Resend / Twilio / ElevenLabs / object storage).
+- Hard safety guard: refuses to run unless `DB_NAME` starts with `zubite_test` / `test_` and `APP_ENV/ENVIRONMENT/NODE_ENV` is not `production`.
+- Module-scoped event loop (motor's IOLoop binds once); admin + clinic accounts seeded, test DB dropped at teardown.
+- Autouse fixture clears `rate_limit._buckets` between every test so rate-limit assertions are deterministic.
+- `storage.init_storage` monkey-patched to a no-op; FastAPI startup events aren't executed by ASGITransport so the auto-verification background loop never spawns in tests.
+- Coverage expanded: original suite covered 2 of 5 rate-limited endpoints — new suite covers all 5 (`/analytics/events`, `/blog/track-view`, `/leads`, `/admin/login`, `/clinic/login`).
+- Result: **24/24 passing in ~4.9s** (previously 9 timeouts on rapid live-network requests).
+
+Run with:
+```
+cd /app/backend
+DB_NAME=zubite_test_phase2_batch_a APP_ENV=test python -m pytest tests/test_phase2_batch_a.py -v
+```
+
+Batch A is now complete and verified. Batch B (destructive endpoint guards) NOT started — awaiting user approval + manual MongoDB export of `leads`.
+
+
+
 ## 2026-02-09 — Clinic Consultation Workflow MVP (P0)
 
 ### Backend
