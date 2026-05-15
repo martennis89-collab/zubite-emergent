@@ -183,3 +183,47 @@ async def _send_email(to: str, subject: str, html: str, *, sender: str = None) -
     except Exception as e:
         logging.error(f"_send_email failed to {to}: {e}")
         return False
+
+
+async def send_verification_flagged_alert(
+    lead: dict,
+    clinic_name: str | None = None,
+) -> bool:
+    """Phase 2C: admin alert when a patient verification response is 'no'
+    (verification_status='flagged'). Includes ONLY minimal context — no
+    quiz answers, attribution, transcripts, or call outcome JSON."""
+    if not RESEND_API_KEY or not ADMIN_EMAIL:
+        logging.warning("RESEND_API_KEY / ADMIN_EMAIL not set — skipping flagged alert")
+        return False
+    lead_id = lead.get("id", "")
+    clinic_id = lead.get("assigned_clinic_id") or ""
+    patient_name = lead.get("name") or "—"
+    clinic_label = clinic_name or clinic_id or "—"
+    subject = "Lead flagged — patient reported clinic did not make contact"
+    html = f"""
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 540px; margin: 0 auto; padding: 24px 0;">
+        <h1 style="font-size: 18px; color: #b91c1c; margin: 0 0 12px;">Flagged lead — clinic did not contact</h1>
+        <p style="color: #475569; font-size: 14px; line-height: 1.5; margin: 0 0 16px;">
+            A patient responded <strong>"no"</strong> to the 24h verification email.
+            Please follow up with the clinic.
+        </p>
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <tr><td style="padding: 6px 0; color: #64748b; width: 140px;">Lead ID:</td>
+                <td style="padding: 6px 0; color: #0f172a;"><code>{lead_id}</code></td></tr>
+            <tr><td style="padding: 6px 0; color: #64748b;">Clinic ID:</td>
+                <td style="padding: 6px 0; color: #0f172a;"><code>{clinic_id}</code></td></tr>
+            <tr><td style="padding: 6px 0; color: #64748b;">Clinic:</td>
+                <td style="padding: 6px 0; color: #0f172a;">{clinic_label}</td></tr>
+            <tr><td style="padding: 6px 0; color: #64748b;">Patient:</td>
+                <td style="padding: 6px 0; color: #0f172a;">{patient_name}</td></tr>
+            <tr><td style="padding: 6px 0; color: #64748b;">Reason:</td>
+                <td style="padding: 6px 0; color: #0f172a;">Patient reported they were not contacted.</td></tr>
+        </table>
+        <p style="color: #94a3b8; font-size: 12px; margin: 16px 0 0;">— Zubite.bg automated alert</p>
+    </div>
+    """
+    try:
+        return await _send_email(ADMIN_EMAIL, subject, html)
+    except Exception as e:
+        logging.error(f"send_verification_flagged_alert failed: {e}")
+        return False

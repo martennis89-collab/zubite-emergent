@@ -1,5 +1,31 @@
 # Zubite.bg — Changelog
 
+## 2026-02-10 — Phase 2 Security Hardening — Batch C (workflow & notifications) (P2)
+
+### Backend
+- `routers/public.py` — `POST /api/leads`:
+  - Added soft duplicate detection (`_detect_soft_duplicate`). Checks for another lead with the same trimmed phone or lower-cased email created in the last 30 days. **Never blocks submission.** Missing phone+email → skipped safely.
+  - New lead fields: `is_potential_duplicate`, `duplicate_reason` (e.g. `phone`, `email`, or `phone+email`), `possible_duplicate_lead_id`. Audit-logged with `logger.info` (lead id + match id + reason — no PII).
+- `schemas.py` — added the three duplicate-detection fields to `Lead` with safe defaults.
+- `server.py` — new MongoDB indexes: `leads(phone, created_at)` and `leads(email, created_at)`.
+- `routers/clinics.py` — `PATCH /api/admin/leads/{id}/assign-clinic` now records `prev_clinic_id`, only triggers `_send_clinic_assignment_email` when the assignment is to a different clinic (or first assignment), and wraps the email call in try/except so a Resend outage cannot block the assignment.
+- `routers/consultations.py` — `POST /api/admin/consultation-requests/{id}/assign-clinic` mirrors the same `is_new_assignment` guard and try/except email isolation.
+- `emails.py` — new `send_verification_flagged_alert(lead, clinic_name=None)`. Sends a minimal admin alert containing only `lead_id`, `clinic_id`, optional `clinic_name`, optional `patient_name`, and the fixed reason text. **No** quiz answers / attribution / call transcript / duplicate metadata.
+- `routers/verification.py` — `GET /api/verify/{token}` with `response="no"`:
+  - Saves `verification_status="flagged"` first, **then** attempts the admin alert.
+  - Lead is projected to `{id, name, assigned_clinic_id}` before being passed to the alert helper.
+  - Email failure is caught + logged safely; the flagged status is preserved regardless.
+
+### Tests
+- New `/app/backend/tests/test_phase2_batch_c.py` — 21 tests across 5 classes:
+  - **TestSoftDuplicateDetection (7)**: phone match, email match (case-insensitive), combined `phone+email` reason, >30-day-old not flagged, missing phone+email skipped, public `GET /api/leads/{id}` does NOT expose duplicate fields, admin lead detail DOES expose them.
+  - **TestClinicReassignmentEmail (4)**: first assignment sends one email, re-saving to the same clinic sends zero, reassigning to a different clinic sends a new email to the right clinic, email outage does not block assignment (lead.assigned_clinic_id still updates).
+  - **TestVerificationFlaggedAlert (3)**: `response=no` sets `flagged` + invokes alert with PII-trimmed lead payload, alert failure still saves `flagged`, `response=yes` does not trigger the alert.
+  - **TestClinicIsolation (6)**: cross-clinic GET / action / lead-status returns 404; clinic JWT rejected on three admin endpoints; `/clinic/leads` projection still strips quiz answers / UTM / content path / notes / call transcripts / duplicate metadata / verification tokens even with all those fields seeded; clinic consultation-request response does not echo forbidden fields.
+  - **TestBackupArtifactSafety (1)**: hard assert that the Batch C suite leaves zero backup artefacts in `test_reports/backups/`.
+- Real Resend mocked at module load (`resend.Emails.send = MagicMock(...)`); per-test `unittest.mock.patch` around `_send_clinic_assignment_email` and `send_verification_flagged_alert` for call-count assertions.
+- **Result: Batch C 21/21 PASS in ~4s. Full Phase 2 (A+B+C) regression: 76 tests, 0 failures.**
+
 ## 2026-02-10 — Phase 2 Security Hardening — Batch B (destructive endpoint guards) (P1)
 
 ### Backend

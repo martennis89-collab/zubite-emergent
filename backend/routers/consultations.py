@@ -416,9 +416,17 @@ async def admin_assign_consultation_to_clinic(
         clinic_id=body.clinic_id, user_id=user.id,
         previous_status=prev_status, new_status="assigned",
     )
-    # Best-effort email
-    refreshed = await db.consultation_requests.find_one({"id": req_id}, {"_id": 0})
-    await _send_clinic_assignment_email(clinic, refreshed or req)
+    # Best-effort email: only notify when the assignment is actually new or
+    # different. Re-saving to the SAME clinic must NOT trigger a duplicate.
+    is_new_assignment = prev_clinic != body.clinic_id
+    if is_new_assignment:
+        refreshed = await db.consultation_requests.find_one({"id": req_id}, {"_id": 0})
+        try:
+            await _send_clinic_assignment_email(clinic, refreshed or req)
+        except Exception as email_exc:
+            logger.warning(
+                f"Consultation reassignment email failed for req {req_id}: {email_exc}"
+            )
     return {"status": "ok", "assigned_to": clinic.get("clinic_name")}
 
 

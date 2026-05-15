@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 import asyncio
 import uuid
@@ -7,12 +7,67 @@ import uuid
 from database import db
 from schemas import Clinic, LeadCreate, LeadContactUpdate, Lead
 from auth import hash_password
-from config import CITIES
+from config import CITIES, logger
 from scoring import calculate_score
 from emails import send_lead_notification_email, send_lead_confirmation_email
 from rate_limit import rate_limit
 
 router = APIRouter()
+
+
+# ─── Soft duplicate detection (Phase 2C) ──────────────────────────
+# Look back this far when deciding whether a new lead duplicates an older one.
+_DUPLICATE_WINDOW_DAYS = 30
+
+
+async def _detect_soft_duplicate(
+    phone: Optional[str],
+    email: Optional[str],
+) -> tuple[bool, Optional[str], Optional[str]]:
+    """Return (is_duplicate, reason, possible_duplicate_lead_id).
+
+    The check is purely additive: callers always create the new lead. If
+    phone/email are missing, the check is skipped safely.
+
+    Comparison rules:
+      - phone is trimmed (string compare).
+      - email is trimmed and lower-cased.
+      - Match window: last `_DUPLICATE_WINDOW_DAYS` days by `created_at`.
+    """
+    phone = (phone or "").strip()
+    email = (email or "").strip().lower()
+    if not phone and not email:
+        return False, None, None
+
+    cutoff_iso = (
+        datetime.now(timezone.utc) - timedelta(days=_DUPLICATE_WINDOW_DAYS)
+    ).isoformat()
+
+    or_clauses: list[dict] = []
+    if phone:
+        or_clauses.append({"phone": phone})
+    if email:
+        or_clauses.append({"email": email})
+
+    query = {
+        "created_at": {"$gte": cutoff_iso},
+        "$or": or_clauses,
+    }
+    match = await db.leads.find_one(
+        query,
+        {"_id": 0, "id": 1, "phone": 1, "email": 1},
+        sort=[("created_at", -1)],
+    )
+    if not match:
+        return False, None, None
+
+    reasons: list[str] = []
+    if phone and (match.get("phone") or "").strip() == phone:
+        reasons.append("phone")
+    if email and (match.get("email") or "").strip().lower() == email:
+        reasons.append("email")
+    reason = "+".join(reasons) if reasons else "match"
+    return True, reason, match.get("id")
 
 
 @router.get("/")
@@ -53,6 +108,11 @@ async def create_lead(data: LeadCreate):
         if clinic:
             assigned_clinic_id = clinic.get("id")
 
+    # Soft duplicate detection — additive, never blocks submission.
+    is_dup, dup_reason, dup_lead_id = await _detect_soft_duplicate(
+        data.phone, data.email
+    )
+
     # Build the lead from the create payload directly. Lead's `extra="ignore"`
     # config drops any unknown fields, but everything we explicitly typed in
     # LeadCreate (incl. all attribution fields) flows straight through.
@@ -63,6 +123,9 @@ async def create_lead(data: LeadCreate):
         "band": band,
         "score_breakdown": score_breakdown,
         "assigned_clinic_id": assigned_clinic_id,
+        "is_potential_duplicate": is_dup,
+        "duplicate_reason": dup_reason,
+        "possible_duplicate_lead_id": dup_lead_id,
     })
     # `source` is not a Lead field — store it in answers so it survives.
     if data.source:
@@ -72,6 +135,13 @@ async def create_lead(data: LeadCreate):
     doc = lead.model_dump()
     doc['created_at'] = doc['created_at'].isoformat()
     await db.leads.insert_one(doc)
+
+    if is_dup:
+        # Audit log only — never echo the contact value back.
+        logger.info(
+            "soft_duplicate_detected lead=%s match=%s reason=%s",
+            lead.id, dup_lead_id, dup_reason,
+        )
 
     if data.consent and (data.name or data.email):
         asyncio.create_task(send_lead_notification_email(doc))

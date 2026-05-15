@@ -240,9 +240,21 @@ async def admin_assign_lead_to_clinic(lead_id: str, body: dict, user: AdminUser 
     clinic = await db.clinics.find_one({"id": clinic_id, "password_hash": {"$exists": True}}, {"_id": 0, "clinic_name": 1, "email": 1, "notification_email": 1, "id": 1})
     if not clinic:
         raise HTTPException(status_code=404, detail="Clinic account not found")
-    result = await db.leads.update_one({"id": lead_id}, {"$set": {"assigned_clinic_id": clinic_id, "clinic_lead_status": "new"}})
-    if result.matched_count == 0:
+
+    # Phase 2C: detect "is this a new/different clinic?" so we only notify
+    # the new clinic on actual (re)assignments, not on idempotent re-saves.
+    existing_lead = await db.leads.find_one(
+        {"id": lead_id}, {"_id": 0, "id": 1, "assigned_clinic_id": 1}
+    )
+    if not existing_lead:
         raise HTTPException(status_code=404, detail="Lead not found")
+    prev_clinic_id = existing_lead.get("assigned_clinic_id")
+    is_new_assignment = prev_clinic_id != clinic_id
+
+    await db.leads.update_one(
+        {"id": lead_id},
+        {"$set": {"assigned_clinic_id": clinic_id, "clinic_lead_status": "new"}},
+    )
 
     # Auto-create a ConsultationRequest linked to this lead (idempotent).
     # The consultation workflow is the new clinic-side surface; old /clinic/leads
@@ -252,7 +264,16 @@ async def admin_assign_lead_to_clinic(lead_id: str, body: dict, user: AdminUser 
         lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
         if lead:
             req = await _ensure_consultation_for_lead(lead, clinic_id)
-            await _send_clinic_assignment_email(clinic, req)
+            # Only notify the new clinic if it's actually a (re)assignment.
+            # Re-saving to the SAME clinic must not trigger a duplicate email.
+            if is_new_assignment:
+                try:
+                    await _send_clinic_assignment_email(clinic, req)
+                except Exception as email_exc:
+                    # Never block assignment on email failure.
+                    logging.warning(
+                        f"Clinic assignment email failed for lead {lead_id}: {email_exc}"
+                    )
     except Exception as exc:
         logging.warning(f"Auto-create consultation_request failed for lead {lead_id}: {exc}")
 

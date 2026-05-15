@@ -1,12 +1,13 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
 from datetime import datetime, timezone
+import logging
 import uuid
 import secrets
 
 from database import db
 from schemas import AdminUser
 from auth import get_current_user
-from emails import send_verification_email
+from emails import send_verification_email, send_verification_flagged_alert
 from rate_limit import rate_limit
 
 router = APIRouter()
@@ -76,6 +77,26 @@ async def verify_lead(token: str, response: str):
         await db.leads.update_one({"id": lead_id}, {"$set": {"verification_status": "verified", "clinic_lead_status": "contacted"}})
     else:
         await db.leads.update_one({"id": lead_id}, {"$set": {"verification_status": "flagged"}})
+        # Phase 2C: alert admin. Email failure must NEVER block the flagged
+        # status save — we already persisted it above.
+        try:
+            lead = await db.leads.find_one(
+                {"id": lead_id},
+                {"_id": 0, "id": 1, "name": 1, "assigned_clinic_id": 1},
+            )
+            clinic_name: str | None = None
+            if lead and lead.get("assigned_clinic_id"):
+                clinic = await db.clinics.find_one(
+                    {"id": lead["assigned_clinic_id"]},
+                    {"_id": 0, "clinic_name": 1},
+                )
+                clinic_name = (clinic or {}).get("clinic_name")
+            if lead:
+                await send_verification_flagged_alert(lead, clinic_name=clinic_name)
+        except Exception as alert_exc:
+            logging.warning(
+                f"send_verification_flagged_alert failed for lead {lead_id}: {alert_exc}"
+            )
 
     return {"status": "ok", "response": response}
 

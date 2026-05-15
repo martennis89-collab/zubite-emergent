@@ -77,6 +77,9 @@ async def startup():
     await db.leads.create_index("assigned_clinic_id")
     await db.leads.create_index("clinic_lead_status")
     await db.leads.create_index("verification_status")
+    # Phase 2C: soft-duplicate detection lookups
+    await db.leads.create_index([("phone", 1), ("created_at", -1)])
+    await db.leads.create_index([("email", 1), ("created_at", -1)])
     await db.clinics.create_index("id", unique=True)
     await db.clinics.create_index("city_slug")
     await db.clinics.create_index("email")

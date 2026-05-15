@@ -178,6 +178,12 @@ class Lead(BaseModel):
     conversion_page: Optional[str] = None
     submitted_at: Optional[str] = None
     time_to_submit_seconds: Optional[int] = None
+    # ─── Soft duplicate detection (Phase 2C) ────────────────────
+    # Non-blocking flag: a new lead is always created; admins use these
+    # fields to triage. Never exposed in public or clinic endpoints.
+    is_potential_duplicate: bool = False
+    duplicate_reason: Optional[str] = None
+    possible_duplicate_lead_id: Optional[str] = None
 
 
 # ─── Admin Models ──────────────────────────────────────────
