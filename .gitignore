@@ -21,7 +21,9 @@ node_modules/
 
 # Next.js
 /.next/
+**/.next/
 /out/
+**/out/
 next-env.d.ts
 *.tsbuildinfo
 
@@ -63,6 +65,16 @@ __pycache__/
 *pyc*
 venv/
 .venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Logs
+*.log
+
+# Test reports — auto-generated, contain test fixtures (no secrets verified)
+# kept tracked historically; if future reports include PII, untrack with
+# `git rm --cached test_reports/iteration_*.json` after review.
 
 # Development tools
 chainlit.md
