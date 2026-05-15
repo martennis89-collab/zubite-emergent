@@ -72,9 +72,9 @@ venv/
 # Logs
 *.log
 
-# Test reports — auto-generated, contain test fixtures (no secrets verified)
-# kept tracked historically; if future reports include PII, untrack with
-# `git rm --cached test_reports/iteration_*.json` after review.
+# Test reports — auto-generated, may contain test PII. Keep .gitkeep.
+test_reports/
+!test_reports/.gitkeep
 
 # Development tools
 chainlit.md
