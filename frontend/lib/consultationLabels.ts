@@ -249,6 +249,30 @@ export function statusTransitionPhrase(prev?: string | null, next?: string | nul
   return `${a} → ${b}`
 }
 
+/** Relative-time formatter ("преди 5 мин"). Falls back to formatted date if
+ * `iso` is missing or invalid. Pure helper, no deps.
+ */
+export function timeSince(iso?: string | null): string {
+  if (!iso) return '—'
+  const t = Date.parse(iso)
+  if (Number.isNaN(t)) return formatDate(iso)
+  const deltaSec = Math.floor((Date.now() - t) / 1000)
+  if (deltaSec < 0) return formatDate(iso)
+  if (deltaSec < 60) return 'преди няколко секунди'
+  const min = Math.floor(deltaSec / 60)
+  if (min < 60) return `преди ${min} мин`
+  const hr = Math.floor(min / 60)
+  if (hr < 24) return `преди ${hr} ${hr === 1 ? 'час' : 'ч'}`
+  const days = Math.floor(hr / 24)
+  if (days < 7) return `преди ${days} ${days === 1 ? 'ден' : 'дни'}`
+  if (days < 30) {
+    const w = Math.floor(days / 7)
+    return `преди ${w} ${w === 1 ? 'седмица' : 'седмици'}`
+  }
+  // Older than a month — fall back to absolute date.
+  return formatDate(iso)
+}
+
 export function statusBadge(status: string | null | undefined) {
   if (!status) return { label: '—', cls: 'bg-slate-100 text-slate-500' }
   return STATUS_LABELS[status] || { label: status, cls: 'bg-slate-100 text-slate-700' }

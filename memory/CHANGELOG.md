@@ -1,5 +1,43 @@
 # Zubite.bg — Changelog
 
+## 2026-02-10 — Clinic Portal UX — Batch C3 (Requests List Mobile Cards & Polish)
+
+### Frontend — clinic request list demo-readiness pass
+- **`frontend/lib/consultationLabels.ts`** — added `timeSince(iso)` helper (returns `преди X сек/мин/ч/дни/седмици`, falls back to `formatDate` for >30 days or invalid input). Pure helper, zero deps.
+- **NEW `frontend/components/clinic/RequestCard.tsx`** — clinic-only mobile card component:
+  - Patient name + phone, status badge, treatment, city, readiness/urgency pills, relative time-since-assigned, "Отвори →" CTA.
+  - Whole card is a `<Link>` to `/clinic/dashboard/requests/[id]`.
+  - Sky-300 hover border, slate-50 active background.
+- **`frontend/app/clinic/dashboard/requests/page.tsx`** — full rewrite of the list page (170 → 251 LOC):
+  - **Three render branches**: `loading` (skeleton), `error` (rose chip + support email), `ready` (cards OR table OR empty state).
+  - **Mobile** (< `md` ≈ 768px): `grid grid-cols-1 gap-3 md:hidden` of `RequestCard` instances.
+  - **Desktop** (≥ `md`): unchanged-ish table with two readability fixes — `timeSince()` in the Назначена/Първо действие columns (full date in `title=` tooltip), filter chips are now pill-shaped (`rounded-full`) with `aria-pressed` for accessibility.
+  - **Loading**: skeleton component renders 4 mobile pulse-cards + 5 desktop pulse-rows. Replaces the previous "Зареждане…" plain text.
+  - **Error**: rose-bordered panel with AlertCircle icon + "Възникна грешка при зареждане" + support email. Network failures and 5xx land here. 401/403 still redirects to `/clinic` with localStorage cleanup (unchanged).
+  - **Empty state**: now filter-aware. When `filter !== 'all'` or `search.trim().length > 0` and `requests.length > 0`, shows "Няма съвпадения за избрания филтър". Otherwise "Все още няма заявки". Inbox icon in sky-50 disc.
+  - **Filter toolbar**: rounded-full pill chips, search placeholder now sentence-cased with ellipsis ("Търсене по име, телефон или лечение…"), `aria-pressed` on active chip, `shadow-sm` lift on active.
+  - **Counter**: small `X от Y` badge in the header right-side, hidden during loading and when requests are empty.
+- No backend changes. `/api/clinic/consultation-requests` payload unchanged.
+
+### TypeScript
+- `npx tsc --noEmit` — only the pre-existing `TS2802` (Map iteration in `calendar/page.tsx`, untouched). Zero new errors.
+
+### Live preview verification
+- Desktop 1920×800: table renders with relative times ("преди 5 дни"), Bulgarian status labels, "X от Y" counter, rounded filter pills.
+- Filter "Посетили" returns matching rows (no empty state).
+- Search "zzz_no_match_qwerty" → filter-aware empty state ("Няма съвпадения за избрания филтър"). ✅
+- Mobile 375×812: no horizontal scroll (`scrollWidth > innerWidth` returns `false`). ✅
+- First card link resolves to `/clinic/dashboard/requests/{id}`. ✅
+
+### Explicitly out of scope of C3 (deferred)
+- No dashboard overview redesign (C4).
+- No calendar week-view (C5).
+- No performance charts (C6).
+- No login page polish (C7).
+- No new backend endpoints / new filters.
+- No image assets — empty/error states use existing lucide icons (Inbox / AlertCircle).
+
+
 ## 2026-02-10 — Clinic Portal UX — Batch C2 (Request Detail Hierarchy & Progress Strip)
 
 ### Frontend — clinic request detail clarity pass
