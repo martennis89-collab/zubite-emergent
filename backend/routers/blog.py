@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Request
 from fastapi.responses import Response
 from typing import Optional
 from datetime import datetime, timezone, timedelta
@@ -15,6 +15,7 @@ from schemas import (
 from auth import get_current_user
 from storage import put_object, get_object, ALLOWED_IMAGE_TYPES
 from config import APP_NAME, FRONTEND_URL, REVALIDATE_SECRET, logger
+from audit import audit_log, diff_fields
 
 router = APIRouter()
 
@@ -128,7 +129,7 @@ async def get_blog_analytics(user: AdminUser = Depends(get_current_user)):
 # ─── File Upload ───────────────────────────────────────────
 
 @router.post("/admin/upload")
-async def admin_upload_file(file: UploadFile = File(...), user: AdminUser = Depends(get_current_user)):
+async def admin_upload_file(request: Request, file: UploadFile = File(...), user: AdminUser = Depends(get_current_user)):
     content_type = file.content_type or "application/octet-stream"
     if content_type not in ALLOWED_IMAGE_TYPES:
         raise HTTPException(status_code=400, detail=f"Invalid file type. Allowed: {', '.join(ALLOWED_IMAGE_TYPES.keys())}")
@@ -147,6 +148,18 @@ async def admin_upload_file(file: UploadFile = File(...), user: AdminUser = Depe
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.uploaded_files.insert_one(file_record)
+        # Audit: after_state via `file` allow-list (id / original_filename /
+        # content_type / size / is_deleted). NEVER stores file bytes or
+        # storage_path / storage secrets.
+        await audit_log(
+            "file.uploaded",
+            actor=user, actor_type="admin",
+            target_type="file", target_id=file_id,
+            target_summary=file.filename,
+            after_state=file_record,
+            metadata={"size": result["size"], "content_type": content_type},
+            severity="info", request=request,
+        )
         return {"success": True, "file_id": file_id, "url": f"/api/files/{file_id}", "filename": file.filename, "size": result["size"]}
     except Exception as e:
         logger.error(f"File upload failed: {e}")
@@ -178,12 +191,20 @@ async def admin_list_files(user: AdminUser = Depends(get_current_user), limit: i
 
 
 @router.delete("/admin/files/{file_id}")
-async def admin_delete_file(file_id: str, user: AdminUser = Depends(get_current_user)):
+async def admin_delete_file(file_id: str, request: Request, user: AdminUser = Depends(get_current_user)):
     result = await db.uploaded_files.update_one(
         {"id": file_id}, {"$set": {"is_deleted": True, "deleted_at": datetime.now(timezone.utc).isoformat()}}
     )
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="File not found")
+    await audit_log(
+        "file.deleted",
+        actor=user, actor_type="admin",
+        target_type="file", target_id=file_id,
+        before_state={"is_deleted": False},
+        after_state={"is_deleted": True},
+        severity="info", request=request,
+    )
     return {"success": True, "message": "File deleted"}
 
 
@@ -208,7 +229,7 @@ async def admin_get_post(post_id: str, user: AdminUser = Depends(get_current_use
 
 
 @router.post("/admin/blog/posts", response_model=BlogPost)
-async def admin_create_post(post_data: BlogPostCreate, user: AdminUser = Depends(get_current_user)):
+async def admin_create_post(post_data: BlogPostCreate, request: Request, user: AdminUser = Depends(get_current_user)):
     existing = await db.blog_posts.find_one({"slug": post_data.slug})
     if existing:
         raise HTTPException(status_code=400, detail="Slug already exists")
@@ -228,11 +249,26 @@ async def admin_create_post(post_data: BlogPostCreate, user: AdminUser = Depends
     await db.blog_posts.insert_one(post.model_dump())
     if post_data.is_published:
         asyncio.create_task(trigger_revalidation(slug=post.slug, action="create"))
+    # Audit: after_state allow-listed to {slug, is_published, category,
+    # language} — body / content_html / FAQ schema / article schema NEVER stored.
+    await audit_log(
+        "blog_post.created",
+        actor=user, actor_type="admin",
+        target_type="blog_post", target_id=post.id,
+        target_summary=post.slug,
+        after_state={
+            "slug": post.slug,
+            "is_published": post.is_published,
+            "category": getattr(post, "category", None),
+            "language": getattr(post, "language", None),
+        },
+        severity="info", request=request,
+    )
     return post
 
 
 @router.put("/admin/blog/posts/{post_id}", response_model=BlogPost)
-async def admin_update_post(post_id: str, post_data: BlogPostUpdate, user: AdminUser = Depends(get_current_user)):
+async def admin_update_post(post_id: str, post_data: BlogPostUpdate, request: Request, user: AdminUser = Depends(get_current_user)):
     existing = await db.blog_posts.find_one({"id": post_id}, {"_id": 0})
     if not existing:
         raise HTTPException(status_code=404, detail="Post not found")
@@ -261,6 +297,23 @@ async def admin_update_post(post_id: str, post_data: BlogPostUpdate, user: Admin
     updated = await db.blog_posts.find_one({"id": post_id}, {"_id": 0})
     slug_to_revalidate = post_data.slug if post_data.slug else existing.get("slug")
     asyncio.create_task(trigger_revalidation(slug=slug_to_revalidate, action="update"))
+    # Audit: changed_fields list + before/after only over the blog_post allow-list
+    # (slug, is_published, category, language). Body, content_html, FAQ
+    # schema, article schema, SEO blocks NEVER stored.
+    changed = sorted(
+        k for k in update_data.keys()
+        if k not in ("updated_at", "published_at")
+    )
+    b, a = diff_fields(existing, updated, ["slug", "is_published", "category", "language"])
+    await audit_log(
+        "blog_post.updated",
+        actor=user, actor_type="admin",
+        target_type="blog_post", target_id=post_id,
+        target_summary=existing.get("slug"),
+        before_state=b, after_state=a,
+        metadata={"changed_fields": changed},
+        severity="info", request=request,
+    )
     return BlogPost(**updated)
 
 
@@ -339,11 +392,24 @@ async def admin_seo_status(post_id: str, user: AdminUser = Depends(get_current_u
 
 
 @router.delete("/admin/blog/posts/{post_id}")
-async def admin_delete_post(post_id: str, user: AdminUser = Depends(get_current_user)):
+async def admin_delete_post(post_id: str, request: Request, user: AdminUser = Depends(get_current_user)):
     existing = await db.blog_posts.find_one({"id": post_id}, {"_id": 0})
     result = await db.blog_posts.delete_one({"id": post_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Post not found")
     if existing:
         asyncio.create_task(trigger_revalidation(slug=existing.get("slug"), action="delete"))
+        await audit_log(
+            "blog_post.deleted",
+            actor=user, actor_type="admin",
+            target_type="blog_post", target_id=post_id,
+            target_summary=existing.get("slug"),
+            before_state={
+                "slug": existing.get("slug"),
+                "is_published": existing.get("is_published"),
+                "category": existing.get("category"),
+                "language": existing.get("language"),
+            },
+            severity="warning", request=request,
+        )
     return {"message": "Post deleted successfully"}

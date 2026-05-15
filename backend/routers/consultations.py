@@ -11,7 +11,7 @@ Lead workflow (existing) is preserved — this router adds a parallel
 consultation workflow that is *linked back* to leads via `lead_id`.
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone, timedelta
 import uuid
@@ -28,6 +28,7 @@ from schemas import (
     CONSULTATION_STATUS_VALUES, APPOINTMENT_STATUS_VALUES,
     APPOINTMENT_TYPE_VALUES, ACTION_TYPE_VALUES,
 )
+from audit import audit_log, diff_fields
 from auth import get_current_user, get_current_clinic, hash_password
 from emails import _send_email  # internal helper; safe wrapper
 from config import RESEND_API_KEY, SENDER_EMAIL, PRODUCTION_URL
@@ -194,6 +195,7 @@ async def admin_list_clinics(user: AdminUser = Depends(get_current_user)):
 @router.post("/admin/clinics")
 async def admin_create_clinic(
     data: ClinicCreate,
+    request: Request,
     user: AdminUser = Depends(get_current_user),
 ):
     if data.clinic_status not in CLINIC_STATUS_VALUES:
@@ -229,6 +231,16 @@ async def admin_create_clinic(
         "updated_at": now,
     }
     await db.clinics.insert_one({**doc})
+    # Audit: after_state via clinic allow-list (clinic_name, city, status, etc.) —
+    # password_hash & temporary_password are NEVER stored (sanitiser drops them).
+    await audit_log(
+        "clinic.created",
+        actor=user, actor_type="admin",
+        target_type="clinic", target_id=doc["id"],
+        target_summary=data.clinic_name,
+        after_state=doc,
+        severity="info", request=request,
+    )
     return {
         "clinic": _public_clinic_dict(doc),
         "temporary_password": temp_password,
@@ -264,6 +276,7 @@ async def admin_get_clinic(
 async def admin_update_clinic(
     clinic_id: str,
     data: ClinicAdminUpdate,
+    request: Request,
     user: AdminUser = Depends(get_current_user),
 ):
     if not isinstance(clinic_id, str):
@@ -276,10 +289,43 @@ async def admin_update_clinic(
     if "subscription_status" in update and update["subscription_status"] not in SUBSCRIPTION_STATUS_VALUES:
         raise HTTPException(status_code=400, detail="Invalid subscription_status")
     update["updated_at"] = _now_iso()
+    before = await db.clinics.find_one({"id": clinic_id}, {"_id": 0, "password_hash": 0})
     result = await db.clinics.update_one({"id": clinic_id}, {"$set": update})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Clinic not found")
     clinic = await db.clinics.find_one({"id": clinic_id}, {"_id": 0, "password_hash": 0})
+
+    # Audit clinic.updated with changed_fields (keys only, never values).
+    if before is not None:
+        changed = sorted(k for k in update.keys() if k != "updated_at")
+        await audit_log(
+            "clinic.updated",
+            actor=user, actor_type="admin",
+            target_type="clinic", target_id=clinic_id,
+            target_summary=before.get("clinic_name"),
+            metadata={"changed_fields": changed},
+            severity="info", request=request,
+        )
+        # If clinic_status or status changed, emit status_changed too.
+        status_change_keys = [k for k in ("clinic_status", "status") if k in update]
+        if status_change_keys:
+            b, a = diff_fields(before, clinic, status_change_keys)
+            if b or a:
+                # severity warning when transitioning to a pause/disable state.
+                new_status = update.get("clinic_status") or update.get("status")
+                paused = isinstance(new_status, str) and new_status.lower() in (
+                    "paused", "inactive", "disabled", "suspended",
+                    "waiting_list", "probation",
+                )
+                await audit_log(
+                    "clinic.status_changed",
+                    actor=user, actor_type="admin",
+                    target_type="clinic", target_id=clinic_id,
+                    target_summary=before.get("clinic_name"),
+                    before_state=b, after_state=a,
+                    severity="warning" if paused else "info",
+                    request=request,
+                )
     return {"clinic": clinic}
 
 
@@ -350,6 +396,7 @@ async def admin_get_consultation_request(
 async def admin_patch_consultation_request(
     req_id: str,
     data: ConsultationAdminPatch,
+    request: Request,
     user: AdminUser = Depends(get_current_user),
 ):
     if not isinstance(req_id, str):
@@ -373,11 +420,32 @@ async def admin_patch_consultation_request(
             new_status=update["status"],
             note=update.get("notes"),
         )
+        # Audit: before/after status only.
+        await audit_log(
+            "consultation_request.admin_status_changed",
+            actor=user, actor_type="admin",
+            target_type="consultation_request", target_id=req_id,
+            before_state={"status": existing.get("status")},
+            after_state={"status": update["status"]},
+            severity="info", request=request,
+        )
     elif "notes" in update:
         await _log_event(
             req_id, "admin_note_added",
             clinic_id=existing.get("assigned_clinic_id"),
             user_id=user.id, note=update["notes"],
+        )
+        new_notes = update.get("notes") or ""
+        await audit_log(
+            "consultation_request.admin_note_added",
+            actor=user, actor_type="admin",
+            target_type="consultation_request", target_id=req_id,
+            metadata={
+                "notes_changed": True,
+                "notes_length_before": 0,  # admin patch overwrites without reading old
+                "notes_length_after": len(new_notes) if isinstance(new_notes, str) else 0,
+            },
+            severity="info", request=request,
         )
     return {"status": "ok"}
 
@@ -386,6 +454,7 @@ async def admin_patch_consultation_request(
 async def admin_assign_consultation_to_clinic(
     req_id: str,
     body: ConsultationAssignClinic,
+    request: Request,
     user: AdminUser = Depends(get_current_user),
 ):
     if not isinstance(req_id, str):
@@ -419,14 +488,37 @@ async def admin_assign_consultation_to_clinic(
     # Best-effort email: only notify when the assignment is actually new or
     # different. Re-saving to the SAME clinic must NOT trigger a duplicate.
     is_new_assignment = prev_clinic != body.clinic_id
+    notification_attempted = False
+    notification_success: bool | None = None
     if is_new_assignment:
         refreshed = await db.consultation_requests.find_one({"id": req_id}, {"_id": 0})
+        notification_attempted = True
         try:
             await _send_clinic_assignment_email(clinic, refreshed or req)
+            notification_success = True
         except Exception as email_exc:
+            notification_success = False
             logger.warning(
                 f"Consultation reassignment email failed for req {req_id}: {email_exc}"
             )
+    # Audit AFTER the update.
+    if is_new_assignment:
+        action = "consultation_request.reassigned" if prev_clinic else "consultation_request.assigned"
+        severity = "warning" if prev_clinic else "info"
+        await audit_log(
+            action,
+            actor=user, actor_type="admin",
+            target_type="consultation_request", target_id=req_id,
+            before_state={"assigned_clinic_id": prev_clinic},
+            after_state={"assigned_clinic_id": body.clinic_id},
+            metadata={
+                "previous_clinic_id": prev_clinic,
+                "new_clinic_id": body.clinic_id,
+                "notification_attempted": notification_attempted,
+                "notification_success": notification_success,
+            },
+            severity=severity, request=request,
+        )
     return {"status": "ok", "assigned_to": clinic.get("clinic_name")}
 
 
@@ -851,17 +943,35 @@ async def clinic_update_appointment(
 @router.delete("/clinic/appointments/{appt_id}")
 async def clinic_cancel_appointment(
     appt_id: str,
+    request: Request,
     clinic=Depends(get_current_clinic),
 ):
     """Soft-cancel: status='cancelled'. Does not delete the row."""
     if not isinstance(appt_id, str):
         raise HTTPException(status_code=400, detail="Invalid id")
+    existing = await db.clinic_appointments.find_one(
+        {"id": appt_id, "clinic_id": clinic["id"]}, {"_id": 0}
+    )
     result = await db.clinic_appointments.update_one(
         {"id": appt_id, "clinic_id": clinic["id"]},
         {"$set": {"status": "cancelled", "updated_at": _now_iso()}},
     )
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Appointment not found")
+    # Audit: target_type=consultation_request (per the Phase 3 plan); appt_id
+    # carried in metadata. The sanitiser allow-lists status / assigned_clinic_id
+    # only — no patient PII.
+    await audit_log(
+        "appointment.cancelled",
+        actor=clinic, actor_type="clinic",
+        target_type="consultation_request",
+        target_id=(existing or {}).get("consultation_request_id"),
+        metadata={
+            "appointment_id": appt_id,
+            "clinic_id": clinic.get("id"),
+        },
+        severity="info", request=request,
+    )
     return {"status": "ok"}
 
 

@@ -96,7 +96,7 @@ async def get_clinic_applications(user: AdminUser = Depends(get_current_user)):
 
 
 @router.patch("/admin/clinic-applications/{app_id}")
-async def update_clinic_application(app_id: str, body: dict, user: AdminUser = Depends(get_current_user)):
+async def update_clinic_application(app_id: str, body: dict, request: Request, user: AdminUser = Depends(get_current_user)):
     allowed = {"status", "notes"}
     update_data = {}
     for k, v in body.items():
@@ -117,6 +117,7 @@ async def update_clinic_application(app_id: str, body: dict, user: AdminUser = D
     response = {"status": "ok"}
 
     new_status = update_data.get("status")
+    created_clinic_id: str | None = None
     if new_status == "approved" and application.get("status") != "approved":
         existing = await db.clinics.find_one({"email": application["email"]})
         if not existing:
@@ -136,6 +137,7 @@ async def update_clinic_application(app_id: str, body: dict, user: AdminUser = D
                 "created_at": datetime.now(timezone.utc).isoformat(),
             }
             await db.clinics.insert_one(clinic_doc)
+            created_clinic_id = clinic_doc["id"]
             response["clinic_account_created"] = True
             response["clinic_credentials"] = {"email": application["email"], "temporary_password": temp_password}
 
@@ -162,6 +164,42 @@ async def update_clinic_application(app_id: str, body: dict, user: AdminUser = D
                     logging.info(f"Welcome email sent to {application['email']}")
                 except Exception as e:
                     logging.error(f"Failed to send welcome email: {e}")
+
+    # ── Audit (Phase 3 D2b) ────────────────────────────────────────
+    prev_status = application.get("status")
+    if new_status == "approved" and prev_status != "approved":
+        await audit_log(
+            "clinic_application.approved",
+            actor=user, actor_type="admin",
+            target_type="clinic_application", target_id=app_id,
+            target_summary=application.get("clinic_name"),
+            metadata={"created_clinic_id": created_clinic_id},
+            severity="info", request=request,
+        )
+    elif new_status == "rejected" and prev_status != "rejected":
+        await audit_log(
+            "clinic_application.rejected",
+            actor=user, actor_type="admin",
+            target_type="clinic_application", target_id=app_id,
+            target_summary=application.get("clinic_name"),
+            severity="info", request=request,
+        )
+    if "notes" in update_data:
+        # Notes change always emits a notes_updated row regardless of any
+        # accompanying status change — length-only metadata, body NEVER stored.
+        old_notes_len = len(application.get("notes") or "") if isinstance(application.get("notes"), str) else 0
+        new_notes_len = len(update_data.get("notes") or "") if isinstance(update_data.get("notes"), str) else 0
+        await audit_log(
+            "clinic_application.notes_updated",
+            actor=user, actor_type="admin",
+            target_type="clinic_application", target_id=app_id,
+            metadata={
+                "notes_changed": True,
+                "notes_length_before": old_notes_len,
+                "notes_length_after": new_notes_len,
+            },
+            severity="info", request=request,
+        )
 
     return response
 
@@ -208,6 +246,21 @@ async def regenerate_clinic_password_by_app(app_id: str, request: Request, user:
     new_password = secrets.token_urlsafe(10)
     await db.clinics.update_one({"id": clinic["id"]}, {"$set": {"password_hash": hash_password(new_password)}})
     email_sent = _send_password_email(clinic, new_password, _get_portal_url(request))
+    # Audit: warning severity. Generated password is NEVER stored in audit row
+    # (we only pass flags + clinic_id — never new_password / password_hash).
+    await audit_log(
+        "clinic.password_regenerated_via_app",
+        actor=user, actor_type="admin",
+        target_type="clinic", target_id=clinic.get("id"),
+        target_summary=clinic.get("clinic_name"),
+        metadata={
+            "application_id": app_id,
+            "email_attempted": True,
+            "email_success": bool(email_sent),
+            "password_reset_sent": bool(email_sent),
+        },
+        severity="warning", request=request,
+    )
     return {"status": "ok", "credentials": {"email": clinic["email"], "password": new_password}, "email_sent": email_sent}
 
 
@@ -227,6 +280,19 @@ async def admin_reset_clinic_password(clinic_id: str, request: Request, user: Ad
     new_password = secrets.token_urlsafe(10)
     await db.clinics.update_one({"id": clinic_id}, {"$set": {"password_hash": hash_password(new_password)}})
     email_sent = _send_password_email(clinic, new_password, _get_portal_url(request))
+    # Audit: warning severity; generated password NEVER stored in audit row.
+    await audit_log(
+        "clinic.password_reset",
+        actor=user, actor_type="admin",
+        target_type="clinic", target_id=clinic_id,
+        target_summary=clinic.get("clinic_name"),
+        metadata={
+            "email_attempted": True,
+            "email_success": bool(email_sent),
+            "password_reset_sent": bool(email_sent),
+        },
+        severity="warning", request=request,
+    )
     return {"status": "ok", "credentials": {"email": clinic["email"], "password": new_password}, "email_sent": email_sent}
 
 

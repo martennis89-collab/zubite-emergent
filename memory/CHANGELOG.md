@@ -1,5 +1,38 @@
 # Zubite.bg — Changelog
 
+## 2026-02-10 — Phase 3 Audit Wiring — Batch D2b (P1)
+
+### Backend — `audit_log(...)` wired into remaining governance paths
+- **`routers/consultations.py`**:
+  - `POST /admin/clinics` → `clinic.created` (info; after_state via `clinic` allow-list; password_hash & temporary password NEVER stored).
+  - `PATCH /admin/clinics/{id}` → `clinic.updated` (metadata `changed_fields=[keys]`); also emits `clinic.status_changed` (warning if pausing/inactive/probation/waiting_list, info otherwise; before/after limited to clinic_status/status).
+  - `PATCH /admin/consultation-requests/{id}` → `consultation_request.admin_status_changed` (before/after status only) OR `consultation_request.admin_note_added` (length-only metadata).
+  - `POST /admin/consultation-requests/{id}/assign-clinic` → `consultation_request.assigned` (info, first time) or `consultation_request.reassigned` (warning, different clinic). Idempotent same-clinic re-saves emit ZERO rows. Metadata: previous/new clinic ids, notification flags.
+  - `DELETE /clinic/appointments/{id}` → `appointment.cancelled` (info, actor_type="clinic", target_type="consultation_request" with appointment_id in metadata).
+- **`routers/clinics.py`**:
+  - `PATCH /admin/clinic-applications/{id}` → `clinic_application.approved` / `.rejected` with `created_clinic_id` metadata when an account is auto-created; `clinic_application.notes_updated` with length-only metadata (body NEVER stored).
+  - `POST /admin/clinic-applications/{id}/regenerate-password` → `clinic.password_regenerated_via_app` (warning; password value NEVER stored; only `email_attempted`/`email_success` flags).
+  - `POST /admin/clinic-accounts/{id}/reset-password` → `clinic.password_reset` (warning; same protections).
+- **`routers/blog.py`**:
+  - `POST /admin/blog/posts` → `blog_post.created` with after_state allow-listed to `{slug, is_published, category, language}` ONLY. Article body / content_html / FAQ / schema NEVER stored.
+  - `PUT /admin/blog/posts/{id}` → `blog_post.updated` (changed_fields metadata + safe before/after via the blog_post allow-list).
+  - `DELETE /admin/blog/posts/{id}` → `blog_post.deleted` (warning; safe before_state only).
+  - `POST /admin/upload` → `file.uploaded` (after_state via `file` allow-list; bytes & storage_path NEVER stored).
+  - `DELETE /admin/files/{id}` → `file.deleted` (before/after `is_deleted` flip only).
+- **`server.py`** — `auto_verification_loop`: emits `verification.email_sent` (system, info) with `{lead_id, clinic_id, auto_sent, email_attempted, email_success}`; token & patient email NEVER stored. Wrapped in its own try/except so audit failures cannot abort the loop.
+
+### Authoritative event collection unchanged
+- `consultation_events` remains the source of truth for the clinic workflow timeline (`call_attempted`, `book_consultation`, `mark_attended`, etc.). We did NOT duplicate every clinic action into `admin_audit_logs`; only governance-relevant actions (admin assign/reassign, admin status/note changes, appointment cancel) cross-post to the audit log.
+
+### Tests
+- **New `backend/tests/test_phase3_d2b_audit_wiring.py`** — 22 tests across 8 classes:
+  - TestClinicAdminAudit (5), TestClinicApplicationAudit (3), TestConsultationRequestAudit (4),
+  - TestAppointmentCancelAudit (1), TestBlogPostAudit (3), TestFileAudit (2),
+  - TestSystemVerificationAudit (1), TestD2bResilience (2), TestD2bSanitisationSweep (1).
+- Sweep test exercises clinic-update / blog-create / blog-update / file-upload and asserts the full serialised audit collection contains zero PII, no clinic phone/address, no blog body/title/HTML, no file bytes, no admin password, no password_hash / token / verification_token / storage_path keys anywhere.
+- Resilience tests patch `db.admin_audit_logs.insert_one` to raise; clinic PATCH and blog POST still complete and the underlying state changes persist.
+- **Result: 22/22 PASS in 17.6s. Full Phase 2 + Phase 3 regression: A 24 / B 31 / C 21 / D1 30 / D2a 32 / D2b 22 = 160 tests, 0 failures.**
+
 ## 2026-02-10 — Phase 3 Audit Wiring — Batch D2a (P1)
 
 ### Backend — `audit_log(...)` wired into critical governance paths

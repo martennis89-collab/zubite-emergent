@@ -162,9 +162,11 @@ async def auto_verification_loop():
                 token = secrets.token_urlsafe(32)
                 auto_base_url = PRODUCTION_URL
                 email_sent = await send_verification_email(lead, token, auto_base_url)
+                verification_id: str | None = None
                 if email_sent:
+                    verification_id = str(uuid.uuid4())
                     doc = {
-                        "id": str(uuid.uuid4()),
+                        "id": verification_id,
                         "lead_id": lead["id"],
                         "clinic_id": lead.get("assigned_clinic_id"),
                         "token": token,
@@ -174,6 +176,26 @@ async def auto_verification_loop():
                     }
                     await db.lead_verifications.insert_one(doc)
                     sent_count += 1
+                # Audit (Phase 3 D2b): system-initiated verification email.
+                # NEVER stores token / patient email / answers.
+                try:
+                    from audit import audit_log as _audit
+                    await _audit(
+                        "verification.email_sent",
+                        actor=None, actor_type="system",
+                        target_type="verification",
+                        target_id=verification_id,
+                        metadata={
+                            "lead_id": lead["id"],
+                            "clinic_id": lead.get("assigned_clinic_id"),
+                            "auto_sent": True,
+                            "email_attempted": True,
+                            "email_success": bool(email_sent),
+                        },
+                        severity="info",
+                    )
+                except Exception as audit_exc:
+                    logger.warning(f"auto_verification audit_log failed: {audit_exc}")
                 await db.leads.update_one({"id": lead["id"]}, {"$set": {"verification_status": "pending"}})
                 await asyncio.sleep(2)
 
