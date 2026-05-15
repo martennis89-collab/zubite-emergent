@@ -1,5 +1,31 @@
 # Zubite.bg — Changelog
 
+## 2026-02-10 — Phase 3 Audit Foundation — Batch D1 (P1)
+
+### Backend
+- **New `backend/audit.py`** — fire-and-forget-safe audit helper:
+  - `audit_log(action, *, actor, actor_type, target_type, target_id, target_summary, before_state, after_state, metadata, severity, request) -> None`. Never raises to the caller; internal failures `logger.warning` only.
+  - Honours `AUDIT_LOGS_ENABLED` env flag (default on; `"0"` disables writes).
+  - Deny-by-default sanitiser: `_REDACT_KEYS` (21 secret-shaped keys → `"[REDACTED]"`), `_DROP_KEYS` (12 forbidden keys → removed entirely incl. answers / score_breakdown / attribution / call_transcript / notes), `_TARGET_ALLOWED_KEYS` (9 target types with explicit scalar allow-lists for before/after state).
+  - `_sanitize_metadata` enforces 4 KB JSON cap → returns `{_truncated: True}` on overflow.
+  - `_extract_request_meta` lifts IP (XFF first hop preferred) + 200-char-truncated User-Agent. Never reads cookies / Authorization.
+  - `diff_fields(before, after, keys)` builder for minimal `(before_state, after_state)` pairs limited to the keys that actually changed.
+  - `ACTION_KEYS` frozenset of ~50 canonical action strings; unknown actions log a warning but the row is still written.
+  - `SEVERITY_VALUES = {info, warning, critical}`; invalid severities coerced to "info" with a warning.
+  - `ACTOR_TYPES = {admin, clinic, system, public}`; invalid actor types coerced to "system".
+- `backend/config.py` — new `AUDIT_LOGS_ENABLED` constant (default `True`).
+- `backend/.env.example` — added `AUDIT_LOGS_ENABLED=1`.
+- `backend/server.py` — added 7 indexes on `admin_audit_logs` at startup (id unique, created_at desc, action, actor_id, target_type+target_id compound, severity, created_at+action compound). Additive; no migration.
+
+### Tests
+- **New `backend/tests/test_phase3_d1_audit_foundation.py`** — 30 tests across 5 classes:
+  - **TestSanitizer (10)**: top-level secret redaction, case-insensitive redaction, nested dict/list secret redaction, forbidden-key drop (top-level + nested), lead target_type strict allow-list (phone/email/name/UTM all stripped), unknown target_type drops everything, UA truncation to 200 chars, None request handling, XFF first-hop extraction.
+  - **TestMetadataTruncation (4)**: small kept, oversized → `{_truncated: True}`, non-dict → `{_truncated: True}`, drops forbidden + redacts secrets.
+  - **TestDiffFields (4)**: only changed keys, ignores keys outside the explicit list (defence-in-depth), handles missing before, returns empty when nothing changed.
+  - **TestAuditLogWrites (11)**: writes valid row, extracts AdminUser fields, failure does not raise (mock insert_one to throw), `AUDIT_LOGS_ENABLED=False` skips write, unknown action still writes + warns, parametrised severity (info/warning/critical), invalid severity coerced + warned, invalid actor_type coerced to system, secrets-in-metadata redacted on write (raw values not present in stored row).
+  - **TestActionKeysAllowList (1)**: required Batch D2 action keys present.
+- **Result: 30/30 PASS in 0.40s. Full Phase 2 + Phase 3 D1 regression: 106 tests, 0 failures.**
+
 ## 2026-02-10 — Phase 2 Security Hardening — Batch C (workflow & notifications) (P2)
 
 ### Backend

@@ -124,6 +124,15 @@ async def startup():
     await db.clinic_appointments.create_index("consultation_request_id")
     await db.clinic_appointments.create_index([("clinic_id", 1), ("start_time", 1)])
 
+    # Phase 3 Batch D1 — admin audit log indexes (additive; no migration).
+    await db.admin_audit_logs.create_index("id", unique=True)
+    await db.admin_audit_logs.create_index([("created_at", -1)])
+    await db.admin_audit_logs.create_index("action")
+    await db.admin_audit_logs.create_index("actor_id")
+    await db.admin_audit_logs.create_index([("target_type", 1), ("target_id", 1)])
+    await db.admin_audit_logs.create_index("severity")
+    await db.admin_audit_logs.create_index([("created_at", -1), ("action", 1)])
+
     init_storage()
     asyncio.create_task(auto_verification_loop())
 

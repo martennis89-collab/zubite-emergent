@@ -60,6 +60,11 @@ CALL_TIMEOUT_MINUTES = 5
 # Production URL
 PRODUCTION_URL = os.environ.get('PRODUCTION_URL', 'https://zubite.bg')
 
+# Audit logging (Phase 3 — Batch D1)
+# Set to "0" to disable writes to admin_audit_logs (kill switch).
+# Default is enabled.
+AUDIT_LOGS_ENABLED = os.environ.get('AUDIT_LOGS_ENABLED', '1') != '0'
+
 # Initialize resend
 import resend as _resend
 if RESEND_API_KEY:
