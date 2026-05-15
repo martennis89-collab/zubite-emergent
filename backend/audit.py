@@ -334,6 +334,19 @@ def _extract_request_meta(
 # ── Main entry point ──────────────────────────────────────────────
 
 
+def mask_for_read(row: Any) -> Any:
+    """Defensive read-side mask (Phase 3 D3).
+
+    Even though every WRITE goes through `_sanitize`, this read-side
+    helper provides defence-in-depth: if a future bad code path ever
+    inserts a row containing secret-shaped keys or full-payload dump
+    keys, the read endpoint still strips them. Idempotent + immutable.
+
+    Same redact/drop rules as the write sanitiser.
+    """
+    return _walk(copy.deepcopy(row) if isinstance(row, (dict, list)) else row)
+
+
 async def audit_log(
     action: str,
     *,
