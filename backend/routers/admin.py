@@ -6,8 +6,13 @@ import csv
 from io import StringIO
 
 from database import db
-from schemas import AdminLogin, AdminUser, TokenResponse, LeadStatusUpdate, LeadUpdate
+from schemas import (
+    AdminLogin, AdminUser, TokenResponse, LeadStatusUpdate, LeadUpdate,
+    ConfirmationBody, CleanupLeadsBody,
+    RESET_ANALYTICS_TOKEN, RESET_BLOG_VIEWS_TOKEN, CLEANUP_LEADS_TOKEN,
+)
 from auth import verify_password, create_token, get_current_user
+from config import IS_PRODUCTION, logger
 from rate_limit import rate_limit
 
 router = APIRouter()
@@ -132,22 +137,113 @@ async def delete_lead(lead_id: str, user: AdminUser = Depends(get_current_user))
     return {"success": True, "message": "Lead deleted"}
 
 
-@router.post("/admin/reset-analytics")
-async def reset_analytics(user: AdminUser = Depends(get_current_user)):
+@router.post(
+    "/admin/reset-analytics",
+    dependencies=[Depends(rate_limit("admin_reset_analytics", max_calls=5, window_seconds=600))],
+)
+async def reset_analytics(
+    body: ConfirmationBody,
+    user: AdminUser = Depends(get_current_user),
+):
+    """Wipe `analytics_events`. Disabled in production; requires confirmation
+    phrase to guard against accidental fat-finger calls in dev/staging."""
+    if IS_PRODUCTION:
+        raise HTTPException(status_code=403, detail="Disabled in production.")
+    if body.confirmation_token != RESET_ANALYTICS_TOKEN:
+        raise HTTPException(
+            status_code=400,
+            detail=f"confirmation_token must equal {RESET_ANALYTICS_TOKEN!r}.",
+        )
     result = await db.analytics_events.delete_many({})
+    logger.warning(
+        "reset_analytics by admin=%s deleted_count=%d",
+        user.username, result.deleted_count,
+    )
     return {"success": True, "deleted_count": result.deleted_count}
 
 
-@router.post("/admin/reset-blog-views")
-async def reset_blog_views(user: AdminUser = Depends(get_current_user)):
+@router.post(
+    "/admin/reset-blog-views",
+    dependencies=[Depends(rate_limit("admin_reset_blog_views", max_calls=5, window_seconds=600))],
+)
+async def reset_blog_views(
+    body: ConfirmationBody,
+    user: AdminUser = Depends(get_current_user),
+):
+    """Wipe `blog_views`. Disabled in production; requires confirmation
+    phrase to guard against accidental fat-finger calls in dev/staging."""
+    if IS_PRODUCTION:
+        raise HTTPException(status_code=403, detail="Disabled in production.")
+    if body.confirmation_token != RESET_BLOG_VIEWS_TOKEN:
+        raise HTTPException(
+            status_code=400,
+            detail=f"confirmation_token must equal {RESET_BLOG_VIEWS_TOKEN!r}.",
+        )
     result = await db.blog_views.delete_many({})
+    logger.warning(
+        "reset_blog_views by admin=%s deleted_count=%d",
+        user.username, result.deleted_count,
+    )
     return {"success": True, "deleted_count": result.deleted_count}
 
 
-@router.post("/admin/cleanup-leads")
-async def cleanup_leads(keep_ids: List[str], user: AdminUser = Depends(get_current_user)):
-    result = await db.leads.delete_many({"id": {"$nin": keep_ids}})
-    return {"success": True, "deleted_count": result.deleted_count}
+@router.post(
+    "/admin/cleanup-leads",
+    dependencies=[Depends(rate_limit("admin_cleanup_leads", max_calls=3, window_seconds=600))],
+)
+async def cleanup_leads(
+    body: CleanupLeadsBody,
+    user: AdminUser = Depends(get_current_user),
+):
+    """Delete every lead whose `id` is NOT in `keep_ids`.
+
+    Phase 2B guards:
+      - Disabled in production (use the backup script + a manual mongo
+        operation if absolutely required).
+      - Requires `confirmation_token == CLEANUP_LEADS_TOKEN`.
+      - `keep_ids` MUST be a non-empty list of strings.
+      - Refuses to proceed if it would delete more than 50% of all leads
+        unless `force=true` is passed explicitly.
+      - Returns counts only; never echoes lead identifiers or PII.
+    """
+    if IS_PRODUCTION:
+        raise HTTPException(status_code=403, detail="Disabled in production.")
+    if body.confirmation_token != CLEANUP_LEADS_TOKEN:
+        raise HTTPException(
+            status_code=400,
+            detail=f"confirmation_token must equal {CLEANUP_LEADS_TOKEN!r}.",
+        )
+
+    total = await db.leads.count_documents({})
+    n_to_delete = await db.leads.count_documents({"id": {"$nin": body.keep_ids}})
+
+    if total > 0 and n_to_delete > total / 2 and not body.force:
+        # Big blast radius — bail and require explicit force=true.
+        logger.warning(
+            "cleanup_leads refused by admin=%s: would delete %d/%d (>50%%) without force",
+            user.username, n_to_delete, total,
+        )
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "would_delete_majority",
+                "total": total,
+                "n_to_delete": n_to_delete,
+                "hint": "pass force=true to proceed",
+            },
+        )
+
+    result = await db.leads.delete_many({"id": {"$nin": body.keep_ids}})
+    logger.warning(
+        "cleanup_leads by admin=%s deleted_count=%d total_before=%d",
+        user.username, result.deleted_count, total,
+    )
+    return {
+        "success": True,
+        "deleted_count": result.deleted_count,
+        "n_to_delete": n_to_delete,
+        "total_before": total,
+    }
 
 
 # ─── Attribution Summary Endpoints ─────────────────────────────────────

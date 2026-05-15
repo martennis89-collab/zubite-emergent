@@ -1,6 +1,38 @@
 # Zubite.bg — Changelog
 
-## 2026-02-10 — Phase 2 Security Hardening — Batch A tests fixed (P0)
+## 2026-02-10 — Phase 2 Security Hardening — Batch B (destructive endpoint guards) (P1)
+
+### Backend
+- `routers/admin.py` — `/admin/reset-analytics`, `/admin/reset-blog-views`, `/admin/cleanup-leads` now:
+  - return **403 in production** (`config.IS_PRODUCTION`),
+  - require a fixed confirmation phrase in the request body (`CONFIRM_RESET_ANALYTICS`, `CONFIRM_RESET_BLOG_VIEWS`, `CONFIRM_DELETE_NON_MATCHING_LEADS`),
+  - are rate-limited (5/10min for resets, 3/10min for cleanup-leads),
+  - emit safe `logger.warning(...)` audit lines (admin username + counts only, **no patient identifiers**).
+- `cleanup-leads` additionally:
+  - requires `keep_ids` to be a non-empty `List[str]` (Pydantic `min_length=1` + strip-and-reject-empties validator),
+  - pre-computes `n_to_delete` and **refuses if it would delete >50% of leads** unless `force=true` is passed explicitly,
+  - returns `{deleted_count, n_to_delete, total_before}` — no lead ids, no PII.
+- `routers/public.py` — `POST /api/seed`:
+  - **403 in production**,
+  - calls `_validate_seed_admin_password` which rejects missing / known-weak / username-equal / <12-char passwords (weak-list checked before length so the operator gets a clearer message),
+  - removed the previous `os.environ.get('SEED_ADMIN_PASSWORD', 'password')` default (no more silent fallback to `password`).
+- `routers/calls.py` — `/admin/calls/cleanup-stuck`:
+  - **kept available in every environment** (operational recovery, not mass deletion),
+  - safe audit log added (admin + `reset_count`).
+- `schemas.py` — new models `ConfirmationBody`, `CleanupLeadsBody`; constants `RESET_ANALYTICS_TOKEN`, `RESET_BLOG_VIEWS_TOKEN`, `CLEANUP_LEADS_TOKEN`.
+
+### Operations tooling
+- New `backend/scripts/backup_leads.py` (one-shot, never auto-run): exports the `leads` collection as JSON to `/app/test_reports/backups/leads_YYYY-MM-DD_HHMMSS.json` (gitignored).
+  - Aborts on missing `DB_NAME` or `MONGO_URL`.
+  - Aborts when `APP_ENV/ENVIRONMENT/NODE_ENV=production` unless `--allow-production-backup` is passed.
+  - Streams documents to disk; prints metadata only (path, count, db, env) — never PII.
+
+### Tests
+- New `/app/backend/tests/test_phase2_batch_b.py` — 31 tests, in-process via `httpx.AsyncClient + ASGITransport`, isolated `zubite_test_phase2_batch_b` DB, autouse rate-limit reset, autouse backup-file teardown so no test artefact survives.
+- Coverage: backup script (5 cases incl. PII non-leak + prod block + override flag + empty-DB-name abort), seed guards (11 cases — missing / 8 weak variants / too-short / username-equal / strong-in-non-prod / prod block), destructive endpoint guards (10 cases — 403 in prod for all three, confirmation enforced, empty `keep_ids` rejected, majority-deletion refused without `force=true`, minor deletion succeeds, response carries no lead ids), `cleanup-stuck` (3 cases — admin happy path, still works in prod, requires auth).
+- **Result: 31/31 PASS in ~9.3s**. Batch A re-run: still 24/24 PASS — no regression.
+
+
 
 ### Tests
 - Refactored `/app/backend/tests/test_phase2_batch_a.py` to run **in-process** via `httpx.AsyncClient` + `ASGITransport(app=app)` — no real HTTP, no network IO, no real provider calls (Resend / Twilio / ElevenLabs / object storage).

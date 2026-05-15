@@ -109,10 +109,17 @@ async def get_call_log(call_log_id: str, user: AdminUser = Depends(get_current_u
     dependencies=[Depends(rate_limit("calls_cleanup_stuck", max_calls=5, window_seconds=300))],
 )
 async def cleanup_stuck_calls_endpoint(user: AdminUser = Depends(get_current_user)):
+    """Operational recovery: flip leads stuck in `calling` past the timeout
+    threshold to `failed`. NOT mass deletion — kept available in every
+    environment (including production)."""
     timeout_threshold = datetime.now(timezone.utc) - timedelta(minutes=CALL_TIMEOUT_MINUTES)
     result = await db.leads.update_many(
         {"call_status": "calling", "last_call_at": {"$lt": timeout_threshold.isoformat()}},
         {"$set": {"call_status": "failed", "call_error_message": "Call timed out - no webhook received"}}
+    )
+    logger.info(
+        "cleanup_stuck_calls by admin=%s reset_count=%d",
+        user.username, result.modified_count,
     )
     return {"success": True, "reset_count": result.modified_count}
 

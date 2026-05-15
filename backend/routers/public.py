@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime, timezone
+from typing import Optional
 import asyncio
 import uuid
 
@@ -133,19 +134,77 @@ async def update_lead_contact(lead_id: str, data: LeadContactUpdate):
     return lead
 
 
+# ─── Seed admin-password hygiene (Phase 2B) ──────────────────────
+# Reject obvious low-entropy passwords even if the operator forgets to
+# pick something strong.
+SEED_ADMIN_USERNAME = "admin@zubite.bg"
+_SEED_WEAK_PASSWORDS = frozenset({
+    "password", "admin", "123456", "changeme", "zubite", "letmein",
+})
+_SEED_MIN_PASSWORD_LEN = 12
+
+
+def _validate_seed_admin_password(password: Optional[str]) -> None:
+    """Raise 400 if the seed-admin password is missing or weak. Never echoes
+    the password back in the error message."""
+    if not password:
+        raise HTTPException(
+            status_code=400,
+            detail="SEED_ADMIN_PASSWORD env var is required to seed the admin user.",
+        )
+    # Check known-weak BEFORE length so callers get a clearer error message
+    # ("known weak") rather than the generic "too short" when they typed
+    # something like 'password' / 'admin' (both < 12 chars and weak).
+    if password.lower() in _SEED_WEAK_PASSWORDS:
+        raise HTTPException(
+            status_code=400,
+            detail="Seed admin password is in the known-weak password list.",
+        )
+    if password.lower() == SEED_ADMIN_USERNAME.lower():
+        raise HTTPException(
+            status_code=400,
+            detail="Seed admin password must not equal the admin username.",
+        )
+    if len(password) < _SEED_MIN_PASSWORD_LEN:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Seed admin password must be at least {_SEED_MIN_PASSWORD_LEN} characters.",
+        )
+
+
 @router.post(
     "/seed",
     dependencies=[Depends(rate_limit("seed", max_calls=3, window_seconds=600))],
 )
 async def seed():
     """Idempotent seed; runs only on first call when DB is empty.
-    Once seeded, becomes a no-op forever to prevent re-seeding attacks."""
+    Once seeded, becomes a no-op forever to prevent re-seeding attacks.
+
+    Phase 2B guards:
+      - Refuses to seed in production (`APP_ENV=production`).
+      - Refuses if SEED_ADMIN_PASSWORD is missing, weak, or matches the
+        admin username.
+    """
+    from config import IS_PRODUCTION
+
+    if IS_PRODUCTION:
+        raise HTTPException(
+            status_code=403,
+            detail="Seeding is disabled in production.",
+        )
+
     existing = await db.clinics.find_one({"city_slug": "sofia"})
     if existing:
         return {"message": "Already seeded"}
-    admin_exists = await db.admin_users.find_one({"username": "admin@zubite.bg"})
+    admin_exists = await db.admin_users.find_one({"username": SEED_ADMIN_USERNAME})
     if admin_exists:
         return {"message": "Already seeded"}
+
+    # Validate password BEFORE inserting any clinic rows so a botched call
+    # leaves the DB untouched.
+    import os as _os
+    seed_admin_password = _os.environ.get("SEED_ADMIN_PASSWORD")
+    _validate_seed_admin_password(seed_admin_password)
 
     clinics = [
         Clinic(name="Sofia Premium Clinic", city_slug="sofia", city_name="София",
@@ -163,16 +222,12 @@ async def seed():
         doc['created_at'] = doc['created_at'].isoformat()
         await db.clinics.insert_one(doc)
 
-    admin_exists_check = await db.admin_users.find_one({"username": "admin@zubite.bg"})
-    if not admin_exists_check:
-        import os as _os
-        seed_admin_password = _os.environ.get('SEED_ADMIN_PASSWORD', 'password')
-        await db.admin_users.insert_one({
-            "id": str(uuid.uuid4()),
-            "username": "admin@zubite.bg",
-            "password_hash": hash_password(seed_admin_password),
-            "role": "admin",
-            "created_at": datetime.now(timezone.utc).isoformat()
-        })
+    await db.admin_users.insert_one({
+        "id": str(uuid.uuid4()),
+        "username": SEED_ADMIN_USERNAME,
+        "password_hash": hash_password(seed_admin_password),
+        "role": "admin",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
 
     return {"message": "Seeded successfully"}

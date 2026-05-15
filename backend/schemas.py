@@ -291,6 +291,38 @@ class ClinicLeadStatusUpdate(BaseModel):
     status: str
 
 
+# ─── Phase 2B — Destructive endpoint confirmation bodies ─────────
+# Each destructive admin endpoint requires a fixed confirmation phrase to
+# guard against accidental fat-finger curl/UI calls.
+RESET_ANALYTICS_TOKEN = "CONFIRM_RESET_ANALYTICS"
+RESET_BLOG_VIEWS_TOKEN = "CONFIRM_RESET_BLOG_VIEWS"
+CLEANUP_LEADS_TOKEN = "CONFIRM_DELETE_NON_MATCHING_LEADS"
+
+
+class ConfirmationBody(BaseModel):
+    """Body shared by reset-analytics / reset-blog-views."""
+    confirmation_token: str = Field(min_length=1, max_length=200)
+
+
+class CleanupLeadsBody(BaseModel):
+    """Body for the cleanup-leads endpoint. Requires:
+      - explicit non-empty keep_ids
+      - explicit confirmation phrase
+      - force=True if the operation would delete >50% of the leads
+    """
+    confirmation_token: str = Field(min_length=1, max_length=200)
+    keep_ids: List[str] = Field(min_length=1)
+    force: bool = False
+
+    @field_validator("keep_ids")
+    @classmethod
+    def _no_empty_ids(cls, v: List[str]) -> List[str]:
+        cleaned = [s for s in v if isinstance(s, str) and s.strip()]
+        if not cleaned:
+            raise ValueError("keep_ids must be a non-empty list of strings")
+        return cleaned
+
+
 class ClinicApplicationCreate(BaseModel):
     clinic_name: str = Field(min_length=2, max_length=200)
     city: str = Field(min_length=2, max_length=100)
