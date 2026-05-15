@@ -100,8 +100,14 @@ export default function ClinicRequestsPage() {
         {loading ? (
           <div className="h-40 grid place-items-center text-slate-400">Зареждане…</div>
         ) : visible.length === 0 ? (
-          <div className="bg-white border border-slate-200 rounded-xl p-10 text-center text-slate-400">
-            Няма заявки в избрания изглед.
+          <div
+            className="bg-white border border-slate-200 rounded-xl p-10 text-center"
+            data-testid="requests-empty"
+          >
+            <div className="text-base font-medium text-slate-700">Все още няма пациенти в този изглед</div>
+            <p className="mt-1 text-sm text-slate-500">
+              Тук ще се появят пациентите, които Zubite ви насочи. Опитайте друг филтър или се върнете отново след малко.
+            </p>
           </div>
         ) : (
           <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">

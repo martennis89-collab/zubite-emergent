@@ -12,6 +12,8 @@ import {
   ConsultationRequest, Appointment, EventItem,
   statusBadge, formatDate, TREATMENT_LABELS, EVENT_LABELS,
   APPOINTMENT_TYPE_LABELS, APPOINTMENT_TYPES,
+  readinessLabel, urgencyLabel, apptStatusLabel,
+  actionSuccessMessage, statusTransitionPhrase,
 } from '@/lib/consultationLabels'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
@@ -63,18 +65,21 @@ export default function ClinicRequestDetailPage() {
 
   const performAction = async (action_type: string, note?: string, appointment?: object) => {
     setActionMsg(null)
+    setBusy(true)
     try {
       const r = await fetch(`${API_URL}/api/clinic/consultation-requests/${id}/action`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action_type, note, appointment }), credentials: 'include' as RequestCredentials,})
       if (r.ok) {
-        setActionMsg(`Действието е записано: ${action_type}`)
+        setActionMsg(actionSuccessMessage(action_type))
         await load()
       } else {
         const j = await r.json().catch(() => ({}))
-        setActionMsg(`Грешка: ${j.detail || r.status}`)
+        setActionMsg(`Грешка: ${j.detail || 'неуспешно действие'}`)
       }
+    } catch {
+      setActionMsg('Грешка при свързване със сървъра.')
     } finally { setBusy(false) }
   }
 
@@ -132,18 +137,11 @@ export default function ClinicRequestDetailPage() {
                 <DetailRow icon={<Mail className="w-4 h-4" />} label="Имейл" value={req.patient_email} />
                 <DetailRow icon={<MapPin className="w-4 h-4" />} label="Град" value={req.patient_city} />
                 <DetailRow icon={<Tag className="w-4 h-4" />} label="Лечение" value={TREATMENT_LABELS[req.treatment_interest] || req.treatment_interest} />
-                <DetailRow icon={<User className="w-4 h-4" />} label="Готовност" value={req.readiness} />
-                <DetailRow icon={<User className="w-4 h-4" />} label="Спешност" value={req.urgency} />
+                <DetailRow icon={<User className="w-4 h-4" />} label="Готовност" value={readinessLabel(req.readiness)} />
+                <DetailRow icon={<User className="w-4 h-4" />} label="Спешност" value={urgencyLabel(req.urgency)} />
               </div>
 
-              {(req.utm_source || req.utm_campaign || req.source) && (
-                <div className="mt-5 pt-4 border-t border-slate-100 text-xs text-slate-500 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  <div>Source: <span className="text-slate-700 font-mono">{req.source || '—'}</span></div>
-                  <div>UTM source: <span className="text-slate-700 font-mono">{req.utm_source || '—'}</span></div>
-                  <div>UTM campaign: <span className="text-slate-700 font-mono">{req.utm_campaign || '—'}</span></div>
-                  <div>UTM ad: <span className="text-slate-700 font-mono">{req.utm_ad || '—'}</span></div>
-                </div>
-              )}
+              {/* UTM / source data intentionally hidden from clinic view (admin-only metadata). */}
             </div>
 
             {/* Booking summary */}
@@ -160,7 +158,7 @@ export default function ClinicRequestDetailPage() {
                     </div>
                     {appt.notes && <div className="text-xs text-emerald-700 mt-2">{appt.notes}</div>}
                     <div className="text-xs text-emerald-700 mt-1">
-                      Статус: <span className="font-medium">{appt.status}</span>
+                      Статус: <span className="font-medium">{apptStatusLabel(appt.status)}</span>
                     </div>
                   </div>
                 </div>
@@ -228,8 +226,21 @@ export default function ClinicRequestDetailPage() {
                 </button>
               </div>
               {actionMsg && (
-                <div className="mt-3 text-xs text-slate-500" data-testid="action-message">
+                <div
+                  className={`mt-3 text-sm rounded-lg px-3 py-2 ${
+                    actionMsg.startsWith('Грешка')
+                      ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                      : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  }`}
+                  data-testid="action-message"
+                >
                   {actionMsg}
+                </div>
+              )}
+              {busy && (
+                <div className="mt-2 inline-flex items-center gap-2 text-xs text-slate-500" data-testid="action-busy">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Записва се…
                 </div>
               )}
             </div>
@@ -253,7 +264,7 @@ export default function ClinicRequestDetailPage() {
                       <div className="text-xs text-slate-500">
                         {formatDate(ev.created_at)}
                         {ev.previous_status && ev.new_status && (
-                          <span className="font-mono"> · {ev.previous_status} → {ev.new_status}</span>
+                          <span> · {statusTransitionPhrase(ev.previous_status, ev.new_status)}</span>
                         )}
                       </div>
                       {ev.note && (
@@ -333,11 +344,24 @@ function BookingModal({
   const [time, setTime] = useState(initialStart.slice(11, 16) || '10:00')
   const [duration, setDuration] = useState<string>('60')
   const [notes, setNotes] = useState(existing?.notes || '')
+  const [error, setError] = useState<string | null>(null)
+
+  // Client-side guard: block past date selection in the date picker.
+  const todayIso = new Date().toISOString().slice(0, 10)
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError(null)
     if (!date || !time) return
     const start = new Date(`${date}T${time}`)
+    if (Number.isNaN(start.getTime())) {
+      setError('Невалидна дата/час.')
+      return
+    }
+    if (start.getTime() < Date.now() - 60_000) {
+      setError('Не може да резервираш в миналото. Избери бъдеща дата и час.')
+      return
+    }
     const end = new Date(start.getTime() + parseInt(duration, 10) * 60_000)
     await onSubmit({
       appointment_type: type,
@@ -387,6 +411,7 @@ function BookingModal({
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
+              min={todayIso}
               required
               className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2"
               data-testid="booking-date"
@@ -428,6 +453,14 @@ function BookingModal({
             data-testid="booking-notes"
           />
         </label>
+        {error && (
+          <div
+            className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2"
+            data-testid="booking-error"
+          >
+            {error}
+          </div>
+        )}
         <div className="flex items-center justify-end gap-2 pt-2">
           <button
             type="button"

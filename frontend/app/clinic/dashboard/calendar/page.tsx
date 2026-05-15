@@ -100,8 +100,14 @@ export default function ClinicCalendarPage() {
         {loading ? (
           <div className="h-40 grid place-items-center text-slate-400">Зареждане…</div>
         ) : grouped.length === 0 ? (
-          <div className="bg-white border border-slate-200 rounded-xl p-10 text-center text-slate-400" data-testid="calendar-empty">
-            Няма резервирани консултации.
+          <div
+            className="bg-white border border-slate-200 rounded-xl p-10 text-center"
+            data-testid="calendar-empty"
+          >
+            <div className="text-base font-medium text-slate-700">Няма резервирани консултации</div>
+            <p className="mt-1 text-sm text-slate-500">
+              Когато резервирате консултация от страница на заявка, тя ще се появи тук.
+            </p>
           </div>
         ) : (
           <div className="space-y-4">

@@ -48,7 +48,12 @@ export default function ClinicPerformancePage() {
         {loading ? (
           <div className="h-40 grid place-items-center text-slate-400">Зареждане…</div>
         ) : !data ? (
-          <div className="text-slate-400">Няма данни.</div>
+          <div className="bg-white border border-slate-200 rounded-xl p-10 text-center">
+            <div className="text-base font-medium text-slate-700">Все още няма данни за анализ</div>
+            <p className="mt-1 text-sm text-slate-500">
+              Резултатите ще се изчисляват автоматично, когато започнат да постъпват заявки от Zubite.
+            </p>
+          </div>
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

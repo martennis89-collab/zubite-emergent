@@ -76,17 +76,18 @@ export function ClinicShell({ children }: { children: React.ReactNode }) {
           </div>
           <div className="flex items-center gap-3">
             {user && (
-              <div className="hidden md:flex items-center gap-2 text-sm text-slate-600">
-                <Building2 className="w-4 h-4" />
-                <span className="font-medium">{user.clinic_name}</span>
-                <span className="text-slate-400">·</span>
-                <span>{user.city}</span>
+              <div className="hidden md:flex items-center gap-2 text-sm">
+                <Building2 className="w-4 h-4 text-slate-500" />
+                <div className="leading-tight">
+                  <div className="font-medium text-slate-700">{user.clinic_name}</div>
+                  <div className="text-xs text-slate-400">{user.email}{user.city ? ` · ${user.city}` : ''}</div>
+                </div>
               </div>
             )}
             <button
               type="button"
               onClick={logout}
-              className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900"
+              className="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-rose-700 hover:bg-rose-50 px-3 py-1.5 rounded-full border border-transparent hover:border-rose-200 transition-colors"
               data-testid="clinic-logout-btn"
             >
               <LogOut className="w-4 h-4" />

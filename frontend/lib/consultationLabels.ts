@@ -72,6 +72,82 @@ export const EVENT_LABELS: Record<string, string> = {
   admin_status_change: 'Промяна на статус (админ)',
 }
 
+export const READINESS_LABELS: Record<string, string> = {
+  ready_now: 'Готов веднага',
+  ready: 'Готов',
+  soon: 'Скоро',
+  exploring: 'Проучва опции',
+  researching: 'В проучване',
+  not_ready: 'Все още не',
+  unknown: 'Не е посочено',
+  // Backend also surfaces lead score-band codes in the readiness field
+  // for some legacy paths — translate them to human-friendly Bulgarian.
+  RED: 'Висока готовност',
+  AMBER: 'Средна готовност',
+  GREEN: 'Проучва опции',
+  red: 'Висока готовност',
+  amber: 'Средна готовност',
+  green: 'Проучва опции',
+}
+
+export const URGENCY_LABELS: Record<string, string> = {
+  urgent: 'Спешно',
+  high: 'Висока',
+  normal: 'Нормална',
+  low: 'Ниска',
+  none: 'Без приоритет',
+  unknown: 'Не е посочено',
+}
+
+export const APPT_STATUS_LABELS: Record<string, string> = {
+  booked: 'Резервирана',
+  confirmed: 'Потвърдена',
+  rescheduled: 'Преместена',
+  attended: 'Посетила',
+  no_show: 'Не се яви',
+  cancelled: 'Отменена',
+}
+
+export const ACTION_SUCCESS_MESSAGES: Record<string, string> = {
+  call_attempted: 'Опитът за обаждане е записан.',
+  patient_contacted: 'Пациентът е маркиран като свързан.',
+  no_answer: 'Маркирано е, че пациентът не е отговорил.',
+  mark_attended: 'Консултацията е маркирана като посетена.',
+  mark_no_show: 'Маркирано е, че пациентът не се е явил.',
+  patient_declined: 'Маркирано е, че пациентът е отказал.',
+  not_suitable: 'Заявката е маркирана като неподходяща.',
+  cancel: 'Заявката е отменена.',
+  reschedule: 'Консултацията е преместена.',
+  book_consultation: 'Консултацията е резервирана.',
+  mark_viewed: 'Заявката е маркирана като прегледана.',
+}
+
+export function readinessLabel(v?: string | null): string {
+  if (!v) return '—'
+  return READINESS_LABELS[v] || v
+}
+
+export function urgencyLabel(v?: string | null): string {
+  if (!v) return '—'
+  return URGENCY_LABELS[v] || v
+}
+
+export function apptStatusLabel(v?: string | null): string {
+  if (!v) return '—'
+  return APPT_STATUS_LABELS[v] || v
+}
+
+export function actionSuccessMessage(action: string): string {
+  return ACTION_SUCCESS_MESSAGES[action] || 'Действието е записано.'
+}
+
+export function statusTransitionPhrase(prev?: string | null, next?: string | null): string {
+  if (!prev || !next) return ''
+  const a = STATUS_LABELS[prev]?.label || prev
+  const b = STATUS_LABELS[next]?.label || next
+  return `${a} → ${b}`
+}
+
 export function statusBadge(status: string | null | undefined) {
   if (!status) return { label: '—', cls: 'bg-slate-100 text-slate-500' }
   return STATUS_LABELS[status] || { label: status, cls: 'bg-slate-100 text-slate-700' }

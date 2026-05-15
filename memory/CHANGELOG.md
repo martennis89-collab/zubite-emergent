@@ -1,5 +1,55 @@
 # Zubite.bg — Changelog
 
+## 2026-02-10 — Clinic Portal UX — Batch C1 (Quick Wins & Bug Fixes)
+
+### Frontend — clinic portal demo-readiness pass
+- **`frontend/lib/consultationLabels.ts`** — new label dictionaries + helpers:
+  - `READINESS_LABELS` (incl. legacy `RED`/`AMBER`/`GREEN` band codes the backend sometimes surfaces).
+  - `URGENCY_LABELS`.
+  - `APPT_STATUS_LABELS`.
+  - `ACTION_SUCCESS_MESSAGES` — friendly per-action confirmation text.
+  - Helpers: `readinessLabel(v)`, `urgencyLabel(v)`, `apptStatusLabel(v)`, `actionSuccessMessage(action)`, `statusTransitionPhrase(prev, next)`.
+- **`frontend/app/clinic/dashboard/requests/[id]/page.tsx`** — five fixes:
+  1. **Busy state bug**: `performAction` now sets `setBusy(true)` at the start, ensuring the disabled state + spinner are visible during the round-trip. Inline "Записва се…" indicator added under the action panel.
+  2. **Friendly action messages**: `actionMsg` now uses `actionSuccessMessage(action_type)` (e.g., "Опитът за обаждане е записан.") and renders inside a coloured chip (emerald on success, rose on error).
+  3. **Bulgarian labels**: `req.readiness` / `req.urgency` / `appt.status` now go through their respective label helpers — no raw `soon`, `urgent`, `booked`, `RED` exposed.
+  4. **Timeline transition phrase**: `previous_status → new_status` (was monospace raw enum) → `Назначена → Видяна` via `statusTransitionPhrase()`.
+  5. **UTM block hidden**: the `(req.utm_source || req.utm_campaign || req.source)` block was removed entirely from the clinic detail view. Data still lives in the backend — admins see it; clinic users no longer do.
+- **Booking modal guard** (same file):
+  - `<input type="date">` now has `min={todayIso}` — past dates blocked at the picker level.
+  - On submit, blocks combined date+time < now (with 60s grace) and surfaces the message `"Не може да резервираш в миналото. Избери бъдеща дата и час."` in a rose-coloured chip.
+  - Generic Date.parse failure surfaces `"Невалидна дата/час."`.
+- **`frontend/components/ClinicShell.tsx`** — header polish:
+  - Clinic name (medium weight) on row 1, email + city in slate-400 small text on row 2 (desktop only).
+  - Logout button: rounded-full pill, rose hover state, subtle hover border. Easier to spot, clearer intent.
+- **Empty-state copy** — three pages upgraded from one-line greyed text to two-line "what you'll see" guidance:
+  - `requests/page.tsx`: "Все още няма пациенти в този изглед" + "Тук ще се появят пациентите, които Zubite ви насочи…"
+  - `calendar/page.tsx`: "Няма резервирани консултации" + "Когато резервирате консултация от страница на заявка, тя ще се появи тук."
+  - `performance/page.tsx`: "Все още няма данни за анализ" + "Резултатите ще се изчисляват автоматично…"
+
+### TypeScript
+- `npx tsc --noEmit` — only **1 pre-existing TS2802** (Map iteration in `calendar/page.tsx`). C1 introduced zero new errors.
+
+### Live preview verification (Playwright + screenshot)
+- Login → dashboard → all 5 clinic pages load. ✅
+- Header now shows `Test MVP Clinic / mvp-test@example.com · Sofia`. ✅
+- Request detail page: no `UTM source`/`UTM campaign`/`UTM ad` visible. ✅
+- Timeline reads `Назначена → Видяна` (no monospace). ✅
+- `Готовност: Висока готовност` instead of raw `RED`. ✅
+- Action button "Резервирай консултация" → modal opens; `min={today}` blocks past dates in the picker. ✅
+- Logout still clears `zubite_clinic_session` cookie and redirects to `/clinic`. ✅
+
+### Explicitly out of scope of C1 (deferred to C2–C7)
+- No 3-tier action hierarchy reshuffle (C2).
+- No status timeline strip at top of detail (C2).
+- No mobile card view on request list (C3).
+- No dashboard hero KPIs or chart (C4).
+- No calendar week-view (C5).
+- No performance charts or period selector (C6).
+- No login page illustration / forgot-password (C7).
+- No new dependencies. No new image assets. No backend changes.
+
+
 ## 2026-02-10 — P2 Auth/Session Hardening — Batch E4 (P1) — Cookie-Only Mode (Flag-Gated)
 
 ### Backend — `AUTH_REQUIRE_COOKIE=1` enforcement
