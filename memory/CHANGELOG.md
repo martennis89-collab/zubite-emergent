@@ -1,5 +1,45 @@
 # Zubite.bg — Changelog
 
+## 2026-02-10 — Phase 3 Audit Read API — Batch D3 (P1)
+
+### Backend — admin-only read API for `admin_audit_logs`
+- **`routers/audit_logs.py`** wired into `server.py` (`api_router.include_router(audit_logs.router)`). Exposes a single endpoint:
+  - `GET /api/admin/audit-logs` — admin JWT only (clinic JWT → 403 via `get_current_user`).
+  - Pagination: `limit` (default 50, clamped to **max 200**, FastAPI `ge=1`) + `skip` (`ge=0`).
+  - Filters: `action` (exact OR comma-separated `$in`), `actor_id`, `actor_type`, `target_type`, `target_id`, `severity`, `date_from`, `date_to` (`YYYY-MM-DD` or full ISO; `date_to` is end-of-day inclusive).
+  - Validation: invalid `severity` / `actor_type` / date → **400** (per spec — never 422 for these three).
+  - Sort: `created_at` **desc**.
+  - Mongo projection excludes `_id`; every returned row additionally runs through `mask_for_read(...)` (defence-in-depth — same redact/drop rules as the write sanitiser, idempotent + immutable).
+  - Response: `{total, limit, skip, logs}`.
+  - Rate-limited via `rate_limit("admin_audit_logs_read", 30, 60)`.
+- **`audit.py`** — added `mask_for_read(...)` helper (delegates to the existing `_walk` deep sanitiser). No new write paths, no new collections.
+
+### Tests
+- **New `backend/tests/test_phase3_d3_audit_api.py`** — 20 tests across 7 classes:
+  - **TestAuthGate (3)**: no token → 401/403, clinic JWT → 403, admin JWT → 200.
+  - **TestPaginationAndSort (4)**: `total`/`limit`/`skip` correctness across two pages, `created_at desc` order, `limit=9999` clamped to 200, `limit=0` → 422, `skip=-1` → 422.
+  - **TestFilters (7)**: action exact, action comma → `$in`, actor_id, actor_type, target_type + target_id, severity, date range (`date_to` end-of-day inclusive).
+  - **TestInputValidation (3)**: invalid date / severity / actor_type → **400**.
+  - **TestDefensiveMasking (1)**: hand-seeded unsafe row (with `password`, `token`, `password_hash`, `api_key`, `verification_token`, `notes`, `answers`, `attribution`, `call_transcript`, `score_breakdown`) — response redacts secret keys to `"[REDACTED]"` at any depth, drops forbidden keys entirely, preserves safe scalar fields, and the serialised JSON does not contain any of the planted secret values.
+  - **TestNoMongoId (1)**: `_id` is never present in any returned row.
+  - **TestRateLimit (1)**: 31st request within 60s → **429** (admin token cached at module scope to avoid contaminating audit assertions with login rows).
+- **Token cache** — `_admin_token` / `_clinic_token` memoise the JWT so per-test `_reset_state` can wipe `admin_audit_logs` cleanly without a fresh login row reinflating `total`.
+- Safety contract identical to Batches A–D2b: refuses production / non-test DB names, isolated DB `zubite_test_phase3_d3`, autouse rate-limit + audit-log reset between tests, no real Resend / Twilio / ElevenLabs / storage calls, no backup artefacts created.
+- **Result: 20/20 PASS in 1.59s.**
+
+### Full Phase 2 + Phase 3 regression (per-file, isolated DBs)
+- A 24 / B 31 / C 21 / D1 30 / D2a 32 / D2b 22 / **D3 20** = **180 tests, 0 failures**.
+- Note: pytest cross-contamination between test files persists (Motor `AsyncIOMotorClient` binds to the first test file's event loop, and existing teardowns call `client.close()`). Running all suites in a single pytest invocation is NOT supported by the existing test harness — each file must be invoked separately, as has been the convention since Batch A. D3 follows the same convention.
+
+### Out of scope (deferred / explicit non-goals for D3)
+- No admin UI / no `/admin/audit-logs` page.
+- No CSV export.
+- No `/admin/ops` / `/admin/security-status` endpoints.
+- No clinic-side read access.
+- No data migration.
+- No changes to patient-facing UI or the article importer.
+
+
 ## 2026-02-10 — Phase 3 Audit Wiring — Batch D2b (P1)
 
 ### Backend — `audit_log(...)` wired into remaining governance paths
