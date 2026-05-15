@@ -25,10 +25,8 @@ export default function ClinicRequestsPage() {
   const [search, setSearch] = useState('')
 
   useEffect(() => {
-    const token = localStorage.getItem('clinic_token')
-    if (!token) return
     fetch(`${API_URL}/api/clinic/consultation-requests`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include' as RequestCredentials,
     })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d) => setRequests(d.requests || []))

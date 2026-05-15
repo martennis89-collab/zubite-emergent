@@ -28,19 +28,36 @@ export function ClinicShell({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    const token = localStorage.getItem('clinic_token')
-    const raw = localStorage.getItem('clinic_user')
-    if (!token || !raw) {
-      router.replace('/clinic')
-      return
-    }
-    try { setUser(JSON.parse(raw)) } catch { /* noop */ }
-    setReady(true)
+    // Cookie-based session probe. Fetch the clinic profile to populate
+    // the header info; if the cookie is missing/invalid, redirect to login.
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+    fetch(`${API_URL}/api/clinic/profile`, { credentials: 'include' as RequestCredentials })
+      .then(async (r) => {
+        if (!r.ok) {
+          try { localStorage.removeItem('clinic_token'); localStorage.removeItem('clinic_user') } catch { /* noop */ }
+          router.replace('/clinic')
+          return
+        }
+        try {
+          const data = await r.json()
+          setUser({
+            id: data.id,
+            clinic_name: data.clinic_name,
+            email: data.email,
+            city: data.city,
+          })
+        } catch { /* noop */ }
+        setReady(true)
+      })
+      .catch(() => router.replace('/clinic'))
   }, [router])
 
-  const logout = () => {
-    localStorage.removeItem('clinic_token')
-    localStorage.removeItem('clinic_user')
+  const logout = async () => {
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+      await fetch(`${API_URL}/api/clinic/logout`, { method: 'POST', credentials: 'include' as RequestCredentials })
+    } catch { /* noop */ }
+    try { localStorage.removeItem('clinic_token'); localStorage.removeItem('clinic_user') } catch { /* noop */ }
     router.push('/clinic')
   }
 

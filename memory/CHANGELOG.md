@@ -1,5 +1,44 @@
 # Zubite.bg — Changelog
 
+## 2026-02-10 — P2 Auth/Session Hardening — Batch E3 (P1) — Clinic Frontend Cutover
+
+### Frontend — clinic cookie migration (Bearer/localStorage now unused for clinic)
+- **7 files updated**:
+  - `app/clinic/page.tsx` (login): fetch now uses `credentials: 'include'`; on success cleans up any stale `clinic_token`/`clinic_user` from a prior version and redirects to `/clinic/dashboard`. The `access_token` in the response body is deliberately ignored.
+  - `components/ClinicShell.tsx`: session probe changed from `localStorage.getItem('clinic_user')` to **`GET /api/clinic/profile` with `credentials: 'include'`**. On 401/403 redirects to `/clinic`; on 200 populates the header info (clinic_name, city) directly from the profile response. `logout()` now POSTs `/api/clinic/logout` then redirects.
+  - `app/clinic/dashboard/page.tsx`: overview KPI fetch wrapped in `useCallback`, `credentials: 'include'`.
+  - `app/clinic/dashboard/requests/page.tsx`: list fetch migrated to `${API_URL}/api/clinic/consultation-requests` + cookie.
+  - `app/clinic/dashboard/requests/[id]/page.tsx`: detail GET + `performAction` POST both cookie-based; 401/403 → cleanup + redirect.
+  - `app/clinic/dashboard/calendar/page.tsx`: appointments fetch + cookie.
+  - `app/clinic/dashboard/performance/page.tsx`: metrics fetch + cookie.
+- **Pattern**: every clinic fetch carries `credentials: 'include' as RequestCredentials` and drops `Authorization: Bearer …`. No new helper module / no React Context — surgical inline migration.
+- **localStorage clinic keys**: never WRITTEN by frontend any more. Still REMOVED defensively in 401/403 handlers and login/logout flows (per spec — stale-state cleanup).
+- **No admin file touched** — `git status` confirms scope is `frontend/app/clinic/*` + `frontend/components/ClinicShell.tsx` only.
+- **No patient-facing page touched** — no edit under `/app/(public)`, `/app/quiz`, `/app/blog/[slug]`, `/app/za-kliniki`.
+- **No backend file touched** in E3.
+
+### TypeScript / build
+- `npx tsc --noEmit` over the migrated files yields **1 pre-existing TS2802** (Map iteration in `calendar/page.tsx`). All E3 edits compile cleanly.
+
+### Backend regression
+- Re-ran **E1** suite — **29/29 PASS** (unchanged; no backend file modified in E3).
+
+### Live preview verification (Playwright, MVP test clinic)
+- `POST /api/clinic/login` returns 200 + `Set-Cookie: zubite_clinic_session=…; HttpOnly; Secure; SameSite=Lax`. ✅
+- After login: `localStorage.clinic_token = undefined`, `localStorage.clinic_user = undefined`. ✅
+- Cookie list: `[cf_clearance, _fbp, zubite_clinic_session, __cf_bm]` — no `zubite_admin_session` collision. ✅
+- Dashboard renders KPIs (1 new / 1 awaiting / 2 booked / 2 attended / 0 no-shows / 19 sec avg response). ✅
+- **Hard refresh** on `/clinic/dashboard` keeps user signed in via `/api/clinic/profile` probe. ✅
+- All 3 sub-pages (`/clinic/dashboard/requests`, `/calendar`, `/performance`) load via cookie. ✅
+- `POST /api/clinic/logout` returns 200; `zubite_clinic_session` cookie cleared. ✅
+- After logout, `/clinic/dashboard` redirects to `/clinic`. ✅
+- No `auth.csrf_origin_mismatch` audit rows generated during walk — Origin guard passes for same-origin preview.
+
+### Explicitly out of scope of E3 (deferred to E4/E5)
+- **No backend changes** — `access_token` still returned in login bodies; Bearer header still accepted; sessions/jti not introduced.
+- **No clinic_status / login-block semantics change** — pre-existing `status="paused"` gate preserved.
+
+
 ## 2026-02-10 — P2 Auth/Session Hardening — Batch E2 (P1) — Admin Frontend Cutover
 
 ### Frontend — admin cookie migration (Bearer/localStorage now unused for admin)

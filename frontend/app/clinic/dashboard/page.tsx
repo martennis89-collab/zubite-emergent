@@ -33,11 +33,9 @@ export default function ClinicOverviewPage() {
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
-    const token = localStorage.getItem('clinic_token')
-    if (!token) return
     try {
       const r = await fetch(`${API_URL}/api/clinic/dashboard-overview`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include' as RequestCredentials,
       })
       if (r.ok) setData(await r.json())
     } finally {

@@ -45,13 +45,16 @@ export default function ClinicRequestDetailPage() {
   const [actionMsg, setActionMsg] = useState<string | null>(null)
 
   const load = useCallback(async () => {
-    const token = localStorage.getItem('clinic_token')
-    if (!token) { router.replace('/clinic'); return }
     setLoading(true)
     try {
       const r = await fetch(`${API_URL}/api/clinic/consultation-requests/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include' as RequestCredentials,
       })
+      if (r.status === 401 || r.status === 403) {
+        try { localStorage.removeItem('clinic_token'); localStorage.removeItem('clinic_user') } catch { /* noop */ }
+        router.replace('/clinic')
+        return
+      }
       if (r.ok) setData(await r.json())
     } finally { setLoading(false) }
   }, [id, router])
@@ -59,16 +62,12 @@ export default function ClinicRequestDetailPage() {
   useEffect(() => { if (id) load() }, [id, load])
 
   const performAction = async (action_type: string, note?: string, appointment?: object) => {
-    const token = localStorage.getItem('clinic_token')
-    if (!token) return
-    setBusy(true)
     setActionMsg(null)
     try {
       const r = await fetch(`${API_URL}/api/clinic/consultation-requests/${id}/action`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action_type, note, appointment }),
-      })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action_type, note, appointment }), credentials: 'include' as RequestCredentials,})
       if (r.ok) {
         setActionMsg(`Действието е записано: ${action_type}`)
         await load()

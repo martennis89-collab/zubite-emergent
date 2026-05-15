@@ -25,10 +25,8 @@ export default function ClinicPerformancePage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const token = localStorage.getItem('clinic_token')
-    if (!token) return
     fetch(`${API_URL}/api/clinic/performance`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include' as RequestCredentials,
     })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then(setData)

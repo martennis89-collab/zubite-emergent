@@ -37,10 +37,8 @@ export default function ClinicCalendarPage() {
   const [typeFilter, setTypeFilter] = useState('')
 
   useEffect(() => {
-    const token = localStorage.getItem('clinic_token')
-    if (!token) return
     fetch(`${API_URL}/api/clinic/appointments`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include' as RequestCredentials,
     })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d) => setAppts(d.appointments || []))

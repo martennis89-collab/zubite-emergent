@@ -24,6 +24,7 @@ export default function ClinicLoginPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+        credentials: 'include' as RequestCredentials,
       })
       const data = await res.json()
 
@@ -33,8 +34,10 @@ export default function ClinicLoginPage() {
         return
       }
 
-      localStorage.setItem('clinic_token', data.access_token)
-      localStorage.setItem('clinic_user', JSON.stringify(data.user))
+      // E3: cookie is set by the server. We deliberately ignore access_token
+      // in the response body and do NOT persist any auth data to localStorage.
+      // Cleanup any stale tokens from a prior version.
+      try { localStorage.removeItem('clinic_token'); localStorage.removeItem('clinic_user') } catch { /* noop */ }
       router.push('/clinic/dashboard')
     } catch {
       setError('Грешка при свързване със сървъра')
