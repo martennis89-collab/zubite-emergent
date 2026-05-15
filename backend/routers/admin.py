@@ -3,6 +3,7 @@ from fastapi.responses import StreamingResponse
 from typing import Optional, List
 from datetime import datetime, timezone
 import csv
+import os
 from io import StringIO
 
 from database import db
@@ -40,7 +41,12 @@ def _mask_username(value: str | None) -> str | None:
 router = APIRouter()
 
 
-@router.post("/admin/login", response_model=TokenResponse, dependencies=[Depends(rate_limit("admin_login", 5, 300))])
+@router.post(
+    "/admin/login",
+    response_model=TokenResponse,
+    response_model_exclude_none=True,
+    dependencies=[Depends(rate_limit("admin_login", 5, 300))],
+)
 async def admin_login(data: AdminLogin, request: Request, response: Response):
     user = await db.admin_users.find_one({"username": data.username}, {"_id": 0})
     if not user or not verify_password(data.password, user["password_hash"]):
@@ -57,8 +63,7 @@ async def admin_login(data: AdminLogin, request: Request, response: Response):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     token = create_token(user["id"], user["username"])
     admin_user = AdminUser(id=user["id"], username=user["username"])
-    # E1: additionally set the httpOnly admin session cookie. Bearer token
-    # remains in the response body for backward compatibility (E2/E3 cutover).
+    # Always set the httpOnly admin session cookie.
     response.set_cookie(
         key=AUTH_COOKIE_NAME_ADMIN,
         value=token,
@@ -77,7 +82,12 @@ async def admin_login(data: AdminLogin, request: Request, response: Response):
         severity="info",
         request=request,
     )
-    return TokenResponse(access_token=token, user=admin_user)
+    # In cookie-only mode the access_token field is omitted from the body
+    # (response_model_exclude_none drops the None values).
+    cookie_required = os.environ.get('AUTH_REQUIRE_COOKIE', '0') == '1'
+    if cookie_required:
+        return TokenResponse(user=admin_user)
+    return TokenResponse(access_token=token, token_type="bearer", user=admin_user)
 
 
 @router.post("/admin/logout")

@@ -243,8 +243,11 @@ class AdminUser(BaseModel):
 
 
 class TokenResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
+    # access_token + token_type are only populated when AUTH_REQUIRE_COOKIE=0
+    # (Bearer/cookie compatibility mode). In cookie-only mode they are omitted
+    # entirely from the response body — the JWT lives in the httpOnly cookie.
+    access_token: Optional[str] = None
+    token_type: Optional[str] = None
     user: AdminUser
 
 
@@ -271,8 +274,10 @@ class ClinicUserOut(BaseModel):
 
 
 class ClinicTokenResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
+    # Same semantics as `TokenResponse` — populated only when
+    # AUTH_REQUIRE_COOKIE=0.
+    access_token: Optional[str] = None
+    token_type: Optional[str] = None
     user: ClinicUserOut
 
 

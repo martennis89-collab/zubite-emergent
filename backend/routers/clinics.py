@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Request, Response
 from datetime import datetime, timezone
+import os
 import uuid
 import secrets
 import logging
@@ -373,7 +374,7 @@ async def admin_assign_lead_to_clinic(lead_id: str, body: dict, request: Request
 
 # ─── Clinic Auth & Dashboard ──────────────────────────────
 
-@router.post("/clinic/login", dependencies=[Depends(rate_limit("clinic_login", 5, 300))])
+@router.post("/clinic/login", response_model=ClinicTokenResponse, response_model_exclude_none=True, dependencies=[Depends(rate_limit("clinic_login", 5, 300))])
 async def clinic_login(data: ClinicLogin, request: Request, response: Response):
     email = data.email.strip().lower()
     clinic = await db.clinics.find_one({"email": email}, {"_id": 0})
@@ -384,7 +385,7 @@ async def clinic_login(data: ClinicLogin, request: Request, response: Response):
     if clinic.get("status") == "paused":
         raise HTTPException(status_code=403, detail="Акаунтът е спрян")
     token = create_clinic_token(clinic["id"], clinic["email"])
-    # E1: additionally set httpOnly clinic session cookie. Bearer remains.
+    # Always set httpOnly clinic session cookie.
     response.set_cookie(
         key=AUTH_COOKIE_NAME_CLINIC,
         value=token,
@@ -394,7 +395,11 @@ async def clinic_login(data: ClinicLogin, request: Request, response: Response):
         samesite=AUTH_COOKIE_SAMESITE,
         path="/",
     )
-    return ClinicTokenResponse(access_token=token, user=_clinic_to_out(clinic))
+    # Omit access_token in cookie-only mode (response_model_exclude_none).
+    cookie_required = os.environ.get('AUTH_REQUIRE_COOKIE', '0') == '1'
+    if cookie_required:
+        return ClinicTokenResponse(user=_clinic_to_out(clinic))
+    return ClinicTokenResponse(access_token=token, token_type="bearer", user=_clinic_to_out(clinic))
 
 
 @router.post("/clinic/logout")

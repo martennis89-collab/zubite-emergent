@@ -1,5 +1,67 @@
 # Zubite.bg — Changelog
 
+## 2026-02-10 — P2 Auth/Session Hardening — Batch E4 (P1) — Cookie-Only Mode (Flag-Gated)
+
+### Backend — `AUTH_REQUIRE_COOKIE=1` enforcement
+- **`backend/auth.py`** — `get_current_user` + `get_current_clinic` now read `AUTH_REQUIRE_COOKIE` from `os.environ` on **every call** (lazy re-read so tests can flip the env without re-importing). When `=1`:
+  - The `Authorization: Bearer` header is ignored entirely. No Bearer parsing branch is reachable.
+  - Only the respective `zubite_admin_session` / `zubite_clinic_session` cookie authenticates the request.
+  - Missing cookie → 401 (regardless of any Bearer header).
+  - CSRF Origin guard applies as before — but the previous "Bearer bypasses CSRF" path is now dead code, because Bearer never reaches the auth gate as a valid credential.
+- **`backend/routers/admin.py`** — `admin_login` returns `TokenResponse(user=admin_user)` only (no `access_token`, no `token_type`) when `AUTH_REQUIRE_COOKIE=1`. Cookie still set with identical attributes. When `=0`, response is identical to E1–E3 (`{access_token, token_type:"bearer", user}`). Route now uses `response_model_exclude_none=True` so `None` fields are stripped from the body.
+- **`backend/routers/clinics.py`** — `clinic_login` mirrors the admin pattern.
+- **`backend/schemas.py`** — `TokenResponse.access_token: Optional[str] = None`, `TokenResponse.token_type: Optional[str] = None` (and identical for `ClinicTokenResponse`). This is backwards-compatible: E1/Phase 2/Phase 3 suites that read `access_token` from default-mode responses keep passing.
+- **`backend/.env.example`** — updated `AUTH_REQUIRE_COOKIE` comment to reflect that E4 is implemented and the flag controls the cookie-only enforcement; default committed value remains `0`.
+
+### Behaviour matrix
+| Flag | Header `Bearer` | Cookie | Behaviour |
+|---|---|---|---|
+| `=0` (default) | present | absent | Auth via header (E1 mode, CSRF bypassed) |
+| `=0` | absent | present | Auth via cookie (CSRF enforced on mutations) |
+| `=0` | present | present | Header wins, cookie ignored |
+| `=1` | present | absent | **401** — header silently ignored |
+| `=1` | absent | present | Auth via cookie (CSRF enforced on mutations) |
+| `=1` | present | present | Auth via cookie (header silently ignored) |
+| any | absent | absent | 401 |
+| `=1`, login response body | — | — | `{user: {...}}` only — no `access_token`, no `token_type` |
+| `=0`, login response body | — | — | `{access_token: "...", token_type: "bearer", user: {...}}` (unchanged) |
+
+### Tests
+- **New `backend/tests/test_p2_e4_bearer_removal.py`** — 22 tests with `AUTH_REQUIRE_COOKIE=1` at module load:
+  - TestLoginResponseShape (4): admin/clinic body omits `access_token`/`token_type`; cookies still set with `HttpOnly`+`SameSite=Lax`.
+  - TestBearerRejected (5): admin/clinic protected endpoint rejects Bearer-only with 401; cookie-only succeeds; cookie wins over (junk) Bearer.
+  - TestRoleSeparation (2): clinic-JWT-in-admin-cookie → 403; admin-JWT-in-clinic-cookie → 403; cross-name cookies → 401.
+  - TestInvalidSessions (2): expired cookie → 401, tampered cookie → 401.
+  - TestLogout (2): admin/clinic logout still clears cookie with `Max-Age=0`.
+  - TestCsrf (4): allowed Origin POST → 200, missing Origin POST → 403, evil Origin POST → 403, Bearer-only POST → **401 (cannot bypass CSRF — 401 is returned at the auth gate before CSRF runs)**.
+  - TestPublicUnaffected (2): `POST /api/leads`, `/api/analytics/events` unaffected by the flag.
+  - TestEnvFlagSemantics (1): flipping `AUTH_REQUIRE_COOKIE=0` mid-process re-enables the Bearer rollback path (proves lazy env read).
+- Safety contract identical to E1: isolated `zubite_test_p2_e4` DB, autouse rate-limit + audit reset, mocked Resend/storage, no real provider IO, `AUTH_COOKIE_SECURE=0` forced at module load for ASGI testserver.
+- **Result: 22/22 PASS in 2.03s.**
+
+### Full Phase 2 + Phase 3 + P2 (E1, E4) regression — per-file, isolated DBs
+- A 24 / B 31 / C 21 / D1 30 / D2a 32 / D2b 22 / D3 20 / **E1 29** / **E4 22** = **231 tests, 0 failures**.
+- Confirms: changing the default flag to `=0` keeps every pre-E4 test green. The flag is a no-op at default.
+
+### Live preview verification (default mode)
+- `POST /api/admin/login` (default flag) → response still contains `access_token` (204 chars). ✅
+- `GET /api/admin/audit-logs` with Bearer header → 200. ✅
+- Frontend (E2/E3 migration) continues to authenticate via cookie unchanged. ✅
+
+### Frontend cleanup
+- **Intentionally minimal per E4 scope.** The 26 `removeItem('admin_token' | 'clinic_token' | …)` stale-state cleanup lines and the two `// access_token` comment lines remain in place. They are no-ops at runtime and serve as defensive cleanup for users who haven't refreshed the page since pre-E1. Broader frontend cleanup deferred.
+
+### Explicitly out of scope of E4
+- No sessions collection / token revocation / JWT expiry change / JWT_SECRET_PREVIOUS / force logout — all deferred to E5.
+- No admin self-service password change.
+- No `clinic_status` semantics change.
+- No GDPR / WCAG / clinic UI / patient-facing UI changes.
+
+### Operational notes
+- **No env was flipped.** `backend/.env` and `backend/.env.example` both keep `AUTH_REQUIRE_COOKIE=0`. The cookie-only enforcement is dormant code until an operator flips the flag per environment.
+- Recommended rollout: preview soak with `=1` for a few days → flip in production. Rollback is single-knob (`=0` + `sudo supervisorctl restart backend`).
+
+
 ## 2026-02-10 — P2 Auth/Session Hardening — Batch E3 (P1) — Clinic Frontend Cutover
 
 ### Frontend — clinic cookie migration (Bearer/localStorage now unused for clinic)

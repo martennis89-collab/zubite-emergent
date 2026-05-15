@@ -168,19 +168,29 @@ async def get_current_user(
 ):
     """Admin auth dependency.
 
-    Order:
+    Behaviour depends on `AUTH_REQUIRE_COOKIE` (read lazily each call so tests
+    can flip the env).
+
+    AUTH_REQUIRE_COOKIE=0 (default — E1/E2/E3 compatibility mode):
       1. If `Authorization: Bearer` header is present, use it. CSRF bypassed.
       2. Else if `zubite_admin_session` cookie is present, use it. CSRF enforced
          on state-changing methods.
       3. Else 401.
 
+    AUTH_REQUIRE_COOKIE=1 (E4 cookie-only mode):
+      Authorization header is ignored. Admin cookie is required. CSRF enforced
+      on state-changing methods.
+
     Clinic-role tokens are rejected with 403 regardless of source.
     The clinic cookie is NEVER consulted here.
     """
+    import os as _os
+    cookie_required = (_os.environ.get('AUTH_REQUIRE_COOKIE', '0') == '1')
+
     via_cookie = False
     token: Optional[str] = None
 
-    if credentials is not None and credentials.credentials:
+    if not cookie_required and credentials is not None and credentials.credentials:
         token = credentials.credentials
     else:
         cookie_val = request.cookies.get(AUTH_COOKIE_NAME_ADMIN)
@@ -204,14 +214,17 @@ async def get_current_clinic(
     request: Request,
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
 ):
-    """Clinic auth dependency.
+    """Clinic auth dependency. Same `AUTH_REQUIRE_COOKIE` semantics as admin.
 
-    Same precedence as admin. Admin tokens / admin cookies are rejected.
+    Admin tokens / admin cookies are rejected.
     """
+    import os as _os
+    cookie_required = (_os.environ.get('AUTH_REQUIRE_COOKIE', '0') == '1')
+
     via_cookie = False
     token: Optional[str] = None
 
-    if credentials is not None and credentials.credentials:
+    if not cookie_required and credentials is not None and credentials.credentials:
         token = credentials.credentials
     else:
         cookie_val = request.cookies.get(AUTH_COOKIE_NAME_CLINIC)
