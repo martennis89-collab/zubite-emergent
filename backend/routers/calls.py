@@ -16,6 +16,7 @@ from services.elevenlabs_service import (
     format_transcript_text, ELEVENLABS_AGENT_ID
 )
 from models.call_models import CallStatus, InitiateCallResponse
+from audit import audit_log
 
 router = APIRouter()
 
@@ -31,7 +32,7 @@ async def cleanup_stuck_calls():
 
 
 @router.post("/admin/leads/{lead_id}/call", response_model=InitiateCallResponse)
-async def initiate_lead_call(lead_id: str, user: AdminUser = Depends(get_current_user)):
+async def initiate_lead_call(lead_id: str, request: Request, user: AdminUser = Depends(get_current_user)):
     lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
@@ -83,6 +84,20 @@ async def initiate_lead_call(lead_id: str, user: AdminUser = Depends(get_current
         update_data["call_error_message"] = call_response.get("message")
     await db.leads.update_one({"id": lead_id}, {"$set": update_data})
 
+    # Audit: target_id = call_log_id, no phone, no transcript.
+    await audit_log(
+        "call.initiated",
+        actor=user, actor_type="admin",
+        target_type="call", target_id=call_log_id,
+        metadata={
+            "lead_id": lead_id,
+            "conversation_id": call_response.get("conversation_id"),
+            "is_mock": bool(call_response.get("mock", False)),
+            "success": bool(success),
+        },
+        severity="info", request=request,
+    )
+
     return InitiateCallResponse(
         success=success, message=call_response.get("message", "Call initiated"),
         conversation_id=call_response.get("conversation_id"),
@@ -108,7 +123,7 @@ async def get_call_log(call_log_id: str, user: AdminUser = Depends(get_current_u
     "/admin/calls/cleanup-stuck",
     dependencies=[Depends(rate_limit("calls_cleanup_stuck", max_calls=5, window_seconds=300))],
 )
-async def cleanup_stuck_calls_endpoint(user: AdminUser = Depends(get_current_user)):
+async def cleanup_stuck_calls_endpoint(request: Request, user: AdminUser = Depends(get_current_user)):
     """Operational recovery: flip leads stuck in `calling` past the timeout
     threshold to `failed`. NOT mass deletion — kept available in every
     environment (including production)."""
@@ -120,6 +135,13 @@ async def cleanup_stuck_calls_endpoint(user: AdminUser = Depends(get_current_use
     logger.info(
         "cleanup_stuck_calls by admin=%s reset_count=%d",
         user.username, result.modified_count,
+    )
+    await audit_log(
+        "calls.cleanup_stuck",
+        actor=user, actor_type="admin",
+        target_type="call", target_id=None,
+        metadata={"reset_count": result.modified_count},
+        severity="info", request=request,
     )
     return {"success": True, "reset_count": result.modified_count}
 

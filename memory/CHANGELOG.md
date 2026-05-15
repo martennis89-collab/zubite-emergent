@@ -1,5 +1,37 @@
 # Zubite.bg — Changelog
 
+## 2026-02-10 — Phase 3 Audit Wiring — Batch D2a (P1)
+
+### Backend — `audit_log(...)` wired into critical governance paths
+- **`routers/admin.py`**:
+  - `POST /api/admin/login` — `auth.admin_login_succeeded` (info) on success; `auth.admin_login_failed` (warning, `actor_type="public"`, masked username via new `_mask_username` helper) on 401. Password and token NEVER stored.
+  - `PATCH /api/admin/leads/{id}` — `lead.status_changed` (before/after via `diff_fields` on `lead` allow-list); `lead.notes_changed` (metadata = `{notes_changed, notes_length_before, notes_length_after}` only — note bodies NEVER stored).
+  - `PUT /api/admin/leads/{id}` — `lead.profile_updated` (metadata = `{changed_fields: [keys-only]}`); also emits `lead.status_changed` if status field changed.
+  - `DELETE /api/admin/leads/{id}` — `lead.deleted` (warning); `before_state` runs through the lead allow-list so name/phone/email/answers are stripped.
+  - `GET /api/admin/leads/export/csv` — `lead.exported_csv` with metadata `{row_count, filters}` (filters captured as new query-params; exported data NEVER stored).
+  - `POST /api/admin/reset-analytics` — `reset_analytics.blocked_production` (warning) in prod; `reset_analytics.attempted` (warning) on bad confirmation; `reset_analytics.executed` (critical) on success. `confirmation_token` VALUE never stored — only `confirmation_token_ok: bool`.
+  - `POST /api/admin/reset-blog-views` — same triplet pattern.
+  - `POST /api/admin/cleanup-leads` — `cleanup_leads.blocked_production` / `.attempted` / `.blocked_majority` / `.executed`. Metadata captures `keep_ids_count`, `n_to_delete`, `total_before`, `deleted_count`, `force`, `confirmation_token_ok` — `keep_ids` VALUES never stored.
+- **`routers/clinics.py`** — `PATCH /api/admin/leads/{id}/assign-clinic`: emits `lead.assigned_to_clinic` (info) on first assignment, `lead.reassigned_to_clinic` (warning) when changing clinics. Idempotent re-saves to the same clinic emit ZERO audit rows. Metadata captures `previous_clinic_id`, `new_clinic_id`, `notification_attempted`, `notification_success`.
+- **`routers/verification.py`** — `GET /api/verify/{token}`: emits `verification.responded` (public, info) for every response; additionally emits `verification.flagged` (warning) on `response=no` with metadata `{lead_id, clinic_id, alert_email_attempted, alert_email_success}`. **Token value never stored.**
+- **`routers/calls.py`**:
+  - `POST /api/admin/leads/{id}/call` — `call.initiated` (info); `target_id` = `call_log_id`, metadata = `{lead_id, conversation_id, is_mock, success}`. **Phone number never stored.**
+  - `POST /api/admin/calls/cleanup-stuck` — `calls.cleanup_stuck` (info) with metadata `{reset_count}`.
+- **`routers/public.py`** — `POST /api/seed`:
+  - `seed.blocked_production` (warning, `actor_type="system"`) in prod.
+  - `seed.rejected_weak_password` (warning, `actor_type="system"`) on invalid password, with `metadata.reason_code ∈ {missing, weak, short, username_equal}`. **Submitted password value never stored.**
+  - `seed.executed` (critical, `actor_type="system"`) on success.
+  - Helper split into `_classify_seed_password()` (returns reason_code) + existing `_validate_seed_admin_password()` (raises HTTPException) so the audit row precedes the user-facing error.
+
+### Tests
+- **New `backend/tests/test_phase3_d2a_audit_wiring.py`** — 32 tests across 9 classes:
+  - TestAdminLoginAudit (2), TestLeadAdminAudit (6), TestLeadAssignmentAudit (3),
+  - TestDestructiveEndpointAudit (7), TestSeedAudit (7), TestVerificationAudit (2),
+  - TestCallAudit (2), TestAuditResilience (2), TestSanitisationSweep (1).
+- Resilience tested via `db.admin_audit_logs.insert_one` mock raising — simulates the realistic failure mode (audit DB outage) rather than patching the helper itself, which would bypass its own safety net. Business endpoints still succeed (lead status updates, destructive guards still fire).
+- Full sweep test runs 5 representative endpoints and asserts the entire audit collection serialised as JSON does NOT contain submitted PII values, the admin password, confirmation token values, the seeded patient name / phone / email, or `BadTokenLOL`.
+- **Result: 32/32 PASS in 11.5s. Full Phase 2 + Phase 3 regression: A 24 / B 31 / C 21 / D1 30 / D2a 32 = 138 tests, 0 failures.**
+
 ## 2026-02-10 — Phase 3 Audit Foundation — Batch D1 (P1)
 
 ### Backend

@@ -16,6 +16,7 @@ from auth import (
 )
 from config import RESEND_API_KEY, SENDER_EMAIL, ADMIN_EMAIL
 from rate_limit import rate_limit
+from audit import audit_log
 
 router = APIRouter()
 
@@ -232,7 +233,7 @@ async def admin_reset_clinic_password(clinic_id: str, request: Request, user: Ad
 # ─── Admin Lead → Clinic Assignment ───────────────────────
 
 @router.patch("/admin/leads/{lead_id}/assign-clinic")
-async def admin_assign_lead_to_clinic(lead_id: str, body: dict, user: AdminUser = Depends(get_current_user)):
+async def admin_assign_lead_to_clinic(lead_id: str, body: dict, request: Request, user: AdminUser = Depends(get_current_user)):
     clinic_id = body.get("clinic_id")
     # Strict type check to prevent NoSQL injection via {"clinic_id": {"$ne": ""}}
     if not clinic_id or not isinstance(clinic_id, str):
@@ -257,25 +258,45 @@ async def admin_assign_lead_to_clinic(lead_id: str, body: dict, user: AdminUser 
     )
 
     # Auto-create a ConsultationRequest linked to this lead (idempotent).
-    # The consultation workflow is the new clinic-side surface; old /clinic/leads
-    # endpoint stays for backward compatibility.
+    notification_attempted = False
+    notification_success: bool | None = None
     try:
         from routers.consultations import _ensure_consultation_for_lead, _send_clinic_assignment_email
         lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
         if lead:
             req = await _ensure_consultation_for_lead(lead, clinic_id)
             # Only notify the new clinic if it's actually a (re)assignment.
-            # Re-saving to the SAME clinic must not trigger a duplicate email.
             if is_new_assignment:
+                notification_attempted = True
                 try:
                     await _send_clinic_assignment_email(clinic, req)
+                    notification_success = True
                 except Exception as email_exc:
-                    # Never block assignment on email failure.
+                    notification_success = False
                     logging.warning(
                         f"Clinic assignment email failed for lead {lead_id}: {email_exc}"
                     )
     except Exception as exc:
         logging.warning(f"Auto-create consultation_request failed for lead {lead_id}: {exc}")
+
+    # Audit AFTER the update so the lead's prior state is captured.
+    if is_new_assignment:
+        action = "lead.reassigned_to_clinic" if prev_clinic_id else "lead.assigned_to_clinic"
+        severity = "warning" if prev_clinic_id else "info"
+        await audit_log(
+            action,
+            actor=user, actor_type="admin",
+            target_type="lead", target_id=lead_id,
+            before_state={"assigned_clinic_id": prev_clinic_id},
+            after_state={"assigned_clinic_id": clinic_id},
+            metadata={
+                "previous_clinic_id": prev_clinic_id,
+                "new_clinic_id": clinic_id,
+                "notification_attempted": notification_attempted,
+                "notification_success": notification_success,
+            },
+            severity=severity, request=request,
+        )
 
     return {"status": "ok", "assigned_to": clinic.get("clinic_name")}
 

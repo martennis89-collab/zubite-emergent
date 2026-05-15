@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.responses import StreamingResponse
 from typing import Optional, List
 from datetime import datetime, timezone
@@ -14,17 +14,55 @@ from schemas import (
 from auth import verify_password, create_token, get_current_user
 from config import IS_PRODUCTION, logger
 from rate_limit import rate_limit
+from audit import audit_log, diff_fields
+
+
+def _mask_username(value: str | None) -> str | None:
+    """Mask submitted username for auth.admin_login_failed audit rows.
+    Keeps first char and domain (if email-shaped) — enough to triage attempts
+    without leaking enumerable identifiers. Total length capped at 60."""
+    if not value or not isinstance(value, str):
+        return None
+    v = value.strip()[:60]
+    if "@" in v:
+        local, _, domain = v.partition("@")
+        if local:
+            local = local[0] + "***" if len(local) > 1 else local + "***"
+        return f"{local}@{domain}"
+    if len(v) <= 1:
+        return v + "***"
+    return v[0] + "***"
 
 router = APIRouter()
 
 
 @router.post("/admin/login", response_model=TokenResponse, dependencies=[Depends(rate_limit("admin_login", 5, 300))])
-async def admin_login(data: AdminLogin):
+async def admin_login(data: AdminLogin, request: Request):
     user = await db.admin_users.find_one({"username": data.username}, {"_id": 0})
     if not user or not verify_password(data.password, user["password_hash"]):
+        await audit_log(
+            "auth.admin_login_failed",
+            actor_type="public",
+            target_type="system",
+            target_id=None,
+            target_summary=_mask_username(data.username),
+            metadata={"reason_code": "invalid_credentials"},
+            severity="warning",
+            request=request,
+        )
         raise HTTPException(status_code=401, detail="Invalid credentials")
     token = create_token(user["id"], user["username"])
-    return TokenResponse(access_token=token, user=AdminUser(id=user["id"], username=user["username"]))
+    admin_user = AdminUser(id=user["id"], username=user["username"])
+    await audit_log(
+        "auth.admin_login_succeeded",
+        actor=admin_user,
+        actor_type="admin",
+        target_type="system",
+        target_id=None,
+        severity="info",
+        request=request,
+    )
+    return TokenResponse(access_token=token, user=admin_user)
 
 
 @router.get("/admin/me")
@@ -64,12 +102,48 @@ async def admin_lead(lead_id: str, user: AdminUser = Depends(get_current_user)):
 
 
 @router.patch("/admin/leads/{lead_id}")
-async def admin_update_lead(lead_id: str, data: LeadStatusUpdate, user: AdminUser = Depends(get_current_user)):
+async def admin_update_lead(lead_id: str, data: LeadStatusUpdate, request: Request, user: AdminUser = Depends(get_current_user)):
     update_dict = {k: v for k, v in data.model_dump().items() if v is not None}
     if not update_dict:
         raise HTTPException(status_code=400, detail="No update data")
+    before = await db.leads.find_one({"id": lead_id}, {"_id": 0})
     await db.leads.update_one({"id": lead_id}, {"$set": update_dict})
     lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+
+    if before is not None:
+        # Audit status change if it actually changed.
+        if "status" in update_dict and (before.get("status") != update_dict["status"]):
+            b, a = diff_fields(before, lead, ["status"])
+            await audit_log(
+                "lead.status_changed",
+                actor=user,
+                actor_type="admin",
+                target_type="lead",
+                target_id=lead_id,
+                before_state=b,
+                after_state=a,
+                severity="info",
+                request=request,
+            )
+        # Audit notes change with length-only metadata; NEVER store note bodies.
+        if "notes" in update_dict:
+            old_len = len(before.get("notes") or "") if isinstance(before.get("notes"), str) else 0
+            new_len = len(update_dict.get("notes") or "") if isinstance(update_dict.get("notes"), str) else 0
+            await audit_log(
+                "lead.notes_changed",
+                actor=user,
+                actor_type="admin",
+                target_type="lead",
+                target_id=lead_id,
+                metadata={
+                    "notes_changed": True,
+                    "notes_length_before": old_len,
+                    "notes_length_after": new_len,
+                },
+                severity="info",
+                request=request,
+            )
+
     if isinstance(lead.get('created_at'), str):
         lead['created_at'] = datetime.fromisoformat(lead['created_at'])
     return lead
@@ -102,8 +176,20 @@ async def admin_stats(user: AdminUser = Depends(get_current_user)):
 
 
 @router.get("/admin/leads/export/csv")
-async def export_csv(user: AdminUser = Depends(get_current_user)):
-    leads = await db.leads.find({}, {"_id": 0}).to_list(10000)
+async def export_csv(
+    request: Request,
+    city_slug: Optional[str] = None,
+    treatment_type: Optional[str] = None,
+    band: Optional[str] = None,
+    status: Optional[str] = None,
+    user: AdminUser = Depends(get_current_user),
+):
+    query = {}
+    if city_slug: query["city_slug"] = city_slug
+    if treatment_type: query["treatment_type"] = treatment_type
+    if band: query["band"] = band
+    if status: query["status"] = status
+    leads = await db.leads.find(query, {"_id": 0}).to_list(10000)
     output = StringIO()
     if leads:
         writer = csv.DictWriter(output, fieldnames=leads[0].keys())
@@ -112,12 +198,29 @@ async def export_csv(user: AdminUser = Depends(get_current_user)):
             flat = {k: str(v) if isinstance(v, dict) else v for k, v in lead.items()}
             writer.writerow(flat)
     output.seek(0)
+    # Audit: counts + filter keys only. NEVER include exported data / PII.
+    await audit_log(
+        "lead.exported_csv",
+        actor=user,
+        actor_type="admin",
+        target_type="lead",
+        target_id=None,
+        metadata={
+            "row_count": len(leads),
+            "filters": {k: v for k, v in {
+                "city_slug": city_slug, "treatment_type": treatment_type,
+                "band": band, "status": status,
+            }.items() if v is not None},
+        },
+        severity="info",
+        request=request,
+    )
     return StreamingResponse(iter([output.getvalue()]), media_type="text/csv",
                             headers={"Content-Disposition": "attachment; filename=leads.csv"})
 
 
 @router.put("/admin/leads/{lead_id}")
-async def update_lead(lead_id: str, update: LeadUpdate, user: AdminUser = Depends(get_current_user)):
+async def update_lead(lead_id: str, update: LeadUpdate, request: Request, user: AdminUser = Depends(get_current_user)):
     existing = await db.leads.find_one({"id": lead_id})
     if not existing:
         raise HTTPException(status_code=404, detail="Lead not found")
@@ -126,14 +229,55 @@ async def update_lead(lead_id: str, update: LeadUpdate, user: AdminUser = Depend
         update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
         await db.leads.update_one({"id": lead_id}, {"$set": update_data})
     updated = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+
+    if update_data:
+        # Profile audit — changed field NAMES only (never values for name/phone/email).
+        changed = sorted(k for k in update_data.keys() if k != "updated_at")
+        await audit_log(
+            "lead.profile_updated",
+            actor=user,
+            actor_type="admin",
+            target_type="lead",
+            target_id=lead_id,
+            metadata={"changed_fields": changed},
+            severity="info",
+            request=request,
+        )
+        # If status changed inside PUT, also emit lead.status_changed.
+        if "status" in update_data and existing.get("status") != update_data["status"]:
+            b, a = diff_fields(existing, updated, ["status"])
+            await audit_log(
+                "lead.status_changed",
+                actor=user,
+                actor_type="admin",
+                target_type="lead",
+                target_id=lead_id,
+                before_state=b,
+                after_state=a,
+                severity="info",
+                request=request,
+            )
+
     return updated
 
 
 @router.delete("/admin/leads/{lead_id}")
-async def delete_lead(lead_id: str, user: AdminUser = Depends(get_current_user)):
+async def delete_lead(lead_id: str, request: Request, user: AdminUser = Depends(get_current_user)):
+    existing = await db.leads.find_one({"id": lead_id}, {"_id": 0})
     result = await db.leads.delete_one({"id": lead_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Lead not found")
+    # Safe before_state via the lead allow-list (status / band / city_slug etc.).
+    await audit_log(
+        "lead.deleted",
+        actor=user,
+        actor_type="admin",
+        target_type="lead",
+        target_id=lead_id,
+        before_state=existing,  # sanitiser will allow-list this to safe keys only
+        severity="warning",
+        request=request,
+    )
     return {"success": True, "message": "Lead deleted"}
 
 
@@ -143,13 +287,29 @@ async def delete_lead(lead_id: str, user: AdminUser = Depends(get_current_user))
 )
 async def reset_analytics(
     body: ConfirmationBody,
+    request: Request,
     user: AdminUser = Depends(get_current_user),
 ):
     """Wipe `analytics_events`. Disabled in production; requires confirmation
     phrase to guard against accidental fat-finger calls in dev/staging."""
     if IS_PRODUCTION:
+        await audit_log(
+            "reset_analytics.blocked_production",
+            actor=user, actor_type="admin",
+            target_type="system", target_id=None,
+            metadata={"reason_code": "production_blocked"},
+            severity="warning", request=request,
+        )
         raise HTTPException(status_code=403, detail="Disabled in production.")
-    if body.confirmation_token != RESET_ANALYTICS_TOKEN:
+    ok = body.confirmation_token == RESET_ANALYTICS_TOKEN
+    if not ok:
+        await audit_log(
+            "reset_analytics.attempted",
+            actor=user, actor_type="admin",
+            target_type="system", target_id=None,
+            metadata={"reason_code": "bad_confirmation", "confirmation_token_ok": False},
+            severity="warning", request=request,
+        )
         raise HTTPException(
             status_code=400,
             detail=f"confirmation_token must equal {RESET_ANALYTICS_TOKEN!r}.",
@@ -158,6 +318,16 @@ async def reset_analytics(
     logger.warning(
         "reset_analytics by admin=%s deleted_count=%d",
         user.username, result.deleted_count,
+    )
+    await audit_log(
+        "reset_analytics.executed",
+        actor=user, actor_type="admin",
+        target_type="system", target_id=None,
+        metadata={
+            "deleted_count": result.deleted_count,
+            "confirmation_token_ok": True,
+        },
+        severity="critical", request=request,
     )
     return {"success": True, "deleted_count": result.deleted_count}
 
@@ -168,13 +338,28 @@ async def reset_analytics(
 )
 async def reset_blog_views(
     body: ConfirmationBody,
+    request: Request,
     user: AdminUser = Depends(get_current_user),
 ):
     """Wipe `blog_views`. Disabled in production; requires confirmation
     phrase to guard against accidental fat-finger calls in dev/staging."""
     if IS_PRODUCTION:
+        await audit_log(
+            "reset_blog_views.blocked_production",
+            actor=user, actor_type="admin",
+            target_type="system", target_id=None,
+            metadata={"reason_code": "production_blocked"},
+            severity="warning", request=request,
+        )
         raise HTTPException(status_code=403, detail="Disabled in production.")
     if body.confirmation_token != RESET_BLOG_VIEWS_TOKEN:
+        await audit_log(
+            "reset_blog_views.attempted",
+            actor=user, actor_type="admin",
+            target_type="system", target_id=None,
+            metadata={"reason_code": "bad_confirmation", "confirmation_token_ok": False},
+            severity="warning", request=request,
+        )
         raise HTTPException(
             status_code=400,
             detail=f"confirmation_token must equal {RESET_BLOG_VIEWS_TOKEN!r}.",
@@ -183,6 +368,16 @@ async def reset_blog_views(
     logger.warning(
         "reset_blog_views by admin=%s deleted_count=%d",
         user.username, result.deleted_count,
+    )
+    await audit_log(
+        "reset_blog_views.executed",
+        actor=user, actor_type="admin",
+        target_type="system", target_id=None,
+        metadata={
+            "deleted_count": result.deleted_count,
+            "confirmation_token_ok": True,
+        },
+        severity="critical", request=request,
     )
     return {"success": True, "deleted_count": result.deleted_count}
 
@@ -193,6 +388,7 @@ async def reset_blog_views(
 )
 async def cleanup_leads(
     body: CleanupLeadsBody,
+    request: Request,
     user: AdminUser = Depends(get_current_user),
 ):
     """Delete every lead whose `id` is NOT in `keep_ids`.
@@ -206,9 +402,33 @@ async def cleanup_leads(
         unless `force=true` is passed explicitly.
       - Returns counts only; never echoes lead identifiers or PII.
     """
+    keep_ids_count = len(body.keep_ids)
     if IS_PRODUCTION:
+        await audit_log(
+            "cleanup_leads.blocked_production",
+            actor=user, actor_type="admin",
+            target_type="system", target_id=None,
+            metadata={
+                "reason_code": "production_blocked",
+                "keep_ids_count": keep_ids_count,
+                # confirmation_token VALUE never stored; only its match flag:
+                "confirmation_token_ok": body.confirmation_token == CLEANUP_LEADS_TOKEN,
+            },
+            severity="warning", request=request,
+        )
         raise HTTPException(status_code=403, detail="Disabled in production.")
     if body.confirmation_token != CLEANUP_LEADS_TOKEN:
+        await audit_log(
+            "cleanup_leads.attempted",
+            actor=user, actor_type="admin",
+            target_type="system", target_id=None,
+            metadata={
+                "reason_code": "bad_confirmation",
+                "keep_ids_count": keep_ids_count,
+                "confirmation_token_ok": False,
+            },
+            severity="warning", request=request,
+        )
         raise HTTPException(
             status_code=400,
             detail=f"confirmation_token must equal {CLEANUP_LEADS_TOKEN!r}.",
@@ -222,6 +442,20 @@ async def cleanup_leads(
         logger.warning(
             "cleanup_leads refused by admin=%s: would delete %d/%d (>50%%) without force",
             user.username, n_to_delete, total,
+        )
+        await audit_log(
+            "cleanup_leads.blocked_majority",
+            actor=user, actor_type="admin",
+            target_type="system", target_id=None,
+            metadata={
+                "reason_code": "would_delete_majority",
+                "keep_ids_count": keep_ids_count,
+                "n_to_delete": n_to_delete,
+                "total_before": total,
+                "force": False,
+                "confirmation_token_ok": True,
+            },
+            severity="warning", request=request,
         )
         raise HTTPException(
             status_code=400,
@@ -237,6 +471,20 @@ async def cleanup_leads(
     logger.warning(
         "cleanup_leads by admin=%s deleted_count=%d total_before=%d",
         user.username, result.deleted_count, total,
+    )
+    await audit_log(
+        "cleanup_leads.executed",
+        actor=user, actor_type="admin",
+        target_type="system", target_id=None,
+        metadata={
+            "keep_ids_count": keep_ids_count,
+            "n_to_delete": n_to_delete,
+            "total_before": total,
+            "deleted_count": result.deleted_count,
+            "force": bool(body.force),
+            "confirmation_token_ok": True,
+        },
+        severity="critical", request=request,
     )
     return {
         "success": True,

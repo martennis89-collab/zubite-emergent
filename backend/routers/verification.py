@@ -9,6 +9,7 @@ from schemas import AdminUser
 from auth import get_current_user
 from emails import send_verification_email, send_verification_flagged_alert
 from rate_limit import rate_limit
+from audit import audit_log
 
 router = APIRouter()
 
@@ -56,7 +57,7 @@ async def admin_send_verification(lead_id: str, request: Request, user: AdminUse
 
 
 @router.get("/verify/{token}", dependencies=[Depends(rate_limit("verify_token", 20, 600))])
-async def verify_lead(token: str, response: str):
+async def verify_lead(token: str, response: str, request: Request):
     if response not in ("yes", "no"):
         raise HTTPException(status_code=400, detail="Invalid response")
     # Token must look like a base64url string of expected length (~43 chars for 32 bytes)
@@ -73,12 +74,40 @@ async def verify_lead(token: str, response: str):
     await db.lead_verifications.update_one({"token": token}, {"$set": {"response": response, "responded_at": now}})
 
     lead_id = verification["lead_id"]
+    clinic_id = verification.get("clinic_id")
     if response == "yes":
         await db.leads.update_one({"id": lead_id}, {"$set": {"verification_status": "verified", "clinic_lead_status": "contacted"}})
+        await audit_log(
+            "verification.responded",
+            actor=None, actor_type="public",
+            target_type="verification",
+            target_id=verification.get("id"),
+            metadata={
+                "lead_id": lead_id,
+                "clinic_id": clinic_id,
+                "response": "yes",
+            },
+            severity="info", request=request,
+        )
     else:
         await db.leads.update_one({"id": lead_id}, {"$set": {"verification_status": "flagged"}})
+        # Always emit "responded" first.
+        await audit_log(
+            "verification.responded",
+            actor=None, actor_type="public",
+            target_type="verification",
+            target_id=verification.get("id"),
+            metadata={
+                "lead_id": lead_id,
+                "clinic_id": clinic_id,
+                "response": "no",
+            },
+            severity="info", request=request,
+        )
         # Phase 2C: alert admin. Email failure must NEVER block the flagged
         # status save — we already persisted it above.
+        alert_attempted = False
+        alert_success: bool | None = None
         try:
             lead = await db.leads.find_one(
                 {"id": lead_id},
@@ -92,11 +121,28 @@ async def verify_lead(token: str, response: str):
                 )
                 clinic_name = (clinic or {}).get("clinic_name")
             if lead:
-                await send_verification_flagged_alert(lead, clinic_name=clinic_name)
+                alert_attempted = True
+                ok = await send_verification_flagged_alert(lead, clinic_name=clinic_name)
+                alert_success = bool(ok)
         except Exception as alert_exc:
+            alert_success = False
             logging.warning(
                 f"send_verification_flagged_alert failed for lead {lead_id}: {alert_exc}"
             )
+        await audit_log(
+            "verification.flagged",
+            actor=None, actor_type="public",
+            target_type="verification",
+            target_id=verification.get("id"),
+            metadata={
+                "lead_id": lead_id,
+                "clinic_id": clinic_id,
+                "response": "no",
+                "alert_email_attempted": alert_attempted,
+                "alert_email_success": alert_success,
+            },
+            severity="warning", request=request,
+        )
 
     return {"status": "ok", "response": response}
 

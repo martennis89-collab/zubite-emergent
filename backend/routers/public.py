@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 import asyncio
@@ -214,17 +214,16 @@ _SEED_WEAK_PASSWORDS = frozenset({
 _SEED_MIN_PASSWORD_LEN = 12
 
 
-def _validate_seed_admin_password(password: Optional[str]) -> None:
-    """Raise 400 if the seed-admin password is missing or weak. Never echoes
-    the password back in the error message."""
+def _validate_seed_admin_password(password: Optional[str]) -> str:
+    """Raise 400 if the seed-admin password is missing or weak. Returns
+    the reason_code (used for audit metadata only) — actual value lives
+    in the caller's HTTPException detail string."""
     if not password:
         raise HTTPException(
             status_code=400,
             detail="SEED_ADMIN_PASSWORD env var is required to seed the admin user.",
         )
-    # Check known-weak BEFORE length so callers get a clearer error message
-    # ("known weak") rather than the generic "too short" when they typed
-    # something like 'password' / 'admin' (both < 12 chars and weak).
+    # Check known-weak BEFORE length so callers get a clearer error message.
     if password.lower() in _SEED_WEAK_PASSWORDS:
         raise HTTPException(
             status_code=400,
@@ -240,13 +239,29 @@ def _validate_seed_admin_password(password: Optional[str]) -> None:
             status_code=400,
             detail=f"Seed admin password must be at least {_SEED_MIN_PASSWORD_LEN} characters.",
         )
+    return "ok"
+
+
+def _classify_seed_password(password: Optional[str]) -> Optional[str]:
+    """Return a reason_code if password is rejectable; None if acceptable.
+    Used by the audit hook so the rejection reason is recorded WITHOUT the
+    password value ever entering the audit row."""
+    if not password:
+        return "missing"
+    if password.lower() in _SEED_WEAK_PASSWORDS:
+        return "weak"
+    if password.lower() == SEED_ADMIN_USERNAME.lower():
+        return "username_equal"
+    if len(password) < _SEED_MIN_PASSWORD_LEN:
+        return "short"
+    return None
 
 
 @router.post(
     "/seed",
     dependencies=[Depends(rate_limit("seed", max_calls=3, window_seconds=600))],
 )
-async def seed():
+async def seed(request: Request):
     """Idempotent seed; runs only on first call when DB is empty.
     Once seeded, becomes a no-op forever to prevent re-seeding attacks.
 
@@ -256,8 +271,16 @@ async def seed():
         admin username.
     """
     from config import IS_PRODUCTION
+    from audit import audit_log as _audit
 
     if IS_PRODUCTION:
+        await _audit(
+            "seed.blocked_production",
+            actor=None, actor_type="system",
+            target_type="system", target_id=None,
+            metadata={"reason_code": "production_blocked"},
+            severity="warning", request=request,
+        )
         raise HTTPException(
             status_code=403,
             detail="Seeding is disabled in production.",
@@ -274,7 +297,17 @@ async def seed():
     # leaves the DB untouched.
     import os as _os
     seed_admin_password = _os.environ.get("SEED_ADMIN_PASSWORD")
-    _validate_seed_admin_password(seed_admin_password)
+    reject_reason = _classify_seed_password(seed_admin_password)
+    if reject_reason is not None:
+        await _audit(
+            "seed.rejected_weak_password",
+            actor=None, actor_type="system",
+            target_type="system", target_id=None,
+            metadata={"reason_code": reject_reason},
+            severity="warning", request=request,
+        )
+        # Now raise the user-facing error (NEVER echoes the password).
+        _validate_seed_admin_password(seed_admin_password)
 
     clinics = [
         Clinic(name="Sofia Premium Clinic", city_slug="sofia", city_name="София",
@@ -299,5 +332,13 @@ async def seed():
         "role": "admin",
         "created_at": datetime.now(timezone.utc).isoformat()
     })
+
+    await _audit(
+        "seed.executed",
+        actor=None, actor_type="system",
+        target_type="system", target_id=None,
+        metadata={"clinics_seeded": len(clinics), "admin_seeded": True},
+        severity="critical", request=request,
+    )
 
     return {"message": "Seeded successfully"}
