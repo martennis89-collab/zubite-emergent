@@ -43,17 +43,16 @@ export default function AdminClinicsPage() {
   const router = useRouter()
 
   const load = useCallback(async () => {
-    const token = localStorage.getItem('admin_token')
-    if (!token) { router.replace('/admin'); return }
     setLoading(true)
     try {
       const r = await fetch(`${API_URL}/api/admin/clinics`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include' as RequestCredentials,
       })
       if (r.ok) {
         const d = await r.json()
         setClinics(d.clinics || [])
-      } else if (r.status === 401) {
+      } else if (r.status === 401 || r.status === 403) {
+        try { localStorage.removeItem('admin_token'); localStorage.removeItem('admin_user') } catch { /* noop */ }
         router.replace('/admin')
       }
     } finally { setLoading(false) }
@@ -62,12 +61,11 @@ export default function AdminClinicsPage() {
   useEffect(() => { load() }, [load])
 
   const updateStatus = async (id: string, field: string, value: string) => {
-    const token = localStorage.getItem('admin_token')
-    if (!token) return
     await fetch(`${API_URL}/api/admin/clinics/${id}`, {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ [field]: value }),
+      credentials: 'include' as RequestCredentials,
     })
     await load()
   }
@@ -187,7 +185,6 @@ function CreateClinicModal({
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setBusy(true); setErr(null)
-    const token = localStorage.getItem('admin_token')
     try {
       const body = {
         ...form,
@@ -195,9 +192,8 @@ function CreateClinicModal({
       }
       const r = await fetch(`${API_URL}/api/admin/clinics`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body), credentials: 'include' as RequestCredentials,})
       if (r.ok) {
         const d = await r.json()
         onCreated({ name: d.clinic.clinic_name, email: d.clinic.email, password: d.temporary_password })

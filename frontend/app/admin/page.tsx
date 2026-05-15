@@ -13,13 +13,20 @@ export default function AdminLoginPage() {
   const router = useRouter()
   
   useEffect(() => {
-    // Check if already logged in
-    const token = localStorage.getItem('admin_token')
-    if (token) {
-      router.push('/admin/dashboard')
-    } else {
-      setCheckingAuth(false)
-    }
+    // Cookie-based session probe — if a valid admin session cookie is present,
+    // jump straight to the dashboard. Otherwise show the login form.
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+    fetch(`${API_URL}/api/admin/me`, { credentials: 'include' as RequestCredentials })
+      .then(r => {
+        if (r.ok) {
+          router.push('/admin/dashboard')
+        } else {
+          // Cleanup any stale localStorage tokens from a prior version.
+          try { localStorage.removeItem('admin_token'); localStorage.removeItem('admin_user') } catch { /* noop */ }
+          setCheckingAuth(false)
+        }
+      })
+      .catch(() => setCheckingAuth(false))
   }, [router])
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,16 +39,18 @@ export default function AdminLoginPage() {
       const response = await fetch(`${API_URL}/api/admin/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username, password }),
+        credentials: 'include' as RequestCredentials,
       })
       
       if (!response.ok) {
         throw new Error('Невалидни данни за вход')
       }
       
-      const data = await response.json()
-      localStorage.setItem('admin_token', data.access_token)
-      localStorage.setItem('admin_user', JSON.stringify(data.user))
+      // E2: cookie is set by the server. We deliberately ignore the
+      // access_token in the response body and do NOT persist any auth data
+      // to localStorage. Cleanup any stale tokens from a prior version.
+      try { localStorage.removeItem('admin_token'); localStorage.removeItem('admin_user') } catch { /* noop */ }
       router.push('/admin/dashboard')
     } catch {
       setError('Невалидни данни за вход')

@@ -58,12 +58,6 @@ export default function AdminAnalyticsPage() {
   const router = useRouter()
 
   const fetchAnalytics = useCallback(async () => {
-    const token = localStorage.getItem('admin_token')
-    if (!token) {
-      router.push('/admin')
-      return
-    }
-
     // Build ?from/&to params from preset
     let qs = ''
     if (preset === 'today') qs = `?from=${todayStr()}&to=${todayStr()}`
@@ -75,15 +69,11 @@ export default function AdminAnalyticsPage() {
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${API_URL}/api/admin/analytics${qs}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
+        headers: { 'Content-Type': 'application/json' }, credentials: 'include' as RequestCredentials,})
 
       if (!response.ok) {
-        if (response.status === 401) {
-          localStorage.removeItem('admin_token')
+        if (response.status === 401 || response.status === 403) {
+          try { localStorage.removeItem('admin_token'); localStorage.removeItem('admin_user') } catch { /* noop */ }
           router.push('/admin')
           return
         }
@@ -104,19 +94,11 @@ export default function AdminAnalyticsPage() {
       return
     }
 
-    const token = localStorage.getItem('admin_token')
-    if (!token) return
-
-    setIsResetting(true)
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${API_URL}/api/admin/reset-analytics`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
+        headers: { 'Content-Type': 'application/json' }, credentials: 'include' as RequestCredentials,})
 
       if (response.ok) {
         alert('✅ Analytics данните бяха нулирани успешно!')
@@ -137,19 +119,11 @@ export default function AdminAnalyticsPage() {
       return
     }
 
-    const token = localStorage.getItem('admin_token')
-    if (!token) return
-
-    setIsResetting(true)
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${API_URL}/api/admin/reset-blog-views`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
+        headers: { 'Content-Type': 'application/json' }, credentials: 'include' as RequestCredentials,})
 
       if (response.ok) {
         alert('✅ Blog view статистиката беше нулирана!')
@@ -167,9 +141,12 @@ export default function AdminAnalyticsPage() {
     fetchAnalytics()
   }, [fetchAnalytics])
 
-  const handleLogout = () => {
-    localStorage.removeItem('admin_token')
-    localStorage.removeItem('admin_user')
+  const handleLogout = async () => {
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+      await fetch(`${API_URL}/api/admin/logout`, { method: 'POST', credentials: 'include' as RequestCredentials })
+    } catch { /* noop */ }
+    try { localStorage.removeItem('admin_token'); localStorage.removeItem('admin_user') } catch { /* noop */ }
     router.push('/admin')
   }
 

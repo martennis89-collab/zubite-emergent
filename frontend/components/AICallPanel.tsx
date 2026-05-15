@@ -165,16 +165,11 @@ export function AICallPanel({
     setError(null)
 
     try {
-      const token = localStorage.getItem('admin_token')
       const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
       
       const response = await fetch(`${API_URL}/api/admin/leads/${leadId}/call`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
+        headers: { 'Content-Type': 'application/json' }, credentials: 'include' as RequestCredentials,})
 
       const data = await response.json()
 
@@ -198,15 +193,10 @@ export function AICallPanel({
   const loadCallHistory = async () => {
     setLoadingHistory(true)
     try {
-      const token = localStorage.getItem('admin_token')
       const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
       
       const response = await fetch(`${API_URL}/api/admin/leads/${leadId}/call-logs`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
+        headers: { 'Content-Type': 'application/json' }, credentials: 'include' as RequestCredentials,})
 
       if (response.ok) {
         const data = await response.json()

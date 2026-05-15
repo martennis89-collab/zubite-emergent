@@ -24,27 +24,25 @@ export default function AdminLeadsPage() {
   const router = useRouter()
   
   useEffect(() => {
-    const token = localStorage.getItem('admin_token')
-    if (!token) {
-      router.push('/admin')
-      return
-    }
-    
     const fetchLeads = async () => {
       try {
         const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
         const response = await fetch(`${API_URL}/api/admin/leads`, {
-          headers: { Authorization: `Bearer ${token}` }
+          credentials: 'include' as RequestCredentials,
         })
         
         if (!response.ok) {
-          throw new Error('Unauthorized')
+          if (response.status === 401 || response.status === 403) {
+            try { localStorage.removeItem('admin_token'); localStorage.removeItem('admin_user') } catch { /* noop */ }
+            router.push('/admin')
+            return
+          }
+          throw new Error('Failed to load')
         }
         
         const data = await response.json()
         setLeads(data)
       } catch {
-        localStorage.removeItem('admin_token')
         router.push('/admin')
       } finally {
         setLoading(false)

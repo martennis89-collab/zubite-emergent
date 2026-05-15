@@ -149,7 +149,6 @@ export default function ArticleImporterPage() {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const zipInputRef = useRef<HTMLInputElement>(null)
-  const [token, setToken] = useState<string | null>(null)
   const [rawMd, setRawMd] = useState('')
   const [parsed, setParsed] = useState<ParsedArticle | null>(null)
   const [parseError, setParseError] = useState<string>('')
@@ -165,12 +164,10 @@ export default function ArticleImporterPage() {
   const [showTestRender, setShowTestRender] = useState(false)
 
   useEffect(() => {
-    const t = localStorage.getItem('admin_token')
-    if (!t) {
-      router.push('/admin')
-      return
-    }
-    setToken(t)
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+    fetch(`${API_URL}/api/admin/me`, { credentials: 'include' as RequestCredentials })
+      .then(r => { if (!r.ok) router.push('/admin') })
+      .catch(() => router.push('/admin'))
   }, [router])
 
   const validation = useMemo(() => (parsed ? validateArticle(parsed) : null), [parsed])
@@ -224,7 +221,7 @@ export default function ArticleImporterPage() {
   }
 
   const handleSave = async (publish: boolean) => {
-    if (!parsed || !token) return
+    if (!parsed) return
     setSavedMessage('')
 
     if (publish && validation && !validation.ok) {
@@ -263,9 +260,8 @@ export default function ArticleImporterPage() {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
       const res = await fetch(`${API_URL}/api/admin/blog/posts`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(payload),
-      })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload), credentials: 'include' as RequestCredentials,})
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         const detail = err.detail || res.statusText
@@ -391,9 +387,7 @@ export default function ArticleImporterPage() {
     fd.append('file', typedFile)
     const res = await fetch(`${API_URL}/api/admin/upload`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: fd,
-    })
+      body: fd, credentials: 'include' as RequestCredentials,})
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
       throw new Error(`${fileName}: ${err.detail || res.statusText}`)
@@ -403,7 +397,7 @@ export default function ArticleImporterPage() {
   }
 
   const handleZipImport = async () => {
-    if (!parsed || !token) return
+    if (!parsed) return
     if (zipValidation.missing.length > 0) {
       setSavedMessage(
         `❌ Липсващи файлове в ZIP: ${zipValidation.missing.join(', ')}`,
@@ -472,9 +466,8 @@ export default function ArticleImporterPage() {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
       const res = await fetch(`${API_URL}/api/admin/blog/posts`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(payload),
-      })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload), credentials: 'include' as RequestCredentials,})
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         const detail = err.detail || res.statusText
@@ -500,8 +493,6 @@ export default function ArticleImporterPage() {
       setZipImportProgress('')
     }
   }
-
-  if (!token) return null
 
   return (
     <main className="min-h-screen bg-slate-50">

@@ -45,17 +45,10 @@ export default function AdminBlogPage() {
   const router = useRouter()
 
   const fetchAnalytics = useCallback(async () => {
-    const token = localStorage.getItem('admin_token')
-    if (!token) return
-
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${API_URL}/api/admin/blog/analytics`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
+        headers: { 'Content-Type': 'application/json' }, credentials: 'include' as RequestCredentials,})
       if (response.ok) {
         const data = await response.json()
         setAnalytics(data)
@@ -66,12 +59,6 @@ export default function AdminBlogPage() {
   }, [])
 
   const fetchPosts = useCallback(async () => {
-    const token = localStorage.getItem('admin_token')
-    if (!token) {
-      router.push('/admin')
-      return
-    }
-
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
       const params = new URLSearchParams()
@@ -80,15 +67,11 @@ export default function AdminBlogPage() {
       }
 
       const response = await fetch(`${API_URL}/api/admin/blog/posts?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
+        headers: { 'Content-Type': 'application/json' }, credentials: 'include' as RequestCredentials,})
 
       if (!response.ok) {
-        if (response.status === 401) {
-          localStorage.removeItem('admin_token')
+        if (response.status === 401 || response.status === 403) {
+          try { localStorage.removeItem('admin_token'); localStorage.removeItem('admin_user') } catch { /* noop */ }
           router.push('/admin')
           return
         }
@@ -117,9 +100,12 @@ export default function AdminBlogPage() {
     return stat?.unique_visitors || 0
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem('admin_token')
-    localStorage.removeItem('admin_user')
+  const handleLogout = async () => {
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+      await fetch(`${API_URL}/api/admin/logout`, { method: 'POST', credentials: 'include' as RequestCredentials })
+    } catch { /* noop */ }
+    try { localStorage.removeItem('admin_token'); localStorage.removeItem('admin_user') } catch { /* noop */ }
     router.push('/admin')
   }
 
@@ -128,16 +114,11 @@ export default function AdminBlogPage() {
       return
     }
 
-    const token = localStorage.getItem('admin_token')
     const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
     try {
       const response = await fetch(`${API_URL}/api/admin/blog/posts/${postId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
-      })
+        method: 'DELETE', credentials: 'include' as RequestCredentials,})
 
       if (response.ok) {
         fetchPosts()
@@ -148,18 +129,13 @@ export default function AdminBlogPage() {
   }
 
   const handleTogglePublish = async (post: BlogPost) => {
-    const token = localStorage.getItem('admin_token')
     const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
     try {
       const response = await fetch(`${API_URL}/api/admin/blog/posts/${post.id}`, {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ is_published: !post.is_published })
-      })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_published: !post.is_published }), credentials: 'include' as RequestCredentials,})
 
       if (response.ok) {
         fetchPosts()

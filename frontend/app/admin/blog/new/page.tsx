@@ -30,10 +30,10 @@ export default function NewBlogPostPage() {
   })
 
   useEffect(() => {
-    const token = localStorage.getItem('admin_token')
-    if (!token) {
-      router.push('/admin')
-    }
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+    fetch(`${API_URL}/api/admin/me`, { credentials: 'include' as RequestCredentials })
+      .then(r => { if (!r.ok) router.push('/admin') })
+      .catch(() => router.push('/admin'))
   }, [router])
 
   // Bulgarian Cyrillic to Latin transliteration map
@@ -104,22 +104,14 @@ export default function NewBlogPostPage() {
     setIsUploading(true)
     setError('')
 
-    const token = localStorage.getItem('admin_token')
-    if (!token) {
-      router.push('/admin')
-      return
-    }
-
     try {
       const formDataUpload = new FormData()
       formDataUpload.append('file', file)
 
       const response = await fetch('/api/admin/upload', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formDataUpload
+        body: formDataUpload,
+        credentials: 'include' as RequestCredentials,
       })
 
       if (!response.ok) {
@@ -156,22 +148,17 @@ export default function NewBlogPostPage() {
     setError('')
     setIsSaving(true)
 
-    const token = localStorage.getItem('admin_token')
     const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
     try {
       const response = await fetch(`${API_URL}/api/admin/blog/posts`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
           tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
           is_published: publish
-        })
-      })
+        }), credentials: 'include' as RequestCredentials,})
 
       if (!response.ok) {
         const data = await response.json()
@@ -186,9 +173,12 @@ export default function NewBlogPostPage() {
     }
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem('admin_token')
-    localStorage.removeItem('admin_user')
+  const handleLogout = async () => {
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+      await fetch(`${API_URL}/api/admin/logout`, { method: 'POST', credentials: 'include' as RequestCredentials })
+    } catch { /* noop */ }
+    try { localStorage.removeItem('admin_token'); localStorage.removeItem('admin_user') } catch { /* noop */ }
     router.push('/admin')
   }
 

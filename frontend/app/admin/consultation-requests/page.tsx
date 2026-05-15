@@ -19,8 +19,6 @@ export default function AdminConsultationRequestsPage() {
   const router = useRouter()
 
   const load = useCallback(async () => {
-    const token = localStorage.getItem('admin_token')
-    if (!token) { router.replace('/admin'); return }
     setLoading(true)
     try {
       const qs = new URLSearchParams()
@@ -28,12 +26,17 @@ export default function AdminConsultationRequestsPage() {
       if (filterClinic) qs.set('clinic_id', filterClinic)
       const [reqResp, clResp] = await Promise.all([
         fetch(`${API_URL}/api/admin/consultation-requests?${qs.toString()}`, {
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include' as RequestCredentials,
         }),
         fetch(`${API_URL}/api/admin/clinics`, {
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include' as RequestCredentials,
         }),
       ])
+      if (reqResp.status === 401 || reqResp.status === 403) {
+        try { localStorage.removeItem('admin_token'); localStorage.removeItem('admin_user') } catch { /* noop */ }
+        router.replace('/admin')
+        return
+      }
       if (reqResp.ok) setRequests((await reqResp.json()).requests || [])
       if (clResp.ok) setClinics((await clResp.json()).clinics || [])
     } finally { setLoading(false) }
@@ -42,12 +45,11 @@ export default function AdminConsultationRequestsPage() {
   useEffect(() => { load() }, [load])
 
   const assignClinic = async (id: string, clinic_id: string) => {
-    const token = localStorage.getItem('admin_token')
-    if (!token) return
     await fetch(`${API_URL}/api/admin/consultation-requests/${id}/assign-clinic`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ clinic_id }),
+      credentials: 'include' as RequestCredentials,
     })
     await load()
   }

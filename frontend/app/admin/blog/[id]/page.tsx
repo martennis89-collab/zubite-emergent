@@ -96,22 +96,14 @@ export default function EditBlogPostPage() {
     setIsUploading(true)
     setError('')
 
-    const token = localStorage.getItem('admin_token')
-    if (!token) {
-      router.push('/admin')
-      return
-    }
-
     try {
       const formDataUpload = new FormData()
       formDataUpload.append('file', file)
 
       const response = await fetch('/api/admin/upload', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formDataUpload
+        body: formDataUpload,
+        credentials: 'include' as RequestCredentials,
       })
 
       if (!response.ok) {
@@ -136,23 +128,15 @@ export default function EditBlogPostPage() {
 
   useEffect(() => {
     const fetchPost = async () => {
-      const token = localStorage.getItem('admin_token')
-      if (!token) {
-        router.push('/admin')
-        return
-      }
-
       try {
         const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
         const response = await fetch(`${API_URL}/api/admin/blog/posts/${postId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          }
+          credentials: 'include' as RequestCredentials,
         })
 
         if (!response.ok) {
-          if (response.status === 401) {
-            localStorage.removeItem('admin_token')
+          if (response.status === 401 || response.status === 403) {
+            try { localStorage.removeItem('admin_token'); localStorage.removeItem('admin_user') } catch { /* noop */ }
             router.push('/admin')
             return
           }
@@ -187,7 +171,6 @@ export default function EditBlogPostPage() {
     setError('')
     setIsSaving(true)
 
-    const token = localStorage.getItem('admin_token')
     const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
     try {
@@ -199,12 +182,8 @@ export default function EditBlogPostPage() {
 
       const response = await fetch(`${API_URL}/api/admin/blog/posts/${postId}`, {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(updateData)
-      })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData), credentials: 'include' as RequestCredentials,})
 
       if (!response.ok) {
         const data = await response.json()
@@ -230,16 +209,11 @@ export default function EditBlogPostPage() {
       return
     }
 
-    const token = localStorage.getItem('admin_token')
     const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
     try {
       const response = await fetch(`${API_URL}/api/admin/blog/posts/${postId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
-      })
+        method: 'DELETE', credentials: 'include' as RequestCredentials,})
 
       if (response.ok) {
         router.push('/admin/blog')
@@ -249,9 +223,12 @@ export default function EditBlogPostPage() {
     }
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem('admin_token')
-    localStorage.removeItem('admin_user')
+  const handleLogout = async () => {
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+      await fetch(`${API_URL}/api/admin/logout`, { method: 'POST', credentials: 'include' as RequestCredentials })
+    } catch { /* noop */ }
+    try { localStorage.removeItem('admin_token'); localStorage.removeItem('admin_user') } catch { /* noop */ }
     router.push('/admin')
   }
 

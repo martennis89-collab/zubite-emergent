@@ -91,12 +91,9 @@ function DetailView({ app, onClose, onUpdate }: {
   const handleRegeneratePassword = async () => {
     setRegenLoading(true)
     setRegenResult(null)
-    const token = localStorage.getItem('admin_token')
     try {
       const res = await fetch(`${API_URL}/api/admin/clinic-applications/${app.id}/regenerate-password`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-      })
+        method: 'POST', credentials: 'include' as RequestCredentials,})
       if (res.ok) {
         const data = await res.json()
         setRegenResult({ email: data.credentials.email, password: data.credentials.password, email_sent: data.email_sent })
@@ -332,18 +329,13 @@ export default function ClinicApplicationsPage() {
   const router = useRouter()
 
   const fetchApplications = useCallback(async () => {
-    const token = localStorage.getItem('admin_token')
-    if (!token) {
-      router.push('/admin')
-      return
-    }
     try {
       const res = await fetch(`${API_URL}/api/admin/clinic-applications`, {
-        headers: { 'Authorization': `Bearer ${token}` },
+        credentials: 'include' as RequestCredentials,
       })
       if (!res.ok) {
-        if (res.status === 401) {
-          localStorage.removeItem('admin_token')
+        if (res.status === 401 || res.status === 403) {
+          try { localStorage.removeItem('admin_token'); localStorage.removeItem('admin_user') } catch { /* noop */ }
           router.push('/admin')
         }
         return
@@ -360,14 +352,11 @@ export default function ClinicApplicationsPage() {
   useEffect(() => { fetchApplications() }, [fetchApplications])
 
   const handleUpdate = async (id: string, data: { status?: string; notes?: string }): Promise<{ clinic_credentials?: { email: string; temporary_password: string } } | null> => {
-    const token = localStorage.getItem('admin_token')
-    if (!token) return null
     try {
       const res = await fetch(`${API_URL}/api/admin/clinic-applications/${id}`, {
         method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data), credentials: 'include' as RequestCredentials,})
       if (res.ok) {
         const result = await res.json()
         if (result.clinic_account_created) {
@@ -444,7 +433,14 @@ export default function ClinicApplicationsPage() {
                 <span className="hidden sm:inline">Блог</span>
               </Link>
               <button
-                onClick={() => { localStorage.removeItem('admin_token'); localStorage.removeItem('admin_user'); router.push('/admin') }}
+                onClick={async () => {
+                  try {
+                    const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+                    await fetch(`${API_URL}/api/admin/logout`, { method: 'POST', credentials: 'include' as RequestCredentials })
+                  } catch { /* noop */ }
+                  try { localStorage.removeItem('admin_token'); localStorage.removeItem('admin_user') } catch { /* noop */ }
+                  router.push('/admin')
+                }}
                 className="flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors"
                 data-testid="logout-btn"
               >

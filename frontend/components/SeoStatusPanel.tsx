@@ -30,14 +30,11 @@ export function SeoStatusPanel({ postId, autoFetch = true }: { postId: string; a
   const [copied, setCopied] = useState(false)
 
   const fetchStatus = useCallback(async () => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null
-    if (!token) return
-    setIsLoading(true)
     setError('')
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
       const res = await fetch(`${API_URL}/api/admin/blog/posts/${postId}/seo-status`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include' as RequestCredentials,
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))

@@ -1,5 +1,46 @@
 # Zubite.bg — Changelog
 
+## 2026-02-10 — P2 Auth/Session Hardening — Batch E2 (P1) — Admin Frontend Cutover
+
+### Frontend — admin cookie migration (Bearer/localStorage now unused for admin)
+- **15 files updated**:
+  - `app/admin/page.tsx` (login): `/api/admin/me` cookie probe replaces localStorage check; login `fetch` uses `credentials: 'include'`; on success cleans up any stale `admin_token`/`admin_user` from a prior version and redirects to dashboard. The `access_token` in the response body is deliberately ignored.
+  - `app/admin/dashboard/page.tsx`: removed `Bearer` from headers var, all fetches `credentials: 'include'`. `handleLogout` now POSTs to `/api/admin/logout` with credentials, then redirects.
+  - `app/admin/leads/page.tsx`, `app/admin/leads/[id]/page.tsx`: cookie-only fetches; 401/403 → cleanup + redirect.
+  - `app/admin/analytics/page.tsx`: all 3 fetches + logout migrated.
+  - `app/admin/blog/page.tsx`, `app/admin/blog/new/page.tsx`, `app/admin/blog/[id]/page.tsx`, `app/admin/blog/import/page.tsx`: cookie auth + logout endpoint. File uploads now also carry `credentials: 'include'`.
+  - `app/admin/clinics/page.tsx`, `app/admin/clinic-applications/page.tsx`, `app/admin/consultation-requests/page.tsx`, `app/admin/consultation-requests/[id]/page.tsx`: same pattern; inline logout button in clinic-applications also POSTs to logout endpoint.
+  - `components/AICallPanel.tsx`, `components/SeoStatusPanel.tsx`: cookie-based fetches.
+- **Pattern used everywhere**: every admin fetch carries `credentials: 'include' as RequestCredentials` and drops `Authorization: Bearer …`. No new helper module / no React Context refactor — surgical inline migration only.
+- **localStorage admin keys**: never WRITTEN by frontend any more (zero `setItem` for `admin_token`/`admin_user`). Still REMOVED defensively in two cases (per spec): (a) on 401/403 from any admin endpoint, (b) on successful login + logout. This is harmless cleanup of stale state from prior versions.
+- **No clinic file touched** — `/clinic/*`, `components/ClinicShell.tsx`, `CookieConsent.tsx`, `BlogViewTracker.tsx`, `MetaPixel.tsx` untouched (verified by git diff scope).
+- **No patient-facing page touched** — no edit under `/app/(public)`, `/app/quiz`, `/app/blog`, `/app/za-kliniki`, etc.
+
+### TypeScript / build
+- `npx tsc --noEmit` over the migrated files yields only **3 pre-existing errors** (verified against pre-E2 baseline via `git stash`):
+  - 2× `TS2802` `Set<string>` iteration in `blog/import/page.tsx`.
+  - 1× `TS2367` `!selectedIds.size === 0` in `dashboard/page.tsx`.
+- All E2 edits compile cleanly.
+
+### Backend regression
+- Re-ran **E1** suite — **29/29 PASS**.
+- Backend code path unchanged in E2 — Bearer header still works, cookie auth still works, logout endpoint still emits audit.
+
+### Live preview verification (Playwright)
+- `POST /api/admin/login` returns 200 + `Set-Cookie: zubite_admin_session=…; HttpOnly; Secure; SameSite=Lax; Max-Age=86400; Path=/`.
+- After login: `localStorage.admin_token = undefined`, `localStorage.admin_user = undefined`. ✅
+- Cookie present in browser: `cookies = [cf_clearance, _fbp, zubite_admin_session, __cf_bm]`. ✅
+- All 6 admin pages (`/dashboard`, `/leads`, `/analytics`, `/blog`, `/clinics`, `/consultation-requests`, `/clinic-applications`) load via cookie session. ✅
+- **Hard refresh** on `/admin/dashboard` keeps user signed in. ✅
+- `POST /api/admin/logout` returns 200; `zubite_admin_session` cookie cleared. ✅
+- After logout, `/admin/dashboard` → redirects to `/admin`. ✅
+
+### Explicitly out of scope of E2 (deferred to E3/E4/E5)
+- **No clinic frontend changes.** Clinic still uses localStorage `clinic_token` + Bearer — E3 territory.
+- **No backend changes.** `access_token` still returned in login bodies; Bearer header still accepted server-side — E4 territory.
+- **No sessions collection / no `jti` / no token revocation** — E5 territory.
+
+
 ## 2026-02-10 — P2 Auth/Session Hardening — Batch E1 (P1)
 
 ### Backend — cookie-or-Bearer auth foundation (fully additive)

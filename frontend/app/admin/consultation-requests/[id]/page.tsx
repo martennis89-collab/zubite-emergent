@@ -31,14 +31,21 @@ export default function AdminConsultationDetail() {
   const [busy, setBusy] = useState(false)
 
   const load = useCallback(async () => {
-    const token = localStorage.getItem('admin_token')
-    if (!token) { router.replace('/admin'); return }
     setLoading(true)
     try {
       const [a, b] = await Promise.all([
-        fetch(`${API_URL}/api/admin/consultation-requests/${id}`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API_URL}/api/admin/consultation-requests/${id}/events`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_URL}/api/admin/consultation-requests/${id}`, {
+          credentials: 'include' as RequestCredentials,
+        }),
+        fetch(`${API_URL}/api/admin/consultation-requests/${id}/events`, {
+          credentials: 'include' as RequestCredentials,
+        }),
       ])
+      if (a.status === 401 || a.status === 403) {
+        try { localStorage.removeItem('admin_token'); localStorage.removeItem('admin_user') } catch { /* noop */ }
+        router.replace('/admin')
+        return
+      }
       if (a.ok) setData(await a.json())
       if (b.ok) setEvents(((await b.json()) as EventsResp).events || [])
     } finally { setLoading(false) }
@@ -48,15 +55,11 @@ export default function AdminConsultationDetail() {
 
   const addNote = async () => {
     if (!note.trim()) return
-    const token = localStorage.getItem('admin_token')
-    if (!token) return
-    setBusy(true)
     try {
       await fetch(`${API_URL}/api/admin/consultation-requests/${id}`, {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notes: note }),
-      })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: note }), credentials: 'include' as RequestCredentials,})
       setNote('')
       await load()
     } finally { setBusy(false) }

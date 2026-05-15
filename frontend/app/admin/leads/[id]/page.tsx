@@ -115,20 +115,21 @@ export default function LeadDetailPage() {
   })
   
   useEffect(() => {
-    const token = localStorage.getItem('admin_token')
-    if (!token) {
-      router.push('/admin')
-      return
-    }
-    
     const fetchLead = async () => {
       try {
         const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
         const response = await fetch(`${API_URL}/api/admin/leads`, {
-          headers: { Authorization: `Bearer ${token}` }
+          credentials: 'include' as RequestCredentials,
         })
         
-        if (!response.ok) throw new Error('Unauthorized')
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            try { localStorage.removeItem('admin_token'); localStorage.removeItem('admin_user') } catch { /* noop */ }
+            router.push('/admin')
+            return
+          }
+          throw new Error('Failed')
+        }
         
         const leads = await response.json()
         const foundLead = leads.find((l: Lead) => l.id === leadId)
@@ -156,8 +157,7 @@ export default function LeadDetailPage() {
   }, [router, leadId])
   
   const handleSave = async () => {
-    const token = localStorage.getItem('admin_token')
-    if (!token || !lead) return
+    if (!lead) return
     
     setSaving(true)
     setMessage(null)
@@ -166,12 +166,8 @@ export default function LeadDetailPage() {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${API_URL}/api/admin/leads/${lead.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(editForm)
-      })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm), credentials: 'include' as RequestCredentials,})
       
       if (!response.ok) throw new Error('Failed to update')
       
@@ -186,8 +182,7 @@ export default function LeadDetailPage() {
   }
   
   const handleDelete = async () => {
-    const token = localStorage.getItem('admin_token')
-    if (!token || !lead) return
+    if (!lead) return
     
     if (!confirm('Сигурен ли си, че искаш да изтриеш този лийд?')) return
     
@@ -196,9 +191,7 @@ export default function LeadDetailPage() {
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${API_URL}/api/admin/leads/${lead.id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
-      })
+        method: 'DELETE', credentials: 'include' as RequestCredentials,})
       
       if (!response.ok) throw new Error('Failed to delete')
       

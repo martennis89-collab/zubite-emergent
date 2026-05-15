@@ -171,9 +171,7 @@ function ClinicVerificationPanel({ lead, onMessage, onLeadUpdate }: {
   const [sendingVerification, setSendingVerification] = useState(false)
 
   useEffect(() => {
-    const token = localStorage.getItem('admin_token')
-    if (!token) return
-    fetch(`${API_URL}/api/admin/clinic-accounts`, { headers: { 'Authorization': `Bearer ${token}` } })
+    fetch(`${API_URL}/api/admin/clinic-accounts`, { credentials: 'include' as RequestCredentials })
       .then(r => r.json())
       .then(d => setClinics(d.clinics || []))
       .catch(() => {})
@@ -181,14 +179,12 @@ function ClinicVerificationPanel({ lead, onMessage, onLeadUpdate }: {
 
   const handleAssign = async () => {
     if (!selectedClinicId) return
-    const token = localStorage.getItem('admin_token')
     setAssigning(true)
     try {
       const res = await fetch(`${API_URL}/api/admin/leads/${lead.id}/assign-clinic`, {
         method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clinic_id: selectedClinicId }),
-      })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clinic_id: selectedClinicId }), credentials: 'include' as RequestCredentials,})
       const data = await res.json()
       if (res.ok) {
         onMessage({ type: 'success', text: `Лийдът е насочен към ${data.assigned_to}` })
@@ -201,13 +197,10 @@ function ClinicVerificationPanel({ lead, onMessage, onLeadUpdate }: {
   }
 
   const handleSendVerification = async () => {
-    const token = localStorage.getItem('admin_token')
     setSendingVerification(true)
     try {
       const res = await fetch(`${API_URL}/api/admin/leads/${lead.id}/send-verification`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-      })
+        method: 'POST', credentials: 'include' as RequestCredentials,})
       const data = await res.json()
       if (res.ok) {
         onMessage({ type: 'success', text: data.message || 'Верификацията е изпратена' })
@@ -310,16 +303,9 @@ export default function AdminDashboardPage() {
   const router = useRouter()
   
   const fetchData = useCallback(async () => {
-    const token = localStorage.getItem('admin_token')
-    if (!token) {
-      router.push('/admin')
-      return
-    }
-    
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
       const headers = {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       }
       
@@ -329,13 +315,13 @@ export default function AdminDashboardPage() {
       if (filterTreatment) params.append('treatment_type', filterTreatment)
       
       const [leadsRes, statsRes] = await Promise.all([
-        fetch(`${API_URL}/api/admin/leads?${params.toString()}`, { headers }),
-        fetch(`${API_URL}/api/admin/stats`, { headers })
+        fetch(`${API_URL}/api/admin/leads?${params.toString()}`, { headers, credentials: 'include' as RequestCredentials }),
+        fetch(`${API_URL}/api/admin/stats`, { headers, credentials: 'include' as RequestCredentials })
       ])
       
       if (!leadsRes.ok || !statsRes.ok) {
-        if (leadsRes.status === 401 || statsRes.status === 401) {
-          localStorage.removeItem('admin_token')
+        if (leadsRes.status === 401 || statsRes.status === 401 || leadsRes.status === 403 || statsRes.status === 403) {
+          try { localStorage.removeItem('admin_token'); localStorage.removeItem('admin_user') } catch { /* noop */ }
           router.push('/admin')
           return
         }
@@ -360,20 +346,22 @@ export default function AdminDashboardPage() {
     fetchData()
   }, [fetchData])
   
-  const handleLogout = () => {
-    localStorage.removeItem('admin_token')
-    localStorage.removeItem('admin_user')
+  const handleLogout = async () => {
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+      await fetch(`${API_URL}/api/admin/logout`, {
+        method: 'POST',
+        credentials: 'include' as RequestCredentials,
+      })
+    } catch { /* noop — cookie may already be gone */ }
+    try { localStorage.removeItem('admin_token'); localStorage.removeItem('admin_user') } catch { /* noop */ }
     router.push('/admin')
   }
   
   const handleExportCSV = async () => {
-    const token = localStorage.getItem('admin_token')
-    if (!token) return
-    
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
     const response = await fetch(`${API_URL}/api/admin/leads/export/csv`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+        credentials: 'include' as RequestCredentials,
+      })
     
     if (response.ok) {
       const blob = await response.blob()
@@ -388,16 +376,10 @@ export default function AdminDashboardPage() {
   const handleResetAnalytics = async () => {
     if (!confirm('Сигурен ли си, че искаш да нулираш всички аналитики? Това действие е необратимо.')) return
     
-    const token = localStorage.getItem('admin_token')
-    if (!token) return
-    
-    setResettingAnalytics(true)
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${API_URL}/api/admin/reset-analytics`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
+        method: 'POST', credentials: 'include' as RequestCredentials,})
       
       if (response.ok) {
         const data = await response.json()
@@ -431,20 +413,15 @@ export default function AdminDashboardPage() {
   }
 
   const handleSaveLead = async () => {
-    const token = localStorage.getItem('admin_token')
-    if (!token || !selectedLead) return
+    if (!selectedLead) return
     
     setSaving(true)
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${API_URL}/api/admin/leads/${selectedLead.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(editForm)
-      })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm), credentials: 'include' as RequestCredentials,})
       
       if (response.ok) {
         setMessage({ type: 'success', text: 'Лийдът е обновен успешно!' })
@@ -463,8 +440,7 @@ export default function AdminDashboardPage() {
   }
 
   const handleDeleteLead = async () => {
-    const token = localStorage.getItem('admin_token')
-    if (!token || !selectedLead) return
+    if (!selectedLead) return
     
     if (!confirm('Сигурен ли си, че искаш да изтриеш този лийд?')) return
     
@@ -472,9 +448,7 @@ export default function AdminDashboardPage() {
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
       const response = await fetch(`${API_URL}/api/admin/leads/${selectedLead.id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
+        method: 'DELETE', credentials: 'include' as RequestCredentials,})
       
       if (response.ok) {
         closeModal()
@@ -490,8 +464,7 @@ export default function AdminDashboardPage() {
   }
 
   const handleBulkDelete = async () => {
-    const token = localStorage.getItem('admin_token')
-    if (!token || selectedIds.size === 0) return
+    if (!selectedIds.size === 0) return
     
     if (!confirm(`Сигурен ли си, че искаш да изтриеш ${selectedIds.size} лийда?`)) return
     
@@ -502,9 +475,7 @@ export default function AdminDashboardPage() {
       // Delete each selected lead
       const deletePromises = Array.from(selectedIds).map(id =>
         fetch(`${API_URL}/api/admin/leads/${id}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
+          method: 'DELETE', credentials: 'include' as RequestCredentials,})
       )
       
       await Promise.all(deletePromises)
@@ -1157,11 +1128,10 @@ export default function AdminDashboardPage() {
                       }}
                       onRefresh={async () => {
                         // Refresh lead data
-                        const token = localStorage.getItem('admin_token')
                         const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
                         const response = await fetch(`${API_URL}/api/admin/leads`, {
-                          headers: { 'Authorization': `Bearer ${token}` }
-                        })
+        credentials: 'include' as RequestCredentials,
+      })
                         if (response.ok) {
                           const data = await response.json()
                           const updatedLead = data.find((l: Lead) => l.id === selectedLead.id)
