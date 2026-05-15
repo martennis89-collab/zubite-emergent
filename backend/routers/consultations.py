@@ -1029,6 +1029,49 @@ async def clinic_dashboard_overview(clinic=Depends(get_current_clinic)):
     response_diffs = [d for r in all_requests if (d := _iso_diff_seconds(r.get("assigned_at"), r.get("first_action_at"))) is not None]
     book_diffs = [d for r in all_requests if (d := _iso_diff_seconds(r.get("assigned_at"), r.get("appointment_booked_at"))) is not None]
 
+    # 7-day trend: counts of newly assigned requests and bookings per day.
+    today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    span_start = (today - timedelta(days=6)).isoformat()
+    trend_docs = await db.consultation_requests.find(
+        {
+            "assigned_clinic_id": cid,
+            "$or": [
+                {"assigned_at": {"$gte": span_start}},
+                {"appointment_booked_at": {"$gte": span_start}},
+            ],
+        },
+        {"_id": 0, "assigned_at": 1, "appointment_booked_at": 1},
+    ).to_list(5000)
+    days: List[Dict[str, Any]] = []
+    for i in range(7):
+        d = today - timedelta(days=6 - i)
+        d_iso = d.date().isoformat()
+        assigned = sum(
+            1 for r in trend_docs
+            if (r.get("assigned_at") or "")[:10] == d_iso
+        )
+        booked = sum(
+            1 for r in trend_docs
+            if (r.get("appointment_booked_at") or "")[:10] == d_iso
+        )
+        days.append({"date": d_iso, "assigned": assigned, "booked": booked})
+
+    # Top 5 active (non-terminal) requests, most recent first.
+    active_statuses = [
+        "new", "assigned", "clinic_viewed", "call_attempted",
+        "no_answer", "patient_contacted", "booked", "rescheduled",
+    ]
+    top_docs = await db.consultation_requests.find(
+        {"assigned_clinic_id": cid, "status": {"$in": active_statuses}},
+        {
+            "_id": 0,
+            "id": 1, "patient_name": 1, "patient_phone": 1,
+            "treatment_interest": 1, "status": 1,
+            "urgency": 1, "created_at": 1, "assigned_at": 1,
+            "appointment_booked_at": 1,
+        },
+    ).sort("created_at", -1).to_list(5)
+
     return {
         "new_requests": new_count,
         "awaiting_action": awaiting_action,
@@ -1037,6 +1080,8 @@ async def clinic_dashboard_overview(clinic=Depends(get_current_clinic)):
         "no_show_this_month": no_show_this_month,
         "avg_response_seconds": _avg_seconds(response_diffs),
         "avg_time_to_book_seconds": _avg_seconds(book_diffs),
+        "weekly_trend": days,
+        "top_active_requests": top_docs,
     }
 
 

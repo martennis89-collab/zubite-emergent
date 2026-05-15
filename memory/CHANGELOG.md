@@ -1,5 +1,33 @@
 # Zubite.bg — Changelog
 
+## 2026-02-10 — Clinic Portal UX — Batch C4 (Dashboard Overview Redesign)
+
+### Backend — `/api/clinic/dashboard-overview` enriched
+- **`backend/routers/consultations.py`** — `clinic_dashboard_overview()` now also returns:
+  - `weekly_trend`: array of 7 `{date, assigned, booked}` points covering the last 7 calendar days (UTC). Counts are derived from `assigned_at` / `appointment_booked_at` date prefixes against the current clinic's requests.
+  - `top_active_requests`: up to 5 most-recently-created non-terminal requests `{id, patient_name, patient_phone, treatment_interest, urgency, status, created_at, assigned_at, appointment_booked_at}` (active = `new|assigned|clinic_viewed|call_attempted|no_answer|patient_contacted|booked|rescheduled`). Sorted by `created_at desc`.
+- All existing KPI keys preserved (`new_requests`, `awaiting_action`, `booked_this_month`, `attended_this_month`, `no_show_this_month`, `avg_response_seconds`, `avg_time_to_book_seconds`). Regression test `test_11_dashboard_overview` still passes.
+
+### Frontend — `/clinic/dashboard` redesigned (163 → 350 LOC)
+- **NEW `frontend/components/clinic/WeeklyTrendChart.tsx`** (~145 LOC) — lightweight inline SVG line chart, **no dependency added**:
+  - Two series (Назначени заявки sky-600 / Резервации emerald-600) with gradient area fill, dotted gridlines, daily x-axis labels in Bulgarian (`weekday: 'short'`), auto y-scale with 20% headroom, `data-testid="weekly-trend-chart"`.
+- **`frontend/app/clinic/dashboard/page.tsx`** — full redesign:
+  - **Hero KPIs**: 4 large cards (`grid-cols-2 lg:grid-cols-4`) — Нови / неназначени, Чакат действие, Резервирани (месец), Посетили (месец). Numeric values are emphasized when > 0 (slate-900) else dimmed (slate-400). First two cards surface contextual CTAs ("Реагирай сега" / "Прегледай заявките") only when count > 0.
+  - **Chart + Active panel** (`lg:grid-cols-3`): WeeklyTrendChart takes 2/3 column; "Активни заявки" panel takes 1/3 — up to 5 rows of `{patient_name, phone, treatment, преди X}` with status badge, each row links to `/clinic/dashboard/requests/[id]`. Empty state: "Няма активни заявки в момента."
+  - **Secondary stats**: 3 compact horizontal cards — Не се явили (месец), средно време до първо действие, средно време до резервация. Pulled out of the hero so the visual hierarchy stays clean.
+  - **Tips card**: gradient `from-sky-50 to-white` border-sky-100, same 3-step guidance preserved.
+  - **Skeleton loader**: replaces the previous "Зареждане…" plain text — full-fidelity pulse skeleton for hero, chart row, secondary row.
+- All elements have `data-testid` (`kpi-new`, `kpi-awaiting`, `kpi-booked`, `kpi-attended`, `kpi-noshow`, `kpi-avg-response`, `kpi-avg-book`, `weekly-trend-section`, `weekly-trend-chart`, `top-active-requests-section`, `top-request-{id}`, `top-requests-all-link`).
+- No `recharts` (or any other chart lib) added to `package.json`.
+
+### Verification
+- Backend regression: `pytest tests/test_consultation_workflow.py::test_11_dashboard_overview` ✅, `test_12_clinic_performance` ✅.
+- Live preview (desktop 1440×900): hero shows real counts (2 / 2 / 0 / 0), chart renders 7-day series with the spike on today (2 назначени), Активни заявки panel lists "Тест Пациент" + "Test User" with Bulgarian "Назначена" badges. ✅
+- Live preview (mobile 390×844): hero collapses to 2×2 grid, chart remains readable (horizontal scroll allowed via `min-w-[480px]`), no layout overflow. ✅
+- `npx tsc --noEmit`: zero new TS errors. The pre-existing TS2802 (calendar) is unchanged.
+
+
+
 ## 2026-02-10 — Clinic Portal UX — Batch C3 (Requests List Mobile Cards & Polish)
 
 ### Frontend — clinic request list demo-readiness pass
