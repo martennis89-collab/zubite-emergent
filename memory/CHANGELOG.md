@@ -1,5 +1,185 @@
 # Zubite.bg — Changelog
 
+## 2026-05-16 — Clinic Profile Engagement Upgrade R1
+
+Made the public clinic profile a true **decision-support page** for
+patients, not a static directory entry. Frontend-only batch — single
+file edit + one new export, **zero backend changes**, zero new
+dependencies, no admin / clinic-portal scope drift.
+
+### Files changed
+- `frontend/app/results/[leadId]/clinics/[clinicId]/page.tsx` — added 5
+  new sections + 2 wrapper components inside the existing file
+  (~410 LOC additions, ~25 LOC removals). The legacy
+  `Какво да очаквате при първата стъпка` micro-section was replaced
+  by the richer `PostRequestTimeline`. The legacy
+  `ReviewSignalsSection` was superseded by the new consolidated
+  `TrustSignalsSection` (import commented out, kept for reference).
+- `memory/CHANGELOG.md` — appended entry.
+
+### Sections added / upgraded
+1. **`ClinicDecisionSidebar`** (desktop sticky, `lg:` only). Contents:
+   tier badge (Premium/Featured), clinic name, city, "Подходяща за"
+   chips, primary `Искам обаждане` CTA (uses existing `RequestCallCta`),
+   secondary `← Назад към препоръчаните клиники` link, Care Pass
+   micro-note. Hidden on `<lg`.
+2. **`MobileDecisionStrip`** (`lg:hidden`). Compact CTA + Care Pass
+   note kept above the fold on small screens so the desktop sticky
+   sidebar's primary action stays accessible on mobile too. No fixed
+   positioning → no horizontal overflow / no z-index conflict with
+   the existing cookie banner.
+3. **`ClinicFitPanel`** — "Подходяща ли е тази клиника за мен?"
+   4-card grid: Лечение / фокус, Град / достъпност, Тип заявка,
+   Следваща стъпка. Cautious copy ("Може да е подходяща опция, ако
+   търсите…"). No "най-добрата" / "гарантирано подходяща" /
+   "Zubite препоръчва лечение" phrases.
+4. **`PostRequestTimeline`** — 3-step "Какво се случва след заявката?"
+   sequence: 1) Изпращате заявка, 2) Клиниката се свързва с вас,
+   3) Посещавате консултация. Includes the safety note
+   "Zubite не поставя диагноза и не заменя преглед при лекар."
+5. **`TrustSignalsSection`** — "Сигнали за доверие" using ONLY existing
+   data (see Data sources below). Honest empty state when no signals
+   present.
+6. **`ClinicFAQSection`** — 5-question accordion with `useState` only,
+   no new dependency. First question open by default. Toggle via
+   `aria-expanded` + visual `+` rotation.
+
+### Treatment focus chips
+The existing treatment-tag rendering already used pill chips with
+`TREATMENT_LABELS` lookup (Алайнери / Брекети / Импланти /
+Ортодонтия / Естетична стоматология / Обща стоматология). R1
+preserves it — no fake treatments invented; honest empty state
+"Информацията за конкретните направления ще бъде потвърдена при
+разговор." stays in place when the clinic has no treatment data.
+
+### Care Pass placement
+- **Existing** Care Pass section directly under the hero (image +
+  badge + benefit copy) was preserved. Image cap stays at `aspect-square`
+  / `140px` desktop. **Not made bigger** than the clinic decision CTA.
+- **New** Care Pass micro-note added in two more places: the desktop
+  sticky sidebar (in a small sky-50/40 strip with `ShieldCheck` icon)
+  and the mobile decision strip. Wording: "При посетена консултация
+  през Zubite.bg клиниката ще ви предостави Zubite Care Pass."
+- No coupon styling, no "награда", no "гарантирана отстъпка".
+
+### Trust / review data sources used
+| Item | Source | Shown when |
+|---|---|---|
+| Google ревюта | `clinic.review_signals.sources[].platform === 'google'` | `rating > 0` OR `review_count > 0` |
+| Facebook ревюта | same | same |
+| Superdoc ревюта | same | same |
+| Добавени пациентски случаи | `clinic.clinic_profile.case_library.length` | `> 0` (Premium published only — backend already gates this) |
+| Публикуван профил | `clinic.clinic_profile.profile_status === 'published'` | true |
+| Партньор на Zubite от | `clinic.partner_since_year` | truthy |
+
+If none → empty state copy: "Все още няма добавени review сигнали за
+тази клиника." `review_signals.disclaimer` (when present) is rendered
+below the grid as soft-text.
+
+### Tier visibility
+- **Standard** profile: hero, fit panel, treatments, mobile-strip,
+  PostRequestTimeline, TrustSignals, FAQ, bottom CTA.
+- **Featured**: same + `patient_intro` (existing About card).
+- **Premium**: same + the existing Premium-only stack (Clinic Story,
+  Case Library, Doctor Spotlight, Environment, Patient Journey,
+  Zubite Feedback) — **unchanged**, all backend-gated.
+- The new sections are tier-agnostic by design (no Premium-only copy
+  inside) so Standard/Featured can never see a Premium-only empty
+  block. The Premium case library still renders only when the
+  backend exposes it (already enforced by `_public_profile_for_tier`).
+
+### Case library behaviour (unchanged)
+The existing Case Library section keeps its consent-safe wording, no
+implied guaranteed outcomes. No filter UI added in R1 (only 0–3 cases
+are typically present per profile; filtering would feel heavy). Empty
+state for **Premium** only: "Тази клиника все още не е добавила
+пациентски случаи." Standard/Featured never see this because they
+never reach the Premium block.
+
+### FAQ behaviour
+- Local `useState<number | null>(0)` — first question open by default.
+- 5 questions per spec. Safe answers — Zubite helps with clarity, not
+  diagnosis; clinic contacts patient; Care Pass after attended
+  consultation; patient can compare up to 3 clinics.
+- `data-testid="faq-question-{i}"` and `faq-answer-{i}` for each row.
+- No new dependency (no `@radix-ui/react-accordion`, no `@headlessui`).
+
+### Container width bump
+Standard / Featured tier containers were `max-w-3xl` / `max-w-4xl`.
+With the new 320px sticky sidebar these became cramped. Bumped both
+to `max-w-5xl`; Premium stays at `max-w-6xl`. Mobile widths unchanged.
+
+### Mobile verification (live preview, 390 × 844)
+| Check | Result |
+|---|---|
+| `documentElement.scrollWidth === clientWidth === innerWidth` | `[390, 390, 390]` ✅ no overflow |
+| Sticky sidebar visible on mobile | `false` ✅ (lg:block hides it) |
+| Mobile decision strip visible | `true` ✅ |
+| Fit panel renders | ✅ |
+| Post-request timeline renders | ✅ |
+| Trust signals renders | ✅ |
+| FAQ renders | ✅ |
+
+Desktop (1440 × 900) — sidebar visible with badge / city / treatment
+chips / CTA / back link / Care Pass note. Sticks to `top-24` while
+scrolling. Verified live on Sofia Premium Clinic profile.
+
+### TypeScript
+`npx tsc --noEmit` → **zero new errors**. The 6 pre-existing errors
+in unrelated files (`admin/blog/import` Set iteration,
+`admin/dashboard` line 561 boolean comparison, `lib/api.ts` index
+sig, `lib/articleTestRender`, `lib/attribution`) are unchanged.
+
+### Copy guardrails (live audit)
+✅ Used: "пациентски контекст", "следваща стъпка",
+"може да е подходяща", "сигнали за доверие", "партньорски ползи",
+"след посетена консултация".
+✅ Avoided: "най-добра", "топ клиника", "гарантиран резултат",
+"диагноза" (only mentioned in the safety disclaimer "не поставя
+диагноза"), "сертифицирана от Zubite", "проверено качество",
+"награда", "безплатно лечение", "гарантирана отстъпка".
+
+### No scope drift
+- ✅ Backend: untouched. No data model, no endpoint, no auth, no CSRF,
+  no audit-log change. No backend calls changed.
+- ✅ Admin frontend: untouched.
+- ✅ Clinic portal: untouched.
+- ✅ Quiz: untouched.
+- ✅ Request-call modal / assisted-choice modal: existing contact
+  confirm-mode (added in the previous batch) still works because the
+  modal-open path is unchanged — modal is still passed
+  `getStoredLeadContact(leadId)` from this page.
+- ✅ Analytics: existing `trackPatientEvent('request_call_modal_opened',
+  {...})` is wired on the new sidebar CTA path with the same payload
+  shape. No new event types; no analytics refactor.
+- ✅ `package.json` / dependencies: unchanged. No new dependencies.
+- ✅ Resend / Twilio / ElevenLabs: not invoked.
+- ✅ No git push / no deploy / no Save to GitHub.
+
+### Remaining risks
+- 🔴 Git secrets-leak remains BLOCKED — local-only.
+- 🟡 The legacy `ReviewSignalsSection` component file still exists
+  under `components/patient/`. Kept intact (just not imported here)
+  so any other consumer outside this page keeps working. Cleanup of
+  the file itself is deferred to a future tidy-up batch.
+- 🟢 Treatment chips are not yet **interactive** (they don't filter the
+  case library). Spec said "small cards/chips" — done. Filterable
+  chips would require a Premium-only case-library filter UI and
+  would touch the Case Library section (Premium scope), which is out
+  of R1 scope.
+
+### Safe to proceed?
+✅ **Review Collection + QR Foundation** — fully independent surface
+from this batch. The new sections read existing review data
+read-only; adding write paths or QR generation can proceed without
+re-touching what we built here.
+
+### Recommended sub-batch (optional)
+- **R1.1 — Treatment chip filtering**: when a Premium clinic has 4+
+  case_library items, let the new treatment chips filter the case
+  cards client-side. Still no backend change. Adds ~30 LOC.
+
+
 ## 2026-05-16 — Resend Live Delivery Verification (P4/P5 Admin Alerts) — BLOCKED
 
 Verification-only batch: confirm whether the existing P4/P5 admin email

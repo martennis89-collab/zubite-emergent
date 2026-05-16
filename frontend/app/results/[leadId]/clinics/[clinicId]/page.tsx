@@ -21,7 +21,7 @@ import {
   type SelectionState,
 } from '@/lib/api'
 import { TREATMENT_LABELS } from '@/lib/consultationLabels'
-import { ReviewSignalsSection } from '@/components/patient/ReviewSignalsSection'
+// import { ReviewSignalsSection } from '@/components/patient/ReviewSignalsSection' // R1: superseded by TrustSignalsSection
 import { RequestCallModal } from '@/components/patient/RequestCallModal'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
 import { getStoredLeadContact } from '@/lib/leadContact'
@@ -134,9 +134,11 @@ export default function ClinicProfilePage() {
   )
 
   // Container width varies by tier: premium gets the widest editorial width.
+  // R1 sticky sidebar needs ~320px on lg+, so we bump every tier to ensure
+  // the main column stays comfortable. Mobile is unchanged.
   const tier = clinic ? resolveTier(clinic) : 'standard'
   const containerCls =
-    tier === 'premium' ? 'max-w-6xl' : tier === 'featured' ? 'max-w-4xl' : 'max-w-3xl'
+    tier === 'premium' ? 'max-w-6xl' : tier === 'featured' ? 'max-w-5xl' : 'max-w-5xl'
 
   return (
     <main className="min-h-screen bg-slate-50 overflow-x-hidden">
@@ -158,24 +160,43 @@ export default function ClinicProfilePage() {
           ) : err ? (
             <ProfileErrorPanel kind={err} leadId={leadId} onRetry={load} />
           ) : clinic ? (
-            <ProfileBody
-              clinic={clinic}
-              leadId={leadId}
-              isThisSelected={isThisClinicSelected}
-              hasAnySelection={hasAnySelection}
-              selection={selection}
-              onOpenModal={() => {
-                if (!clinic) return
-                trackPatientEvent('request_call_modal_opened', {
-                  lead_id: leadId,
-                  clinic_id: clinic.id,
-                  source: 'clinic_profile',
-                  partner_tier: clinic.partner_tier || 'standard',
-                  placement_label: clinic.placement_label || null,
-                })
-                setModalOpen(true)
-              }}
-            />
+            <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-8">
+              <ProfileBody
+                clinic={clinic}
+                leadId={leadId}
+                isThisSelected={isThisClinicSelected}
+                hasAnySelection={hasAnySelection}
+                selection={selection}
+                onOpenModal={() => {
+                  if (!clinic) return
+                  trackPatientEvent('request_call_modal_opened', {
+                    lead_id: leadId,
+                    clinic_id: clinic.id,
+                    source: 'clinic_profile',
+                    partner_tier: clinic.partner_tier || 'standard',
+                    placement_label: clinic.placement_label || null,
+                  })
+                  setModalOpen(true)
+                }}
+              />
+              <ClinicDecisionSidebar
+                clinic={clinic}
+                leadId={leadId}
+                isThisSelected={isThisClinicSelected}
+                hasAnySelection={hasAnySelection}
+                onOpenModal={() => {
+                  if (!clinic) return
+                  trackPatientEvent('request_call_modal_opened', {
+                    lead_id: leadId,
+                    clinic_id: clinic.id,
+                    source: 'clinic_profile',
+                    partner_tier: clinic.partner_tier || 'standard',
+                    placement_label: clinic.placement_label || null,
+                  })
+                  setModalOpen(true)
+                }}
+              />
+            </div>
           ) : null}
         </div>
       </section>
@@ -273,6 +294,16 @@ function ProfileBody({
           hasAnySelection={hasAnySelection}
         />
       )}
+
+      {/* R1 — Mobile-only decision CTA card (desktop has sticky sidebar). */}
+      <MobileDecisionStrip
+        isThisSelected={isThisSelected}
+        hasAnySelection={hasAnySelection}
+        onOpenModal={onOpenModal}
+      />
+
+      {/* R1 — "Подходяща ли е тази клиника за мен?" decision-support panel */}
+      <ClinicFitPanel clinic={clinic} />
 
       {/* Care Pass — premium card near the CTA area. Never larger
           than the hero, never implies treatment discount. */}
@@ -428,10 +459,9 @@ function ProfileBody({
         />
       )}
 
-      {/* ── Review signals (all tiers, only if present) ─────── */}
-      {clinic.review_signals && clinic.review_signals.sources && clinic.review_signals.sources.length > 0 && (
-        <ReviewSignalsSection signals={clinic.review_signals} />
-      )}
+      {/* ── Review signals — superseded by the consolidated
+          TrustSignalsSection added in Engagement R1. Kept here as a
+          comment so the migration is auditable. */}
 
       {/* ── Premium-only rich section stack (P3.7) ──────────────
           Per spec, on Premium profiles render after Reviews, in this
@@ -575,27 +605,14 @@ function ProfileBody({
         </>
       )}
 
-      {/* ── Какво се случва, ако изберете тази клиника ──────────
-          For Premium this content lives inside Patient Journey above,
-          so we render the generic block ONLY for Standard + Featured. */}
-      {!isPremium && (
-        <section
-          className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
-          data-testid="profile-next-step-section"
-        >
-          <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 mb-3">
-            Какво да очаквате при първата стъпка
-          </h2>
-          <p className="text-sm text-slate-700 leading-relaxed">
-            Ако изберете тази клиника, в следващата стъпка ще потвърдите телефона
-            си и ще дадете съгласие Zubite да сподели заявката ви с клиниката.
-          </p>
-          <p className="mt-3 text-xs text-slate-500 leading-relaxed inline-flex items-start gap-2">
-            <ShieldCheck className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
-            <span>{clinic.response_expectation}</span>
-          </p>
-        </section>
-      )}
+      {/* R1 — "Какво се случва след заявката?" 3-step timeline (all tiers). */}
+      <PostRequestTimeline />
+
+      {/* R1 — "Сигнали за доверие" using existing data only. */}
+      <TrustSignalsSection clinic={clinic} />
+
+      {/* R1 — FAQ accordion. */}
+      <ClinicFAQSection />
 
       {/* ── Bottom CTA (all tiers) ──────────────────────────── */}
       <section
@@ -1350,4 +1367,429 @@ function RequestCallCta({
     </button>
   )
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Clinic Profile Engagement R1 — decision-support sections
+   ───────────────────────────────────────────────────────────── */
+
+/* Sticky decision sidebar (desktop only) */
+function ClinicDecisionSidebar({
+  clinic,
+  leadId,
+  isThisSelected,
+  hasAnySelection,
+  onOpenModal,
+}: {
+  clinic: RecommendedClinic
+  leadId: string
+  isThisSelected: boolean
+  hasAnySelection: boolean
+  onOpenModal: () => void
+}) {
+  const tier = resolveTier(clinic)
+  const treatmentList =
+    (clinic.treatments_supported && clinic.treatments_supported.length > 0
+      ? clinic.treatments_supported
+      : clinic.treatments) || []
+  return (
+    <aside
+      className="hidden lg:block lg:sticky lg:top-24 self-start"
+      data-testid="profile-decision-sidebar"
+    >
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="px-5 pt-5 pb-4 border-b border-slate-100">
+          {tier !== 'standard' && clinic.placement_label && (
+            <div className="mb-2">
+              <TierLabel tier={tier as 'premium' | 'featured'} />
+            </div>
+          )}
+          <h3 className="font-serif text-base font-semibold text-slate-900 leading-tight">
+            {clinic.name}
+          </h3>
+          {clinic.city_name && (
+            <p className="mt-1 text-xs text-slate-500 inline-flex items-center gap-1">
+              <MapPin className="w-3.5 h-3.5" />
+              {clinic.city_name}
+            </p>
+          )}
+        </div>
+
+        {treatmentList.length > 0 && (
+          <div className="px-5 py-4 border-b border-slate-100">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-2">
+              Подходяща за
+            </p>
+            <ul className="flex flex-wrap gap-1.5">
+              {treatmentList.slice(0, 5).map((t) => (
+                <li
+                  key={t}
+                  className="inline-flex items-center px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 text-[11px]"
+                >
+                  {TREATMENT_LABELS[t] || t}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="px-5 py-4 space-y-2.5">
+          <RequestCallCta
+            isSelected={isThisSelected}
+            hasAnySelection={hasAnySelection}
+            onClick={onOpenModal}
+            testid="profile-sidebar-cta"
+          />
+          <Link
+            href={`/results/${leadId}/clinics`}
+            className="inline-flex w-full items-center justify-center gap-1.5 text-xs text-slate-500 hover:text-slate-800 transition-colors"
+            data-testid="profile-sidebar-back"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Назад към препоръчаните клиники
+          </Link>
+        </div>
+
+        <div className="px-5 py-3 bg-sky-50/40 border-t border-sky-100">
+          <p className="text-[11px] text-slate-600 leading-relaxed inline-flex items-start gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-sky-600 flex-shrink-0 mt-0.5" />
+            <span>
+              При посетена консултация през Zubite.bg клиниката ще ви
+              предостави <strong className="text-slate-800">Zubite Care Pass</strong>.
+            </span>
+          </p>
+        </div>
+      </div>
+    </aside>
+  )
+}
+
+/* "Подходяща ли е тази клиника за мен?" panel */
+function ClinicFitPanel({ clinic }: { clinic: RecommendedClinic }) {
+  const treatmentList =
+    (clinic.treatments_supported && clinic.treatments_supported.length > 0
+      ? clinic.treatments_supported
+      : clinic.treatments) || []
+  const treatmentLabels = treatmentList
+    .slice(0, 4)
+    .map((t) => TREATMENT_LABELS[t] || t)
+    .join(', ')
+
+  return (
+    <section
+      className="rounded-2xl border border-teal-100 bg-gradient-to-br from-teal-50/40 via-white to-white p-5 sm:p-6"
+      data-testid="profile-fit-panel"
+    >
+      <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 mb-1">
+        Подходяща ли е тази клиника за мен?
+      </h2>
+      <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+        Ето какво знаем за клиниката, за да прецените сами дали е подходяща
+        опция за вашия случай.
+      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <FitCard
+          label="Лечение / фокус"
+          value={
+            treatmentLabels ||
+            'Конкретните направления ще бъдат потвърдени при разговор.'
+          }
+          testid="fit-card-treatments"
+        />
+        <FitCard
+          label="Град / достъпност"
+          value={clinic.city_name || 'Града ще бъде потвърден от клиниката.'}
+          testid="fit-card-city"
+        />
+        <FitCard
+          label="Тип заявка"
+          value="Безплатно първо обаждане от клиниката за уточняване на следваща стъпка."
+          testid="fit-card-request-type"
+        />
+        <FitCard
+          label="Следваща стъпка"
+          value={
+            clinic.response_expectation ||
+            'Клиниката ще се свърже с вас според процеса си за обработка на заявки.'
+          }
+          testid="fit-card-next-step"
+        />
+      </div>
+      <p className="mt-4 text-[11px] text-slate-500 leading-relaxed">
+        Може да е подходяща опция, ако търсите{' '}
+        {treatmentLabels ? <span className="text-slate-700">{treatmentLabels.toLowerCase()}</span> : 'обща стоматологична консултация'}
+        {clinic.city_name ? <> в {clinic.city_name}</> : null}. Препоръката
+        е базирана на партньорската информация — Zubite не поставя диагноза.
+      </p>
+    </section>
+  )
+}
+
+function FitCard({ label, value, testid }: { label: string; value: string; testid: string }) {
+  return (
+    <div
+      className="rounded-xl border border-slate-100 bg-white p-3.5"
+      data-testid={testid}
+    >
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
+        {label}
+      </p>
+      <p className="text-sm text-slate-700 leading-snug">{value}</p>
+    </div>
+  )
+}
+
+/* "Какво се случва след заявката?" 3-step timeline */
+function PostRequestTimeline() {
+  const steps = [
+    {
+      title: 'Изпращате заявка',
+      body: 'Потвърждавате телефона си и Zubite споделя заявката с клиниката.',
+    },
+    {
+      title: 'Клиниката се свързва с вас',
+      body: 'Клиниката ще ви се обади според процеса си за обработка на заявки.',
+    },
+    {
+      title: 'Посещавате консултация',
+      body: 'След посетена консултация клиниката ви предоставя Zubite Care Pass.',
+    },
+  ]
+  return (
+    <section
+      className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+      data-testid="profile-post-request-timeline"
+    >
+      <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 mb-1">
+        Какво се случва след заявката?
+      </h2>
+      <p className="text-xs text-slate-500 mb-5">
+        Прозрачен 3-стъпков процес — без автоматични обаждания от Zubite.
+      </p>
+      <ol className="space-y-4">
+        {steps.map((s, i) => (
+          <li
+            key={s.title}
+            className="flex gap-3 items-start"
+            data-testid={`timeline-step-${i + 1}`}
+          >
+            <span className="flex-shrink-0 w-7 h-7 rounded-full bg-sky-50 text-sky-700 font-semibold text-sm flex items-center justify-center ring-1 ring-sky-100">
+              {i + 1}
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-slate-900">{s.title}</p>
+              <p className="text-xs text-slate-600 leading-relaxed mt-0.5">
+                {s.body}
+              </p>
+            </div>
+          </li>
+        ))}
+      </ol>
+      <p className="mt-5 text-[11px] text-slate-500 leading-relaxed inline-flex items-start gap-1.5">
+        <ShieldCheck className="w-3.5 h-3.5 text-slate-400 mt-0.5 flex-shrink-0" />
+        <span>
+          Zubite не поставя диагноза и не заменя преглед при лекар.
+        </span>
+      </p>
+    </section>
+  )
+}
+
+/* "Сигнали за доверие" — uses real available data only */
+function TrustSignalsSection({ clinic }: { clinic: RecommendedClinic }) {
+  type Item = { key: string; label: string; value: string }
+  const items: Item[] = []
+
+  const sources = clinic.review_signals?.sources || []
+  for (const src of sources) {
+    const platformLabel: Record<string, string> = {
+      google: 'Google ревюта',
+      facebook: 'Facebook ревюта',
+      superdoc: 'Superdoc ревюта',
+    }
+    const label = platformLabel[src.platform] || `${src.platform} ревюта`
+    const rating =
+      typeof src.rating === 'number' && src.rating > 0
+        ? `${src.rating.toFixed(1)} ★`
+        : ''
+    const count = src.review_count > 0 ? `${src.review_count.toLocaleString('bg-BG')} мнения` : ''
+    const value = [rating, count].filter(Boolean).join(' · ') || 'Налично'
+    items.push({ key: `review-${src.platform}`, label, value })
+  }
+
+  const caseCount = clinic.clinic_profile?.case_library?.length || 0
+  if (caseCount > 0) {
+    items.push({
+      key: 'case-library',
+      label: 'Добавени пациентски случаи',
+      value: `${caseCount} ${caseCount === 1 ? 'случай' : 'случая'}`,
+    })
+  }
+
+  if (clinic.clinic_profile?.profile_status === 'published') {
+    items.push({
+      key: 'published-profile',
+      label: 'Публикуван профил',
+      value: 'Партньорска информация е потвърдена в Zubite',
+    })
+  }
+
+  if (clinic.partner_since_year) {
+    items.push({
+      key: 'partner-since',
+      label: 'Партньор на Zubite от',
+      value: String(clinic.partner_since_year),
+    })
+  }
+
+  return (
+    <section
+      className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+      data-testid="profile-trust-signals-section"
+    >
+      <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 mb-1">
+        Сигнали за доверие
+      </h2>
+      <p className="text-xs text-slate-500 mb-4">
+        Използваме само налична партньорска информация — без измислени отзиви.
+      </p>
+      {items.length > 0 ? (
+        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {items.map((it) => (
+            <li
+              key={it.key}
+              className="rounded-xl border border-slate-100 bg-slate-50/40 p-3.5"
+              data-testid={`trust-signal-${it.key}`}
+            >
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                {it.label}
+              </p>
+              <p className="text-sm text-slate-800 font-medium">{it.value}</p>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p
+          className="text-sm text-slate-600 leading-relaxed"
+          data-testid="profile-trust-signals-empty"
+        >
+          Все още няма добавени review сигнали за тази клиника.
+        </p>
+      )}
+      {clinic.review_signals?.disclaimer && (
+        <p className="mt-4 text-[11px] text-slate-400 leading-relaxed">
+          {clinic.review_signals.disclaimer}
+        </p>
+      )}
+    </section>
+  )
+}
+
+/* FAQ accordion (local React state, no new deps) */
+function ClinicFAQSection() {
+  const items = [
+    {
+      q: 'Какво става след като изпратя заявка?',
+      a: 'Клиниката получава вашата заявка и ще се свърже с вас според своя процес за обработка. Zubite не извършва автоматични обаждания.',
+    },
+    {
+      q: 'Zubite избира ли клиниката вместо мен?',
+      a: 'Не. Zubite ви помага с яснота и насочване — изборът е изцяло ваш. Ако не сте сигурни, може да поискате помощ при избор от Zubite.',
+    },
+    {
+      q: 'Получавам ли Care Pass?',
+      a: 'Zubite Care Pass се предоставя от клиниката след реално посетена консултация, заявена през Zubite.bg. Картата носи партньорски ползи — например отстъпки от марки за орална хигиена.',
+    },
+    {
+      q: 'Това диагноза ли е?',
+      a: 'Не. Zubite не поставя диагноза и не заменя преглед при лекар. Целта е да направите по-ясна следваща стъпка.',
+    },
+    {
+      q: 'Мога ли да се върна към другите клиники?',
+      a: 'Да. Може да разгледате до 3 препоръчани клиники, преди да изберете от коя да поискате обаждане.',
+    },
+  ]
+
+  const [openIdx, setOpenIdx] = useState<number | null>(0)
+
+  return (
+    <section
+      className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+      data-testid="profile-faq-section"
+    >
+      <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 mb-4">
+        Често задавани въпроси
+      </h2>
+      <ul className="divide-y divide-slate-100">
+        {items.map((it, i) => {
+          const open = openIdx === i
+          return (
+            <li key={it.q} className="py-2">
+              <button
+                type="button"
+                onClick={() => setOpenIdx(open ? null : i)}
+                aria-expanded={open}
+                className="w-full flex items-center justify-between gap-3 py-2 text-left"
+                data-testid={`faq-question-${i}`}
+              >
+                <span className="text-sm font-medium text-slate-900">
+                  {it.q}
+                </span>
+                <span
+                  className={`flex-shrink-0 w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-xs flex items-center justify-center transition-transform ${open ? 'rotate-45' : ''}`}
+                  aria-hidden="true"
+                >
+                  +
+                </span>
+              </button>
+              {open && (
+                <p
+                  className="pb-3 text-sm text-slate-600 leading-relaxed"
+                  data-testid={`faq-answer-${i}`}
+                >
+                  {it.a}
+                </p>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+    </section>
+  )
+}
+
+/* Mobile-only floating CTA card so the desktop sticky sidebar's
+   primary action stays visually accessible on small screens too. */
+function MobileDecisionStrip({
+  isThisSelected,
+  hasAnySelection,
+  onOpenModal,
+}: {
+  isThisSelected: boolean
+  hasAnySelection: boolean
+  onOpenModal: () => void
+}) {
+  return (
+    <div
+      className="lg:hidden rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50 to-white p-4 sm:p-5"
+      data-testid="profile-mobile-decision-strip"
+    >
+      <div className="flex flex-col gap-2.5">
+        <RequestCallCta
+          isSelected={isThisSelected}
+          hasAnySelection={hasAnySelection}
+          onClick={onOpenModal}
+          testid="profile-mobile-cta"
+        />
+        <p className="text-[11px] text-slate-600 leading-relaxed inline-flex items-start gap-1.5">
+          <ShieldCheck className="w-3.5 h-3.5 text-sky-600 flex-shrink-0 mt-0.5" />
+          <span>
+            При посетена консултация ще получите{' '}
+            <strong className="text-slate-800">Zubite Care Pass</strong>.
+          </span>
+        </p>
+      </div>
+    </div>
+  )
+}
+
 
