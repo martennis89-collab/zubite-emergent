@@ -8,6 +8,7 @@ import {
   PATIENT_ZUBITE_HELP_CONSENT_TEXT,
   type RequestZubiteHelpSuccess,
 } from '@/lib/api'
+import { trackPatientEvent } from '@/lib/patientAnalytics'
 
 interface Props {
   leadId: string
@@ -75,12 +76,22 @@ export function AssistedChoiceModal({
         source,
       })
       setPhase('success')
+      trackPatientEvent('assisted_choice_submitted', {
+        lead_id: leadId,
+        source,
+        success: true,
+      })
       onSuccess(r)
     } catch (e) {
       if (axios.isAxiosError(e) && e.response?.data?.detail) {
         const detail = e.response.data.detail as ErrPayload
         setError(detail)
         setPhase('error')
+        trackPatientEvent('assisted_choice_failed', {
+          lead_id: leadId,
+          source,
+          error_code: detail?.code || `http_${e.response.status}`,
+        })
         if (
           detail?.code === 'already_requested_clinic' &&
           detail?.clinic?.id
@@ -97,6 +108,11 @@ export function AssistedChoiceModal({
       } else {
         setError({ code: 'unknown', message: 'Възникна неочаквана грешка.' })
         setPhase('error')
+        trackPatientEvent('assisted_choice_failed', {
+          lead_id: leadId,
+          source,
+          error_code: 'unknown',
+        })
       }
     }
   }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import axios from 'axios'
@@ -22,6 +22,7 @@ import {
 import { TREATMENT_LABELS } from '@/lib/consultationLabels'
 import { ReviewSignalsSection } from '@/components/patient/ReviewSignalsSection'
 import { RequestCallModal } from '@/components/patient/RequestCallModal'
+import { trackPatientEvent } from '@/lib/patientAnalytics'
 
 type ErrKind =
   | null
@@ -90,6 +91,21 @@ export default function ClinicProfilePage() {
     if (leadId && clinicId) load()
   }, [leadId, clinicId, load])
 
+  // Fire `clinic_profile_viewed` once per mount, only after the clinic
+  // resolves successfully (so we don't track 404 / unauthorized views).
+  const profileViewedRef = useRef(false)
+  useEffect(() => {
+    if (profileViewedRef.current) return
+    if (!clinic || err) return
+    profileViewedRef.current = true
+    trackPatientEvent('clinic_profile_viewed', {
+      lead_id: leadId,
+      clinic_id: clinic.id,
+      partner_tier: clinic.partner_tier || 'standard',
+      placement_label: clinic.placement_label || null,
+    })
+  }, [clinic, err, leadId])
+
   const isThisClinicSelected =
     !!selection?.selected_clinic_id && selection.selected_clinic_id === clinicId
   const hasAnySelection = !!selection?.selected_clinic_id
@@ -146,7 +162,17 @@ export default function ClinicProfilePage() {
               isThisSelected={isThisClinicSelected}
               hasAnySelection={hasAnySelection}
               selection={selection}
-              onOpenModal={() => setModalOpen(true)}
+              onOpenModal={() => {
+                if (!clinic) return
+                trackPatientEvent('request_call_modal_opened', {
+                  lead_id: leadId,
+                  clinic_id: clinic.id,
+                  source: 'clinic_profile',
+                  partner_tier: clinic.partner_tier || 'standard',
+                  placement_label: clinic.placement_label || null,
+                })
+                setModalOpen(true)
+              }}
             />
           ) : null}
         </div>
@@ -157,6 +183,8 @@ export default function ClinicProfilePage() {
           leadId={leadId}
           clinic={{ id: clinic.id, name: clinic.name, city_name: clinic.city_name }}
           source="clinic_profile"
+          partnerTier={clinic.partner_tier || 'standard'}
+          placementLabel={clinic.placement_label || null}
           onClose={() => setModalOpen(false)}
           onSuccess={(resp) => {
             handleSubmitted(resp.clinic.id, resp.clinic.name || clinic.name)

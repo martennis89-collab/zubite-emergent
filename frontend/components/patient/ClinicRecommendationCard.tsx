@@ -6,6 +6,7 @@ import { Building2, MapPin, ShieldCheck, Calendar, Sparkle, ArrowRight, CheckCir
 import type { RecommendedClinic } from '@/lib/api'
 import { TREATMENT_LABELS } from '@/lib/consultationLabels'
 import { RequestCallModal } from '@/components/patient/RequestCallModal'
+import { trackPatientEvent } from '@/lib/patientAnalytics'
 
 interface Props {
   clinic: RecommendedClinic
@@ -162,6 +163,15 @@ export function ClinicRecommendationCard({
       <div className="space-y-2">
         <Link
           href={`/results/${leadId}/clinics/${clinic.id}`}
+          onClick={() => {
+            trackPatientEvent('clinic_profile_clicked', {
+              lead_id: leadId,
+              clinic_id: clinic.id,
+              partner_tier: tier || 'standard',
+              placement_label: clinic.placement_label,
+              rank_position: position,
+            })
+          }}
           className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-sky-500 text-white text-sm font-medium rounded-full hover:bg-sky-600 transition-colors"
           data-testid={`clinic-card-view-profile-${clinic.id}`}
           aria-label={`Виж профила на ${clinic.name}`}
@@ -183,6 +193,14 @@ export function ClinicRecommendationCard({
             type="button"
             disabled
             aria-disabled="true"
+            onClick={() => {
+              trackPatientEvent('matching_choice_blocked', {
+                lead_id: leadId,
+                clinic_id: clinic.id,
+                reason: 'already_requested_zubite_help',
+                attempted_action: 'request_call',
+              })
+            }}
             className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-slate-100 text-slate-400 text-sm font-medium rounded-full cursor-not-allowed"
             data-testid={`clinic-card-locked-by-assisted-${clinic.id}`}
           >
@@ -193,6 +211,14 @@ export function ClinicRecommendationCard({
             type="button"
             disabled
             aria-disabled="true"
+            onClick={() => {
+              trackPatientEvent('matching_choice_blocked', {
+                lead_id: leadId,
+                clinic_id: clinic.id,
+                reason: 'already_selected_clinic',
+                attempted_action: 'request_call',
+              })
+            }}
             className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-slate-100 text-slate-400 text-sm font-medium rounded-full cursor-not-allowed"
             data-testid={`clinic-card-disabled-${clinic.id}`}
           >
@@ -201,7 +227,16 @@ export function ClinicRecommendationCard({
         ) : (
           <button
             type="button"
-            onClick={() => setModalOpen(true)}
+            onClick={() => {
+              trackPatientEvent('request_call_modal_opened', {
+                lead_id: leadId,
+                clinic_id: clinic.id,
+                source: 'matching_card',
+                partner_tier: tier || 'standard',
+                placement_label: clinic.placement_label,
+              })
+              setModalOpen(true)
+            }}
             className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-white border border-slate-200 text-slate-800 text-sm font-medium rounded-full hover:bg-slate-50 transition-colors"
             data-testid={`clinic-card-cta-${clinic.id}`}
           >
@@ -215,6 +250,8 @@ export function ClinicRecommendationCard({
           leadId={leadId}
           clinic={{ id: clinic.id, name: clinic.name, city_name: clinic.city_name }}
           source="matching_card"
+          partnerTier={tier || 'standard'}
+          placementLabel={clinic.placement_label || null}
           onClose={() => setModalOpen(false)}
           onSuccess={(resp) => {
             const pinnedId = resp.clinic.id

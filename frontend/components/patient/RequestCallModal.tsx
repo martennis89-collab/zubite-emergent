@@ -8,12 +8,18 @@ import {
   PATIENT_CONSENT_TEXT,
   type RequestCallSuccess,
 } from '@/lib/api'
+import { trackPatientEvent } from '@/lib/patientAnalytics'
 
 interface Props {
   leadId: string
   clinic: { id: string; name: string; city_name?: string }
   source: 'matching_card' | 'clinic_profile'
   initialPhone?: string | null
+  // Analytics-only context — passed through unchanged to the
+  // request_call_submitted / request_call_failed events. Optional so
+  // existing call sites work without modification.
+  partnerTier?: string | null
+  placementLabel?: string | null
   onClose: () => void
   // Called after a successful (or duplicate-200) submit. Receives the
   // server response so the caller can mark UI as submitted across pages.
@@ -45,6 +51,8 @@ export function RequestCallModal({
   clinic,
   source,
   initialPhone,
+  partnerTier,
+  placementLabel,
   onClose,
   onSuccess,
 }: Props) {
@@ -81,6 +89,14 @@ export function RequestCallModal({
       })
       setResult(r)
       setPhase('success')
+      trackPatientEvent('request_call_submitted', {
+        lead_id: leadId,
+        clinic_id: clinic.id,
+        source,
+        partner_tier: partnerTier || null,
+        placement_label: placementLabel || null,
+        success: true,
+      })
       onSuccess(r)
     } catch (e) {
       if (axios.isAxiosError(e) && e.response?.data?.detail) {
@@ -89,6 +105,12 @@ export function RequestCallModal({
         // For 409, treat as terminal "already requested" — surface clinic.
         if (e.response.status === 409 && detail?.code === 'already_requested') {
           setPhase('error')
+          trackPatientEvent('request_call_failed', {
+            lead_id: leadId,
+            clinic_id: clinic.id,
+            source,
+            error_code: detail.code || 'already_requested',
+          })
           // Still notify the parent so it can update UI to submitted state
           // pointing at the existing clinic.
           if (detail.clinic?.id) {
@@ -106,10 +128,22 @@ export function RequestCallModal({
           }
         } else {
           setPhase('error')
+          trackPatientEvent('request_call_failed', {
+            lead_id: leadId,
+            clinic_id: clinic.id,
+            source,
+            error_code: detail?.code || `http_${e.response.status}`,
+          })
         }
       } else {
         setError({ code: 'unknown', message: 'Възникна неочаквана грешка.' })
         setPhase('error')
+        trackPatientEvent('request_call_failed', {
+          lead_id: leadId,
+          clinic_id: clinic.id,
+          source,
+          error_code: 'unknown',
+        })
       }
     }
   }

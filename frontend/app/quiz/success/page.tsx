@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useRef, useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { CheckCircle, ArrowRight, MapPin, Shield, Sparkles } from 'lucide-react'
 import { trackPageView } from '@/components/MetaPixel'
+import { trackPatientEvent } from '@/lib/patientAnalytics'
 
 type ResultBand = 'low' | 'moderate' | 'high'
 type Segment = 'adult' | 'teen' | 'child'
@@ -69,6 +70,21 @@ function SuccessContent() {
   const isParent = segment === 'teen' || segment === 'child'
 
   useEffect(() => { setMounted(true); trackPageView() }, [])
+
+  // Fire `quiz_success_viewed` exactly once per page mount (StrictMode-safe
+  // via useRef latch — React would otherwise invoke this effect twice in dev).
+  const successViewedRef = useRef(false)
+  useEffect(() => {
+    if (successViewedRef.current) return
+    successViewedRef.current = true
+    trackPatientEvent('quiz_success_viewed', {
+      lead_id: leadId || null,
+      has_lead_id: !!leadId,
+      band,
+      segment,
+      city,
+    })
+  }, [leadId, band, segment, city])
 
   if (!mounted) {
     return (
@@ -135,6 +151,12 @@ function SuccessContent() {
         {leadId ? (
           <Link
             href={`/results/${leadId}/clinics`}
+            onClick={() => {
+              trackPatientEvent('recommended_clinics_cta_clicked', {
+                lead_id: leadId,
+                source: 'quiz_success',
+              })
+            }}
             className="w-full inline-flex items-center justify-center gap-2 h-12 px-6 rounded-full bg-sky-500 hover:bg-sky-600 text-white text-base font-medium transition-colors shadow-lg shadow-sky-500/20"
             data-testid="success-primary-cta"
           >

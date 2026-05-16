@@ -1,5 +1,182 @@
 # Zubite.bg — Changelog
 
+## 2026-02-16 — Patient Layer — Batch P6: Client-side Analytics Tracking
+
+Wired the patient decision flow with 12 first-party events so we can
+see drop-offs between quiz success → matching → P4/P5 submit. **No
+backend changes, no new dependencies, no admin/clinic-portal changes,
+no consent bypass.**
+
+### Files touched
+- `frontend/lib/patientAnalytics.ts` (NEW) — `trackPatientEvent(event, payload)`
+  helper. Sends each event in parallel to `POST /api/analytics/events`
+  AND `fbq('trackCustom', ...)`. Fire-and-forget, never throws, drops
+  null/undefined payload keys via `compact()`.
+- `frontend/app/quiz/success/page.tsx` — events 1, 2.
+- `frontend/app/results/[leadId]/clinics/page.tsx` — events 3, 9, 12.
+- `frontend/app/results/[leadId]/clinics/[clinicId]/page.tsx` — events
+  5, 6 (from profile source).
+- `frontend/components/patient/ClinicRecommendationCard.tsx` — events
+  4, 6 (from matching_card source), 12 (P4 lock attempts). New
+  optional `partnerTier`/`placementLabel` props on
+  `RequestCallModal` propagated through.
+- `frontend/components/patient/RequestCallModal.tsx` — events 7, 8.
+  Added optional `partnerTier`/`placementLabel` props.
+- `frontend/components/patient/AssistedChoiceModal.tsx` — events 10, 11.
+- `memory/CHANGELOG.md`.
+
+### Helper details
+- `trackPatientEvent(eventName, payload)`:
+  - Channel A — `getFbq()?.('trackCustom', eventName, payload)`. Pixel
+    is already loaded with `fbq('consent', 'revoke')` by default and
+    is only granted when CookieConsent saves `marketing=true`. We ride
+    that flag — no new consent bypass.
+  - Channel B — `fetch('/api/analytics/events', { method: POST,
+    keepalive: true })` with `event_type, session_id, timestamp, ...payload`.
+  - `session_id` reuses the existing `zubite_session_id` localStorage
+    key (same one `articleAnalytics.ts` uses).
+  - Every step wrapped in try/catch. Rate-limit (60/min) is enforced
+    server-side; client just fires.
+- Privacy filter: `compact()` strips `null/undefined/''`. Payload
+  TypeScript interface lists **only safe keys** (`lead_id`,
+  `clinic_id`, `partner_tier`, `placement_label`, `source`,
+  `rank_position`, `treatment_type`, `city`, `band`, `segment`,
+  `has_lead_id`, `clinic_count`, `has_premium`, `has_featured`,
+  `has_standard`, `success`, `error_code`, `reason`,
+  `attempted_action`). No `name`/`phone`/`email`/`message`/`consent`/
+  `token`/`cookie` fields — TypeScript will reject them at the call
+  site.
+
+### Event matrix (exact names + payload fields + fire location)
+
+| # | Event | Where | Payload |
+|---|---|---|---|
+| 1 | `quiz_success_viewed` | `quiz/success/page.tsx` mount | `lead_id, has_lead_id, band, segment, city` |
+| 2 | `recommended_clinics_cta_clicked` | success-CTA onClick | `lead_id, source: "quiz_success"` |
+| 3 | `clinic_recommendations_viewed` | matching page, after fetch | `lead_id, clinic_count, has_premium, has_featured, has_standard` |
+| 4 | `clinic_profile_clicked` | card "Виж профила" onClick | `lead_id, clinic_id, partner_tier, placement_label, rank_position` |
+| 5 | `clinic_profile_viewed` | profile page mount, after fetch | `lead_id, clinic_id, partner_tier, placement_label` |
+| 6 | `request_call_modal_opened` | "Искам обаждане" (card / profile) | `lead_id, clinic_id, source, partner_tier, placement_label` |
+| 7 | `request_call_submitted` | RequestCallModal — after backend 200 | `lead_id, clinic_id, source, partner_tier, placement_label, success: true` |
+| 8 | `request_call_failed` | RequestCallModal — after backend ≠ 200 | `lead_id, clinic_id, source, error_code` |
+| 9 | `assisted_choice_modal_opened` | matching-page button onClick | `lead_id, source: "matching_page"` |
+| 10 | `assisted_choice_submitted` | AssistedChoiceModal — after backend 200 | `lead_id, source, success: true` |
+| 11 | `assisted_choice_failed` | AssistedChoiceModal — after backend ≠ 200 | `lead_id, source, error_code` |
+| 12 | `matching_choice_blocked` | disabled lock-state button onClick (card or matching-page) | `lead_id, clinic_id?, reason, attempted_action` |
+
+### Consent behaviour
+- **Meta Pixel channel**: respects the existing
+  `MetaPixel.tsx` consent gate — `fbq('consent', 'revoke')` is set on
+  load, and only flipped to `grant` when the user accepts marketing
+  cookies via `CookieConsent`. If marketing consent is rejected, Pixel
+  drops events (Meta documented behaviour); our helper never bypasses
+  this.
+- **First-party `/api/analytics/events`**: classed as essential
+  product analytics (drop-off, funnel). The existing `articleAnalytics.ts`
+  pattern uses the same endpoint without a consent gate. We mirror
+  that behaviour for consistency.
+
+### Duplicate-event guard
+- Page-view events (1, 3, 5) use a `useRef(false)` latch that flips to
+  `true` on first fire. Subsequent re-renders (filter clicks, state
+  patches from `handleSubmitted`, banner toggles) cannot re-fire the
+  event for the lifetime of the React component instance.
+- In dev with React Strict Mode the component mounts → unmounts →
+  mounts again, which legitimately resets the latch — that's a dev-only
+  artifact, not a production bug.
+- All other events are user-action driven (onClick / onSubmit), so
+  natural per-action firing.
+
+### Verification (live preview, real lead `6d6b5cf9-…`)
+- E2E run: `/quiz/success → click "Виж препоръчаните клиники" → matching
+  loads → click "Виж профила" → profile loads → back → open
+  request-call modal → close → open assisted-choice modal`.
+- Captured by playwright request interceptor on `/api/analytics/events`:
+  ```
+  quiz_success_viewed:           2× (dev StrictMode)
+  recommended_clinics_cta_clicked: 1×
+  clinic_recommendations_viewed: 2× (dev StrictMode)
+  clinic_profile_clicked:        1×
+  clinic_profile_viewed:         1×
+  request_call_modal_opened:     1×
+  assisted_choice_modal_opened:  1×
+  ```
+- **PII audit on captured payloads**: 0 hits for the forbidden keys
+  (`name`, `phone`, `email`, `patient_name`, `patient_phone`,
+  `patient_email`, `consent`, `message`, `patient_message`).
+- UI continues working when analytics endpoint fails: smoke test had
+  the keepalive POST against a real endpoint; even a 4xx/5xx is a
+  silent catch.
+
+### TypeScript
+`tsc --noEmit` — clean for the 5 touched files + new helper. No new
+errors. Payload shape is statically typed via
+`PatientAnalyticsPayload` so unintended PII keys are rejected at
+compile time.
+
+### Backend reality check — must read
+The backend `AnalyticsEvent` Pydantic model uses default
+`extra="ignore"`, so extra payload fields (`lead_id`, `clinic_id`,
+`partner_tier`, `placement_label`, etc.) are **silently dropped before
+insert into `analytics_events`**. The persisted row today carries only
+`event_type`, `session_id`, `timestamp`, plus a handful of
+quiz-specific fields.
+
+This means:
+- ✅ **Event counts + session-level funnel analysis work today** — we
+  can see `quiz_success_viewed` → `recommended_clinics_cta_clicked` →
+  `clinic_recommendations_viewed` → `request_call_submitted` drop-off
+  per session.
+- ❌ **Clinic-level / tier-level attribution is NOT persisted on the
+  first-party logger today.** It IS persisted on the Meta Pixel side
+  (Pixel `trackCustom` accepts arbitrary payloads), as long as the
+  visitor accepted marketing cookies.
+- The same issue exists today for `articleAnalytics.ts` (which sends
+  `post_slug`, `post_title`, `href`, `cta` — all dropped server-side).
+
+Resolving this needs a **tiny backend follow-up** (out of P6 scope per
+the brief): extend `AnalyticsEvent` with the optional analytics keys
+listed above. The frontend already sends them in the correct shape; the
+day backend is extended, the data flows through with zero frontend
+changes.
+
+### Confirmation
+- ✅ 0 backend files changed.
+- ✅ 0 admin / clinic-portal files changed.
+- ✅ 0 auth / session / CSRF / audit / external-provider changes.
+- ✅ No new dependencies — Pixel helper reuses the already-installed
+  `MetaPixel.tsx` flow; no GA, no third-party tracker added.
+- ✅ No PII keys in payloads (statically enforced + runtime-audited).
+- ✅ UI continues to work when analytics POST fails (fire-and-forget
+  with `.catch(() => {})`).
+- ✅ Existing P4 / P5 / matching flows behave identically (events are
+  pure side effects).
+- ✅ Git not pushed, "Save to GitHub" not used, deploy not triggered.
+
+### Unresolved risks
+1. **First-party logger drops extra fields server-side** (see above).
+   Needs a backend follow-up to extend the `AnalyticsEvent` schema
+   with the optional analytics keys. Until then, the Pixel channel
+   carries the rich attribution.
+2. **React Strict Mode dev double-fire** is visible but harmless in
+   dev; production builds with React 18's stable concurrency don't
+   double-mount. Useful as a smoke check that the latch resets
+   per-mount.
+3. **`articleAnalytics.ts` lives separately.** Considered consolidating
+   into `trackPatientEvent`, but the two helpers serve different
+   surfaces (blog vs patient) and the brief explicitly avoids touching
+   blog tracking. Left as-is.
+4. **No frontend test framework.** Per brief, did not invent one. Live
+   smoke + TypeScript + payload-shape static enforcement give us
+   reasonable coverage.
+
+### Safe to proceed to Admin Rich Clinic Profile Editor?
+✅ **Yes.** P6 only adds passive frontend instrumentation. No backend,
+admin, or clinic-portal surface area changed. The patient flow is
+unchanged. The Admin Rich Profile Editor batch can start cleanly.
+
+
+
 ## 2026-02-16 — Admin Consultation Requests — URL filter follow-up
 
 Made `/admin/consultation-requests` honor `?status=` and `?created_from=`

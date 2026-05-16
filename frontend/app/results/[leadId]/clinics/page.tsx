@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import axios from 'axios'
@@ -19,6 +19,7 @@ import {
 import { ClinicRecommendationCard } from '@/components/patient/ClinicRecommendationCard'
 import { ClinicMatchEmptyState } from '@/components/patient/ClinicMatchEmptyState'
 import { AssistedChoiceModal } from '@/components/patient/AssistedChoiceModal'
+import { trackPatientEvent } from '@/lib/patientAnalytics'
 
 type ErrKind = 'not_found' | 'expired' | 'rate_limited' | 'generic' | null
 
@@ -85,6 +86,22 @@ export default function ClinicMatchPage() {
   useEffect(() => {
     if (leadId) load()
   }, [leadId, load])
+
+  // Fire `clinic_recommendations_viewed` once, after a successful fetch.
+  const recosViewedRef = useRef(false)
+  useEffect(() => {
+    if (recosViewedRef.current) return
+    if (!data || errKind) return
+    recosViewedRef.current = true
+    const tiers = data.clinics.map((c) => (c.partner_tier || 'standard').toLowerCase())
+    trackPatientEvent('clinic_recommendations_viewed', {
+      lead_id: leadId,
+      clinic_count: data.clinic_count,
+      has_premium: tiers.includes('premium'),
+      has_featured: tiers.includes('featured'),
+      has_standard: tiers.includes('standard'),
+    })
+  }, [data, errKind, leadId])
 
   return (
     <main className="min-h-screen bg-slate-50 overflow-x-hidden">
@@ -248,6 +265,17 @@ export default function ClinicMatchPage() {
                     type="button"
                     disabled
                     aria-disabled="true"
+                    onClick={() => {
+                      // The button is disabled in the UI; this onClick is
+                      // belt-and-suspenders. The native disabled attribute
+                      // already prevents firing, but keep this in case a
+                      // future refactor switches to aria-disabled only.
+                      trackPatientEvent('matching_choice_blocked', {
+                        lead_id: leadId,
+                        reason: 'already_selected_clinic',
+                        attempted_action: 'assisted_choice',
+                      })
+                    }}
                     className="inline-flex items-center gap-2 px-6 py-3 bg-slate-100 text-slate-400 text-sm font-medium rounded-full cursor-not-allowed"
                     data-testid="assisted-choice-locked-by-clinic"
                   >
@@ -256,7 +284,13 @@ export default function ClinicMatchPage() {
                 ) : (
                   <button
                     type="button"
-                    onClick={() => setAssistedModalOpen(true)}
+                    onClick={() => {
+                      trackPatientEvent('assisted_choice_modal_opened', {
+                        lead_id: leadId,
+                        source: 'matching_page',
+                      })
+                      setAssistedModalOpen(true)
+                    }}
                     className="inline-flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-800 text-sm font-medium rounded-full hover:bg-slate-50 transition-colors"
                     data-testid="assisted-choice-btn"
                   >
