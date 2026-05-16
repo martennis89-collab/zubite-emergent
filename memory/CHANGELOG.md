@@ -1,5 +1,158 @@
 # Zubite.bg — Changelog
 
+## 2026-05-16 — Clinic Dashboard Visibility Upgrade: Patient Context + Source Attribution
+
+Clinics now see patient-reported context behind each request after it
+has been assigned to them — quiz answers, source of arrival, and any
+patient-shared message. **Patient-reported only, never diagnostic.**
+Strict allow-list approach: no raw JSON, no raw UTM dump, no internal
+scoring breakdown, no content-path-by-page leak.
+
+### Files changed
+- `backend/routers/consultations.py` — added `_QUIZ_QUESTION_LABELS` +
+  `_QUIZ_VALUE_LABELS` maps, `_classify_source_type()`,
+  `_safe_quiz_summary()`, `_safe_source_context()`, and an async
+  `_build_patient_context()` helper. Extended
+  `GET /api/clinic/consultation-requests/{req_id}` to attach
+  `patient_context` to the response.
+- `frontend/app/clinic/dashboard/requests/[id]/page.tsx` — added the
+  TS interfaces (`PatientContext`, `PatientContextSource`,
+  `PatientContextQuizRow`) and a `PatientContextSection` component
+  with 4 cards (Пациентски контекст / Какво споделя пациентът /
+  Отговори от въпросника / Откъде дойде заявката), inserted right
+  after the patient hero card. Empty states for every card.
+- `backend/tests/test_clinic_request_context_visibility.py` — **new**,
+  11 test cases.
+
+### Backend response shape (added on
+`GET /api/clinic/consultation-requests/{id}`)
+```json
+{
+  "request": {...},
+  "appointment": {...},
+  "events": [...],
+  "patient_context": {
+    "label": "Информация, споделена от пациента",
+    "treatment_interest": "aligners",
+    "city": "sofia",
+    "readiness": "ready",
+    "urgency": "high",
+    "main_concern": null,
+    "patient_message": null,
+    "quiz_summary": [
+      {"question_label": "Кога планира лечение",
+       "answer_label":   "В рамките на 3–6 месеца"}
+    ],
+    "source_context": {
+      "source_type": "article",
+      "article_title": "Алайнери vs Брекети…",
+      "article_slug":  "aligners-vs-braces",
+      "utm_source":    "meta",
+      "utm_campaign":  "aligners-awareness-q2",
+      "utm_ad":        "hero-video-01",
+      "content_path_summary": "Пациентът е разгледал 4 страници, включително съдържание от блога…"
+    }
+  }
+}
+```
+
+### Data sources used (allow-list)
+- From `consultation_requests`: `treatment_interest`, `patient_city`,
+  `readiness`, `urgency`, `patient_message` (P5).
+- From `leads` (projection-filtered query, NEVER `find_one` of full doc):
+  `answers` (then key-filtered against `_QUIZ_QUESTION_LABELS`),
+  `first_article_title/slug`, `latest_article_title/slug`,
+  `first_utm_source/campaign/ad`, `latest_utm_source/campaign/ad`,
+  `first_landing_page_type`, `latest_landing_page_type`,
+  `first_landing_page`, `first_referrer`,
+  `pages_viewed_before_conversion`, `blog_assisted_conversion`.
+
+### Privacy guardrails (verified by tests 4, 5, 9)
+- `verification_token`, `internal_score_breakdown` and any non-allow-list
+  lead field are dropped by the Mongo projection.
+- `content_path_before_conversion` (raw page-by-page list) is **never**
+  surfaced — only an aggregated `content_path_summary` sentence
+  ("Пациентът е разгледал 4 страници, включително съдържание от блога…").
+- Quiz keys not in `_QUIZ_QUESTION_LABELS` (e.g. `session_id`,
+  experimental flags, nested dicts) are silently dropped.
+- Nested dict/list values inside `answers` are rejected
+  (`isinstance(raw, (str, int, float, bool))` filter).
+- Long values capped at 200 chars; `patient_message` and `main_concern`
+  capped at 1000 / 500 chars respectively.
+
+### Frontend section
+- Section data-testid: `patient-context-section` (under the patient
+  hero card, above the booking summary).
+- Four cards (each with its own data-testid): `patient-context-main`,
+  `patient-context-shared`, `patient-context-quiz`, `patient-context-source`.
+- Empty state for the quiz card: "Няма налични допълнителни отговори
+  от въпросника."
+- Empty state for the source card: "Източникът на заявката не е
+  известен."
+- Friendly UTM label composer: `meta + campaign-x` →
+  "Meta / campaign-x" (no `utm_source=…` key dump).
+- Article fallback: if `article_title` is missing but `article_slug`
+  is present, slug is humanised (`-` → ` `).
+- The section is gated by `data?.patient_context` so it only appears
+  once the new endpoint shape lands; no UI churn if the field is null.
+
+### Tests (isolated DB, no network)
+1. ✅ Assigned clinic sees `patient_context` with all 9 keys + friendly
+   value resolution for known quiz codes.
+2. ✅ Clinic B requesting Clinic A's request → 404.
+3. ✅ Unauthenticated → 401/403.
+4. ✅ Internal lead fields (`verification_token`,
+   `internal_score_breakdown`, technical answer keys) never leak.
+5. ✅ Unknown keys + nested dicts dropped from `quiz_summary`.
+6. ✅ Article source context returned when
+   `first_article_title/slug` set.
+7. ✅ UTM/campaign context returned with friendly classification
+   `source_type=campaign`.
+8. ✅ Missing quiz + missing source data → empty `quiz_summary`,
+   `source_type=unknown`, no crash.
+9. ✅ `content_path_before_conversion` raw list never surfaces; only
+   the aggregated `content_path_summary` sentence does.
+10. ✅ Existing `request` / `appointment` / `events` keys still in
+    response.
+11. ✅ P5 `patient_message` surfaces on the assigned clinic's view.
+
+Full result: **`pytest tests/test_clinic_request_context_visibility.py`
+→ 11/11 PASS**. Regression run on related suites:
+`test_admin_patient_request_handling.py` (12/12),
+`test_patient_request_call.py` (31/31),
+`test_patient_assisted_choice.py` (28/28),
+`test_p4_p5_admin_notifications.py` (11/11). **Total 93/93 PASS.**
+
+### TypeScript
+`npx tsc --noEmit` → zero new errors in the edited file. The 6
+pre-existing errors in unrelated files (`admin/blog/import`,
+`admin/dashboard`, `lib/articleTestRender`, `lib/api.ts` index sig,
+`lib/attribution.ts`) are unchanged.
+
+### Mobile verification
+- 375 px viewport, scroll-width = client-width = 375 → no horizontal
+  overflow.
+- Quiz answer rows stack vertically below `sm` breakpoint
+  (label above, value below). Long article titles wrap with
+  `break-words`.
+- Section is readable, cards do not overlap sticky elements.
+
+### Out of scope (intentionally untouched)
+Patient quiz, patient matching, P4 logic, P5 logic, admin frontend,
+admin rich clinic profile editor, auth/session/CSRF, analytics tracking,
+audit logs, `/za-kliniki`, article importer, Resend/Twilio/ElevenLabs,
+package.json / dependencies. No clinic-side write actions added; the
+upgrade is read-only.
+
+### Unresolved risks
+- 🔴 Git secrets-leak remains BLOCKED — local-only, no push / deploy.
+- 🟠 Some lead documents store quiz data under nested keys like
+  `answers.context.main_concern` rather than top-level
+  `answers.main_concern`. Today we only read top-level keys; if the
+  quiz emits nested objects we silently drop them (privacy-safe but
+  may under-render). Track in the schema-cleanup backlog item.
+
+
 ## 2026-05-16 — P4 / P5 Admin Email Notifications
 
 When a patient submits a P4 (selected-clinic) or P5 (assisted-choice)

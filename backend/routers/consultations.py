@@ -741,6 +741,203 @@ async def clinic_list_consultation_requests(clinic=Depends(get_current_clinic)):
     return {"requests": requests}
 
 
+# ─── Clinic-safe patient context (P-Dash Visibility Upgrade) ──────
+#
+# A clinic, after the request is assigned to it, may see patient-reported
+# context (quiz answers, source of arrival) so they can prepare for the
+# call. This is patient-reported information ONLY — never a diagnosis,
+# never an internal score, never another clinic's data.
+#
+# Strict allow-list approach: we look up known quiz keys and known
+# attribution fields by name. Anything we don't recognise is silently
+# dropped. Raw attribution objects, content_path_before_conversion,
+# password_hash, JWT tokens, cookies, verification tokens are NEVER
+# included in the output of this helper.
+
+# Friendly Bulgarian labels for the quiz question keys we currently
+# emit from the patient-side quiz. Keys not in this map are not
+# surfaced — they may be technical (session_id) or experimental.
+_QUIZ_QUESTION_LABELS: Dict[str, str] = {
+    "seriousness":       "Колко сериозно търсене",
+    "timing":            "Кога планира лечение",
+    "importance":        "Какво е важно за пациента",
+    "previous_ortho":    "Имал ли е предишно ортодонтско лечение",
+    "pain_bite":         "Болка / дискомфорт при захапка",
+    "readiness":         "Готовност за лечение",
+    "urgency":           "Спешност",
+    "can_travel":        "Готовност да пътува",
+    "call_availability": "Кога е удобно за разговор",
+    "main_concern":      "Основен повод",
+    "age_range":         "Възрастова група",
+    "segment":           "За кого е заявката",
+}
+
+# Friendly value labels for known answer codes. Keys missing here fall
+# back to the raw value string (capitalised, single line).
+_QUIZ_VALUE_LABELS: Dict[str, Dict[str, str]] = {
+    "seriousness":       {"searching": "Проучва възможности",
+                          "considering": "Обмисля сериозно",
+                          "decided": "Решен/а да започне"},
+    "timing":            {"0-3": "В рамките на 0–3 месеца",
+                          "3-6": "В рамките на 3–6 месеца",
+                          "6-12": "В рамките на 6–12 месеца",
+                          "12+": "След повече от година"},
+    "importance":        {"quality": "Качество и опит",
+                          "price": "Цена",
+                          "speed": "Скорост на лечение",
+                          "comfort": "Комфорт"},
+    "previous_ortho":    {"yes": "Да", "no": "Не"},
+    "pain_bite":         {"yes": "Да", "no": "Не"},
+    "readiness":         {"ready": "Готов/а да започне",
+                          "researching": "Проучва",
+                          "exploring": "Тества вариантите"},
+    "urgency":           {"high": "Висока", "moderate": "Умерена", "low": "Ниска"},
+    "can_travel":        {"yes": "Да", "no": "Не"},
+}
+
+# Safe surface for the "source of arrival" panel — never expose the raw
+# UTM dictionary, just a friendly classification.
+def _classify_source_type(lead: Dict[str, Any]) -> str:
+    if not lead:
+        return "unknown"
+    if lead.get("first_article_slug") or lead.get("first_article_title"):
+        return "article"
+    src = (lead.get("first_utm_source") or lead.get("latest_utm_source") or "").lower()
+    if src in {"facebook", "meta", "instagram", "fb", "ig"} or "meta" in src:
+        return "campaign"
+    if src in {"google", "google_ads", "googleads"}:
+        return "campaign"
+    if src and src not in {"(direct)", "direct", "none", "—"}:
+        return "campaign"
+    landing_type = (
+        lead.get("first_landing_page_type")
+        or lead.get("latest_landing_page_type")
+        or ""
+    ).lower()
+    if landing_type == "quiz":
+        return "quiz"
+    if landing_type in {"article", "blog"}:
+        return "article"
+    if (lead.get("first_referrer") or "").strip():
+        return "campaign"  # external referrer
+    if lead.get("first_landing_page"):
+        return "direct"
+    return "unknown"
+
+
+def _safe_quiz_summary(lead: Dict[str, Any]) -> List[Dict[str, str]]:
+    """Return ONLY known safe quiz answers in `{question_label, answer_label}`
+    rows. Drops any key we don't have a label for."""
+    out: List[Dict[str, str]] = []
+    if not lead:
+        return out
+    answers = lead.get("answers") or {}
+    if not isinstance(answers, dict):
+        return out
+    for key, label in _QUIZ_QUESTION_LABELS.items():
+        if key not in answers:
+            continue
+        raw = answers.get(key)
+        if raw is None or raw == "":
+            continue
+        # Only allow primitive types — never serialise nested dicts/lists.
+        if not isinstance(raw, (str, int, float, bool)):
+            continue
+        raw_str = str(raw).strip()
+        if not raw_str:
+            continue
+        if len(raw_str) > 200:
+            raw_str = raw_str[:199].rstrip() + "…"
+        value_map = _QUIZ_VALUE_LABELS.get(key) or {}
+        display = value_map.get(raw_str, raw_str)
+        out.append({"question_label": label, "answer_label": display})
+    return out
+
+
+def _safe_source_context(lead: Dict[str, Any]) -> Dict[str, Any]:
+    """Friendly source/attribution summary. Never returns raw UTM blob."""
+    if not lead:
+        return {
+            "source_type": "unknown",
+            "article_title": None,
+            "article_slug": None,
+            "utm_source": None,
+            "utm_campaign": None,
+            "utm_ad": None,
+            "content_path_summary": None,
+        }
+    article_title = lead.get("first_article_title") or lead.get("latest_article_title")
+    article_slug = lead.get("first_article_slug") or lead.get("latest_article_slug")
+    # Friendly content-path summary: simply the number of pages viewed
+    # before conversion + whether a blog-assisted path was detected. We
+    # do NOT expose the page-by-page raw path.
+    pages_viewed = lead.get("pages_viewed_before_conversion")
+    blog_assisted = lead.get("blog_assisted_conversion")
+    content_path_summary: Optional[str] = None
+    if isinstance(pages_viewed, int) and pages_viewed > 0:
+        if blog_assisted:
+            content_path_summary = (
+                f"Пациентът е разгледал {pages_viewed} страници, включително "
+                f"съдържание от блога преди да попълни заявката."
+            )
+        else:
+            content_path_summary = (
+                f"Пациентът е разгледал {pages_viewed} страници преди да "
+                f"попълни заявката."
+            )
+    return {
+        "source_type": _classify_source_type(lead),
+        "article_title": article_title,
+        "article_slug": article_slug,
+        "utm_source": lead.get("first_utm_source") or lead.get("latest_utm_source"),
+        "utm_campaign": lead.get("first_utm_campaign") or lead.get("latest_utm_campaign"),
+        "utm_ad": lead.get("first_utm_ad") or lead.get("latest_utm_ad"),
+        "content_path_summary": content_path_summary,
+    }
+
+
+async def _build_patient_context(req: Dict[str, Any]) -> Dict[str, Any]:
+    """Compose the clinic-safe `patient_context` payload for a given
+    consultation_request. Returns a dict that is always JSON-serialisable
+    and never contains internal fields."""
+    lead: Dict[str, Any] = {}
+    if req.get("lead_id"):
+        lead = await db.leads.find_one(
+            {"id": req["lead_id"]},
+            {
+                "_id": 0,
+                # Allow-list only — everything else is dropped.
+                "answers": 1,
+                "first_article_title": 1, "first_article_slug": 1,
+                "latest_article_title": 1, "latest_article_slug": 1,
+                "first_utm_source": 1, "first_utm_campaign": 1, "first_utm_ad": 1,
+                "latest_utm_source": 1, "latest_utm_campaign": 1, "latest_utm_ad": 1,
+                "first_landing_page_type": 1, "latest_landing_page_type": 1,
+                "first_landing_page": 1, "first_referrer": 1,
+                "pages_viewed_before_conversion": 1,
+                "blog_assisted_conversion": 1,
+            },
+        ) or {}
+    answers = lead.get("answers") or {}
+    main_concern_raw = answers.get("main_concern") if isinstance(answers, dict) else None
+    if not isinstance(main_concern_raw, (str, type(None))):
+        main_concern_raw = None
+    # P5 patient_message: truncate to 1000 (matches storage cap) for UI.
+    pm_raw = req.get("patient_message")
+    patient_message = (pm_raw[:1000] if isinstance(pm_raw, str) else None)
+    return {
+        "label": "Информация, споделена от пациента",
+        "treatment_interest": req.get("treatment_interest"),
+        "city": req.get("patient_city"),
+        "readiness": req.get("readiness"),
+        "urgency": req.get("urgency"),
+        "main_concern": (main_concern_raw[:500] if main_concern_raw else None),
+        "patient_message": patient_message,
+        "quiz_summary": _safe_quiz_summary(lead),
+        "source_context": _safe_source_context(lead),
+    }
+
+
 @router.get("/clinic/consultation-requests/{req_id}")
 async def clinic_get_consultation_request(
     req_id: str,
@@ -785,7 +982,12 @@ async def clinic_get_consultation_request(
             {"consultation_request_id": req_id}, {"_id": 0}
         ).sort("created_at", 1).to_list(500)
 
-    return {"request": req, "appointment": appointment, "events": events}
+    return {
+        "request": req,
+        "appointment": appointment,
+        "events": events,
+        "patient_context": await _build_patient_context(req),
+    }
 
 
 # Action types that count as a "first meaningful action" for time_to_first_action
