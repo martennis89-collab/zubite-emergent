@@ -564,8 +564,69 @@ def _reason_for(clinic: dict, lead_treatment: str, is_broad: bool) -> str:
     return f"Партньорска клиника в {city}, подходяща за консултация."
 
 
+def _public_profile_for_tier(clinic: dict, tier: str) -> Optional[dict]:
+    """Tier-gated projection of the admin-managed `clinic_profile` blob.
+
+    Returns None when the blob is missing OR `profile_status != "published"`.
+    Otherwise returns ONLY the fields the resolved tier is allowed to
+    expose publicly. Saved data is preserved on tier downgrade — we simply
+    omit fields here at read-time.
+
+    Tier mapping (R1):
+      standard → short_description, treatment_focus
+      featured → standard + patient_intro
+      premium  → featured + hero/video/team/story/environment/process
+                 + case_library (published + consent_confirmed only)
+    """
+    blob = clinic.get("clinic_profile") or {}
+    if not isinstance(blob, dict) or blob.get("profile_status") != "published":
+        return None
+
+    out: Dict[str, Any] = {
+        "profile_status": "published",
+        "short_description": blob.get("short_description") or None,
+        "treatment_focus": [
+            t for t in (blob.get("treatment_focus") or [])
+            if isinstance(t, str) and t.strip()
+        ] or None,
+    }
+
+    if tier in ("featured", "premium"):
+        out["patient_intro"] = blob.get("patient_intro") or None
+
+    if tier == "premium":
+        out["hero_image_url"] = blob.get("hero_image_url") or None
+        out["clinic_video_url"] = blob.get("clinic_video_url") or None
+        out["doctor_video_url"] = blob.get("doctor_video_url") or None
+        out["doctor_spotlight_name"] = blob.get("doctor_spotlight_name") or None
+        out["doctor_spotlight_role"] = blob.get("doctor_spotlight_role") or None
+        out["doctor_spotlight_bio"] = blob.get("doctor_spotlight_bio") or None
+        out["team_note"] = blob.get("team_note") or None
+        out["clinic_story"] = blob.get("clinic_story") or None
+        out["environment_description"] = blob.get("environment_description") or None
+        out["consultation_process"] = blob.get("consultation_process") or None
+        # Case library — premium only, published + consent-confirmed only.
+        cases = blob.get("case_library") or []
+        safe_cases = [
+            {
+                "id": c.get("id"),
+                "title": c.get("title"),
+                "category": c.get("category"),
+                "summary": c.get("summary"),
+            }
+            for c in cases
+            if isinstance(c, dict)
+            and (c.get("status") or "draft").lower() == "published"
+            and c.get("consent_confirmed") is True
+            and c.get("title") and c.get("category") and c.get("summary")
+        ]
+        out["case_library"] = safe_cases or None
+
+    # Strip None keys so consumers don't receive sparse payloads.
+    return {k: v for k, v in out.items() if v is not None}
+
+
 def _safe_clinic_payload(clinic: dict, lead_treatment: str, is_broad: bool) -> dict:
-    """Strict whitelist projection. Everything not listed here is dropped."""
     slug = _clinic_city_slug(clinic)
     created_at_raw = clinic.get("created_at")
     partner_since_year: Optional[int] = None
@@ -605,6 +666,14 @@ def _safe_clinic_payload(clinic: dict, lead_treatment: str, is_broad: bool) -> d
     rs = _build_review_signals(clinic)
     if rs is not None:
         payload["review_signals"] = rs
+
+    # ── Rich Profile Editor R1 — tier-gated public projection ─────────
+    # Only surface profile data when explicitly `published`. Standard tier
+    # gets a minimal slice; Featured gets the contextual additions; Premium
+    # gets the full media + storytelling stack. Draft / missing -> nothing.
+    profile_public = _public_profile_for_tier(clinic, tier)
+    if profile_public is not None:
+        payload["clinic_profile"] = profile_public
 
     return payload
 
@@ -699,6 +768,8 @@ async def recommended_clinics(lead_id: str, limit: int = 3):
             # Partner placement (optional; missing => safe defaults).
             "partner_tier": 1, "is_featured": 1, "is_premium": 1,
             "featured_rank": 1, "sponsored_rank": 1,
+            # Rich Profile (R1) — admin-managed, tier-gated public surface.
+            "clinic_profile": 1,
             # External review signals (optional; admin-gated, display-only).
             # MUST NOT influence ranking — see `_score_clinic`.
             "google_rating": 1, "google_review_count": 1, "google_place_url": 1,

@@ -27,6 +27,7 @@ from schemas import (
     CLINIC_STATUS_VALUES, SUBSCRIPTION_STATUS_VALUES,
     CONSULTATION_STATUS_VALUES, APPOINTMENT_STATUS_VALUES,
     APPOINTMENT_TYPE_VALUES, ACTION_TYPE_VALUES,
+    PARTNER_TIER_VALUES, PROFILE_STATUS_VALUES,
 )
 from audit import audit_log, diff_fields
 from auth import get_current_user, get_current_clinic, hash_password
@@ -281,13 +282,74 @@ async def admin_update_clinic(
 ):
     if not isinstance(clinic_id, str):
         raise HTTPException(status_code=400, detail="Invalid clinic_id")
-    update = {k: v for k, v in data.model_dump().items() if v is not None}
+    # `model_dump()` serializes nested Pydantic models (ClinicProfile,
+    # ClinicProfileCase) into plain dicts so they store as nested
+    # documents in Mongo. We keep `None` filtering AFTER profile-level
+    # checks so callers can intentionally clear a top-level field by
+    # sending `null` is NOT supported (consistent with existing behaviour).
+    raw = data.model_dump()
+    update = {k: v for k, v in raw.items() if v is not None}
     if not update:
         raise HTTPException(status_code=400, detail="No fields to update")
     if "clinic_status" in update and update["clinic_status"] not in CLINIC_STATUS_VALUES:
         raise HTTPException(status_code=400, detail="Invalid clinic_status")
     if "subscription_status" in update and update["subscription_status"] not in SUBSCRIPTION_STATUS_VALUES:
         raise HTTPException(status_code=400, detail="Invalid subscription_status")
+
+    # ── Rich Profile Editor R1 validation ────────────────────────────
+    if "partner_tier" in update:
+        tier = (update["partner_tier"] or "").strip().lower()
+        if tier not in PARTNER_TIER_VALUES:
+            raise HTTPException(status_code=400, detail="Invalid partner_tier")
+        update["partner_tier"] = tier
+
+    if "clinic_profile" in update:
+        profile = update["clinic_profile"]
+        status_value = (profile.get("profile_status") or "draft").lower()
+        if status_value not in PROFILE_STATUS_VALUES:
+            raise HTTPException(status_code=400, detail="Invalid profile_status")
+        profile["profile_status"] = status_value
+
+        focus = profile.get("treatment_focus") or []
+        if isinstance(focus, list):
+            if len(focus) > 12:
+                raise HTTPException(status_code=400, detail="treatment_focus exceeds 12 items")
+            for item in focus:
+                if not isinstance(item, str) or len(item) > 80:
+                    raise HTTPException(status_code=400, detail="Invalid treatment_focus item")
+
+        cases = profile.get("case_library") or []
+        if isinstance(cases, list):
+            if len(cases) > 12:
+                raise HTTPException(status_code=400, detail="case_library exceeds 12 items")
+            for case in cases:
+                case_status = (case.get("status") or "draft").lower()
+                if case_status not in PROFILE_STATUS_VALUES:
+                    raise HTTPException(status_code=400, detail="Invalid case status")
+                case["status"] = case_status
+                if case_status == "published" and not case.get("consent_confirmed"):
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Published case requires consent_confirmed=true",
+                    )
+                if not case.get("id"):
+                    case["id"] = str(uuid.uuid4())
+
+        # Stamp updated_at on every write; stamp published_at on transition
+        # to published (or keep previous if already published).
+        existing = await db.clinics.find_one(
+            {"id": clinic_id}, {"_id": 0, "clinic_profile": 1}
+        )
+        prev_profile = (existing or {}).get("clinic_profile") or {}
+        now_iso = _now_iso()
+        profile["updated_at"] = now_iso
+        if status_value == "published":
+            profile["published_at"] = prev_profile.get("published_at") or now_iso
+        else:
+            # Preserve a prior published_at on downgrade; useful for audit/history.
+            if prev_profile.get("published_at"):
+                profile["published_at"] = prev_profile["published_at"]
+
     update["updated_at"] = _now_iso()
     before = await db.clinics.find_one({"id": clinic_id}, {"_id": 0, "password_hash": 0})
     result = await db.clinics.update_one({"id": clinic_id}, {"$set": update})
@@ -298,12 +360,23 @@ async def admin_update_clinic(
     # Audit clinic.updated with changed_fields (keys only, never values).
     if before is not None:
         changed = sorted(k for k in update.keys() if k != "updated_at")
+        # Snapshot tier + profile_status transitions for the audit trail
+        # (key-level only — never the body of the profile).
+        tier_metadata = {}
+        if "partner_tier" in update:
+            tier_metadata["partner_tier_before"] = before.get("partner_tier")
+            tier_metadata["partner_tier_after"] = update["partner_tier"]
+        if "clinic_profile" in update:
+            tier_metadata["profile_status_before"] = (
+                (before.get("clinic_profile") or {}).get("profile_status")
+            )
+            tier_metadata["profile_status_after"] = update["clinic_profile"].get("profile_status")
         await audit_log(
             "clinic.updated",
             actor=user, actor_type="admin",
             target_type="clinic", target_id=clinic_id,
             target_summary=before.get("clinic_name"),
-            metadata={"changed_fields": changed},
+            metadata={"changed_fields": changed, **tier_metadata},
             severity="info", request=request,
         )
         # If clinic_status or status changed, emit status_changed too.

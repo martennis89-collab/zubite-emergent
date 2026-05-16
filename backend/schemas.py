@@ -613,6 +613,82 @@ class ClinicCreate(BaseModel):
     notification_email: Optional[EmailStr] = None
 
 
+# ─── Admin Rich Clinic Profile Editor (R1, Feb 2026) ────────────────
+# Nested admin-editable profile object stored as `clinic_profile` on the
+# clinic doc. Public exposure is tier-gated and only ever surfaces fields
+# when `profile_status == "published"`. Frontend mirror:
+# frontend/app/admin/clinics/[id]/page.tsx + the public profile page.
+
+PARTNER_TIER_VALUES = ("standard", "featured", "premium")
+PROFILE_STATUS_VALUES = ("draft", "published")
+
+
+class ClinicProfileCase(BaseModel):
+    """A single text-only case in the case library. R1: no images,
+    no patient PII. `published` requires `consent_confirmed=True`."""
+    model_config = ConfigDict(extra="ignore")
+
+    id: Optional[str] = Field(default=None, max_length=80)
+    title: str = Field(min_length=1, max_length=120)
+    category: str = Field(min_length=1, max_length=80)
+    summary: str = Field(min_length=1, max_length=700)
+    status: str = Field(default="draft")
+    consent_confirmed: bool = False
+
+
+class ClinicReviewSources(BaseModel):
+    """Nested mirror of the flat top-level review fields. The flat
+    fields remain canonical for `_build_review_signals` compatibility;
+    this nested shape is what the admin editor reads/writes through
+    the profile blob."""
+    model_config = ConfigDict(extra="ignore")
+
+    google_rating: Optional[float] = Field(default=None, ge=0.0, le=5.0)
+    google_review_count: Optional[int] = Field(default=None, ge=0, le=100_000)
+    google_url: Optional[str] = Field(default=None, max_length=500)
+
+    facebook_rating: Optional[float] = Field(default=None, ge=0.0, le=5.0)
+    facebook_review_count: Optional[int] = Field(default=None, ge=0, le=100_000)
+    facebook_url: Optional[str] = Field(default=None, max_length=500)
+
+    superdoc_rating: Optional[float] = Field(default=None, ge=0.0, le=5.0)
+    superdoc_review_count: Optional[int] = Field(default=None, ge=0, le=100_000)
+    superdoc_url: Optional[str] = Field(default=None, max_length=500)
+
+
+class ClinicProfile(BaseModel):
+    """R1 rich-profile object. URL-only media (no upload).
+
+    Tier gating happens at READ time in `_safe_clinic_payload`. Storage
+    is tier-agnostic so that downgrades preserve data."""
+    model_config = ConfigDict(extra="ignore")
+
+    profile_status: str = Field(default="draft")
+
+    short_description: Optional[str] = Field(default=None, max_length=500)
+    patient_intro: Optional[str] = Field(default=None, max_length=500)
+    treatment_focus: Optional[List[str]] = None
+
+    hero_image_url: Optional[str] = Field(default=None, max_length=500)
+    clinic_video_url: Optional[str] = Field(default=None, max_length=500)
+    doctor_video_url: Optional[str] = Field(default=None, max_length=500)
+
+    doctor_spotlight_name: Optional[str] = Field(default=None, max_length=200)
+    doctor_spotlight_role: Optional[str] = Field(default=None, max_length=200)
+    doctor_spotlight_bio: Optional[str] = Field(default=None, max_length=1000)
+    team_note: Optional[str] = Field(default=None, max_length=500)
+
+    clinic_story: Optional[str] = Field(default=None, max_length=1500)
+    environment_description: Optional[str] = Field(default=None, max_length=1000)
+    consultation_process: Optional[str] = Field(default=None, max_length=1000)
+
+    review_sources: Optional[ClinicReviewSources] = None
+    case_library: Optional[List[ClinicProfileCase]] = None
+
+    updated_at: Optional[str] = None
+    published_at: Optional[str] = None
+
+
 class ClinicAdminUpdate(BaseModel):
     """Admin can patch any of these. All optional."""
     model_config = ConfigDict(extra="ignore")
@@ -629,6 +705,10 @@ class ClinicAdminUpdate(BaseModel):
     monthly_plan: Optional[str] = Field(default=None, max_length=100)
     notification_email: Optional[EmailStr] = None
     description: Optional[str] = Field(default=None, max_length=2000)
+
+    # ── Rich Profile Editor R1 ───────────────────────────────────────
+    partner_tier: Optional[str] = None
+    clinic_profile: Optional[ClinicProfile] = None
 
     # ── External review signals (display-only, admin-gated) ──────────
     # All fields are optional. Bounds match the publish gate in

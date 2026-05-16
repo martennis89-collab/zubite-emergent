@@ -80,6 +80,33 @@ export interface RecommendedClinic {
     last_checked_at: string | null;
     disclaimer: string;
   };
+  // Rich Profile (R1) — admin-managed. Only present when
+  // `profile_status === "published"` and only the tier-allowed slice.
+  // Standard: short_description + treatment_focus.
+  // Featured: + patient_intro.
+  // Premium:  + hero/video/team/story/environment/process + case_library.
+  clinic_profile?: {
+    profile_status: 'published'
+    short_description?: string | null
+    patient_intro?: string | null
+    treatment_focus?: string[] | null
+    hero_image_url?: string | null
+    clinic_video_url?: string | null
+    doctor_video_url?: string | null
+    doctor_spotlight_name?: string | null
+    doctor_spotlight_role?: string | null
+    doctor_spotlight_bio?: string | null
+    team_note?: string | null
+    clinic_story?: string | null
+    environment_description?: string | null
+    consultation_process?: string | null
+    case_library?: Array<{
+      id?: string
+      title: string
+      category: string
+      summary: string
+    }> | null
+  };
 }
 
 export interface RecommendedClinicsResponse {

@@ -1,5 +1,304 @@
 # Zubite.bg — Changelog
 
+## 2026-02-16 — Admin Rich Clinic Profile Editor — R1
+
+Admin-managed tier control + admin-managed rich profile content. Tier
+gating now drives **real** content (not just placeholders) on the
+public clinic profile. **No backend rewrites — extended existing
+`ClinicAdminUpdate` + reused existing `PATCH /api/admin/clinics/{id}`.
+No external providers, no clinic-portal changes, no patient-flow
+changes.**
+
+### Existing tier fields found
+- **`partner_tier`** — already canonical (added in earlier batches).
+- Legacy: `is_premium: bool`, `is_featured: bool` — already read-side
+  bridged via `_resolve_partner_tier()` in `backend/routers/public.py`.
+- **`placement_label`** / **`placement_disclosure`** — already
+  computed in public.py per tier.
+
+### Canonical tier field chosen
+**`partner_tier`** — values `standard | featured | premium`. Legacy
+boolean fields continue to work on read; writes flow through this single
+key. No migration script.
+
+### Files changed
+**Backend (3 + 1 test file):**
+- `backend/schemas.py` — added `PARTNER_TIER_VALUES`, `PROFILE_STATUS_VALUES`,
+  nested `ClinicProfileCase`, `ClinicReviewSources`, `ClinicProfile` models;
+  extended `ClinicAdminUpdate` with `partner_tier` + `clinic_profile`.
+- `backend/routers/consultations.py` — extended the existing
+  `PATCH /api/admin/clinics/{clinic_id}` handler with the R1 validation
+  block (tier whitelist, profile status, treatment_focus & case_library
+  counts, case publish-without-consent rejection, auto-id for cases,
+  `updated_at` / `published_at` stamping, audit metadata: changed_fields
+  + partner_tier_before/after + profile_status_before/after).
+- `backend/routers/public.py` — added `_public_profile_for_tier()`
+  (tier-gated read-time projection of the published profile blob).
+  Standard tier exposes only `short_description` + `treatment_focus`;
+  Featured adds `patient_intro`; Premium adds the full media + story
+  + case_library stack. Draft profiles excluded entirely. Read filter
+  drops case rows that lack `status=published && consent_confirmed`.
+  Extended `_safe_clinic_payload` projection field list with
+  `clinic_profile`.
+- `backend/tests/test_admin_clinic_profile_editor.py` (NEW, 24 cases) —
+  **24/24 PASS in 6.07s**.
+
+**Frontend (4):**
+- `frontend/lib/api.ts` — added `clinic_profile` typing on
+  `RecommendedClinic` so consumers get type-safe access to the
+  tier-gated published fields.
+- `frontend/app/admin/clinics/page.tsx` (existing partner-clinics admin
+  page) — appended a "Профил" column with `Редактирай профил` link
+  to the new editor.
+- `frontend/app/admin/clinics/[id]/page.tsx` (NEW, ~470 LOC) — focused
+  rich profile editor. 8 sections: Партньорски статус / Статус на
+  профила / Основна информация / Външни сигнали за доверие /
+  Медия URL-и / Лекар / екип / Premium съдържание / Библиотека със
+  случаи. Tier-aware visibility hints on every field; CTA disabled
+  state on `Публикуван` case option when consent_confirmed=false;
+  sticky save bar at the bottom.
+- `frontend/app/results/[leadId]/clinics/[clinicId]/page.tsx` — wired
+  real content from `clinic.clinic_profile` for: hero image, clinic
+  video, doctor spotlight (name/role/bio/team_note/doctor_video),
+  clinic story, environment description, consultation process, case
+  library. Existing placeholders kept as honest fallbacks when admin
+  hasn't published the field. Tier gates already enforced by backend
+  projection; UI follows.
+
+**Docs:**
+- `memory/CHANGELOG.md`.
+
+### Backend endpoint
+**Reused** — `PATCH /api/admin/clinics/{clinic_id}` (existing). No new
+route. Request body now accepts the additional optional keys:
+```json
+{
+  "partner_tier": "standard|featured|premium",
+  "clinic_profile": { ...ClinicProfile fields }
+}
+```
+
+### Data model implemented (`clinic.clinic_profile`)
+```
+profile_status:           "draft" | "published"
+short_description:        str(max=500)
+patient_intro:            str(max=500)
+treatment_focus:          str[](max 12 items, each max 80)
+hero_image_url:           str(max=500)
+clinic_video_url:         str(max=500)
+doctor_video_url:         str(max=500)
+doctor_spotlight_name:    str(max=200)
+doctor_spotlight_role:    str(max=200)
+doctor_spotlight_bio:     str(max=1000)
+team_note:                str(max=500)
+clinic_story:             str(max=1500)
+environment_description:  str(max=1000)
+consultation_process:     str(max=1000)
+review_sources: {
+  google_rating, google_review_count, google_url,
+  facebook_rating, facebook_review_count, facebook_url,
+  superdoc_rating, superdoc_review_count, superdoc_url,
+}
+case_library: [
+  { id (auto-uuid), title(120), category(80), summary(700),
+    status: draft|published, consent_confirmed: bool }
+] (max 12)
+updated_at / published_at: ISO string (auto-stamped)
+```
+
+### Validation rules implemented
+- `partner_tier ∈ {standard, featured, premium}`, else **400**.
+- `profile_status ∈ {draft, published}`, else **400**.
+- Ratings 0.0–5.0 (Pydantic `ge/le`), else **422**.
+- Review counts integer 0–100,000, else **422**.
+- Text length caps enforced at `Field(max_length=…)`, else **422**.
+- `treatment_focus.length ≤ 12`; each item ≤ 80 chars, else **400**.
+- `case_library.length ≤ 12`, else **400**.
+- A case row with `status=published && consent_confirmed=false` →
+  **400** at write time. (Read-time filter also drops such rows if
+  they ever sneak in via legacy data.)
+- Unknown keys silently dropped by Pydantic `extra="ignore"`. PII keys
+  (`patient_name`, `patient_phone`, etc.) **never** persisted.
+
+### Admin UI sections (Bulgarian)
+1. **Партньорски статус** — 3-button pill picker + helper copy:
+   "Партньорският статус контролира видимостта и дълбочината на
+   публичния профил. Не означава медицински рейтинг или гаранция за
+   качество."
+2. **Статус на профила** — Чернова / Публикуван toggle.
+3. **Основна информация** — short_description / patient_intro /
+   treatment_focus chip-input.
+4. **Външни сигнали за доверие** — google / facebook / superdoc
+   rating + count + URL.
+5. **Медия URL-и** — hero / clinic / doctor video URLs.
+6. **Лекар / екип** — doctor name / role / bio / team note.
+7. **Premium съдържание** — clinic_story / environment / consultation_process.
+8. **Библиотека със случаи** — add/edit/remove cases with status +
+   consent_confirmed gate.
+
+### Tier assignment behaviour
+- Admin can switch tier freely; saves the canonical `partner_tier`.
+- Helper copy explicitly says tier is **visibility / profile depth**,
+  not medical rating.
+- Downgrade preserves saved profile data — fields are simply hidden
+  publicly at read-time (test #22 pins this).
+
+### Tier-aware admin hint behaviour
+Each field carries a visibility hint when the current tier wouldn't
+publish it:
+- Premium-only fields on Standard / Featured → "Това поле ще се вижда
+  публично само при Premium профил."
+- Featured+Premium fields on Standard → "Това поле няма да се вижда
+  публично при Standard профил."
+
+Saved data is never deleted on tier change — only hidden publicly.
+
+### Public profile integration
+- **Standard** profile (published) → exposes `short_description` +
+  `treatment_focus` + (existing) `review_signals`. No premium badge,
+  no Featured-only sections, no Premium media stack.
+- **Featured** profile → adds `patient_intro` (rendered in the
+  existing "За клиниката" section). Premium stack still hidden.
+- **Premium** profile → real hero image replaces the placeholder; real
+  clinic video replaces VideoIntroSection placeholder; doctor section
+  shows real name/role/bio + optional doctor video + team note; clinic
+  story / environment / consultation_process render as new sections;
+  case library renders only consent-confirmed published rows. Each
+  field independently falls back to the existing honest placeholder if
+  not published.
+
+### Public card integration
+Existing `ClinicRecommendationCard` already uses `placement_label`
+("Premium партньор" / "Представена клиника") and `placement_disclosure`
+copy, both computed by `public.py` from the canonical `partner_tier`.
+No card change required.
+
+### Tier gating behaviour (read-time)
+Implemented in `_public_profile_for_tier()`:
+- Returns `None` when `profile_status != "published"` → public view
+  uses placeholders.
+- For Standard, returns only the standard slice.
+- For Featured, returns standard + `patient_intro`.
+- For Premium, returns the full stack including `case_library` filtered
+  to `status=published && consent_confirmed=true`.
+
+### Case library consent behaviour
+- Draft case without consent → **allowed** (test #14).
+- Published case without consent → **400** at write (test #13).
+- Even if a legacy / hand-edited row reaches MongoDB in a forbidden
+  state, the read-time filter drops it (test #21).
+- Admin UI: the `Публикуван` option in the status dropdown is
+  `disabled={!consent_confirmed}`. Editor must check the consent
+  checkbox first.
+
+### Tests run/results
+**Backend** (`test_admin_clinic_profile_editor.py`) — **24 / 24 PASS**
+in 6.07s on isolated `zubite_test_admin_clinic_profile_r1` DB.
+Coverage matrix:
+
+| # | Test |
+|---|---|
+| 01–03 | Set tier to standard / featured / premium |
+| 04 | Invalid tier rejected (400) |
+| 05 | Clinic JWT cannot change tier |
+| 06 | Anonymous cannot change tier |
+| 07 | Admin can update basic profile fields |
+| 08 | Rating > 5 rejected (422) |
+| 09 | Negative review count rejected (422) |
+| 10 | Overlong text rejected (422) |
+| 11 | treatment_focus > 12 items rejected (400) |
+| 12 | case_library > 12 items rejected (400) |
+| 13 | Published case w/o consent rejected (400) |
+| 14 | Draft case w/o consent allowed |
+| 15 | Unknown / PII-like fields not persisted |
+| 16 | Recos response includes `partner_tier` |
+| 17 | Standard published profile exposes only Standard fields |
+| 18 | Featured published profile exposes Featured-allowed fields, no Premium stack |
+| 19 | Premium published profile exposes the full stack |
+| 20 | Draft profile excluded from public response |
+| 21 | Premium case w/o consent excluded at read-time (legacy-data safety) |
+| 22 | Downgrade from Premium to Standard hides Premium publicly, preserves data |
+| 23 | Clinic w/o `clinic_profile` still works (recos legacy shape intact) |
+| 24 | Public payload excludes internal fields (password_hash, notification_email, …) |
+
+**Live verification** (admin smoke):
+- Edit page rendered all 8 sections (`section-partner-status`,
+  `section-profile-status`, …, `section-cases`).
+- Set tier=Premium, status=Публикуван, saved short_description +
+  hero_image_url + treatment_focus="aligners" → toast "Профилът е
+  запазен успешно." rendered.
+- Visited public clinic profile (`/results/{leadId}/clinics/{clinicId}`)
+  → `profile-clinic-hero-image` element present, image placeholder
+  absent. Mobile 375 viewport → `scrollWidth - clientWidth = 0`.
+- Cookie banner correctly hidden on `/admin/*` (admin portal exempt
+  per earlier batch).
+- Case `Публикуван` option disabled while `consent_confirmed=false` —
+  caught by playwright "option being selected is not enabled" error,
+  exactly the safety guard we wanted.
+
+### TypeScript result
+`tsc --noEmit` — clean for the four touched files + the new editor.
+The single error in the repo (`lib/api.ts:31` — `AttributionPayload`
+→ `Record<string, unknown>`) is **pre-existing** and unrelated to this
+batch.
+
+### Confirmation
+- ✅ 0 patient quiz / quiz success / matching algorithm / P4 / P5 /
+  clinic portal / auth / CSRF / analytics tracking changes.
+- ✅ Existing `_resolve_partner_tier` / `_PLACEMENT_LABEL` /
+  `_PLACEMENT_DISCLOSURE` infrastructure preserved; placement_label
+  and placement_disclosure are unchanged copy.
+- ✅ 0 new dependencies; URL-only media (no upload, no S3, no image
+  processing).
+- ✅ No fake clinic content added anywhere. No invented doctor names,
+  review counts, case studies, videos, images, or testimonials —
+  100% admin-entered.
+- ✅ Audit emits `clinic.updated` (already used by the existing PATCH
+  endpoint) with `changed_fields` keys-only + tier/profile_status
+  before/after metadata. No profile body in audit log.
+- ✅ Git not pushed, "Save to GitHub" not used, deploy not triggered.
+
+### Unresolved risks
+1. **No image upload** in R1 — by design, per brief. URL-only.
+   Future R2 should add image upload (existing static storage or
+   external CDN) so non-technical clinic admins don't need to host
+   their own images.
+2. **No clinic self-edit** in R1 — admin-only. Future R2: clinic-side
+   "request changes" workflow with admin approval.
+3. **No moderation workflow** — admin click directly publishes. Future
+   R2 / R3: review queue before publish.
+4. **No image dimension / domain validation** on URL fields beyond
+   length cap. R2 could enforce HTTPS + safe domain list.
+5. **`clinic_status` / `subscription_status`** unchanged by this batch;
+   audit `clinic.status_changed` still emits as before.
+6. **`clinic.review_signals`** still flows through the **flat** top-level
+   review fields (`google_rating`, etc.) — same as before P4/P5.
+   The nested `review_sources` inside `clinic_profile` is editor-only
+   storage in R1; it does not feed the public `review_signals` block.
+   R2 should pick **one** canonical store; deferred to avoid breaking
+   the existing display path.
+
+### R1 status
+✅ **Complete.** Admin can set tier, edit rich profile content, publish
+or save as draft, and the public profile renders the real fields with
+honest placeholder fallbacks per tier. Backend persists the full
+profile blob, public response is tier-gated, downgrade preserves data.
+
+### Recommended R2 next step
+**Image upload + clinic-side draft submission**:
+1. Add an image-upload endpoint (multipart) that stores in
+   `/app/backend/static/clinic-profiles/{clinic_id}/...` and returns
+   a public URL. Plug it into the existing `hero_image_url` field —
+   no schema change needed.
+2. Add a **clinic-portal draft mode**: clinics can edit a parallel
+   `clinic.clinic_profile_pending` blob; admin sees pending changes
+   in the existing editor with a "Review & publish" CTA. Re-uses the
+   same Pydantic model + validation.
+3. Surface "Профил чака преглед" counter on `/admin/dashboard` next
+   to the existing "Чакат преглед" P5 queue card.
+
+
+
 ## 2026-02-16 — Backend Analytics Schema Follow-up for P6
 
 Extended the `AnalyticsEvent` Pydantic model to accept & persist the

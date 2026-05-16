@@ -107,6 +107,7 @@ export default function AdminClinicsPage() {
                   <th className="px-4 py-3 text-left">Treatments</th>
                   <th className="px-4 py-3 text-right">Requests</th>
                   <th className="px-4 py-3 text-right">Booked</th>
+                  <th className="px-4 py-3 text-right">Профил</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -149,6 +150,15 @@ export default function AdminClinicsPage() {
                     </td>
                     <td className="px-4 py-3 text-right font-mono">{c.assigned_requests_count ?? 0}</td>
                     <td className="px-4 py-3 text-right font-mono text-emerald-700">{c.booked_count ?? 0}</td>
+                    <td className="px-4 py-3 text-right">
+                      <Link
+                        href={`/admin/clinics/${c.id}`}
+                        className="text-sky-600 hover:text-sky-700 font-medium text-sm"
+                        data-testid={`admin-clinic-edit-${c.id}`}
+                      >
+                        Редактирай профил
+                      </Link>
+                    </td>
                   </tr>
                 ))}
               </tbody>

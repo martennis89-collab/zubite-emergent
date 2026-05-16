@@ -271,8 +271,28 @@ function ProfileBody({
         />
       )}
 
-      {/* ── Видео представяне (Premium only) ───────────────── */}
-      {isPremium && <VideoIntroSection />}
+      {/* ── Видео представяне (Premium only) ─────────────────
+          Render real video URL if admin published one; otherwise use
+          the existing placeholder block. */}
+      {isPremium && (
+        clinic.clinic_profile?.clinic_video_url
+          ? (
+            <section
+              className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+              data-testid="profile-clinic-video-section"
+            >
+              <div className="text-xs uppercase tracking-wide text-slate-500 font-medium mb-3">
+                Видео представяне
+              </div>
+              <video
+                src={clinic.clinic_profile.clinic_video_url}
+                controls
+                className="w-full rounded-xl aspect-video bg-slate-100"
+              />
+            </section>
+          )
+          : <VideoIntroSection />
+      )}
 
       {/* ── Why this clinic appeared (all tiers) ───────────── */}
       <section
@@ -327,13 +347,34 @@ function ProfileBody({
 
       {/* ── За клиниката (Featured only — Premium uses richer sections below) */}
       {isFeatured && (
-        <PlaceholderSection
-          testid="profile-about-section"
-          tierLabel="featured"
-          title="За клиниката"
-          icon={<FileText className="w-4 h-4 text-sky-600" />}
-          body="Клиниката все още не е добавила подробно описание към профила си."
-        />
+        clinic.clinic_profile?.patient_intro || clinic.clinic_profile?.short_description
+          ? (
+            <section
+              className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+              data-testid="profile-about-section"
+            >
+              <h2 className="font-serif text-lg font-semibold text-slate-900 mb-3">За клиниката</h2>
+              {clinic.clinic_profile.patient_intro && (
+                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+                  {clinic.clinic_profile.patient_intro}
+                </p>
+              )}
+              {clinic.clinic_profile.short_description && !clinic.clinic_profile.patient_intro && (
+                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+                  {clinic.clinic_profile.short_description}
+                </p>
+              )}
+            </section>
+          )
+          : (
+            <PlaceholderSection
+              testid="profile-about-section"
+              tierLabel="featured"
+              title="За клиниката"
+              icon={<FileText className="w-4 h-4 text-sky-600" />}
+              body="Клиниката все още не е добавила подробно описание към профила си."
+            />
+          )
       )}
 
       {/* ── Featured-only extra (lighter than Premium) ──────── */}
@@ -354,20 +395,142 @@ function ProfileBody({
 
       {/* ── Premium-only rich section stack (P3.7) ──────────────
           Per spec, on Premium profiles render after Reviews, in this
-          order: Case Library, Doctor Spotlight, Environment/equipment,
-          Patient Journey, Zubite Feedback Placeholder. */}
+          order: Clinic Story (R1), Case Library, Doctor Spotlight,
+          Environment/equipment, Patient Journey, Zubite Feedback.
+          Each section reads from clinic.clinic_profile if admin
+          published real content; otherwise falls back to the existing
+          honest placeholder. */}
       {isPremium && (
         <>
-          <CaseLibrarySection />
-          <DoctorSpotlightSection />
-          <PlaceholderSection
-            testid="profile-environment-section"
-            tierLabel="premium"
-            title="Среда и оборудване"
-            icon={<Stethoscope className="w-4 h-4 text-sky-600" />}
-            body="Тук клиниката ще може да представи средата, технологиите и удобствата за пациента."
-          />
-          <PatientJourneySection />
+          {/* Clinic story — new R1 section, premium only */}
+          {clinic.clinic_profile?.clinic_story && (
+            <section
+              className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+              data-testid="profile-clinic-story-section"
+            >
+              <h2 className="font-serif text-lg font-semibold text-slate-900 mb-3">
+                История на клиниката
+              </h2>
+              <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+                {clinic.clinic_profile.clinic_story}
+              </p>
+            </section>
+          )}
+
+          {/* Case library — real if any published+consent rows */}
+          {clinic.clinic_profile?.case_library && clinic.clinic_profile.case_library.length > 0 ? (
+            <section
+              className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+              data-testid="profile-case-library-section"
+            >
+              <h2 className="font-serif text-lg font-semibold text-slate-900 mb-2">
+                Случаи от практиката
+              </h2>
+              <p className="text-xs text-slate-500 leading-relaxed mb-4">
+                Предоставено от клиниката.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {clinic.clinic_profile.case_library.map((c) => (
+                  <div
+                    key={c.id || c.title}
+                    className="rounded-xl border border-slate-200 p-4 bg-slate-50/50"
+                    data-testid={`profile-case-${c.id || c.title}`}
+                  >
+                    <div className="text-xs uppercase tracking-wide text-slate-500 mb-1">
+                      Категория: {c.category}
+                    </div>
+                    <h3 className="font-medium text-slate-900 mb-1">{c.title}</h3>
+                    <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+                      {c.summary}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : (
+            <CaseLibrarySection />
+          )}
+
+          {/* Doctor spotlight — real if doctor name set */}
+          {clinic.clinic_profile?.doctor_spotlight_name ? (
+            <section
+              className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+              data-testid="profile-doctor-spotlight-section"
+            >
+              <h2 className="font-serif text-lg font-semibold text-slate-900 mb-3">
+                Лекарят
+              </h2>
+              <div className="font-medium text-slate-900">
+                {clinic.clinic_profile.doctor_spotlight_name}
+              </div>
+              {clinic.clinic_profile.doctor_spotlight_role && (
+                <div className="text-sm text-slate-500 mt-0.5">
+                  {clinic.clinic_profile.doctor_spotlight_role}
+                </div>
+              )}
+              {clinic.clinic_profile.doctor_spotlight_bio && (
+                <p className="mt-3 text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+                  {clinic.clinic_profile.doctor_spotlight_bio}
+                </p>
+              )}
+              {clinic.clinic_profile.doctor_video_url && (
+                <video
+                  src={clinic.clinic_profile.doctor_video_url}
+                  controls
+                  className="mt-4 w-full rounded-xl aspect-video bg-slate-100"
+                />
+              )}
+              {clinic.clinic_profile.team_note && (
+                <p className="mt-4 text-sm text-slate-600 leading-relaxed border-l-2 border-slate-200 pl-3">
+                  {clinic.clinic_profile.team_note}
+                </p>
+              )}
+            </section>
+          ) : (
+            <DoctorSpotlightSection />
+          )}
+
+          {/* Environment/equipment — real if set */}
+          {clinic.clinic_profile?.environment_description ? (
+            <section
+              className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+              data-testid="profile-environment-section"
+            >
+              <h2 className="font-serif text-lg font-semibold text-slate-900 mb-3">
+                Среда и оборудване
+              </h2>
+              <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+                {clinic.clinic_profile.environment_description}
+              </p>
+            </section>
+          ) : (
+            <PlaceholderSection
+              testid="profile-environment-section"
+              tierLabel="premium"
+              title="Среда и оборудване"
+              icon={<Stethoscope className="w-4 h-4 text-sky-600" />}
+              body="Тук клиниката ще може да представи средата, технологиите и удобствата за пациента."
+            />
+          )}
+
+          {/* Consultation process — show as new section if set, else use
+              existing PatientJourneySection placeholder. */}
+          {clinic.clinic_profile?.consultation_process ? (
+            <section
+              className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+              data-testid="profile-consultation-process-section"
+            >
+              <h2 className="font-serif text-lg font-semibold text-slate-900 mb-3">
+                Процес на консултация
+              </h2>
+              <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+                {clinic.clinic_profile.consultation_process}
+              </p>
+            </section>
+          ) : (
+            <PatientJourneySection />
+          )}
+
           <ZubiteFeedbackPlaceholderSection />
         </>
       )}
@@ -591,8 +754,23 @@ function PremiumHero({
           </p>
         </div>
 
-        {/* Right column — image placeholder */}
-        <ClinicImagePlaceholder />
+        {/* Right column — real hero image if admin published one,
+            otherwise existing placeholder. */}
+        {clinic.clinic_profile?.hero_image_url ? (
+          <figure
+            className="relative rounded-2xl overflow-hidden bg-slate-50 border border-slate-200 min-h-[260px] lg:min-h-[420px]"
+            data-testid="profile-clinic-hero-image"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={clinic.clinic_profile.hero_image_url}
+              alt={clinic.name}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          </figure>
+        ) : (
+          <ClinicImagePlaceholder />
+        )}
       </div>
     </header>
   )
