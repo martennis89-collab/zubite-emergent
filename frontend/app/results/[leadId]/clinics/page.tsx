@@ -18,6 +18,7 @@ import {
 } from '@/lib/api'
 import { ClinicRecommendationCard } from '@/components/patient/ClinicRecommendationCard'
 import { ClinicMatchEmptyState } from '@/components/patient/ClinicMatchEmptyState'
+import { AssistedChoiceModal } from '@/components/patient/AssistedChoiceModal'
 
 type ErrKind = 'not_found' | 'expired' | 'rate_limited' | 'generic' | null
 
@@ -29,7 +30,7 @@ export default function ClinicMatchPage() {
   const [selection, setSelection] = useState<SelectionState | null>(null)
   const [loading, setLoading] = useState(true)
   const [errKind, setErrKind] = useState<ErrKind>(null)
-  const [assistedPreview, setAssistedPreview] = useState(false)
+  const [assistedModalOpen, setAssistedModalOpen] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -156,7 +157,7 @@ export default function ClinicMatchPage() {
 
               {/* Already-selected banner (P4) — visible whenever the lead
                   has previously submitted a request. */}
-              {selection?.has_request && selection?.clinic && (
+              {selection?.has_selected_clinic && selection?.clinic && (
                 <div
                   className="mb-6 rounded-2xl border border-emerald-100 bg-emerald-50 p-4 sm:p-5 flex items-start gap-3"
                   data-testid="match-already-selected-banner"
@@ -170,6 +171,26 @@ export default function ClinicMatchPage() {
                       Заявката е изпратена към{' '}
                       <strong>{selection.clinic.name}</strong>. Тя ще може да се
                       свърже с вас според процеса си за обработка на заявки.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Zubite-help banner (P5) — mutually exclusive with the
+                  selected-clinic banner. */}
+              {selection?.has_requested_zubite_help && (
+                <div
+                  className="mb-6 rounded-2xl border border-sky-100 bg-sky-50 p-4 sm:p-5 flex items-start gap-3"
+                  data-testid="match-assisted-banner"
+                >
+                  <Sparkles className="w-5 h-5 text-sky-600 mt-0.5 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-sky-900">
+                      Заявката е изпратена към Zubite.
+                    </p>
+                    <p className="text-xs text-sky-800 mt-1 leading-relaxed">
+                      Ще използваме информацията от оценката ви, за да ви
+                      помогнем с по-ясна следваща стъпка.
                     </p>
                   </div>
                 </div>
@@ -193,6 +214,7 @@ export default function ClinicMatchPage() {
                     position={i + 1}
                     leadId={leadId}
                     selectedClinicId={selection?.selected_clinic_id ?? null}
+                    hasAssistedChoice={!!selection?.has_requested_zubite_help}
                     onSubmitted={handleSubmitted}
                   />
                 ))}
@@ -213,15 +235,35 @@ export default function ClinicMatchPage() {
                   Можем да ви помогнем да изберете следваща стъпка според
                   ситуацията ви.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => setAssistedPreview(true)}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-800 text-sm font-medium rounded-full hover:bg-slate-50 transition-colors"
-                  data-testid="assisted-choice-btn"
-                >
-                  <Compass className="w-4 h-4" />
-                  Помогнете ми да избера
-                </button>
+                {selection?.has_requested_zubite_help ? (
+                  <div
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-50 border border-emerald-100 text-emerald-800 text-sm font-medium rounded-full"
+                    data-testid="assisted-choice-submitted"
+                  >
+                    <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
+                    Заявката е изпратена
+                  </div>
+                ) : selection?.has_selected_clinic ? (
+                  <button
+                    type="button"
+                    disabled
+                    aria-disabled="true"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-slate-100 text-slate-400 text-sm font-medium rounded-full cursor-not-allowed"
+                    data-testid="assisted-choice-locked-by-clinic"
+                  >
+                    Вече избрахте клиника
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setAssistedModalOpen(true)}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-800 text-sm font-medium rounded-full hover:bg-slate-50 transition-colors"
+                    data-testid="assisted-choice-btn"
+                  >
+                    <Compass className="w-4 h-4" />
+                    Помогнете ми да избера
+                  </button>
+                )}
               </section>
             </>
           ) : null}
@@ -239,8 +281,16 @@ export default function ClinicMatchPage() {
         </div>
       </section>
 
-      {assistedPreview && (
-        <AssistedNextStepModal onClose={() => setAssistedPreview(false)} />
+      {assistedModalOpen && (
+        <AssistedChoiceModal
+          leadId={leadId}
+          source="matching_page"
+          onClose={() => setAssistedModalOpen(false)}
+          onSuccess={() => {
+            // Refetch canonical state so banners and button switch.
+            getSelectionState(leadId).then(setSelection).catch(() => {})
+          }}
+        />
       )}
 
       <Footer />
@@ -343,54 +393,9 @@ function ErrorPanel({
   )
 }
 
-function AssistedNextStepModal({ onClose }: { onClose: () => void }) {
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="assisted-title"
-      className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-sm flex items-center justify-center px-4 py-6"
-      onClick={onClose}
-      data-testid="assisted-preview-modal"
-    >
-      <div
-        className="bg-white rounded-2xl max-w-md w-full p-6 sm:p-8 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h3
-          id="assisted-title"
-          className="font-serif text-xl font-semibold text-slate-900 mb-3"
-        >
-          Следваща стъпка
-        </h3>
-        <p className="text-sm text-slate-700 leading-relaxed mb-5">
-          В следващата стъпка ще потвърдите телефона си и ще дадете съгласие
-          експерт от Zubite да ви се обади. Никакви данни няма да бъдат
-          споделяни с трета страна, освен ако вие изрично не одобрите.
-        </p>
-        <div className="rounded-lg bg-slate-50 border border-slate-100 p-3 text-xs text-slate-500 leading-relaxed mb-5">
-          Тази стъпка все още се изгражда. Засега виждате преглед на това какво
-          ще се случи.
-        </div>
-        <div className="flex items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-full border border-slate-200 text-sm text-slate-700 hover:bg-slate-50"
-          >
-            Затвори
-          </button>
-          <button
-            type="button"
-            disabled
-            aria-disabled="true"
-            className="px-5 py-2 bg-slate-100 text-slate-400 text-sm font-medium rounded-full cursor-not-allowed"
-            data-testid="assisted-preview-disabled-cta"
-          >
-            Ще бъде активирано скоро
-          </button>
-        </div>
-      </div>
-    </div>
-  )
+// `AssistedNextStepModal` was the preview-only modal used before P5.
+// Replaced by `AssistedChoiceModal`. Kept as a no-op stub for compile
+// stability across hot-reloads — safe to delete in a later cleanup pass.
+function AssistedNextStepModal_DEPRECATED_REMOVED() {
+  return null
 }

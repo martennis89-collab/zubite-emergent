@@ -5,7 +5,7 @@ import asyncio
 import uuid
 
 from database import db
-from schemas import Clinic, LeadCreate, LeadContactUpdate, Lead, RequestCallBody
+from schemas import Clinic, LeadCreate, LeadContactUpdate, Lead, RequestCallBody, RequestZubiteHelpBody
 from auth import hash_password
 from config import CITIES, logger
 from scoring import calculate_score
@@ -911,10 +911,25 @@ async def request_call(lead_id: str, body: RequestCallBody):
 
     # 6) Idempotency / duplicate-protection — TWO checks before any insert:
     #    (a) lead.selected_clinic_id already pinned;
-    #    (b) consultation_request from this flow already exists.
-    #    If either is set, we don't create anything.
+    #    (b) consultation_request from this flow already exists;
+    #    (c) lead has an active assisted-choice request (P5 mutual
+    #        exclusion — patient cannot have BOTH a selected clinic
+    #        request and a Zubite-help request).
     existing_selected_id: Optional[str] = lead.get("selected_clinic_id")
     existing_request_id: Optional[str] = lead.get("selected_clinic_request_id")
+    existing_assisted_id: Optional[str] = lead.get("assisted_choice_request_id")
+
+    if existing_assisted_id:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "success": False,
+                "code": "already_requested_zubite_help",
+                "message": (
+                    "Вече сте изпратили заявка към Zubite за помощ при избора."
+                ),
+            },
+        )
 
     # Cross-check: even if lead is missing the pin (e.g. partial write
     # earlier), a flow-tagged consultation_request blocks duplicates.
@@ -1076,26 +1091,41 @@ async def request_call(lead_id: str, body: RequestCallBody):
 
 @router.get("/leads/{lead_id}/selection-state")
 async def lead_selection_state(lead_id: str):
-    """Tiny read-only endpoint the patient frontend hits after navigation /
-    refresh to know whether the lead has already requested a call (and
-    from which clinic). Returns 404 if the lead does not exist."""
+    """Read-only summary the patient frontend hits after navigation /
+    refresh to know which "choice path" the lead is on. A lead can be on
+    AT MOST one of:
+        • selected_clinic  (P4)  → `has_selected_clinic = True`
+        • zubite_help      (P5)  → `has_requested_zubite_help = True`
+        • neither                → both flags False, both flows offered.
+    Returns 404 if the lead does not exist."""
     lead = await db.leads.find_one(
         {"id": lead_id},
         {"_id": 0, "selected_clinic_id": 1, "selected_clinic_request_id": 1,
          "clinic_selection_source": 1, "request_call_status": 1,
-         "selected_clinic_requested_at": 1},
+         "selected_clinic_requested_at": 1,
+         "assisted_choice_request_id": 1, "assisted_choice_status": 1,
+         "assisted_choice_requested_at": 1, "assisted_choice_source": 1},
     )
     if lead is None:
         raise HTTPException(status_code=404, detail="Lead not found")
     pinned_id = lead.get("selected_clinic_id")
+    assisted_id = lead.get("assisted_choice_request_id")
     out = {
         "lead_id": lead_id,
+        # P4 (compat) — keep these fields so existing frontend keeps working.
         "has_request": bool(pinned_id),
         "selected_clinic_id": pinned_id or None,
         "selected_clinic_request_id": lead.get("selected_clinic_request_id"),
         "clinic_selection_source": lead.get("clinic_selection_source"),
         "request_call_status": lead.get("request_call_status"),
         "selected_clinic_requested_at": lead.get("selected_clinic_requested_at"),
+        # P5 explicit booleans for the new dual-state UI.
+        "has_selected_clinic": bool(pinned_id),
+        "has_requested_zubite_help": bool(assisted_id),
+        "assisted_choice_request_id": assisted_id,
+        "assisted_choice_status": lead.get("assisted_choice_status"),
+        "assisted_choice_requested_at": lead.get("assisted_choice_requested_at"),
+        "assisted_choice_source": lead.get("assisted_choice_source"),
     }
     if pinned_id:
         cl = await db.clinics.find_one(
@@ -1104,7 +1134,257 @@ async def lead_selection_state(lead_id: str):
         )
         if cl:
             out["clinic"] = _safe_clinic_summary(cl)
+            out["selected_clinic"] = out["clinic"]
+        else:
+            out["selected_clinic"] = None
+    else:
+        out["selected_clinic"] = None
     return out
+
+
+# ─── Patient layer P5: assisted choice ("Помогнете ми да избера") ──
+#
+# A patient who is unsure which clinic to choose can ask Zubite to help.
+# This is a MANUAL concierge flow: no clinic is notified, no clinic is
+# auto-selected, no AI decision is made. The endpoint only records the
+# request in MongoDB so admins can pick it up later.
+#
+# Mutual exclusion (hard product rule):
+#     ONE lead → ONE active choice path:  selected clinic  OR  zubite_help.
+# Both paths share the same `leads` document for the atomic CAS guard,
+# so neither flow can race past the other.
+
+REQUEST_ZUBITE_HELP_CONSENT_TEXT = (
+    "Съгласен/съгласна съм Zubite да използва информацията от оценката ми, "
+    "за да ми помогне да избера подходяща следваща стъпка."
+)
+
+
+@router.post(
+    "/leads/{lead_id}/request-zubite-help",
+    dependencies=[Depends(rate_limit("request_zubite_help", 5, 300))],
+)
+async def request_zubite_help(lead_id: str, body: RequestZubiteHelpBody):
+    """Patient asks Zubite to help them choose. Creates a single
+    `consultation_requests` document with `assigned_clinic_id=null` and
+    `created_from='assisted_choice_flow'` so it never surfaces in any
+    clinic portal (those queries always include an `assigned_clinic_id`
+    filter)."""
+    # 1) Consent — fail fast.
+    if not body.consent_to_share:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "success": False,
+                "code": "consent_required",
+                "message": "Необходимо е съгласие, за да обработим заявката ви.",
+            },
+        )
+
+    # 2) Phone validation (permissive, see _is_acceptable_phone).
+    if not _is_acceptable_phone(body.phone):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "success": False,
+                "code": "phone_invalid",
+                "message": "Моля, въведете валиден телефонен номер.",
+            },
+        )
+
+    # 3) Lead lookup.
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    # 4) Lead-window freshness (same rule as recommendations / P4).
+    created_at_raw = lead.get("created_at")
+    try:
+        if isinstance(created_at_raw, str):
+            created_at_dt = datetime.fromisoformat(created_at_raw)
+        else:
+            created_at_dt = created_at_raw
+        if created_at_dt and created_at_dt.tzinfo is None:
+            created_at_dt = created_at_dt.replace(tzinfo=timezone.utc)
+        age_days = (
+            (datetime.now(timezone.utc) - created_at_dt).total_seconds() / 86400.0
+            if created_at_dt else 0
+        )
+    except Exception:
+        age_days = 0
+    if age_days > _RECO_WINDOW_DAYS:
+        raise HTTPException(status_code=410, detail="Lead recommendation window expired")
+
+    # 5) Mutual-exclusion checks (P4 ↔ P5).
+    #    (a) lead has already chosen a clinic → 409 already_requested_clinic
+    #    (b) lead has already requested Zubite help → idempotent 200 retry
+    #        but only against the EXISTING assisted-choice row.
+    #    (c) cross-check the consultation_requests collection for
+    #        recommended_clinics_flow rows (defensive against partial writes).
+    if lead.get("selected_clinic_id"):
+        clinic_doc = await db.clinics.find_one(
+            {"id": lead["selected_clinic_id"]},
+            {"_id": 0, "id": 1, "name": 1, "clinic_name": 1, "city_slug": 1, "city_name": 1, "city": 1},
+        )
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "success": False,
+                "code": "already_requested_clinic",
+                "clinic": _safe_clinic_summary(clinic_doc) if clinic_doc else {"id": lead["selected_clinic_id"], "name": "", "city_name": ""},
+                "message": "Вече сте изпратили заявка към избрана клиника.",
+            },
+        )
+
+    flow_clinic_req = await db.consultation_requests.find_one(
+        {"lead_id": lead_id, "created_from": "recommended_clinics_flow"},
+        {"_id": 0, "id": 1, "assigned_clinic_id": 1},
+    )
+    if flow_clinic_req:
+        pinned_id = flow_clinic_req.get("assigned_clinic_id") or ""
+        clinic_doc = await db.clinics.find_one(
+            {"id": pinned_id},
+            {"_id": 0, "id": 1, "name": 1, "clinic_name": 1, "city_slug": 1, "city_name": 1, "city": 1},
+        ) if pinned_id else None
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "success": False,
+                "code": "already_requested_clinic",
+                "clinic": _safe_clinic_summary(clinic_doc) if clinic_doc else {"id": pinned_id, "name": "", "city_name": ""},
+                "message": "Вече сте изпратили заявка към избрана клиника.",
+            },
+        )
+
+    # Existing assisted-choice row → idempotent retry surfaces the existing id.
+    existing_assisted_id = lead.get("assisted_choice_request_id")
+    if existing_assisted_id:
+        return {
+            "success": True,
+            "request_id": existing_assisted_id,
+            "message": "Заявката вече е изпратена към Zubite.",
+            "already_requested": True,
+        }
+
+    # Defensive cross-check against the collection (partial-write recovery).
+    flow_assisted_req = await db.consultation_requests.find_one(
+        {"lead_id": lead_id, "created_from": "assisted_choice_flow"},
+        {"_id": 0, "id": 1},
+    )
+    if flow_assisted_req:
+        return {
+            "success": True,
+            "request_id": flow_assisted_req["id"],
+            "message": "Заявката вече е изпратена към Zubite.",
+            "already_requested": True,
+        }
+
+    # 6) Atomic CAS — pin the lead with assisted_choice_request_id ONLY if
+    #    BOTH selected_clinic_id AND assisted_choice_requested_at are unset.
+    #    We pre-generate `req_id` and write it inside the CAS so the guard
+    #    is self-locking against concurrent submits.
+    now_iso = datetime.now(timezone.utc).isoformat()
+    req_id = str(uuid.uuid4())
+    cas = await db.leads.update_one(
+        {
+            "id": lead_id,
+            "$or": [
+                {"selected_clinic_id": {"$exists": False}},
+                {"selected_clinic_id": None},
+                {"selected_clinic_id": ""},
+            ],
+            "$and": [
+                {"$or": [
+                    {"assisted_choice_requested_at": {"$exists": False}},
+                    {"assisted_choice_requested_at": None},
+                    {"assisted_choice_requested_at": ""},
+                ]},
+            ],
+        },
+        {
+            "$set": {
+                "assisted_choice_request_id": req_id,
+                "assisted_choice_requested_at": now_iso,
+                "assisted_choice_status": "requested",
+                "assisted_choice_source": body.source,
+                "consent_to_share_zubite": True,
+                "consent_to_share_zubite_at": now_iso,
+                "phone": body.phone.strip(),
+            }
+        },
+    )
+    if cas.modified_count != 1:
+        # Lost the CAS — re-read & branch.
+        relead = await db.leads.find_one(
+            {"id": lead_id},
+            {"_id": 0, "selected_clinic_id": 1, "assisted_choice_request_id": 1},
+        ) or {}
+        if relead.get("selected_clinic_id"):
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "success": False,
+                    "code": "already_requested_clinic",
+                    "message": "Вече сте изпратили заявка към избрана клиника.",
+                },
+            )
+        if relead.get("assisted_choice_request_id"):
+            return {
+                "success": True,
+                "request_id": relead["assisted_choice_request_id"],
+                "message": "Заявката вече е изпратена към Zubite.",
+                "already_requested": True,
+            }
+        # Genuinely unknown failure — surface a safe 409 not 500.
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "success": False,
+                "code": "already_requested_zubite_help",
+                "message": "Вече сте изпратили заявка към Zubite за помощ при избора.",
+            },
+        )
+
+    # 7) Insert the consultation_request (no clinic assignment).
+    fresh_lead = await db.leads.find_one({"id": lead_id}, {"_id": 0}) or lead
+    safe_message: Optional[str] = (body.message or "").strip()[:1000] or None
+    consultation_doc = {
+        "id": req_id,
+        "patient_name": fresh_lead.get("name") or "",
+        "patient_phone": fresh_lead.get("phone") or "",
+        "patient_email": fresh_lead.get("email"),
+        "patient_city": fresh_lead.get("city_slug") or fresh_lead.get("city"),
+        "preferred_contact_time": None,
+        "treatment_interest": (fresh_lead.get("treatment_type") or "general").lower(),
+        "urgency": (fresh_lead.get("answers") or {}).get("urgency"),
+        "readiness": (fresh_lead.get("answers") or {}).get("readiness") or fresh_lead.get("band"),
+        "quiz_result_id": (fresh_lead.get("answers") or {}).get("session_id"),
+        "lead_id": lead_id,
+        "source": "patient_requested_zubite_help",
+        "created_from": "assisted_choice_flow",
+        "selection_source": body.source,
+        "utm_source": fresh_lead.get("utm_source") or fresh_lead.get("first_utm_source"),
+        "utm_campaign": fresh_lead.get("utm_campaign") or fresh_lead.get("first_utm_campaign"),
+        # Critical: no clinic assignment. This is what hides the request from
+        # any clinic portal query (all of which filter by assigned_clinic_id).
+        "assigned_clinic_id": None,
+        "status": "needs_zubite_review",
+        "assigned_at": None,
+        "notes": None,
+        "patient_message": safe_message,
+        "consent_to_share_zubite": True,
+        "consent_to_share_zubite_at": now_iso,
+        "consent_to_share_zubite_text": REQUEST_ZUBITE_HELP_CONSENT_TEXT,
+        "created_at": now_iso,
+        "updated_at": now_iso,
+    }
+    await db.consultation_requests.insert_one(consultation_doc)
+
+    return {
+        "success": True,
+        "request_id": req_id,
+        "message": "Заявката е изпратена към Zubite.",
+    }
 
 
 

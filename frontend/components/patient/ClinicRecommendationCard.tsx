@@ -11,9 +11,12 @@ interface Props {
   clinic: RecommendedClinic
   position: number  // 1-based for accessibility
   leadId: string    // required so the card can deep-link to the profile page
-  // P4 selection state — drives "Заявката е изпратена" / "Вече избрахте клиника"
-  // disabled CTA variants across all sibling cards.
+  // P4/P5 selection state — drives 3-way CTA rendering:
+  //   1. this clinic is the pinned selection → green "Заявката е изпратена"
+  //   2. another clinic is pinned OR lead asked Zubite help → disabled label
+  //   3. nothing pinned → original "Искам обаждане"
   selectedClinicId?: string | null
+  hasAssistedChoice?: boolean
   onSubmitted?: (selectedClinicId: string, clinicName: string) => void
 }
 
@@ -56,12 +59,16 @@ export function ClinicRecommendationCard({
   position,
   leadId,
   selectedClinicId,
+  hasAssistedChoice,
   onSubmitted,
 }: Props) {
   const [modalOpen, setModalOpen] = useState(false)
 
   const hasAnySelection = !!selectedClinicId
   const isSelected = selectedClinicId === clinic.id
+  // When the lead has asked for Zubite help, every clinic CTA is locked
+  // with a different label ("Вече поискахте помощ от Zubite").
+  const lockedByAssisted = !!hasAssistedChoice && !hasAnySelection
 
   // BG label fallback: prefer the centralized treatment label map, else raw.
   const treatmentBadges = clinic.treatments.slice(0, 3).map((t) => (
@@ -171,6 +178,16 @@ export function ClinicRecommendationCard({
             <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
             Заявката е изпратена
           </div>
+        ) : lockedByAssisted ? (
+          <button
+            type="button"
+            disabled
+            aria-disabled="true"
+            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-slate-100 text-slate-400 text-sm font-medium rounded-full cursor-not-allowed"
+            data-testid={`clinic-card-locked-by-assisted-${clinic.id}`}
+          >
+            Вече поискахте помощ от Zubite
+          </button>
         ) : hasAnySelection ? (
           <button
             type="button"

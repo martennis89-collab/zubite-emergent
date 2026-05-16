@@ -1,5 +1,270 @@
 # Zubite.bg — Changelog
 
+## 2026-02-16 — Patient Layer — Batch P5: Assisted Choice ("Помогнете ми да избера")
+
+Replaced the preview-only "Помогнете ми да избера" CTA with a real
+concierge submit. Hard product rule **one lead = one active choice
+path** is enforced server-side via the same `leads` document used by
+P4. **No email/SMS/Twilio/ElevenLabs invoked. No clinic auto-selection.
+No AI decision.** The flow only records the request in DB so admin can
+handle it later.
+
+### Files touched
+**Backend (3):**
+- `backend/schemas.py` — added `RequestZubiteHelpBody` (`phone`,
+  `consent_to_share`, `message?` ≤1000 chars, `source:
+  matching_page|clinic_profile`).
+- `backend/routers/public.py`:
+  - Added `POST /api/leads/{lead_id}/request-zubite-help` (rate-limited
+    5/300s).
+  - Extended `GET /api/leads/{lead_id}/selection-state` with explicit
+    P5 fields (`has_selected_clinic`, `has_requested_zubite_help`,
+    `assisted_choice_request_id`, `assisted_choice_status`,
+    `assisted_choice_requested_at`, `assisted_choice_source`,
+    `selected_clinic`).
+  - Extended P4 `POST /request-call` with a new pre-check: if the lead
+    already has `assisted_choice_request_id`, return 409 with
+    `code="already_requested_zubite_help"`.
+- `backend/tests/test_patient_assisted_choice.py` (NEW) —
+  **28 / 28 PASS** in 0.74s on isolated `zubite_test_p5_assisted_choice`
+  DB.
+
+**Frontend (3):**
+- `frontend/lib/api.ts` — added `RequestZubiteHelpBody`,
+  `RequestZubiteHelpSuccess`, `PATIENT_ZUBITE_HELP_CONSENT_TEXT`
+  constant + `postRequestZubiteHelp()` helper. `SelectionState` type
+  extended with P5 fields.
+- `frontend/components/patient/AssistedChoiceModal.tsx` (NEW,
+  ~340 LOC) — real-submit modal with phone/message/consent. Phases:
+  form / submitting / success / error. Surfaces `already_requested_clinic`
+  inline with clinic info.
+- `frontend/components/patient/ClinicRecommendationCard.tsx` —
+  added `hasAssistedChoice` prop; new CTA state (Zubite-locked) with
+  label "Вече поискахте помощ от Zubite"
+  (`clinic-card-locked-by-assisted-{id}`).
+- `frontend/app/results/[leadId]/clinics/page.tsx` — wires the real
+  modal, adds the sky "Заявката е изпратена към Zubite." banner,
+  flips the "Помогнете ми да избера" button between 3 states
+  (submitted / locked-by-clinic / available), and passes
+  `hasAssistedChoice` down to every card. The previous
+  `AssistedNextStepModal` preview-only component is stubbed.
+- `memory/CHANGELOG.md`.
+
+### Endpoint contract
+
+**`POST /api/leads/{lead_id}/request-zubite-help`** — rate-limited 5/300s.
+
+**Request body:**
+```json
+{
+  "phone": "string",
+  "consent_to_share": true,
+  "message": "optional ≤1000 chars",
+  "source": "matching_page" | "clinic_profile"
+}
+```
+
+**Response (200 success):**
+```json
+{
+  "success": true,
+  "request_id": "uuid",
+  "message": "Заявката е изпратена към Zubite."
+}
+```
+
+**Response (200 idempotent retry):** same shape with `"already_requested": true` and `"message": "Заявката вече е изпратена към Zubite."`.
+
+**Response (409 selected-clinic conflict):**
+```json
+{
+  "detail": {
+    "success": false,
+    "code": "already_requested_clinic",
+    "clinic": {"id": "...", "name": "...", "city_name": "..."},
+    "message": "Вече сте изпратили заявка към избрана клиника."
+  }
+}
+```
+
+**Response (422 consent/phone):** `code = "consent_required"` or `"phone_invalid"`.
+**Response (404/410/429):** standard.
+
+The P4 endpoint now also returns `409 already_requested_zubite_help` if
+the lead has an active assisted-choice row.
+
+### Updated `selection-state` shape
+```jsonc
+{
+  "lead_id": "...",
+  // P4 (backwards compatible)
+  "has_request": false,                       // alias of has_selected_clinic
+  "selected_clinic_id": null,
+  "selected_clinic_request_id": null,
+  "clinic_selection_source": null,
+  "request_call_status": null,
+  "selected_clinic_requested_at": null,
+  "clinic": null,                              // present only when selected
+  // P5
+  "has_selected_clinic": false,
+  "selected_clinic": null,
+  "has_requested_zubite_help": false,
+  "assisted_choice_request_id": null,
+  "assisted_choice_status": null,
+  "assisted_choice_requested_at": null,
+  "assisted_choice_source": null
+}
+```
+
+### DB fields written
+**`consultation_requests` (new doc, no clinic assignment):**
+```
+id, lead_id, assigned_clinic_id = null,
+source = "patient_requested_zubite_help",
+created_from = "assisted_choice_flow",
+selection_source = "matching_page" | "clinic_profile",
+status = "needs_zubite_review",
+patient_name/phone/email/city, treatment_interest, urgency, readiness,
+quiz_result_id, utm_*, patient_message (≤1000 chars or null),
+consent_to_share_zubite = true,
+consent_to_share_zubite_at = ISO,
+consent_to_share_zubite_text = REQUEST_ZUBITE_HELP_CONSENT_TEXT (verbatim BG),
+created_at, updated_at.
+```
+
+**`leads` (atomic CAS update):**
+```
+assisted_choice_request_id, assisted_choice_requested_at,
+assisted_choice_status = "requested", assisted_choice_source,
+consent_to_share_zubite, consent_to_share_zubite_at,
+phone (if patient edited).
+```
+
+### Mutual exclusion — "selected clinic OR assisted choice, not both"
+
+The `leads` document is the single source of truth. Both endpoints use
+**atomic CAS** with a guard filter that requires BOTH `selected_clinic_id`
+AND `assisted_choice_request_id` to be unset/null/"":
+
+1. **`request-zubite-help`**:
+   - Pre-check rejects with 409 `already_requested_clinic` if
+     `lead.selected_clinic_id` is set OR a flow consultation_request
+     exists for `recommended_clinics_flow`.
+   - Pre-check returns 200 idempotent retry if a prior assisted-choice
+     row exists for this lead.
+   - CAS pre-generates `req_id` and writes BOTH
+     `assisted_choice_request_id` AND `assisted_choice_requested_at`
+     inside the same `update_one`. The guard then locks out concurrent
+     submits because `assisted_choice_requested_at` flips from absent →
+     present.
+2. **`request-call`** (P4 extension):
+   - New pre-check rejects with 409 `already_requested_zubite_help` if
+     `lead.assisted_choice_request_id` is set.
+   - Existing CAS guard on `selected_clinic_id` unchanged.
+
+In both flows, CAS loss → defensive re-read & branch to the right
+duplicate response. Concurrent submits cannot create two rows
+(test 16 covers this with `asyncio.gather`).
+
+### Frontend behaviour
+- **Banner mutual exclusion**: matching page renders either the
+  emerald "Вече избрахте клиника" banner (P4) OR the sky "Заявката е
+  изпратена към Zubite." banner (P5) — never both. Driven by
+  `selection.has_selected_clinic` / `selection.has_requested_zubite_help`.
+- **Clinic card CTA states** (4-way):
+  1. `clinic-card-submitted-{id}` → green pill for the chosen clinic.
+  2. `clinic-card-locked-by-assisted-{id}` → grey "Вече поискахте помощ от Zubite".
+  3. `clinic-card-disabled-{id}` → grey "Вече избрахте клиника".
+  4. `clinic-card-cta-{id}` → original primary button.
+- **Assisted button states**:
+  1. `assisted-choice-submitted` → green pill once submitted.
+  2. `assisted-choice-locked-by-clinic` → grey "Вече избрахте клиника".
+  3. `assisted-choice-btn` → original button.
+- **Modal field gating**: submit disabled until phone has ≥6 digits AND
+  consent box checked. Confirmed live during smoke.
+- **Server-canonical state**: after submit, `onSuccess` refetches
+  `getSelectionState` so the UI never relies on optimistic-only state
+  across navigations.
+- **Never fake success**: 4xx/5xx → inline rose error band; form
+  remains usable.
+
+### Clinic portal isolation
+`assigned_clinic_id = null` on every assisted-choice row. All existing
+clinic-portal queries in `backend/routers/consultations.py` filter by
+`assigned_clinic_id == <clinic_id>` (line 344), so a row with `null`
+never matches any clinic. Test 13 confirms: querying
+`{"assigned_clinic_id": clinic}` returns nothing; querying
+`{"assigned_clinic_id": {"$ne": null}}` returns nothing either.
+
+### Admin visibility (deferred)
+No admin UI for assisted-choice was built in P5. Admins can inspect the
+rows manually with:
+```js
+db.consultation_requests.find({
+  created_from: "assisted_choice_flow",
+  status: "needs_zubite_review"
+})
+```
+A future admin batch should add a filtered list / kanban for these.
+
+### Test results
+- `backend/tests/test_patient_assisted_choice.py` — **28 / 28 PASS**.
+  Covers all 20 required scenarios + 7 boundary/parametrize cases +
+  selection-state neither-path case.
+- P4 regression: `test_patient_request_call.py` → **31 / 31 PASS**
+  (after extending the request-call endpoint with the new mutual-
+  exclusion pre-check).
+- No external provider called — `_resend.Emails.send.assert_not_called()`
+  passes (test 14).
+
+### End-to-end smoke (preview env)
+- INIT: 3 primary clinic CTAs, 1 assisted button, 0 banners.
+- Open assisted modal → title "Помогнете ми да избера", submit disabled.
+- Fill phone + message + consent → submit enabled → 200 success.
+- AFTER_SUBMIT: 1 sky banner, 1 assisted-submitted pill, 3
+  `clinic-card-locked-by-assisted-*` pills, 0 primary CTAs.
+- Refresh → all 3 lock-by-assisted CTAs and banner persist (server-canonical).
+- Mobile 375×800 → `overflow_px = 0`.
+
+### TypeScript
+`tsc --noEmit` clean for all touched files.
+
+### Confirmation
+- ✅ 0 admin / clinic portal UI files changed.
+- ✅ 0 emails / SMS / Twilio / ElevenLabs / Resend invocations.
+- ✅ Assisted-choice rows are invisible to every clinic portal query.
+- ✅ Mutual exclusion enforced both directions
+  (clinic → blocks help; help → blocks clinic).
+- ✅ No clinic auto-selection. No AI decision.
+- ✅ Optional `message` field — Pydantic-bounded to 1000 chars,
+  whitespace-only normalised to `null`, oversize rejected with 422.
+
+### Unresolved risks
+1. **No admin UI for `needs_zubite_review` queue.** Admins must use a
+   shell query until the next admin batch lands.
+2. **`patient_message` is free text.** No PII redaction; admin should
+   handle it sensitively. Length is bounded (≤1000) so DB rows stay
+   compact.
+3. **No follow-up workflow yet** for what happens after an
+   assisted-choice row exists. Patient receives no email/SMS
+   confirmation (by design — this batch creates the record only).
+4. **`status="needs_zubite_review"` is a new enum value.** Clinic
+   portal queries already filter by `assigned_clinic_id`, so this
+   never reaches them, but any future admin UI must whitelist this
+   status explicitly.
+5. **CAS guard uses `assisted_choice_requested_at`**, not the request
+   id, as the lock token because we now pre-generate `req_id` inside
+   the CAS `$set`. Either field would work; ordering picked for clearer
+   semantic auditing.
+
+### P5 complete?
+**Yes.** Patient layer now offers a complete dual-path decision flow:
+choose-a-clinic OR ask-Zubite, never both, server-canonical state,
+audit-ready, isolated tests. Safe to proceed to admin / notification
+batch when ready.
+
+
+
 ## 2026-02-16 — Patient Layer — Batch P4: Request Call Flow (REAL submit)
 
 Replaced the preview-only "Искам обаждане" modals on the matching page

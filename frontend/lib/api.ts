@@ -144,6 +144,15 @@ export interface SelectionState {
   request_call_status: 'requested' | null;
   selected_clinic_requested_at: string | null;
   clinic?: { id: string; name: string; city_name: string };
+  // P5 — assisted-choice fields. `has_selected_clinic` mirrors
+  // `has_request` for clarity; new UI should prefer the explicit pair.
+  has_selected_clinic?: boolean;
+  selected_clinic?: { id: string; name: string; city_name: string } | null;
+  has_requested_zubite_help?: boolean;
+  assisted_choice_request_id?: string | null;
+  assisted_choice_status?: 'requested' | null;
+  assisted_choice_requested_at?: string | null;
+  assisted_choice_source?: 'matching_page' | 'clinic_profile' | null;
 }
 
 export const postRequestCall = async (
@@ -166,8 +175,39 @@ export const getSelectionState = async (leadId: string): Promise<SelectionState>
   return response.data;
 };
 
+// ── Patient layer P5 ─────────────────────────────────────────
+export interface RequestZubiteHelpBody {
+  phone: string;
+  consent_to_share: boolean;
+  message?: string;
+  source: 'matching_page' | 'clinic_profile';
+}
+
+export interface RequestZubiteHelpSuccess {
+  success: true;
+  request_id: string;
+  message: string;
+  already_requested?: boolean;
+}
+
+export const postRequestZubiteHelp = async (
+  leadId: string,
+  body: RequestZubiteHelpBody,
+): Promise<RequestZubiteHelpSuccess> => {
+  const base = process.env.NEXT_PUBLIC_API_URL || '';
+  const response = await axios.post<RequestZubiteHelpSuccess>(
+    `${base}/api/leads/${leadId}/request-zubite-help`,
+    body,
+  );
+  return response.data;
+};
+
 export const PATIENT_CONSENT_TEXT =
   'Съгласен/съгласна съм Zubite да сподели заявката ми с избраната клиника.';
+
+export const PATIENT_ZUBITE_HELP_CONSENT_TEXT =
+  'Съгласен/съгласна съм Zubite да използва информацията от оценката ми, ' +
+  'за да ми помогне да избера подходяща следваща стъпка.';
 
 export const seedDatabase = async () => {
   try {

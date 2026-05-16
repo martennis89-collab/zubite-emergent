@@ -118,6 +118,22 @@ class RequestCallBody(BaseModel):
     source: RequestCallSource = "matching_card"
 
 
+# ─── Patient layer P5: assisted choice ────────────────────────────
+AssistedChoiceSource = Literal["matching_page", "clinic_profile"]
+
+
+class RequestZubiteHelpBody(BaseModel):
+    """`POST /api/leads/{lead_id}/request-zubite-help` payload.
+    Mutual exclusion with `RequestCallBody` is enforced server-side."""
+    model_config = ConfigDict(extra="ignore")
+    phone: str = Field(min_length=4, max_length=50)
+    consent_to_share: bool
+    # Optional free-text note. Bounded length to keep DB rows compact
+    # and prevent abuse; PII redaction is admin's responsibility.
+    message: Optional[str] = Field(default=None, max_length=1000)
+    source: AssistedChoiceSource = "matching_page"
+
+
 class Lead(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
