@@ -611,9 +611,18 @@ export function MasterQuiz() {
       }
       const response = await fetch(`${API_URL}/api/leads`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(leadData) })
       if (!response.ok) throw new Error('Failed')
+      // Capture leadId from the created lead so the success page can link
+      // straight into the matching flow (/results/[leadId]/clinics).
+      // Failure to parse is non-fatal: the success page falls back gracefully.
+      let createdLeadId = ''
+      try {
+        const created = await response.json()
+        if (created && typeof created.id === 'string') createdLeadId = created.id
+      } catch { /* leadId remains empty → success page hides matching CTA */ }
       trackEvent('form_submitted', { form_version: formVersion, city: formData.city, has_name: !!formData.name, has_email: !!formData.email, segment })
       trackLeadSubmit(formData.city, formVersion)
       const successParams = new URLSearchParams({ stage: result?.band || 'low', city: formData.city, name: formData.name || '', segment: segment || 'adult' })
+      if (createdLeadId) successParams.set('leadId', createdLeadId)
       router.push(`/quiz/success?${successParams.toString()}`)
     } catch { setError('Възникна грешка. Моля, опитайте отново.') } finally { setIsSubmitting(false) }
   }

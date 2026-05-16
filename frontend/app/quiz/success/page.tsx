@@ -3,109 +3,55 @@
 import { useEffect, useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { CheckCircle, ArrowRight, Clock, MapPin, Shield, AlertTriangle, Heart } from 'lucide-react'
+import { CheckCircle, ArrowRight, MapPin, Shield, Sparkles } from 'lucide-react'
 import { trackPageView } from '@/components/MetaPixel'
 
 type ResultBand = 'low' | 'moderate' | 'high'
 type Segment = 'adult' | 'teen' | 'child'
 
-const BAND_CONFIG: Record<ResultBand, { label: string; color: string; bg: string; border: string; iconBg: string; dot: string }> = {
-  low:      { label: 'Нисък риск', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', iconBg: 'bg-emerald-100', dot: 'bg-emerald-500' },
-  moderate: { label: 'Умерен риск', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', iconBg: 'bg-amber-100', dot: 'bg-amber-500' },
-  high:     { label: 'Висок риск', color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200', iconBg: 'bg-red-100', dot: 'bg-red-500' },
+const BAND_CONFIG: Record<
+  ResultBand,
+  { label: string; color: string; bg: string; border: string; iconBg: string; dot: string }
+> = {
+  low:      { label: 'Нисък риск',  color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', iconBg: 'bg-emerald-100', dot: 'bg-emerald-500' },
+  moderate: { label: 'Умерен риск', color: 'text-amber-700',   bg: 'bg-amber-50',   border: 'border-amber-200',   iconBg: 'bg-amber-100',   dot: 'bg-amber-500' },
+  high:     { label: 'Висок риск',  color: 'text-red-700',     bg: 'bg-red-50',     border: 'border-red-200',     iconBg: 'bg-red-100',     dot: 'bg-red-500' },
 }
 
-const CITY_NAMES: Record<string, string> = { sofia: 'София', plovdiv: 'Пловдив', varna: 'Варна', haskovo: 'Хасково' }
+const CITY_NAMES: Record<string, string> = {
+  sofia: 'София', plovdiv: 'Пловдив', varna: 'Варна', haskovo: 'Хасково',
+}
 
-const SEGMENT_MESSAGES: Record<Segment, Record<ResultBand, { thanks: string; summary: string; steps: string[] }>> = {
+// Calm risk-band summary copy. The brief explicitly forbids "Zubite ще се
+// свърже с теб / ще ти запази час" — the patient must actively choose
+// (request a call from one clinic OR ask Zubite for help). So we keep only
+// the band/segment-aware summary line and remove all proactive-call claims.
+const SEGMENT_SUMMARIES: Record<Segment, Record<ResultBand, { thanks: string; summary: string }>> = {
   adult: {
-    low: {
-      thanks: 'Благодарим ти',
-      summary: 'Резултатът показва нисък риск. Въпреки това, ще подберем клиники, които могат да потвърдят състоянието ти с професионален преглед.',
-      steps: [
-        'Ще прегледаме резултата ти и ще подберем подходящи клиники в твоя град.',
-        'Ще се свържем с теб по телефон в рамките на 24–48 часа с препоръки.',
-        'Ще ти помогнем да запазиш безплатна консултация при специалист.',
-      ],
-    },
-    moderate: {
-      thanks: 'Благодарим ти',
-      summary: 'Резултатът показва умерен риск — има признаци, които заслужават внимание. Ще подберем клиники, специализирани в твоя тип проблем.',
-      steps: [
-        'Ще анализираме отговорите ти и ще подберем клиники с опит в подобни случаи.',
-        'Ще се свържем с теб в рамките на 24 часа с конкретни препоръки.',
-        'Ще ти помогнем да запазиш час за консултация — без ангажимент.',
-      ],
-    },
-    high: {
-      thanks: 'Благодарим ти',
-      summary: 'Резултатът показва висок риск. Отговорите ти показват комбинация от симптоми, които е важно да бъдат оценени от специалист. Ще те свържем с клиника приоритетно.',
-      steps: [
-        'Ще подберем специализирани клиники за твоя случай — приоритетно.',
-        'Ще се свържем с теб възможно най-скоро (в рамките на 24 часа).',
-        'Ще координираме консултация при ортодонт — без забавяне.',
-      ],
-    },
+    low:      { thanks: 'Благодарим ти', summary: 'Резултатът показва нисък риск. Подбрахме клиники, при които можеш да потвърдиш състоянието си с професионален преглед, ако решиш.' },
+    moderate: { thanks: 'Благодарим ти', summary: 'Резултатът показва умерен риск — има признаци, които заслужават внимание. Виж подбрани клиники, специализирани в твоя тип проблем.' },
+    high:     { thanks: 'Благодарим ти', summary: 'Резултатът показва висок риск. Отговорите ти показват комбинация от симптоми, които е важно да бъдат оценени от специалист. Виж приоритетно подбрани клиники.' },
   },
   teen: {
-    low: {
-      thanks: 'Благодарим ви',
-      summary: 'Резултатът показва нисък риск за тийнейджъра. Въпреки това, профилактичен преглед в тази възраст е изключително важен за правилното развитие.',
-      steps: [
-        'Ще подберем клиники с опит в ортодонтия за тийнейджъри.',
-        'Ще се свържем с вас по телефон в рамките на 24–48 часа.',
-        'Ще ви помогнем да запазите профилактичен преглед.',
-      ],
-    },
-    moderate: {
-      thanks: 'Благодарим ви',
-      summary: 'Резултатът показва умерен риск. В тийнейджърска възраст тези проблеми могат да се коригират значително по-лесно. Ще подберем клиники, специализирани в ранна корекция.',
-      steps: [
-        'Ще анализираме отговорите и ще подберем клиники с опит при тийнейджъри.',
-        'Ще се свържем с вас в рамките на 24 часа с конкретни препоръки.',
-        'Ще координираме консултация — сега е идеалният момент за корекция.',
-      ],
-    },
-    high: {
-      thanks: 'Благодарим ви',
-      summary: 'Резултатът показва висок риск. Не се притеснявайте — в тази възраст корекцията е значително по-ефективна. Ще ви свържем приоритетно с подходяща клиника.',
-      steps: [
-        'Ще подберем специализирани клиники за тийнейджъри — приоритетно.',
-        'Ще се свържем с вас възможно най-скоро.',
-        'Ще координираме консултация — не изпускайте „златния прозорец" за корекция.',
-      ],
-    },
+    low:      { thanks: 'Благодарим ви', summary: 'Резултатът показва нисък риск за тийнейджъра. Профилактичен преглед в тази възраст остава важен за правилното развитие.' },
+    moderate: { thanks: 'Благодарим ви', summary: 'Резултатът показва умерен риск. В тийнейджърска възраст тези проблеми могат да се коригират значително по-лесно — виж клиники, специализирани в ранна корекция.' },
+    high:     { thanks: 'Благодарим ви', summary: 'Резултатът показва висок риск. Не се притеснявайте — в тази възраст корекцията е значително по-ефективна. Виж приоритетно подбрани клиники.' },
   },
   child: {
-    low: {
-      thanks: 'Благодарим ви',
-      summary: 'Резултатът показва нисък риск за детето. Въпреки това, първият преглед при ортодонт се препоръчва на 7-годишна възраст — дори без видим проблем.',
-      steps: [
-        'Ще подберем клиники с опит в детска ортодонтия.',
-        'Ще се свържем с вас в рамките на 24–48 часа.',
-        'Ще ви помогнем да запазите профилактичен детски преглед.',
-      ],
-    },
-    moderate: {
-      thanks: 'Благодарим ви',
-      summary: 'Резултатът показва умерен риск. При децата ранната намеса може да промени хода на развитие и да предотврати по-сложно лечение по-късно.',
-      steps: [
-        'Ще подберем клиники, специализирани в детска и превантивна ортодонтия.',
-        'Ще се свържем с вас в рамките на 24 часа.',
-        'Ще координираме преглед — малка интервенция сега може да спести голямо лечение.',
-      ],
-    },
-    high: {
-      thanks: 'Благодарим ви',
-      summary: 'Резултатът показва висок риск. Комбинацията от сигнали показва, че е важно да се действа навреме. При децата ранната интервенция е най-ефективна.',
-      steps: [
-        'Ще подберем клиники с опит в ранна детска интервенция — приоритетно.',
-        'Ще се свържем с вас възможно най-скоро.',
-        'Ще координираме преглед при детски ортодонт — не отлагайте.',
-      ],
-    },
+    low:      { thanks: 'Благодарим ви', summary: 'Резултатът показва нисък риск за детето. Първият преглед при ортодонт се препоръчва около 7-годишна възраст — дори без видим проблем.' },
+    moderate: { thanks: 'Благодарим ви', summary: 'Резултатът показва умерен риск. При децата ранната намеса може да промени хода на развитие и да предотврати по-сложно лечение по-късно.' },
+    high:     { thanks: 'Благодарим ви', summary: 'Резултатът показва висок риск. Комбинацията от сигнали показва, че е важно да се действа навреме. Виж приоритетно подбрани клиники с опит в ранна детска интервенция.' },
   },
 }
+
+// Unified "Какво следва?" steps — same across bands/segments because the
+// next-step product flow is the same for everyone: see up to 3 clinics →
+// open profiles → choose one for a call or ask Zubite for help.
+const NEXT_STEPS = [
+  'Виж до 3 подходящи клиники според твоя град и типа заявка.',
+  'Отвори профила на всяка клиника и прецени коя е най-подходяща за следващата стъпка.',
+  'Избери една клиника за обаждане или поискай помощ от Zubite, ако не си сигурен/на.',
+]
 
 function SuccessContent() {
   const searchParams = useSearchParams()
@@ -115,15 +61,21 @@ function SuccessContent() {
   const city = searchParams.get('city') || ''
   const name = searchParams.get('name') || ''
   const segment = (searchParams.get('segment') || 'adult') as Segment
+  const leadId = searchParams.get('leadId') || ''
 
   const bandCfg = BAND_CONFIG[band] || BAND_CONFIG.low
-  const msg = (SEGMENT_MESSAGES[segment] || SEGMENT_MESSAGES.adult)[band] || SEGMENT_MESSAGES.adult.low
+  const segMap = SEGMENT_SUMMARIES[segment] || SEGMENT_SUMMARIES.adult
+  const summaryCfg = segMap[band] || segMap.low
   const isParent = segment === 'teen' || segment === 'child'
 
   useEffect(() => { setMounted(true); trackPageView() }, [])
 
   if (!mounted) {
-    return <div className="min-h-screen bg-white flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-500" /></div>
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-500" />
+      </div>
+    )
   }
 
   return (
@@ -134,13 +86,16 @@ function SuccessContent() {
           <CheckCircle className={`w-8 h-8 ${bandCfg.color}`} />
         </div>
         <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-slate-900 mb-2">
-          {msg.thanks}{name ? `, ${name}` : ''}!
+          {summaryCfg.thanks}{name ? `, ${name}` : ''}!
         </h1>
         <p className="text-slate-500 text-sm">Данните са получени успешно</p>
       </div>
 
       {/* Result band + summary */}
-      <div className={`rounded-2xl border ${bandCfg.border} ${bandCfg.bg} p-5 sm:p-6 mb-6`} data-testid="success-result-card">
+      <div
+        className={`rounded-2xl border ${bandCfg.border} ${bandCfg.bg} p-5 sm:p-6 mb-6`}
+        data-testid="success-result-card"
+      >
         <div className="flex items-center gap-2 mb-4">
           <span className={`w-2 h-2 rounded-full ${bandCfg.dot}`} />
           <span className={`text-sm font-semibold ${bandCfg.color}`}>{bandCfg.label}</span>
@@ -151,16 +106,22 @@ function SuccessContent() {
             </span>
           )}
         </div>
-        <p className="text-slate-700 text-[15px] leading-relaxed">{msg.summary}</p>
+        <p className="text-slate-700 text-[15px] leading-relaxed">{summaryCfg.summary}</p>
       </div>
 
-      {/* What happens next */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 mb-6" data-testid="success-next-steps">
+      {/* What happens next — patient-driven choice, not auto-call */}
+      <div
+        className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 mb-6"
+        data-testid="success-next-steps"
+      >
         <h2 className="font-serif text-lg font-semibold text-slate-900 mb-5">Какво следва?</h2>
         <div className="space-y-4">
-          {msg.steps.map((text, i) => (
+          {NEXT_STEPS.map((text, i) => (
             <div key={i} className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-7 h-7 rounded-full bg-sky-500 text-white flex items-center justify-center text-xs font-bold mt-0.5">
+              <div
+                className="flex-shrink-0 w-7 h-7 rounded-full bg-sky-500 text-white flex items-center justify-center text-xs font-bold mt-0.5"
+                aria-hidden="true"
+              >
                 {i + 1}
               </div>
               <p className="text-slate-700 text-[15px] leading-relaxed">{text}</p>
@@ -169,20 +130,57 @@ function SuccessContent() {
         </div>
       </div>
 
-      {/* Timeline */}
-      <div className="flex items-center justify-center gap-2 text-sm text-slate-400 mb-8" data-testid="success-timeline">
-        <Clock className="w-4 h-4" />
-        <span>{band === 'high' ? 'Очаквайте обаждане в рамките на 24 часа' : 'Очаквайте обаждане в рамките на 24–48 часа'}</span>
+      {/* Primary CTA — into the matching flow */}
+      <div className="space-y-3" data-testid="success-cta-block">
+        {leadId ? (
+          <Link
+            href={`/results/${leadId}/clinics`}
+            className="w-full inline-flex items-center justify-center gap-2 h-12 px-6 rounded-full bg-sky-500 hover:bg-sky-600 text-white text-base font-medium transition-colors shadow-lg shadow-sky-500/20"
+            data-testid="success-primary-cta"
+          >
+            Виж препоръчаните клиники
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        ) : (
+          // Defensive fallback — should not happen because the quiz now
+          // captures the created lead id. Never invent a route; just
+          // ask the patient to refresh / open from the link they will
+          // receive. We do NOT auto-promise a callback.
+          <div
+            className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 leading-relaxed"
+            data-testid="success-no-leadid-fallback"
+          >
+            Не успяхме да заредим директната връзка към твоите препоръчани
+            клиники. Моля, презареди страницата или се върни към квиза.
+          </div>
+        )}
+        <p
+          className="flex items-start justify-center gap-1.5 text-xs text-slate-500 leading-relaxed text-center"
+          data-testid="success-helper-text"
+        >
+          <Sparkles className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-violet-500" />
+          Не си сигурен/на? На следващата страница можеш да избереш „Помогнете
+          ми да избера".
+        </p>
       </div>
 
-      {/* Trust + CTA */}
-      <div className="text-center space-y-4">
+      {/* Trust + medical disclaimer */}
+      <div className="text-center space-y-3 mt-10" data-testid="success-trust">
         <p className="flex items-center justify-center gap-1.5 text-xs text-slate-400">
           <Shield className="w-3.5 h-3.5" />
-          {isParent ? 'Данните ви са защитени. Нищо няма да бъде споделено без вашето съгласие.' : 'Данните ти са защитени. Нищо няма да бъде споделено без твоето съгласие.'}
+          {isParent
+            ? 'Данните ви са защитени. Нищо няма да бъде споделено без вашето съгласие.'
+            : 'Данните ти са защитени. Нищо няма да бъде споделено без твоето съгласие.'}
         </p>
-        <Link href="/" className="inline-flex items-center gap-2 text-sky-600 font-medium hover:text-sky-700 transition-colors text-sm" data-testid="success-home-link">
-          Обратно към началото <ArrowRight className="w-4 h-4" />
+        <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+          Zubite не поставя диагноза и не заменя преглед при лекар.
+        </p>
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors text-sm"
+          data-testid="success-home-link"
+        >
+          Обратно към началото
         </Link>
       </div>
     </div>
@@ -199,7 +197,13 @@ export default function QuizSuccessPage() {
           </Link>
         </div>
       </header>
-      <Suspense fallback={<div className="min-h-[60vh] flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-500" /></div>}>
+      <Suspense
+        fallback={
+          <div className="min-h-[60vh] flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-500" />
+          </div>
+        }
+      >
         <SuccessContent />
       </Suspense>
       <footer className="py-6 border-t border-slate-100">
