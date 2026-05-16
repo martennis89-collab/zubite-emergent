@@ -112,9 +112,23 @@ export default function ClinicRequestDetailPage() {
         </Link>
 
         {loading ? (
-          <div className="h-40 grid place-items-center text-slate-400">Зареждане…</div>
+          <RequestDetailSkeleton />
         ) : !req ? (
-          <div className="text-slate-400">Заявката не е намерена.</div>
+          <div
+            className="bg-white border border-slate-200 rounded-2xl p-10 text-center"
+            data-testid="request-not-found"
+          >
+            <div className="mx-auto w-12 h-12 grid place-items-center rounded-full bg-slate-100 text-slate-500 mb-3">
+              <X className="w-5 h-5" />
+            </div>
+            <div className="text-base font-medium text-slate-700">
+              Заявката не е намерена
+            </div>
+            <p className="mt-1 text-sm text-slate-500">
+              Възможно е да е била преразпределена. Върнете се към списъка с
+              заявки.
+            </p>
+          </div>
         ) : (
           <>
             <RequestProgressStrip shape={progress} />
@@ -437,6 +451,17 @@ function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: strin
   )
 }
 
+function RequestDetailSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse" data-testid="request-detail-skeleton">
+      <div className="bg-white border border-slate-200 rounded-2xl h-20" />
+      <div className="bg-white border border-slate-200 rounded-2xl h-44" />
+      <div className="bg-white border border-slate-200 rounded-2xl h-32" />
+      <div className="bg-white border border-slate-200 rounded-2xl h-40" />
+    </div>
+  )
+}
+
 interface BookingPayload {
   appointment_type: string
   start_time: string
@@ -467,6 +492,15 @@ function BookingModal({
 
   // Client-side guard: block past date selection in the date picker.
   const todayIso = new Date().toISOString().slice(0, 10)
+
+  // Esc-to-close. Click-outside is already wired on the backdrop.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !busy) onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [busy, onClose])
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -585,23 +619,28 @@ function BookingModal({
             {error}
           </div>
         )}
-        <div className="flex items-center justify-end gap-2 pt-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="h-10 px-4 rounded-full border border-slate-200 text-slate-700 hover:bg-slate-50"
-          >
-            Откажи
-          </button>
-          <button
-            type="submit"
-            disabled={busy}
-            className="h-10 px-5 rounded-full bg-sky-500 hover:bg-sky-600 text-white font-medium disabled:opacity-50 inline-flex items-center gap-2"
-            data-testid="booking-submit"
-          >
-            {busy && <Loader2 className="w-4 h-4 animate-spin" />}
-            Потвърди
-          </button>
+        <div className="flex items-center justify-between gap-2 pt-2">
+          <span className="text-[11px] text-slate-400 hidden sm:inline">
+            Esc за затваряне
+          </span>
+          <div className="flex items-center gap-2 ml-auto">
+            <button
+              type="button"
+              onClick={onClose}
+              className="h-10 px-4 rounded-full border border-slate-200 text-slate-700 hover:bg-slate-50"
+            >
+              Откажи
+            </button>
+            <button
+              type="submit"
+              disabled={busy}
+              className="h-10 px-5 rounded-full bg-sky-500 hover:bg-sky-600 text-white font-medium disabled:opacity-50 inline-flex items-center gap-2"
+              data-testid="booking-submit"
+            >
+              {busy && <Loader2 className="w-4 h-4 animate-spin" />}
+              {mode === 'reschedule' ? 'Премести' : 'Резервирай'}
+            </button>
+          </div>
         </div>
       </form>
     </div>
