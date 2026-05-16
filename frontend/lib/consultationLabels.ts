@@ -305,6 +305,60 @@ export function formatDuration(secs: number | null | undefined): string {
   return `${(secs / 86400).toFixed(1)} дни`
 }
 
+/** Returns the Monday at 00:00 of the week containing `d` (local time). */
+export function getMondayOfWeek(d: Date): Date {
+  const out = new Date(d)
+  out.setHours(0, 0, 0, 0)
+  // JS: Sunday = 0, Monday = 1 … Saturday = 6. We want Monday-start weeks.
+  const dow = out.getDay()
+  const delta = dow === 0 ? -6 : 1 - dow
+  out.setDate(out.getDate() + delta)
+  return out
+}
+
+/** Adds `days` to the date (returns a new Date, original untouched). */
+export function addDays(d: Date, days: number): Date {
+  const out = new Date(d)
+  out.setDate(out.getDate() + days)
+  return out
+}
+
+const MONTHS_BG = [
+  'януари', 'февруари', 'март', 'април', 'май', 'юни',
+  'юли', 'август', 'септември', 'октомври', 'ноември', 'декември',
+]
+
+/** Renders a week range as "13–19 май 2026". If the week spans two months
+ *  ("28 април – 4 май 2026"), or two years, expands the format accordingly.
+ */
+export function formatWeekRange(monday: Date): string {
+  const sunday = addDays(monday, 6)
+  const dM = monday.getDate()
+  const dS = sunday.getDate()
+  const mM = monday.getMonth()
+  const mS = sunday.getMonth()
+  const yM = monday.getFullYear()
+  const yS = sunday.getFullYear()
+  if (yM !== yS) {
+    return `${dM} ${MONTHS_BG[mM]} ${yM} – ${dS} ${MONTHS_BG[mS]} ${yS}`
+  }
+  if (mM !== mS) {
+    return `${dM} ${MONTHS_BG[mM]} – ${dS} ${MONTHS_BG[mS]} ${yM}`
+  }
+  return `${dM}–${dS} ${MONTHS_BG[mM]} ${yM}`
+}
+
+/** Short BG weekday names, Monday-first. Index 0 = Понеделник. */
+export const WEEKDAY_NAMES_SHORT_BG = ['Пон', 'Вто', 'Сря', 'Чет', 'Пет', 'Съб', 'Нед']
+
+export function isSameLocalDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  )
+}
+
 export interface ConsultationRequest {
   id: string
   patient_name: string
