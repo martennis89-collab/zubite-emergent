@@ -66,15 +66,30 @@ export function LeadCaptureForm({ treatmentType, source = 'treatment_page', vari
 
   if (submitted) {
     return (
-      <div className="bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-8 text-center">
+      <div
+        className="bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-8 text-center"
+        data-testid="lead-form-success"
+      >
         <div className="bg-emerald-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
           <CheckCircle className="w-8 h-8 text-emerald-600" />
         </div>
-        <h3 className="font-serif text-xl font-semibold text-emerald-800 mb-2">
-          Благодарим!
+        <h3 className="font-serif text-xl font-semibold text-emerald-900 mb-2">
+          Заявката е получена
         </h3>
-        <p className="text-emerald-700">
-          Нашият екип ще се свърже с вас скоро.
+        <p className="text-emerald-800 text-[15px] leading-relaxed max-w-md mx-auto">
+          Получихме информацията ви. За по-точна следваща стъпка можете да
+          попълните кратката оценка на Zubite.
+        </p>
+        <Link
+          href="/quiz"
+          className="inline-flex items-center gap-2 mt-5 h-11 px-5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-colors"
+          data-testid="lead-form-success-cta"
+        >
+          Попълни 60-секундната оценка
+          <ArrowRight className="w-4 h-4" />
+        </Link>
+        <p className="mt-5 text-xs text-emerald-700/80 leading-relaxed">
+          Zubite не поставя диагноза и не заменя преглед при лекар.
         </p>
       </div>
     )
@@ -89,7 +104,7 @@ export function LeadCaptureForm({ treatmentType, source = 'treatment_page', vari
           </div>
           <div>
             <h3 className="font-medium text-slate-900">Заявете обаждане</h3>
-            <p className="text-sm text-slate-500">Ще се свържем с вас скоро</p>
+            <p className="text-sm text-slate-500">Ще получите кратка следваща стъпка от Zubite</p>
           </div>
         </div>
       )}

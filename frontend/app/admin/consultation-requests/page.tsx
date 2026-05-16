@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import {
   ConsultationRequest, statusBadge, formatDate, TREATMENT_LABELS,
@@ -23,6 +23,21 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: 'awaiting_review',  label: 'Чака преглед' },
 ]
 
+// Resolve the initial tab from URL search params. Priority order:
+//   1. status=needs_zubite_review              → awaiting_review
+//   2. created_from=assisted_choice_flow       → assisted_choice
+//   3. created_from=recommended_clinics_flow   → selected_clinic
+// Unsupported or absent params fall back to 'all'. Initial-state only —
+// after mount the user controls the tab via the on-page tab strip.
+function tabFromSearchParams(sp: URLSearchParams | null): TabKey {
+  if (!sp) return 'all'
+  if (sp.get('status') === 'needs_zubite_review') return 'awaiting_review'
+  const cf = sp.get('created_from')
+  if (cf === 'assisted_choice_flow') return 'assisted_choice'
+  if (cf === 'recommended_clinics_flow') return 'selected_clinic'
+  return 'all'
+}
+
 function buildQuery(tab: TabKey, status: string, clinicId: string): string {
   const qs = new URLSearchParams()
   if (tab === 'selected_clinic') qs.set('created_from', 'recommended_clinics_flow')
@@ -35,10 +50,13 @@ function buildQuery(tab: TabKey, status: string, clinicId: string): string {
 }
 
 export default function AdminConsultationRequestsPage() {
+  const searchParams = useSearchParams()
   const [requests, setRequests] = useState<ConsultationRequest[]>([])
   const [clinics, setClinics] = useState<Clinic[]>([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<TabKey>('all')
+  // Initialize from URL on first render so the dashboard CTA lands the
+  // admin directly on the right tab (e.g. ?status=needs_zubite_review).
+  const [tab, setTab] = useState<TabKey>(() => tabFromSearchParams(searchParams))
   const [filterStatus, setFilterStatus] = useState('')
   const [filterClinic, setFilterClinic] = useState('')
   const router = useRouter()

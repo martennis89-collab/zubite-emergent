@@ -1,5 +1,150 @@
 # Zubite.bg — Changelog
 
+## 2026-02-16 — Admin Consultation Requests — URL filter follow-up
+
+Made `/admin/consultation-requests` honor `?status=` and `?created_from=`
+query params from the dashboard CTA, so admins land directly on the
+right tab. **Frontend only. No backend, no dashboard, no detail-page
+changes.**
+
+### Files touched
+- `frontend/app/admin/consultation-requests/page.tsx` — added
+  `useSearchParams()` import + `tabFromSearchParams()` pure helper +
+  initialised the `tab` state via `useState(() => tabFromSearchParams(searchParams))`.
+- `memory/CHANGELOG.md`.
+
+### Supported URL params (priority order)
+1. `status=needs_zubite_review`              → tab **Чака преглед** (`awaiting_review`)
+2. `created_from=assisted_choice_flow`       → tab **Помощ от Zubite** (`assisted_choice`)
+3. `created_from=recommended_clinics_flow`   → tab **Избрана клиника** (`selected_clinic`)
+- No params / unknown value → tab **Всички** (`all`)
+
+### Tab/filter mapping
+```
+URL param                                       →  initial tab           →  backend filter applied
+?status=needs_zubite_review                     →  awaiting_review       →  status=needs_zubite_review
+?created_from=assisted_choice_flow              →  assisted_choice       →  created_from=assisted_choice_flow
+?created_from=recommended_clinics_flow          →  selected_clinic       →  created_from=recommended_clinics_flow
+(none)                                          →  all                   →  (no filter)
+?status=unknown_value                           →  all                   →  (no filter)
+?status=needs_zubite_review&created_from=…      →  awaiting_review       →  status=needs_zubite_review (priority)
+```
+
+### Dashboard CTA verification — live smoke
+- Card click on `/admin/dashboard` → lands at
+  `/admin/consultation-requests?status=needs_zubite_review` → tab
+  `admin-cr-tab-awaiting_review` is `aria-pressed="true"` → exactly 1
+  P5 row shown (the live `needs_zubite_review` queue). End-to-end
+  confirmed.
+- All 7 verification cases pass: 6 isolated URL cases + dashboard CTA.
+
+### Behaviour notes
+- **Initial-state only.** Once mounted, the user controls the tab via
+  the on-page tab strip. We do NOT sync URL ↔ tab on subsequent clicks
+  (out of scope; would require URL push on every tab change which
+  changes browser history semantics).
+- No backend query-shape change. The existing
+  `GET /api/admin/consultation-requests?created_from=&status=` already
+  supports all three values; the page just maps URL → tab → existing
+  `buildQuery()` helper.
+
+### TypeScript
+`tsc --noEmit` — clean for `consultation-requests/page.tsx`.
+
+### Confirmation
+- ✅ 0 backend files changed.
+- ✅ 0 patient-flow files changed.
+- ✅ 0 clinic-portal files changed.
+- ✅ Admin dashboard untouched. Admin consultation-request **detail**
+  page untouched.
+- ✅ 0 auth / session / CSRF / audit / external-provider changes.
+- ✅ 0 new dependencies — `useSearchParams` already part of
+  `next/navigation`.
+
+### Unresolved risks
+1. **No two-way URL sync.** After the user clicks a different tab, the
+   URL keeps the original `?status=` value. Harmless (the active tab
+   wins for the actual data fetch), but means refresh re-applies the
+   original filter, not the tab the user is currently looking at. By
+   design — see "Initial-state only" above.
+2. **Priority order is documented but invisible.** If a future
+   integration sends both `?status=` and `?created_from=` (e.g. a
+   bookmark or external link), only the status filter will be honored.
+   Acceptable for the dashboard CTA's single intent.
+
+
+
+## 2026-02-16 — LeadCaptureForm — Calm success-state copy
+
+Removed the legacy "we'll call you back" promise from the
+`LeadCaptureForm` quick-contact component (used on treatment landing
+surfaces). **Copy-only. No flow change, no redirect into matching, no
+backend changes.**
+
+### Files touched
+- `frontend/components/LeadCaptureForm.tsx` — replaced success state
+  and tweaked form header line. Added `data-testid` hooks
+  (`lead-form-success`, `lead-form-success-cta`).
+- `memory/CHANGELOG.md`.
+
+### Old copy removed
+- Header sub-line: "Ще се свържем с вас скоро"
+- Success title: "Благодарим!"
+- Success body: "Нашият екип ще се свърже с вас скоро."
+
+### New copy added
+- Header sub-line: "Ще получите кратка следваща стъпка от Zubite"
+- Success title: **"Заявката е получена"**
+- Success body: "Получихме информацията ви. За по-точна следваща стъпка
+  можете да попълните кратката оценка на Zubite."
+- **CTA added** (`data-testid="lead-form-success-cta"`,
+  `href="/quiz"`, emerald-600 pill):
+  **"Попълни 60-секундната оценка →"**
+- Trust micro-note: "Zubite не поставя диагноза и не заменя преглед при
+  лекар."
+
+### CTA `/quiz` decision
+The brief explicitly forbids redirecting `LeadCaptureForm` submissions
+into the clinic matching flow (these forms don't capture enough
+structured context to deep-link into `/results/[leadId]/clinics`). So
+the CTA points to **`/quiz`** — the proper entry point to gather the
+patient context that *does* enable the matching flow. The form
+submission still calls the existing `createLead()` API as before;
+nothing about the backend behaviour changes.
+
+### Verification
+- **No live URL exercises this component yet** — `LeadCaptureForm` is
+  defined but not currently imported by any page (`grep -rln
+  LeadCaptureForm /app/frontend --include="*.tsx"` returns only the
+  component file itself). The component is dormant infrastructure for
+  future treatment-specific landing surfaces. Code review confirms:
+  - `submitted === true` branch returns the new success block.
+  - The default header sub-line on `variant === 'default'` uses the new
+    line.
+- `tsc --noEmit` — clean for `LeadCaptureForm.tsx`. No new errors.
+
+### Confirmation
+- ✅ 0 backend files changed.
+- ✅ MasterQuiz.tsx untouched. quiz/success page untouched. Results
+  routes untouched. Clinic matching pages untouched.
+- ✅ 0 admin / clinic-portal changes.
+- ✅ 0 auth / session / CSRF / external-provider changes.
+- ✅ No redirect to `/results/[leadId]/clinics` — the CTA goes to
+  `/quiz`, per the brief.
+- ✅ No promises of automatic call, 24-hour callback, guaranteed
+  consultation, booked appointment, diagnosis, or treatment approval.
+
+### Unresolved risks
+1. **Component is dormant.** Once `LeadCaptureForm` is wired into a
+   treatment landing page, the new success state will render. Until
+   then, the change is invisible to end users. Acceptable per the
+   brief's scope.
+2. **No analytics on the success-state CTA.** When the component is
+   eventually used, we'll want to track the `lead-form-success-cta →
+   /quiz` transition in P6 analytics.
+
+
+
 ## 2026-02-16 — Admin Dashboard — P5 Assisted-Choice Queue Counter
 
 Surfaced the new `needs_zubite_review` triage queue at the top of the
