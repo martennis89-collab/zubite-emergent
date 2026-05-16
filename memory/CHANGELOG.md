@@ -1,5 +1,88 @@
 # Zubite.bg — Changelog
 
+## 2026-05-16 — Patient Layer Batch P7 — Final Polish & Mobile QA
+
+End-to-end demo-readiness pass across the patient journey. **No new features.**
+Strict scope-limited QA + one targeted layout fix. No backend changes,
+no external providers (Resend / Twilio / ElevenLabs / Stripe / Meta) called.
+
+### Files changed
+- `frontend/app/page.tsx` — single line: added `overflow-x-hidden` to
+  `<main className="...">`. Fixes horizontal overflow on the homepage at
+  375 / 390 / 768 caused by `ScrollReveal animation="fade-left"`
+  (`translateX(40px)` initial state) and a decorative blur blob
+  (`absolute -right-40 w-[600px]`) inside `AnimatedHero`. Same pattern
+  already used on the recommended-clinics page (`overflow-x-hidden` on
+  `<main>`). One-line change only — no decoration / animation removed.
+
+### Pages verified at 375 / 390 / 768 / 1440
+| Page                       | Overflow | Forbidden copy | CTAs |
+|----------------------------|----------|----------------|------|
+| `/` (home)                 | none after fix | none | hero CTA → quiz |
+| `/quiz/success`            | none     | none | "Виж препоръчаните клиники" → `/results/{leadId}/clinics` |
+| `/results/{leadId}/clinics`| none     | none | "Виж профила" / "Искам обаждане" / "Помогнете ми да избера" all functional |
+| Sofia Premium profile      | none     | none | tier-correct sections; honest media fallbacks |
+| `RequestCallModal` @375    | none     | none | submit gated by phone≥6 digits + consent |
+| `AssistedChoiceModal` @375 | none     | none | submit gated; optional message field present |
+
+### Backend smoke (curl, no code changes)
+- **P4** `POST /api/leads/{P4}/request-call` with Sofia Premium → 200 with
+  `request_id`. `/selection-state` flips to `has_selected_clinic=true`.
+  Resubmit to a different clinic → 409 `already_requested`.
+- **P5** `POST /api/leads/{P5}/request-zubite-help` → 200 with `request_id`.
+  Resubmit → 200 `already_requested=true` (idempotent).
+- **Admin queue** — both requests visible in
+  `/api/admin/consultation-requests` with the correct `created_from`
+  (`recommended_clinics_flow` / `assisted_choice_flow`). P5 row is
+  `status=needs_zubite_review` and the dashboard `Чакат преглед`
+  counter increments. Dashboard link wires correctly to
+  `/admin/consultation-requests?status=needs_zubite_review` → "Чака
+  преглед" tab.
+
+### Post-submit UX checks
+- P4 lead's `/results/{leadId}/clinics`: green banner "Вече избрахте
+  клиника" present; Sofia card shows submitted badge; the other 2 cards
+  flip to disabled "Вече избрахте клиника"; the assisted-choice button
+  locks. All 3 cards keep an active "Виж профила" link.
+- P5 lead's `/results/{leadId}/clinics`: sky banner "Заявката е изпратена
+  към Zubite"; all 3 cards lock with "Вече поискахте помощ от Zubite";
+  assisted-choice section shows the submitted badge.
+
+### Copy & safety
+- Quiz success page contains *only* the safe "Какво следва?" steps. No
+  forbidden phrases anywhere on the patient flow:
+  `Ще се свържем с теб`, `Очаквайте обаждане`, `Ще ти помогнем да
+  запазиш час`, `ще ви се обадим автоматично`, `най-добра клиника`,
+  `топ клиника`, `гарантиран резултат`, `диагноза`, `Zubite рейтинг`,
+  `проверено качество`, `сертифицирано от Zubite`.
+- Medical disclaimer "Zubite не поставя диагноза и не заменя преглед
+  при лекар." present on quiz success + bottom of recommendations page
+  + bottom of clinic profile.
+
+### Phone prefill (intentionally NOT implemented)
+The public `GET /api/leads/{lead_id}` endpoint excludes PII (security
+audit, Feb 2026: "PII excluded from public lead lookup endpoints"). The
+modal still supports an `initialPhone` prop, but the parent does not
+fetch lead phone client-side. Keeping the `+359 ...` placeholder is the
+correct/secure design — patient re-enters phone on submit.
+
+### TypeScript
+`npx tsc --noEmit` → 6 pre-existing errors in non-P7 files
+(`admin/blog/import`, `admin/dashboard`, `lib/articleTestRender`,
+`lib/api.ts` index-signature, `lib/attribution.ts`). **Zero new errors
+introduced by P7.** None of the P7-scope files emit TS errors.
+
+### Out-of-scope (NOT touched)
+Admin clinic editor, clinic portal, auth/session/CSRF, audit logs,
+analytics tracking, article importer, `/za-kliniki`, matching algorithm,
+pricing, package.json, dependencies. No notifications / emails / SMS /
+Twilio / ElevenLabs calls triggered.
+
+### Demo readiness
+✅ Patient demo flow is presentation-ready end-to-end. No outstanding
+P7 blockers.
+
+
 ## 2026-02-16 — Admin Rich Clinic Profile Editor — R1
 
 Admin-managed tier control + admin-managed rich profile content. Tier

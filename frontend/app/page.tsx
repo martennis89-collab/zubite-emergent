@@ -81,7 +81,7 @@ export default async function HomePage() {
   const recentPosts = await getRecentPosts()
   
   return (
-    <main className="min-h-screen bg-white text-slate-900">
+    <main className="min-h-screen bg-white text-slate-900 overflow-x-hidden">
       {/* Sticky CTA - Mobile */}
       <AnimatedStickyCTA />
 
