@@ -1,5 +1,117 @@
 # Zubite.bg — Changelog
 
+## 2026-02-16 — Admin Dashboard — P5 Assisted-Choice Queue Counter
+
+Surfaced the new `needs_zubite_review` triage queue at the top of the
+admin dashboard, so admins see pending P5 requests the moment they log
+in. **Existing endpoint reused; no backend changes, no new endpoints,
+no external providers, no patient/clinic-portal modifications.**
+
+### Files touched
+- `frontend/app/admin/dashboard/page.tsx`:
+  - Imported two extra `lucide-react` icons (`Sparkles`, `ArrowRight`) —
+    no new dependency added (lucide already in `package.json`).
+  - Added `assistedReviewCount` state + a parallel fetch inside
+    `fetchData()` to `GET /api/admin/consultation-requests?status=needs_zubite_review`.
+    The count = `response.requests.length`. Failure tolerated silently
+    (sets `null` → loading skeleton).
+  - Added new colocated `AssistedReviewQueueCard` component that
+    renders one of 3 states (loading / empty / non-empty) and is
+    placed **above the existing stats cards grid**.
+- `memory/CHANGELOG.md`.
+- **No backend changes.** No `frontend/lib/api.ts` change. No test file
+  change.
+
+### Endpoint reused
+`GET /api/admin/consultation-requests?status=needs_zubite_review` —
+already shipped in the Admin Handling batch. Returns
+`{requests: [...]}`. Dashboard takes `requests.length` as the count.
+
+### Exact copy added
+- Title: **Чакат преглед**
+- Non-empty body: "Пациенти са поискали помощ от Zubite при избора на клиника."
+- Empty body: "Няма заявки, които чакат преглед."
+- CTA label: **Виж заявките**
+- CTA target: `/admin/consultation-requests?status=needs_zubite_review`
+
+### Zero-state behavior (`data-empty="true"`)
+- Calm white card with slate-200 border.
+- Sparkles icon dimmed to `text-slate-400`.
+- No count pill rendered (so admin doesn't see "0").
+- Copy: "Няма заявки, които чакат преглед."
+- CTA still navigates (admin can land on filtered list to confirm).
+- Hover lights up violet — preserves visual identity with the queue.
+
+### Non-empty state (`data-empty="false"`)
+- Violet-200 border + `bg-violet-50/60` background — matches the P5
+  badge/row treatment from the Admin Handling batch.
+- Violet-600 count pill with white digits (`data-testid="assisted-review-count"`).
+- Copy in `text-violet-800/90`.
+- CTA in solid `bg-violet-600 hover:bg-violet-700` — strong visual
+  affordance without dominating the dashboard.
+
+### CTA behavior
+- Whole card is a Next.js `<Link>` — entire card area is clickable.
+- Live smoke (preview env, admin@zubite.bg):
+  - Card present, `data-empty="false"`, count badge `1`, copy and CTA
+    text exactly as specified.
+  - Click navigates to `/admin/consultation-requests?status=needs_zubite_review`
+    (URL preserved by Next.js client router).
+
+### Visual placement
+```
+Header
+─────────────────────────────────────────────
+Global message banner (when present)
+[NEW] Чакат преглед card  ← P5 queue counter
+4×stats cards (Общо лийдове / Зелени / Жълти / Червени)
+Filters & Actions toolbar
+Leads table
+```
+Compact (single row, `~88px` tall, full container width), does **not**
+dominate the existing stats grid.
+
+### TypeScript
+`tsc --noEmit` — clean for `dashboard/page.tsx` (the only new error
+flagged in the file at line 570 is a **pre-existing bug**
+`!selectedIds.size === 0` unrelated to this batch).
+
+### Confirmation
+- ✅ Existing endpoint reused — no new backend route.
+- ✅ 0 backend files changed.
+- ✅ 0 patient-flow files changed.
+- ✅ 0 clinic-portal files changed.
+- ✅ Admin consultation-requests **list** page untouched (the CTA link
+  uses the `?status=` query string per the brief; current list page
+  doesn't auto-apply URL filters yet — see risks).
+- ✅ Admin consultation-request **detail** page untouched.
+- ✅ 0 auth / session / CSRF / audit-log / external-provider changes.
+- ✅ No Resend / Twilio / ElevenLabs invocations triggered.
+- ✅ No new dependencies.
+- ✅ Git not pushed, "Save to GitHub" not used, deploy not triggered.
+
+### Unresolved risks
+1. **List page does not yet auto-apply `?status=` query string.** The
+   CTA link uses `/admin/consultation-requests?status=needs_zubite_review`
+   exactly as the brief requested, but the consultation-requests list
+   page reads its filters from internal React state, not the URL. After
+   navigating, admins still see the "Всички" tab and must click "Чака
+   преглед" to apply the filter. This is a deliberate scope-limit (list
+   page was not in the allowed-files list this batch). A one-line
+   improvement in a follow-up batch would read `searchParams.get('status')`
+   to initialize the tab state.
+2. **Count is a real-time read on every fetchData() call.** Not cached
+   — but the endpoint is fast and limited to admin auth, so this is
+   fine. Worst case: extra ~50ms on dashboard load.
+3. **No realtime push.** Admins who keep the dashboard open won't see
+   new P5 submissions until they click Обнови. Polling could be added
+   later if needed.
+4. **Loading skeleton briefly visible.** While `assistedReviewCount`
+   is `null` (initial mount and after refresh), a small pulsing card
+   shows. Layout-stable; no flicker observed in smoke.
+
+
+
 ## 2026-02-16 — /za-kliniki — Neutral decision layer messaging section
 
 Added a new B2B section that explicitly positions Zubite as a neutral

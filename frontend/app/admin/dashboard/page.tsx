@@ -8,6 +8,7 @@ import {
   Calendar, Filter, RefreshCw, CheckCircle, 
   AlertCircle, XCircle, FileDown, Search, FileText, X, Save, Trash2, RotateCcw,
   Building2, ShieldCheck, Send, AlertTriangle, Clock,
+  Sparkles, ArrowRight,
 } from 'lucide-react'
 import { AICallPanel } from '@/components/AICallPanel'
 
@@ -284,6 +285,91 @@ function ClinicVerificationPanel({ lead, onMessage, onLeadUpdate }: {
   )
 }
 
+function AssistedReviewQueueCard({ count }: { count: number | null }) {
+  // Loading state — show a neutral skeleton chip so layout doesn't jump.
+  if (count === null) {
+    return (
+      <div
+        className="mb-6 rounded-xl border border-violet-100 bg-violet-50/40 p-4 animate-pulse"
+        data-testid="assisted-review-card-loading"
+      >
+        <div className="h-4 w-32 bg-violet-100 rounded mb-2" />
+        <div className="h-3 w-60 bg-violet-100/70 rounded" />
+      </div>
+    )
+  }
+  const isEmpty = count === 0
+  return (
+    <Link
+      href="/admin/consultation-requests?status=needs_zubite_review"
+      className={
+        'group mb-6 flex items-start gap-4 rounded-xl border p-5 transition-colors ' +
+        (isEmpty
+          ? 'border-slate-200 bg-white hover:border-violet-200 hover:bg-violet-50/30'
+          : 'border-violet-200 bg-violet-50/60 hover:bg-violet-50')
+      }
+      data-testid="assisted-review-card"
+      data-empty={isEmpty ? 'true' : 'false'}
+    >
+      <div
+        className={
+          'w-10 h-10 rounded-lg grid place-items-center flex-shrink-0 ' +
+          (isEmpty ? 'bg-slate-100' : 'bg-violet-100')
+        }
+      >
+        <Sparkles
+          className={'w-5 h-5 ' + (isEmpty ? 'text-slate-400' : 'text-violet-600')}
+        />
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-3 flex-wrap">
+          <h3
+            className={
+              'font-medium ' + (isEmpty ? 'text-slate-700' : 'text-violet-900')
+            }
+          >
+            Чакат преглед
+          </h3>
+          {!isEmpty && (
+            <span
+              className="inline-flex items-center justify-center min-w-[28px] h-7 px-2 rounded-full text-sm font-semibold bg-violet-600 text-white"
+              data-testid="assisted-review-count"
+            >
+              {count}
+            </span>
+          )}
+        </div>
+        <p
+          className={
+            'mt-1 text-sm leading-relaxed ' +
+            (isEmpty ? 'text-slate-500' : 'text-violet-800/90')
+          }
+          data-testid="assisted-review-copy"
+        >
+          {isEmpty
+            ? 'Няма заявки, които чакат преглед.'
+            : 'Пациенти са поискали помощ от Zubite при избора на клиника.'}
+        </p>
+      </div>
+
+      <span
+        className={
+          'hidden sm:inline-flex items-center gap-1 px-3 h-9 rounded-full text-sm font-medium self-center transition-colors ' +
+          (isEmpty
+            ? 'text-slate-500 group-hover:text-violet-700'
+            : 'bg-violet-600 text-white group-hover:bg-violet-700')
+        }
+        data-testid="assisted-review-cta"
+      >
+        Виж заявките
+        <ArrowRight className="w-4 h-4" />
+      </span>
+    </Link>
+  )
+}
+
+
 export default function AdminDashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [leads, setLeads] = useState<Lead[]>([])
@@ -300,6 +386,8 @@ export default function AdminDashboardPage() {
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [resettingAnalytics, setResettingAnalytics] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  // P5 assisted-choice queue counter (read-only; uses existing admin endpoint).
+  const [assistedReviewCount, setAssistedReviewCount] = useState<number | null>(null)
   const router = useRouter()
   
   const fetchData = useCallback(async () => {
@@ -314,9 +402,10 @@ export default function AdminDashboardPage() {
       if (filterCity) params.append('city_slug', filterCity)
       if (filterTreatment) params.append('treatment_type', filterTreatment)
       
-      const [leadsRes, statsRes] = await Promise.all([
+      const [leadsRes, statsRes, assistedRes] = await Promise.all([
         fetch(`${API_URL}/api/admin/leads?${params.toString()}`, { headers, credentials: 'include' as RequestCredentials }),
-        fetch(`${API_URL}/api/admin/stats`, { headers, credentials: 'include' as RequestCredentials })
+        fetch(`${API_URL}/api/admin/stats`, { headers, credentials: 'include' as RequestCredentials }),
+        fetch(`${API_URL}/api/admin/consultation-requests?status=needs_zubite_review`, { headers, credentials: 'include' as RequestCredentials }),
       ])
       
       if (!leadsRes.ok || !statsRes.ok) {
@@ -335,6 +424,20 @@ export default function AdminDashboardPage() {
       
       setLeads(leadsData)
       setStats(statsData)
+
+      // Best-effort: do not block dashboard render on the assisted-choice
+      // count; tolerate transient errors / non-200 silently.
+      if (assistedRes.ok) {
+        try {
+          const j = await assistedRes.json()
+          const n = Array.isArray(j?.requests) ? j.requests.length : 0
+          setAssistedReviewCount(n)
+        } catch {
+          setAssistedReviewCount(null)
+        }
+      } else {
+        setAssistedReviewCount(null)
+      }
     } catch (error) {
       console.error('Error fetching data:', error)
     } finally {
@@ -655,6 +758,9 @@ export default function AdminDashboardPage() {
             </button>
           </div>
         )}
+
+        {/* P5 — Assisted-choice queue counter */}
+        <AssistedReviewQueueCard count={assistedReviewCount} />
 
         {/* Stats Cards */}
         {stats && (
