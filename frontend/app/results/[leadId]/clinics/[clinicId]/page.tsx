@@ -23,6 +23,7 @@ import {
 import { TREATMENT_LABELS } from '@/lib/consultationLabels'
 // import { ReviewSignalsSection } from '@/components/patient/ReviewSignalsSection' // R1: superseded by TrustSignalsSection
 import { RequestCallModal } from '@/components/patient/RequestCallModal'
+import { PublicReviewsSection } from '@/components/patient/PublicReviewsSection'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
 import { getStoredLeadContact } from '@/lib/leadContact'
 
@@ -610,6 +611,12 @@ function ProfileBody({
 
       {/* R1 — "Сигнали за доверие" using existing data only. */}
       <TrustSignalsSection clinic={clinic} />
+
+      {/* R2 — Approved patient reviews (moderated, public-safe).
+          The component derives the secondary "Leave a review" CTA URL
+          from window.location.origin on the client so it always points
+          at the host that actually serves the review page. */}
+      <PublicReviewsSection clinicId={clinic.id} />
 
       {/* R1 — FAQ accordion. */}
       <ClinicFAQSection />

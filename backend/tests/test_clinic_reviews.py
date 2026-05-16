@@ -505,3 +505,232 @@ def test_review_not_found_404(app):
                                headers={"Authorization": f"Bearer {token}"})
     r = _run(go())
     assert r.status_code == 404
+
+
+# ═══ R2 — Public display of approved reviews ════════════════════
+#
+# Endpoint: GET /api/public/clinics/{clinic_id}/reviews
+# Filtering: status=approved AND display_permission=true AND clinic_id matches
+# Public-safe projection only.
+
+async def _seed_review(rid: str, clinic_id: str, **overrides):
+    import database as _database
+    doc = {
+        "id": rid,
+        "clinic_id": clinic_id,
+        "status": "pending",
+        "display_permission": False,
+        "consent_public_display": True,
+        "consent_contact_if_needed": False,
+        "rating_overall": 5,
+        "feedback_text": "Много добро посещение.",
+        "patient_name_optional": "Мария Иванова",
+        "patient_initials_public": "М.И.",
+        "treatment_type": "Алайнери",
+        "private_note_to_clinic": "Лична бележка към клиниката",
+        "patient_contact_optional": "+35988800000",
+        "moderation_notes": "Бележка от модератор",
+        "moderated_by": "admin-1",
+        "moderated_at": "2026-02-01T10:00:00+00:00",
+        "submitted_at": "2026-01-31T08:00:00+00:00",
+        "ip_hash": "deadbeef",
+        "user_agent_hash": "cafef00d",
+        "duplicate_fingerprint": "abcd1234",
+    }
+    doc.update(overrides)
+    await _database.db.clinic_reviews.insert_one(doc)
+    return doc
+
+
+def test_r2_approved_with_permission_returned(app):
+    _run(_seed_clinic("c-r2", name="R2 Clinic"))
+    _run(_seed_review(
+        "r-ok", "c-r2",
+        status="approved", display_permission=True,
+        rating_overall=5, feedback_text="Много съм доволен.",
+    ))
+    async def go():
+        async with _client(app) as c:
+            return await c.get("/api/public/clinics/c-r2/reviews")
+    r = _run(go())
+    assert r.status_code == 200
+    body = r.json()
+    assert body["clinic_id"] == "c-r2"
+    assert len(body["reviews"]) == 1
+    assert body["reviews"][0]["id"] == "r-ok"
+    assert body["reviews"][0]["rating_overall"] == 5
+    assert body["summary"]["count"] == 1
+    assert body["summary"]["average_rating"] == 5.0
+
+
+def test_r2_approved_without_permission_hidden(app):
+    _run(_seed_clinic("c-r2"))
+    _run(_seed_review(
+        "r-noperm", "c-r2",
+        status="approved", display_permission=False,
+        consent_public_display=False,
+    ))
+    async def go():
+        async with _client(app) as c:
+            return await c.get("/api/public/clinics/c-r2/reviews")
+    r = _run(go())
+    assert r.status_code == 200
+    body = r.json()
+    assert body["reviews"] == []
+    assert body["summary"] is None
+
+
+def test_r2_pending_hidden(app):
+    _run(_seed_clinic("c-r2"))
+    _run(_seed_review("r-pen", "c-r2", status="pending", display_permission=False))
+    async def go():
+        async with _client(app) as c:
+            return await c.get("/api/public/clinics/c-r2/reviews")
+    r = _run(go())
+    assert r.status_code == 200
+    assert r.json()["reviews"] == []
+
+
+def test_r2_rejected_hidden(app):
+    _run(_seed_clinic("c-r2"))
+    _run(_seed_review("r-rej", "c-r2", status="rejected", display_permission=False))
+    async def go():
+        async with _client(app) as c:
+            return await c.get("/api/public/clinics/c-r2/reviews")
+    r = _run(go())
+    assert r.status_code == 200
+    assert r.json()["reviews"] == []
+
+
+def test_r2_other_clinic_hidden(app):
+    _run(_seed_clinic("c-r2"))
+    _run(_seed_clinic("c-other", name="Other"))
+    _run(_seed_review(
+        "r-other", "c-other",
+        status="approved", display_permission=True,
+    ))
+    async def go():
+        async with _client(app) as c:
+            return await c.get("/api/public/clinics/c-r2/reviews")
+    r = _run(go())
+    assert r.status_code == 200
+    assert r.json()["reviews"] == []
+
+
+def test_r2_no_private_or_admin_fields_in_response(app):
+    _run(_seed_clinic("c-r2"))
+    _run(_seed_review(
+        "r-pii", "c-r2",
+        status="approved", display_permission=True,
+    ))
+    async def go():
+        async with _client(app) as c:
+            return await c.get("/api/public/clinics/c-r2/reviews")
+    r = _run(go())
+    body = r.json()
+    review = body["reviews"][0]
+    forbidden = {
+        "private_note_to_clinic", "patient_contact_optional",
+        "moderation_notes", "moderated_by",
+        "ip_hash", "user_agent_hash", "duplicate_fingerprint",
+        "consent_contact_if_needed", "consent_public_display",
+        "display_permission", "status", "patient_name_optional",
+        "clinic_id",
+    }
+    for f in forbidden:
+        assert f not in review, f"Public review must not expose '{f}'"
+    # And full name must never leak — only first name or initials
+    serialized = str(review)
+    assert "Иванова" not in serialized
+    assert "+35988800000" not in serialized
+    assert "Лична бележка" not in serialized
+    assert "Бележка от модератор" not in serialized
+
+
+def test_r2_first_name_only_disclosure(app):
+    _run(_seed_clinic("c-r2"))
+    _run(_seed_review(
+        "r-name", "c-r2",
+        status="approved", display_permission=True,
+        patient_name_optional="Мария Иванова",
+    ))
+    async def go():
+        async with _client(app) as c:
+            return await c.get("/api/public/clinics/c-r2/reviews")
+    body = _run(go()).json()
+    assert body["reviews"][0]["patient_display_name"] == "Мария"
+
+
+def test_r2_initials_when_no_first_name(app):
+    _run(_seed_clinic("c-r2"))
+    _run(_seed_review(
+        "r-init", "c-r2",
+        status="approved", display_permission=True,
+        patient_name_optional=None,
+        patient_initials_public="А.К.",
+    ))
+    async def go():
+        async with _client(app) as c:
+            return await c.get("/api/public/clinics/c-r2/reviews")
+    body = _run(go()).json()
+    assert body["reviews"][0]["patient_display_name"] == "А.К."
+
+
+def test_r2_average_only_uses_approved_permitted(app):
+    _run(_seed_clinic("c-r2"))
+    # 4-star approved + permitted
+    _run(_seed_review("r1", "c-r2", status="approved", display_permission=True, rating_overall=4))
+    # 5-star approved + permitted
+    _run(_seed_review("r2", "c-r2", status="approved", display_permission=True, rating_overall=5))
+    # 1-star pending — must NOT count
+    _run(_seed_review("r3", "c-r2", status="pending", display_permission=False, rating_overall=1))
+    # 1-star approved but NO permission — must NOT count
+    _run(_seed_review("r4", "c-r2", status="approved", display_permission=False, rating_overall=1))
+    async def go():
+        async with _client(app) as c:
+            return await c.get("/api/public/clinics/c-r2/reviews")
+    body = _run(go()).json()
+    assert body["summary"]["count"] == 2
+    assert body["summary"]["average_rating"] == 4.5
+
+
+def test_r2_empty_returns_safe_empty(app):
+    _run(_seed_clinic("c-r2"))
+    async def go():
+        async with _client(app) as c:
+            return await c.get("/api/public/clinics/c-r2/reviews")
+    r = _run(go())
+    assert r.status_code == 200
+    body = r.json()
+    assert body["reviews"] == []
+    assert body["summary"] is None
+    assert body["clinic_id"] == "c-r2"
+
+
+def test_r2_unknown_clinic_404(app):
+    async def go():
+        async with _client(app) as c:
+            return await c.get("/api/public/clinics/no-such/reviews")
+    r = _run(go())
+    assert r.status_code == 404
+
+
+def test_r2_html_in_feedback_remains_escaped(app):
+    """Submission already HTML-escapes via html.escape(). Verify the
+    escaped form is what the public endpoint serves — the frontend
+    will render it as plain text, so no XSS is possible even if a
+    submission contained tags."""
+    _run(_seed_clinic("c-r2"))
+    _run(_seed_review(
+        "r-xss", "c-r2",
+        status="approved", display_permission=True,
+        feedback_text="&lt;script&gt;alert(1)&lt;/script&gt; и обикновен текст",
+    ))
+    async def go():
+        async with _client(app) as c:
+            return await c.get("/api/public/clinics/c-r2/reviews")
+    body = _run(go()).json()
+    text = body["reviews"][0]["feedback_text"]
+    # Already-escaped on save → kept literal here, never raw HTML
+    assert "<script>" not in text
+    assert "&lt;script&gt;" in text

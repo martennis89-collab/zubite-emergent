@@ -198,6 +198,91 @@ async def public_submit_review(clinic_id: str, body: ReviewSubmissionBody, reque
     }
 
 
+# ─── PUBLIC display (R2) ──────────────────────────────────────────
+
+def _safe_first_name(name: Optional[str]) -> Optional[str]:
+    """Return only the first whitespace-delimited word of a name, capped
+    at a sensible length. Used so the public profile never accidentally
+    discloses a patient's full name even if the patient typed it in the
+    optional name field."""
+    if not name:
+        return None
+    parts = [p for p in re.split(r"\s+", name.strip()) if p]
+    if not parts:
+        return None
+    first = parts[0]
+    return first[:24]
+
+
+def _public_review_projection(r: Dict[str, Any]) -> Dict[str, Any]:
+    """Build the patient-facing review payload. Only public-safe fields
+    are exposed. Phone/email, private notes, moderation notes, IP/UA
+    hashes, and admin metadata are NEVER returned here."""
+    name = r.get("patient_name_optional")
+    initials = r.get("patient_initials_public") or _initials(name)
+    display = _safe_first_name(name) or initials or None
+    return {
+        "id": r["id"],
+        "rating_overall": r.get("rating_overall"),
+        "feedback_text": r.get("feedback_text"),
+        "patient_display_name": display,
+        "treatment_type": r.get("treatment_type"),
+        "approved_at": r.get("moderated_at"),
+        "submitted_at": r.get("submitted_at"),
+    }
+
+
+@router.get("/public/clinics/{clinic_id}/reviews")
+async def public_list_clinic_reviews(clinic_id: str):
+    """Public-safe approved reviews for a clinic profile page (R2).
+
+    Filtering rules:
+    - clinic_id must match
+    - status must be 'approved'
+    - display_permission must be true (set by admin only when the
+      patient also gave consent_public_display)
+
+    Returns a summary (count + average rating) plus the list ordered
+    by approval time (most recent first). 404 when the clinic does
+    not exist (consistent with /review-info).
+    """
+    clinic = await db.clinics.find_one({"id": clinic_id}, {"_id": 0, "id": 1})
+    if not clinic:
+        raise HTTPException(status_code=404, detail="Clinic not found")
+
+    cursor = db.clinic_reviews.find(
+        {
+            "clinic_id": clinic_id,
+            "status": "approved",
+            "display_permission": True,
+        },
+        {"_id": 0},
+    ).sort("moderated_at", -1).limit(60)
+    rows = [r async for r in cursor]
+
+    rated = [r for r in rows if isinstance(r.get("rating_overall"), int) and r["rating_overall"] > 0]
+    summary: Optional[Dict[str, Any]] = None
+    if rated:
+        avg = sum(r["rating_overall"] for r in rated) / len(rated)
+        summary = {
+            "count": len(rows),
+            "rated_count": len(rated),
+            "average_rating": round(avg, 1),
+        }
+    elif rows:
+        summary = {
+            "count": len(rows),
+            "rated_count": 0,
+            "average_rating": None,
+        }
+
+    return {
+        "clinic_id": clinic_id,
+        "summary": summary,
+        "reviews": [_public_review_projection(r) for r in rows],
+    }
+
+
 # ─── CLINIC PORTAL ────────────────────────────────────────────────
 
 @router.get("/clinic/reviews/collection-link")
