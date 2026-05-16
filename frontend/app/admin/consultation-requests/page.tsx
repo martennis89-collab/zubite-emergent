@@ -3,11 +3,11 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft } from 'lucide-react'
 import {
   ConsultationRequest, statusBadge, formatDate, TREATMENT_LABELS,
   REQUEST_KIND_DESCRIPTORS, requestKindFromCreatedFrom, STATUS_LABELS,
 } from '@/lib/consultationLabels'
+import { AdminHeader } from '@/components/admin/AdminHeader'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -105,16 +105,11 @@ export default function AdminConsultationRequestsPage() {
 
   return (
     <main className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link href="/admin/dashboard" className="inline-flex items-center gap-1.5 text-slate-500 hover:text-slate-900 text-sm">
-            <ArrowLeft className="w-4 h-4" /> Назад
-          </Link>
-          <h1 className="font-serif text-lg font-semibold">Заявки за консултации</h1>
-          <div className="w-16" />
-        </div>
-      </header>
+      <AdminHeader pageTitle="Заявки за консултации" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
+        <h2 className="font-serif text-2xl font-semibold text-slate-900">
+          Заявки за консултации
+        </h2>
 
         {/* Tab strip */}
         <div className="bg-white border border-slate-200 rounded-xl p-2 flex flex-wrap items-center gap-1" data-testid="admin-cr-tabs">

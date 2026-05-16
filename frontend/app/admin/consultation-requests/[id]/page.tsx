@@ -11,6 +11,7 @@ import {
   REQUEST_KIND_DESCRIPTORS, requestKindFromCreatedFrom,
   SELECTION_SOURCE_LABELS, requestSourceLabel,
 } from '@/lib/consultationLabels'
+import { AdminHeader } from '@/components/admin/AdminHeader'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -117,15 +118,11 @@ export default function AdminConsultationDetail() {
 
   return (
     <main className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link href="/admin/consultation-requests" className="inline-flex items-center gap-1.5 text-slate-500 hover:text-slate-900 text-sm">
-            <ArrowLeft className="w-4 h-4" /> Назад
-          </Link>
-          <h1 className="font-serif text-lg font-semibold">Детайли на заявка</h1>
-          <div className="w-12" />
-        </div>
-      </header>
+      <AdminHeader
+        pageTitle="Детайли на заявка"
+        backHref="/admin/consultation-requests"
+        backLabel="Към заявките"
+      />
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
         {loading ? (
           <div className="h-40 grid place-items-center text-slate-400">Зареждане…</div>

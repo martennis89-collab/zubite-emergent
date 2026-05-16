@@ -4,10 +4,11 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
-  Loader2, LogOut, Plus, Edit, Trash2, Eye, EyeOff,
+  Loader2, Plus, Edit, Trash2, Eye, EyeOff,
   Calendar, RefreshCw, Search, FileText, ArrowLeft,
-  Users, BarChart3, TrendingUp
+  BarChart3, TrendingUp
 } from 'lucide-react'
+import { AdminHeader } from '@/components/admin/AdminHeader'
 
 interface BlogPost {
   id: string
@@ -100,14 +101,7 @@ export default function AdminBlogPage() {
     return stat?.unique_visitors || 0
   }
 
-  const handleLogout = async () => {
-    try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
-      await fetch(`${API_URL}/api/admin/logout`, { method: 'POST', credentials: 'include' as RequestCredentials })
-    } catch { /* noop */ }
-    try { localStorage.removeItem('admin_token'); localStorage.removeItem('admin_user') } catch { /* noop */ }
-    router.push('/admin')
-  }
+  // Logout is now handled by <AdminHeader />.
 
   const handleDelete = async (postId: string) => {
     if (!confirm('Сигурни ли сте, че искате да изтриете тази публикация?')) {
@@ -164,37 +158,7 @@ export default function AdminBlogPage() {
 
   return (
     <main className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <Link href="/" className="font-serif text-xl font-semibold text-slate-900">
-                Zubite
-              </Link>
-              <span className="text-slate-300">|</span>
-              <span className="text-slate-600 font-medium">Блог</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <Link
-                href="/admin/dashboard"
-                className="flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors"
-              >
-                <Users className="w-5 h-5" />
-                <span className="hidden sm:inline">Лийдове</span>
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors"
-                data-testid="logout-btn"
-              >
-                <LogOut className="w-5 h-5" />
-                <span className="hidden sm:inline">Изход</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <AdminHeader pageTitle="Блог" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Page Header */}

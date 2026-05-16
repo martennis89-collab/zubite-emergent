@@ -3,7 +3,8 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Save, Plus, Trash2, CheckCircle2, AlertCircle, Eye, EyeOff } from 'lucide-react'
+import { Save, Plus, Trash2, CheckCircle2, AlertCircle, Eye, EyeOff } from 'lucide-react'
+import { AdminHeader } from '@/components/admin/AdminHeader'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -208,32 +209,31 @@ export default function AdminClinicEditPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 pb-32" data-testid="admin-clinic-editor">
-      <header className="bg-white border-b border-slate-200">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link href="/admin/clinics" className="inline-flex items-center gap-1.5 text-slate-500 hover:text-slate-900 text-sm">
-            <ArrowLeft className="w-4 h-4" /> Към списъка
-          </Link>
-          <h1 className="font-serif text-base md:text-lg font-semibold truncate max-w-[55%]">{clinicName}</h1>
-          <button
-            type="button"
-            onClick={save}
-            disabled={saving}
-            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full bg-sky-500 hover:bg-sky-600 text-white text-sm font-medium disabled:opacity-50"
-            data-testid="admin-clinic-save"
-          >
-            <Save className="w-4 h-4" />
-            {saving ? 'Запис…' : 'Запази'}
-          </button>
+      <AdminHeader
+        pageTitle={clinicName ? `Профил: ${clinicName}` : 'Профил на клиника'}
+        backHref="/admin/clinics"
+        backLabel="Към списъка"
+      />
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-end gap-3">
+        <button
+          type="button"
+          onClick={save}
+          disabled={saving}
+          className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full bg-sky-500 hover:bg-sky-600 text-white text-sm font-medium disabled:opacity-50"
+          data-testid="admin-clinic-save"
+        >
+          <Save className="w-4 h-4" />
+          {saving ? 'Запис…' : 'Запази'}
+        </button>
+      </div>
+      {message && (
+        <div className={`max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-2 mb-2 text-sm ${message.type === 'ok' ? 'text-emerald-700' : 'text-rose-700'}`}>
+          <span className="inline-flex items-center gap-1.5">
+            {message.type === 'ok' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+            {message.text}
+          </span>
         </div>
-        {message && (
-          <div className={`max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-2 text-sm ${message.type === 'ok' ? 'text-emerald-700' : 'text-rose-700'}`}>
-            <span className="inline-flex items-center gap-1.5">
-              {message.type === 'ok' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-              {message.text}
-            </span>
-          </div>
-        )}
-      </header>
+      )}
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 

@@ -4,10 +4,11 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { 
-  Loader2, LogOut, ArrowLeft, Save, Eye, EyeOff,
+  Loader2, Save, Eye, EyeOff,
   Image as ImageIcon, Tag, FileText, Trash2, RefreshCw, Upload
 } from 'lucide-react'
 import { SeoStatusPanel } from '@/components/SeoStatusPanel'
+import { AdminHeader } from '@/components/admin/AdminHeader'
 
 export default function EditBlogPostPage() {
   const [isLoading, setIsLoading] = useState(true)
@@ -223,14 +224,7 @@ export default function EditBlogPostPage() {
     }
   }
 
-  const handleLogout = async () => {
-    try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
-      await fetch(`${API_URL}/api/admin/logout`, { method: 'POST', credentials: 'include' as RequestCredentials })
-    } catch { /* noop */ }
-    try { localStorage.removeItem('admin_token'); localStorage.removeItem('admin_user') } catch { /* noop */ }
-    router.push('/admin')
-  }
+  // Logout is now handled by <AdminHeader />.
 
   if (isLoading) {
     return (
@@ -242,67 +236,50 @@ export default function EditBlogPostPage() {
 
   return (
     <main className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <Link
-                href="/admin/blog"
-                className="flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5" />
-                <span>Назад</span>
-              </Link>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={(e) => handleSubmit(e)}
-                disabled={isSaving || !formData.title || !formData.slug}
-                className="flex items-center gap-2 px-4 py-2 text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
-              >
-                <Save className="w-4 h-4" />
-                Запази
-              </button>
-              {formData.is_published ? (
-                <button
-                  onClick={(e) => handleSubmit(e, false)}
-                  disabled={isSaving}
-                  className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors disabled:opacity-50"
-                >
-                  <EyeOff className="w-4 h-4" />
-                  Скрий
-                </button>
-              ) : (
-                <button
-                  onClick={(e) => handleSubmit(e, true)}
-                  disabled={isSaving || !formData.content}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50"
-                >
-                  {isSaving ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
-                  Публикувай
-                </button>
-              )}
-              <button
-                onClick={handleDelete}
-                className="flex items-center gap-2 px-4 py-2 text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors ml-2"
-              >
-                <LogOut className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <AdminHeader
+        pageTitle="Редакция на статия"
+        backHref="/admin/blog"
+        backLabel="Към статиите"
+      />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-wrap items-center justify-end gap-2">
+        <button
+          onClick={(e) => handleSubmit(e)}
+          disabled={isSaving || !formData.title || !formData.slug}
+          className="flex items-center gap-2 px-4 py-2 text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
+        >
+          <Save className="w-4 h-4" />
+          Запази
+        </button>
+        {formData.is_published ? (
+          <button
+            onClick={(e) => handleSubmit(e, false)}
+            disabled={isSaving}
+            className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors disabled:opacity-50"
+          >
+            <EyeOff className="w-4 h-4" />
+            Скрий
+          </button>
+        ) : (
+          <button
+            onClick={(e) => handleSubmit(e, true)}
+            disabled={isSaving || !formData.content}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50"
+          >
+            {isSaving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Eye className="w-4 h-4" />
+            )}
+            Публикувай
+          </button>
+        )}
+        <button
+          onClick={handleDelete}
+          className="flex items-center gap-2 px-4 py-2 text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8 flex items-center justify-between">

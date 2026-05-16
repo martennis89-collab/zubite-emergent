@@ -4,13 +4,14 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
-  Loader2, LogOut, Users, TrendingUp, MapPin, Phone, Mail, 
+  Loader2, Users, TrendingUp, MapPin, Phone, Mail, 
   Calendar, Filter, RefreshCw, CheckCircle, 
   AlertCircle, XCircle, FileDown, Search, FileText, X, Save, Trash2, RotateCcw,
   Building2, ShieldCheck, Send, AlertTriangle, Clock,
   Sparkles, ArrowRight,
 } from 'lucide-react'
 import { AICallPanel } from '@/components/AICallPanel'
+import { AdminHeader } from '@/components/admin/AdminHeader'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -449,17 +450,7 @@ export default function AdminDashboardPage() {
     fetchData()
   }, [fetchData])
   
-  const handleLogout = async () => {
-    try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
-      await fetch(`${API_URL}/api/admin/logout`, {
-        method: 'POST',
-        credentials: 'include' as RequestCredentials,
-      })
-    } catch { /* noop — cookie may already be gone */ }
-    try { localStorage.removeItem('admin_token'); localStorage.removeItem('admin_user') } catch { /* noop */ }
-    router.push('/admin')
-  }
+  // Logout is now handled by <AdminHeader />.
   
   const handleExportCSV = async () => {
     const response = await fetch(`${API_URL}/api/admin/leads/export/csv`, {
@@ -682,68 +673,7 @@ export default function AdminDashboardPage() {
   
   return (
     <main className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <Link href="/" className="font-serif text-xl font-semibold text-slate-900">
-                Zubite<span className="text-sky-500">.bg</span>
-              </Link>
-              <span className="text-slate-300">|</span>
-              <span className="text-slate-600 font-medium">Админ Панел</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <Link
-                href="/admin/analytics"
-                className="flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors"
-              >
-                <TrendingUp className="w-5 h-5" />
-                <span className="hidden sm:inline">Анализи</span>
-              </Link>
-              <Link
-                href="/admin/clinics"
-                className="flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors"
-                data-testid="nav-partner-clinics"
-              >
-                <FileText className="w-5 h-5" />
-                <span className="hidden sm:inline">Партньори</span>
-              </Link>
-              <Link
-                href="/admin/consultation-requests"
-                className="flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors"
-                data-testid="nav-consultation-requests"
-              >
-                <FileText className="w-5 h-5" />
-                <span className="hidden sm:inline">Заявки</span>
-              </Link>
-              <Link
-                href="/admin/clinic-applications"
-                className="flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors"
-                data-testid="nav-clinic-apps"
-              >
-                <FileText className="w-5 h-5" />
-                <span className="hidden sm:inline">Кандидатури</span>
-              </Link>
-              <Link
-                href="/admin/blog"
-                className="flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors"
-              >
-                <FileText className="w-5 h-5" />
-                <span className="hidden sm:inline">Блог</span>
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors"
-                data-testid="logout-btn"
-              >
-                <LogOut className="w-5 h-5" />
-                <span className="hidden sm:inline">Изход</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <AdminHeader />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Global Message */}

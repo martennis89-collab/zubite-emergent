@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import JSZip from 'jszip'
 import {
-  ArrowLeft, Upload, FileText, Save, Send, AlertTriangle, CheckCircle2,
+  Upload, FileText, Save, Send, AlertTriangle, CheckCircle2,
   Plus, Trash2, Eye, Loader2, Sparkles, Package, Image as ImageIcon, X,
 } from 'lucide-react'
 import {
@@ -23,6 +23,7 @@ import {
   UploadedImage,
 } from '@/lib/articleParser'
 import { TestRenderModal } from '@/components/TestRenderModal'
+import { AdminHeader } from '@/components/admin/AdminHeader'
 
 const TEMPLATE = `# ZUBITE_ARTICLE_PACKAGE
 
@@ -496,23 +497,11 @@ export default function ArticleImporterPage() {
 
   return (
     <main className="min-h-screen bg-slate-50">
-      {/* Top bar */}
-      <div className="sticky top-0 z-10 bg-white border-b border-slate-200">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link
-            href="/admin/blog"
-            className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 text-sm"
-            data-testid="importer-back-link"
-          >
-            <ArrowLeft className="w-4 h-4" /> Назад към блога
-          </Link>
-          <h1 className="font-serif text-xl font-semibold text-slate-900 flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-sky-500" />
-            Импортиране на статия
-          </h1>
-          <div className="w-32" />
-        </div>
-      </div>
+      <AdminHeader
+        pageTitle="Импортиране на статия"
+        backHref="/admin/blog"
+        backLabel="Към блога"
+      />
 
       <div className="max-w-6xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* LEFT: Input */}

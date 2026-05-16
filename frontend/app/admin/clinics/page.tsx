@@ -3,7 +3,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Plus, Building2, X, Loader2 } from 'lucide-react'
+import { Plus, Building2, X, Loader2 } from 'lucide-react'
+import { AdminHeader } from '@/components/admin/AdminHeader'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -72,23 +73,19 @@ export default function AdminClinicsPage() {
 
   return (
     <main className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link href="/admin/dashboard" className="inline-flex items-center gap-1.5 text-slate-500 hover:text-slate-900 text-sm">
-            <ArrowLeft className="w-4 h-4" /> Назад
-          </Link>
-          <h1 className="font-serif text-lg font-semibold">Partner Clinics</h1>
+      <AdminHeader pageTitle="Партньорски клиники" />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="font-serif text-2xl font-semibold text-slate-900">Партньорски клиники</h2>
           <button
             type="button"
             onClick={() => setShowCreate(true)}
             className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full bg-sky-500 hover:bg-sky-600 text-white text-sm font-medium"
             data-testid="admin-create-clinic-btn"
           >
-            <Plus className="w-4 h-4" /> New clinic
+            <Plus className="w-4 h-4" /> Нова клиника
           </button>
         </div>
-      </header>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {loading ? (
           <div className="h-40 grid place-items-center text-slate-400">Loading…</div>
         ) : clinics.length === 0 ? (
