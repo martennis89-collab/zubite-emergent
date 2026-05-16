@@ -7,6 +7,7 @@ import type { RecommendedClinic } from '@/lib/api'
 import { TREATMENT_LABELS } from '@/lib/consultationLabels'
 import { RequestCallModal } from '@/components/patient/RequestCallModal'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
+import { getStoredLeadContact } from '@/lib/leadContact'
 
 interface Props {
   clinic: RecommendedClinic
@@ -252,6 +253,7 @@ export function ClinicRecommendationCard({
           source="matching_card"
           partnerTier={tier || 'standard'}
           placementLabel={clinic.placement_label || null}
+          initialContact={getStoredLeadContact(leadId)}
           onClose={() => setModalOpen(false)}
           onSuccess={(resp) => {
             const pinnedId = resp.clinic.id

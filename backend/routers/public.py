@@ -25,6 +25,80 @@ router = APIRouter()
 _DUPLICATE_WINDOW_DAYS = 30
 
 
+# ─── Strict required-contact lead sources ─────────────────────────
+# Patients submitting through these sources land on the recommendation
+# / clinic-handover flow, so we require name + phone + email upfront.
+# Other lead sources (article snippets, soft commits, legacy forms) keep
+# the current optional-contact behaviour.
+_STRICT_CONTACT_LEAD_SOURCES = frozenset({
+    "diagnostic_quiz",
+    "diagnostic_quiz_v1",
+    "quiz",
+})
+
+# Phone validation kept intentionally permissive: bg numbers come in many
+# textual variants (+359 88 1234567, 0888 12 34 56, (02) 123-4567 …).
+# We require >=6 digits and only allow `+`, digits, spaces, dashes, parens.
+import re as _re
+_PHONE_DIGIT_RE = _re.compile(r"\d")
+_PHONE_ALLOWED_CHARS_RE = _re.compile(r"^[\d\s\-+()]+$")
+
+
+def _validate_quiz_contact(data: LeadCreate) -> None:
+    """Raises HTTPException(422) with a friendly Bulgarian message when
+    a quiz-source lead is missing or has malformed contact info."""
+    if data.source not in _STRICT_CONTACT_LEAD_SOURCES:
+        return
+
+    missing: List[str] = []
+    if not data.name or not data.name.strip():
+        missing.append("name")
+    if not data.phone or not data.phone.strip():
+        missing.append("phone")
+    if not data.email:
+        # email is EmailStr; blank/whitespace was already coerced to None
+        # by LeadCreate's pre-validator. Treat None as missing.
+        missing.append("email")
+
+    if missing:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "missing_required_contact",
+                "message": (
+                    "Моля, попълнете името, телефона и email-а си, "
+                    "за да получите препоръчани клиники."
+                ),
+                "missing": missing,
+            },
+        )
+
+    # Phone format check (only if phone passed the missing test).
+    phone_str = (data.phone or "").strip()
+    if not _PHONE_ALLOWED_CHARS_RE.match(phone_str):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "invalid_phone_format",
+                "message": (
+                    "Моля, въведете телефонен номер само с цифри, "
+                    "интервали, тирета, скоби или знака „+“."
+                ),
+                "missing": ["phone"],
+            },
+        )
+    digits = len(_PHONE_DIGIT_RE.findall(phone_str))
+    if digits < 6:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "invalid_phone",
+                "message": "Моля, въведете валиден телефонен номер (поне 6 цифри).",
+                "missing": ["phone"],
+            },
+        )
+
+
 async def _detect_soft_duplicate(
     phone: Optional[str],
     email: Optional[str],
@@ -101,6 +175,11 @@ async def get_clinics():
 
 @router.post("/leads", response_model=Lead, dependencies=[Depends(rate_limit("create_lead", 5, 300))])
 async def create_lead(data: LeadCreate):
+    # Quiz / recommendation flows require name + phone + email upfront
+    # so the clinic on the receiving end has the contact info to follow
+    # up. Friendly Bulgarian errors via HTTP 422 with a structured code.
+    _validate_quiz_contact(data)
+
     score_total, band, score_breakdown = calculate_score(data.treatment_type, data.answers, data.can_travel)
 
     assigned_clinic_id = None

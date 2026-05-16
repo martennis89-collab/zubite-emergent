@@ -24,6 +24,7 @@ import { TREATMENT_LABELS } from '@/lib/consultationLabels'
 import { ReviewSignalsSection } from '@/components/patient/ReviewSignalsSection'
 import { RequestCallModal } from '@/components/patient/RequestCallModal'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
+import { getStoredLeadContact } from '@/lib/leadContact'
 
 type ErrKind =
   | null
@@ -186,6 +187,7 @@ export default function ClinicProfilePage() {
           source="clinic_profile"
           partnerTier={clinic.partner_tier || 'standard'}
           placementLabel={clinic.placement_label || null}
+          initialContact={getStoredLeadContact(leadId)}
           onClose={() => setModalOpen(false)}
           onSuccess={(resp) => {
             handleSubmitted(resp.clinic.id, resp.clinic.name || clinic.name)

@@ -15,6 +15,15 @@ interface Props {
   clinic: { id: string; name: string; city_name?: string }
   source: 'matching_card' | 'clinic_profile'
   initialPhone?: string | null
+  // Optional contact prefill — when present, the modal opens with a
+  // read-only confirmation block ("Ще се свържем с вас на …") plus a
+  // "Промени данните" toggle. Standard behaviour (empty editable phone
+  // input) is preserved when the caller doesn't pass `initialContact`.
+  initialContact?: {
+    name?: string | null
+    phone?: string | null
+    email?: string | null
+  } | null
   // Analytics-only context — passed through unchanged to the
   // request_call_submitted / request_call_failed events. Optional so
   // existing call sites work without modification.
@@ -51,12 +60,25 @@ export function RequestCallModal({
   clinic,
   source,
   initialPhone,
+  initialContact,
   partnerTier,
   placementLabel,
   onClose,
   onSuccess,
 }: Props) {
-  const [phone, setPhone] = useState<string>(initialPhone || '')
+  // Resolved prefill — `initialContact` wins over the legacy
+  // `initialPhone` prop so existing call sites stay compatible.
+  const prefillName = initialContact?.name?.trim() || ''
+  const prefillEmail = initialContact?.email?.trim() || ''
+  const prefillPhone = (initialContact?.phone?.trim() || initialPhone || '').trim()
+
+  // We treat the "confirm contact" block as authoritative when ANY of
+  // name/phone/email is prefilled. The patient can still tap
+  // "Промени данните" to enter edit mode and update the phone (the only
+  // editable field — name/email already live on the lead).
+  const hasPrefill = !!(prefillName || prefillPhone || prefillEmail)
+  const [editing, setEditing] = useState<boolean>(!hasPrefill)
+  const [phone, setPhone] = useState<string>(prefillPhone)
   const [consent, setConsent] = useState<boolean>(false)
   const [phase, setPhase] = useState<Phase>('form')
   const [result, setResult] = useState<RequestCallSuccess | null>(null)
@@ -204,6 +226,12 @@ export function RequestCallModal({
             canSubmit={canSubmit}
             submitting={phase === 'submitting'}
             error={phase === 'error' ? error : null}
+            prefillName={prefillName}
+            prefillEmail={prefillEmail}
+            prefillPhone={prefillPhone}
+            hasPrefill={hasPrefill}
+            editing={editing}
+            onEdit={() => setEditing(true)}
             onSubmit={submit}
             onClose={onClose}
           />
@@ -220,6 +248,8 @@ function FormBody({
   consent, setConsent,
   phoneOk, canSubmit, submitting,
   error,
+  prefillName, prefillEmail, prefillPhone,
+  hasPrefill, editing, onEdit,
   onSubmit, onClose,
 }: {
   phone: string
@@ -230,9 +260,19 @@ function FormBody({
   canSubmit: boolean
   submitting: boolean
   error: ErrPayload | null
+  prefillName: string
+  prefillEmail: string
+  prefillPhone: string
+  hasPrefill: boolean
+  editing: boolean
+  onEdit: () => void
   onSubmit: () => void
   onClose: () => void
 }) {
+  // Confirmation mode — show what the patient already shared in a
+  // read-only block instead of an empty input. The phone field is
+  // hidden until the patient taps "Промени данните".
+  const showConfirm = hasPrefill && !editing
   return (
     <>
       <p className="text-sm text-slate-700 leading-relaxed mb-5">
@@ -240,24 +280,66 @@ function FormBody({
         клиника, за да може да се свърже с вас.
       </p>
 
-      <label className="block text-xs font-medium text-slate-700 mb-1.5">
-        Телефон
-      </label>
-      <input
-        type="tel"
-        inputMode="tel"
-        autoComplete="tel"
-        value={phone}
-        onChange={(e) => setPhone(e.target.value)}
-        placeholder="+359 ..."
-        disabled={submitting}
-        className="w-full px-4 py-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300 disabled:opacity-60"
-        data-testid="request-call-phone-input"
-      />
-      {phone.length > 0 && !phoneOk && (
-        <p className="mt-1.5 text-[11px] text-rose-600">
-          Моля, въведете телефон с поне 6 цифри.
-        </p>
+      {showConfirm ? (
+        <div
+          className="rounded-xl border border-slate-200 bg-slate-50/70 p-4"
+          data-testid="request-call-contact-confirm"
+        >
+          <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
+            Ще се свържем с вас на:
+          </p>
+          <ul className="space-y-1.5 text-sm text-slate-800">
+            {prefillName && (
+              <li data-testid="request-call-confirm-name">
+                <span className="text-slate-500">Име:</span>{' '}
+                <span className="font-medium">{prefillName}</span>
+              </li>
+            )}
+            {prefillPhone && (
+              <li data-testid="request-call-confirm-phone">
+                <span className="text-slate-500">Телефон:</span>{' '}
+                <span className="font-medium">{prefillPhone}</span>
+              </li>
+            )}
+            {prefillEmail && (
+              <li data-testid="request-call-confirm-email">
+                <span className="text-slate-500">Email:</span>{' '}
+                <span className="font-medium break-all">{prefillEmail}</span>
+              </li>
+            )}
+          </ul>
+          <button
+            type="button"
+            onClick={onEdit}
+            disabled={submitting}
+            className="mt-3 text-xs font-medium text-sky-600 hover:text-sky-700 underline-offset-2 hover:underline disabled:opacity-40"
+            data-testid="request-call-edit-contact-btn"
+          >
+            Промени данните
+          </button>
+        </div>
+      ) : (
+        <>
+          <label className="block text-xs font-medium text-slate-700 mb-1.5">
+            Телефон
+          </label>
+          <input
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="+359 ..."
+            disabled={submitting}
+            className="w-full px-4 py-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300 disabled:opacity-60"
+            data-testid="request-call-phone-input"
+          />
+          {phone.length > 0 && !phoneOk && (
+            <p className="mt-1.5 text-[11px] text-rose-600">
+              Моля, въведете телефон с поне 6 цифри.
+            </p>
+          )}
+        </>
       )}
 
       <label

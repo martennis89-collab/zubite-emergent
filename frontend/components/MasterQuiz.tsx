@@ -587,9 +587,32 @@ export function MasterQuiz() {
   }
 
   const handleSubmit = async () => {
-    if (formVersion === 'A' && !formData.name.trim()) { setError('Моля, въведете името си'); return }
-    if (!formData.phone.trim()) { setError('Моля, въведете телефонен номер'); return }
-    if (!formData.city) { setError('Моля, изберете град'); return }
+    // Strict contact validation for the diagnostic-quiz / recommendation
+    // flow: name, phone, email are all required upfront so the clinic
+    // on the receiving end has what it needs to follow up.
+    const trimmedName = formData.name.trim()
+    const trimmedPhone = formData.phone.trim()
+    const trimmedEmail = formData.email.trim()
+    if (!trimmedName) { setError('Моля, въведете името си.'); return }
+    if (!trimmedPhone) { setError('Моля, въведете телефонен номер.'); return }
+    if (!/^[\d\s\-+()]+$/.test(trimmedPhone)) {
+      setError('Моля, въведете телефонен номер само с цифри, интервали, тирета, скоби или знака „+“.')
+      return
+    }
+    const phoneDigits = (trimmedPhone.match(/\d/g) || []).length
+    if (phoneDigits < 6) {
+      setError('Моля, въведете валиден телефонен номер (поне 6 цифри).')
+      return
+    }
+    if (!trimmedEmail) { setError('Моля, въведете email адрес.'); return }
+    // Lightweight client-side email format check; backend EmailStr is
+    // the authoritative validator, but we want a friendly Bulgarian
+    // message before the patient ever sees a 422.
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setError('Моля, въведете валиден email адрес.')
+      return
+    }
+    if (!formData.city) { setError('Моля, изберете град.'); return }
     setIsSubmitting(true); setError('')
 
     try {
@@ -602,10 +625,9 @@ export function MasterQuiz() {
         answers: { ...answersObj, quiz_score: result?.totalScore || 0, quiz_band: result?.band || '', quiz_flags: result?.flags || [], segment, form_version: formVersion, session_id: sessionId.current, source: 'diagnostic_quiz_v1' },
         score_total: result?.totalScore || 0,
         band: bandMap[result?.band || 'low'],
-        name: formData.name || '', phone: formData.phone,
-        // Backend uses Optional[EmailStr]: empty string fails validation,
-        // so omit the key entirely when the patient left email blank.
-        ...(formData.email && formData.email.trim() ? { email: formData.email.trim() } : {}),
+        name: trimmedName,
+        phone: trimmedPhone,
+        email: trimmedEmail,
         consent: true, source: 'diagnostic_quiz_v1', form_version: formVersion,
         // ─── Attribution data — never throws (returns {} if storage blocked) ───
         ...(typeof window !== 'undefined'
@@ -613,7 +635,19 @@ export function MasterQuiz() {
           : {}),
       }
       const response = await fetch(`${API_URL}/api/leads`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(leadData) })
-      if (!response.ok) throw new Error('Failed')
+      if (!response.ok) {
+        // Try to surface the backend's friendly Bulgarian message when present.
+        let backendMsg = ''
+        try {
+          const j = await response.json()
+          if (j?.detail && typeof j.detail === 'object' && typeof j.detail.message === 'string') {
+            backendMsg = j.detail.message
+          } else if (typeof j?.detail === 'string') {
+            backendMsg = j.detail
+          }
+        } catch { /* ignore */ }
+        throw new Error(backendMsg || 'Failed')
+      }
       // Capture leadId from the created lead so the success page can link
       // straight into the matching flow (/results/[leadId]/clinics).
       // Failure to parse is non-fatal: the success page falls back gracefully.
@@ -622,12 +656,32 @@ export function MasterQuiz() {
         const created = await response.json()
         if (created && typeof created.id === 'string') createdLeadId = created.id
       } catch { /* leadId remains empty → success page hides matching CTA */ }
-      trackEvent('form_submitted', { form_version: formVersion, city: formData.city, has_name: !!formData.name, has_email: !!formData.email, segment })
+
+      // Cache contact info locally so RequestCallModal / AssistedChoiceModal
+      // can confirm-instead-of-ask on the same browser. localStorage-only;
+      // never sent automatically to the backend.
+      if (createdLeadId) {
+        try {
+          const { setStoredLeadContact } = await import('@/lib/leadContact')
+          setStoredLeadContact(createdLeadId, {
+            name: trimmedName,
+            phone: trimmedPhone,
+            email: trimmedEmail,
+          })
+        } catch { /* silent */ }
+      }
+
+      trackEvent('form_submitted', { form_version: formVersion, city: formData.city, has_name: !!trimmedName, has_email: !!trimmedEmail, segment })
       trackLeadSubmit(formData.city, formVersion)
-      const successParams = new URLSearchParams({ stage: result?.band || 'low', city: formData.city, name: formData.name || '', segment: segment || 'adult' })
+      const successParams = new URLSearchParams({ stage: result?.band || 'low', city: formData.city, name: trimmedName, segment: segment || 'adult' })
       if (createdLeadId) successParams.set('leadId', createdLeadId)
       router.push(`/quiz/success?${successParams.toString()}`)
-    } catch { setError('Възникна грешка. Моля, опитайте отново.') } finally { setIsSubmitting(false) }
+    } catch (e) {
+      const msg = e instanceof Error && e.message && e.message !== 'Failed'
+        ? e.message
+        : 'Възникна грешка. Моля, опитайте отново.'
+      setError(msg)
+    } finally { setIsSubmitting(false) }
   }
 
   // ─── Header ────────────────────────────────────────────
@@ -909,30 +963,26 @@ export function MasterQuiz() {
                 </p>
               </div>
               <div className="space-y-5">
-                {formVersion === 'A' && (
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      {isParent ? 'Вашето име' : 'Име'} <span className="text-red-500">*</span>
-                    </label>
-                    <input type="text" value={formData.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))}
-                      className="w-full px-4 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-all"
-                      placeholder={isParent ? 'Вашето име' : 'Вашето име'} data-testid="input-name" />
-                  </div>
-                )}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    {isParent ? 'Вашето име' : 'Име'} <span className="text-red-500">*</span>
+                  </label>
+                  <input type="text" value={formData.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))}
+                    className="w-full px-4 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-all"
+                    placeholder={isParent ? 'Вашето име' : 'Вашето име'} data-testid="input-name" />
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Телефон <span className="text-red-500">*</span></label>
                   <input type="tel" value={formData.phone} onChange={e => setFormData(p => ({ ...p, phone: e.target.value }))}
                     className="w-full px-4 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-all"
                     placeholder="+359 888 123 456" data-testid="input-phone" />
                 </div>
-                {formVersion === 'A' && (
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Имейл</label>
-                    <input type="email" value={formData.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))}
-                      className="w-full px-4 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-all"
-                      placeholder="email@example.com" data-testid="input-email" />
-                  </div>
-                )}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Имейл <span className="text-red-500">*</span></label>
+                  <input type="email" value={formData.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))}
+                    className="w-full px-4 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-all"
+                    placeholder="email@example.com" data-testid="input-email" />
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Град <span className="text-red-500">*</span></label>
                   <div className="grid grid-cols-2 gap-3">

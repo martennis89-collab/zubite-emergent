@@ -21,6 +21,7 @@ import { ClinicRecommendationCard } from '@/components/patient/ClinicRecommendat
 import { ClinicMatchEmptyState } from '@/components/patient/ClinicMatchEmptyState'
 import { AssistedChoiceModal } from '@/components/patient/AssistedChoiceModal'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
+import { getStoredLeadContact } from '@/lib/leadContact'
 
 type ErrKind = 'not_found' | 'expired' | 'rate_limited' | 'generic' | null
 
@@ -356,6 +357,7 @@ export default function ClinicMatchPage() {
         <AssistedChoiceModal
           leadId={leadId}
           source="matching_page"
+          initialContact={getStoredLeadContact(leadId)}
           onClose={() => setAssistedModalOpen(false)}
           onSuccess={() => {
             // Refetch canonical state so banners and button switch.

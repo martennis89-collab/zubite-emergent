@@ -14,6 +14,13 @@ interface Props {
   leadId: string
   source: 'matching_page' | 'clinic_profile'
   initialPhone?: string | null
+  // Optional contact prefill — when present, the modal shows a
+  // read-only confirmation block plus a "Промени данните" toggle.
+  initialContact?: {
+    name?: string | null
+    phone?: string | null
+    email?: string | null
+  } | null
   onClose: () => void
   // Called after a successful (or duplicate-200) submit. Parent can
   // update its selection state immediately so all clinic CTAs flip
@@ -42,10 +49,16 @@ export function AssistedChoiceModal({
   leadId,
   source,
   initialPhone,
+  initialContact,
   onClose,
   onSuccess,
 }: Props) {
-  const [phone, setPhone] = useState<string>(initialPhone || '')
+  const prefillName = initialContact?.name?.trim() || ''
+  const prefillEmail = initialContact?.email?.trim() || ''
+  const prefillPhone = (initialContact?.phone?.trim() || initialPhone || '').trim()
+  const hasPrefill = !!(prefillName || prefillPhone || prefillEmail)
+  const [editing, setEditing] = useState<boolean>(!hasPrefill)
+  const [phone, setPhone] = useState<string>(prefillPhone)
   const [message, setMessage] = useState<string>('')
   const [consent, setConsent] = useState<boolean>(false)
   const [phase, setPhase] = useState<Phase>('form')
@@ -177,6 +190,12 @@ export function AssistedChoiceModal({
             canSubmit={canSubmit}
             submitting={phase === 'submitting'}
             error={phase === 'error' ? error : null}
+            prefillName={prefillName}
+            prefillEmail={prefillEmail}
+            prefillPhone={prefillPhone}
+            hasPrefill={hasPrefill}
+            editing={editing}
+            onEdit={() => setEditing(true)}
             onSubmit={submit}
             onClose={onClose}
           />
@@ -194,6 +213,8 @@ function FormBody({
   consent, setConsent,
   phoneOk, canSubmit, submitting,
   error,
+  prefillName, prefillEmail, prefillPhone,
+  hasPrefill, editing, onEdit,
   onSubmit, onClose,
 }: {
   phone: string
@@ -206,9 +227,16 @@ function FormBody({
   canSubmit: boolean
   submitting: boolean
   error: ErrPayload | null
+  prefillName: string
+  prefillEmail: string
+  prefillPhone: string
+  hasPrefill: boolean
+  editing: boolean
+  onEdit: () => void
   onSubmit: () => void
   onClose: () => void
 }) {
+  const showConfirm = hasPrefill && !editing
   return (
     <>
       <p className="text-sm text-slate-700 leading-relaxed mb-5">
@@ -228,24 +256,66 @@ function FormBody({
         </p>
       </div>
 
-      <label className="block text-xs font-medium text-slate-700 mb-1.5">
-        Телефон
-      </label>
-      <input
-        type="tel"
-        inputMode="tel"
-        autoComplete="tel"
-        value={phone}
-        onChange={(e) => setPhone(e.target.value)}
-        placeholder="+359 ..."
-        disabled={submitting}
-        className="w-full px-4 py-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300 disabled:opacity-60"
-        data-testid="assisted-choice-phone-input"
-      />
-      {phone.length > 0 && !phoneOk && (
-        <p className="mt-1.5 text-[11px] text-rose-600">
-          Моля, въведете телефон с поне 6 цифри.
-        </p>
+      {showConfirm ? (
+        <div
+          className="rounded-xl border border-slate-200 bg-slate-50/70 p-4"
+          data-testid="assisted-choice-contact-confirm"
+        >
+          <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
+            Ще се свържем с вас на:
+          </p>
+          <ul className="space-y-1.5 text-sm text-slate-800">
+            {prefillName && (
+              <li data-testid="assisted-choice-confirm-name">
+                <span className="text-slate-500">Име:</span>{' '}
+                <span className="font-medium">{prefillName}</span>
+              </li>
+            )}
+            {prefillPhone && (
+              <li data-testid="assisted-choice-confirm-phone">
+                <span className="text-slate-500">Телефон:</span>{' '}
+                <span className="font-medium">{prefillPhone}</span>
+              </li>
+            )}
+            {prefillEmail && (
+              <li data-testid="assisted-choice-confirm-email">
+                <span className="text-slate-500">Email:</span>{' '}
+                <span className="font-medium break-all">{prefillEmail}</span>
+              </li>
+            )}
+          </ul>
+          <button
+            type="button"
+            onClick={onEdit}
+            disabled={submitting}
+            className="mt-3 text-xs font-medium text-sky-600 hover:text-sky-700 underline-offset-2 hover:underline disabled:opacity-40"
+            data-testid="assisted-choice-edit-contact-btn"
+          >
+            Промени данните
+          </button>
+        </div>
+      ) : (
+        <>
+          <label className="block text-xs font-medium text-slate-700 mb-1.5">
+            Телефон
+          </label>
+          <input
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="+359 ..."
+            disabled={submitting}
+            className="w-full px-4 py-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300 disabled:opacity-60"
+            data-testid="assisted-choice-phone-input"
+          />
+          {phone.length > 0 && !phoneOk && (
+            <p className="mt-1.5 text-[11px] text-rose-600">
+              Моля, въведете телефон с поне 6 цифри.
+            </p>
+          )}
+        </>
       )}
 
       <label className="block mt-4 text-xs font-medium text-slate-700 mb-1.5">
