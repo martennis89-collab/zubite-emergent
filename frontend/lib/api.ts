@@ -60,6 +60,13 @@ export interface RecommendedClinic {
   reason: string;
   response_expectation: string;
   partner_since_year: number | null;
+  // Partner placement (transparent demo support).
+  // Backend returns "standard" | "featured" | "premium"; labels/disclosure
+  // are null for standard so the card can simply guard on truthiness.
+  partner_tier?: 'standard' | 'featured' | 'premium';
+  is_featured?: boolean;
+  placement_label?: string | null;
+  placement_disclosure?: string | null;
 }
 
 export interface RecommendedClinicsResponse {

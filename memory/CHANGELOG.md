@@ -1,5 +1,66 @@
 # Zubite.bg — Changelog
 
+## 2026-02-16 — Patient Layer — Partner Tiers (UI badges, frontend-only)
+
+Surfaces the already-shipped backend partner-tier fields on the patient
+matching cards. **No backend changes; no new endpoints; no submit flows.**
+
+### Touched files
+- `frontend/lib/api.ts` — extended `RecommendedClinic` with optional fields:
+  `partner_tier ("standard"|"featured"|"premium")`, `is_featured`,
+  `placement_label`, `placement_disclosure`.
+- `frontend/components/patient/ClinicRecommendationCard.tsx` — new local
+  `PlacementBadge` subcomponent rendered only when `placement_label` is
+  truthy and tier ∈ {premium, featured}. Premium = amber pill, Featured =
+  slate pill (same visual weight, only hue differs). Disclosure rendered as
+  small slate-400 helper text in the meta block, plus repeated via the
+  badge's `title` attribute for native tooltip. Standard clinics render
+  unchanged.
+- `frontend/app/results/[leadId]/clinics/page.tsx` — general transparency
+  note rendered above the grid, only when at least one returned clinic
+  carries a `placement_label`:
+  > "Някои партньорски клиники могат да имат допълнителна видимост в
+  >  Zubite. Препоръките се съобразяват с вашия град и тип заявка."
+
+### Copy (exact)
+- Premium badge label: **Premium партньор**
+- Featured badge label: **Представена клиника**
+- Premium disclosure: "Тази клиника има допълнителна партньорска видимост в Zubite."
+- Featured disclosure: "Тази клиника е представена като партньор на Zubite."
+
+All copy is sourced verbatim from the backend (`backend/routers/public.py`
+`_PLACEMENT_LABEL` / `_PLACEMENT_DISCLOSURE`); the frontend never hard-codes
+tier labels and falls back cleanly when fields are absent.
+
+### Ethical guarantees
+- No words: "най-добра", "топ клиника", "#1", "гарантирано",
+  "проверено качество", fake ratings, fake reviews, fake availability.
+- Badge styling is intentionally quiet — not a medal, ribbon, or rank
+  number.
+- Standard clinics (label === null) render with **zero** visual change.
+
+### Smoke test (Feb 16, 2026 — preview env)
+- Lead `4bb3b171-…` (Sofia, braces_adult) → backend returned 3 clinics:
+  premium, featured, standard.
+- Desktop (1280×900): `premium_badges=1`, `featured_badges=1`,
+  `placement_note=1`, `disclosures=2` (one per tier'd card).
+- Mobile (390×844): `scrollWidth - clientWidth = 0` → no horizontal overflow.
+- TypeScript: `tsc --noEmit` reports only pre-existing errors unrelated to
+  touched files.
+
+### New `data-testid`s
+- `clinic-card-placement-row`
+- `clinic-card-placement-premium`
+- `clinic-card-placement-featured`
+- `clinic-card-placement-disclosure`
+- `match-placement-note`
+
+### Status
+UI integration complete. Awaiting user verification before proceeding to
+Batch P4 (Request Call backend + frontend wiring).
+
+
+
 ## 2026-02-15 — Patient Layer — Batch P3 (Match page frontend)
 
 ### New patient-facing route

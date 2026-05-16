@@ -1,13 +1,47 @@
 'use client'
 
 import { useState } from 'react'
-import { Building2, MapPin, ShieldCheck, Calendar, X } from 'lucide-react'
+import { Building2, MapPin, ShieldCheck, Calendar, X, Sparkle } from 'lucide-react'
 import type { RecommendedClinic } from '@/lib/api'
 import { TREATMENT_LABELS } from '@/lib/consultationLabels'
 
 interface Props {
   clinic: RecommendedClinic
   position: number  // 1-based for accessibility
+}
+
+// Ethical, non-medical placement badge.
+//
+// The badge is a transparency signal, NOT a quality signal:
+//   • "Premium партньор" / "Представена клиника" indicate partnership tier only.
+//   • We never imply ranking, certification, or clinical superiority.
+// `placement_label` is null for standard clinics so this returns null cleanly.
+function PlacementBadge({
+  tier,
+  label,
+  disclosure,
+}: {
+  tier: 'premium' | 'featured'
+  label: string
+  disclosure: string | null | undefined
+}) {
+  // Distinct but quiet visual treatment per tier. Both tiers share the same
+  // visual *weight* so neither looks like a winner; only the hue differs to
+  // match Zubite's editorial palette (amber for premium, slate for featured).
+  const styles =
+    tier === 'premium'
+      ? 'bg-amber-50 text-amber-800 border-amber-100'
+      : 'bg-slate-50 text-slate-700 border-slate-200'
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-medium tracking-wide ${styles}`}
+      title={disclosure || undefined}
+      data-testid={`clinic-card-placement-${tier}`}
+    >
+      <Sparkle className="w-3 h-3" aria-hidden="true" />
+      {label}
+    </span>
+  )
 }
 
 export function ClinicRecommendationCard({ clinic, position }: Props) {
@@ -23,6 +57,10 @@ export function ClinicRecommendationCard({ clinic, position }: Props) {
     </span>
   ))
 
+  const tier = clinic.partner_tier
+  const showPlacement =
+    !!clinic.placement_label && (tier === 'premium' || tier === 'featured')
+
   return (
     <article
       className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-7 flex flex-col h-full shadow-sm hover:shadow-md hover:border-sky-200 transition-all"
@@ -35,6 +73,18 @@ export function ClinicRecommendationCard({ clinic, position }: Props) {
           <div className="w-10 h-10 rounded-lg bg-sky-50 grid place-items-center mb-3">
             <Building2 className="w-5 h-5 text-sky-600" />
           </div>
+
+          {/* Placement badge — rendered only when backend supplied a label. */}
+          {showPlacement && (
+            <div className="mb-2" data-testid="clinic-card-placement-row">
+              <PlacementBadge
+                tier={tier as 'premium' | 'featured'}
+                label={clinic.placement_label as string}
+                disclosure={clinic.placement_disclosure}
+              />
+            </div>
+          )}
+
           <h3 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 leading-snug truncate">
             {clinic.name}
           </h3>
@@ -69,6 +119,15 @@ export function ClinicRecommendationCard({ clinic, position }: Props) {
             <Calendar className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
             <span>Партньор на Zubite от {clinic.partner_since_year}</span>
           </div>
+        )}
+        {/* Transparent placement disclosure — small, neutral helper text. */}
+        {showPlacement && clinic.placement_disclosure && (
+          <p
+            className="text-[11px] text-slate-400 leading-snug pt-1"
+            data-testid="clinic-card-placement-disclosure"
+          >
+            {clinic.placement_disclosure}
+          </p>
         )}
       </div>
 

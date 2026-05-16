@@ -95,7 +95,7 @@ export default function ClinicMatchPage() {
             <>
               {/* Selection-rule banner */}
               <div
-                className="bg-white border border-slate-200 rounded-xl px-4 py-3 mb-6 flex items-start gap-3 text-sm text-slate-600"
+                className="bg-white border border-slate-200 rounded-xl px-4 py-3 mb-4 flex items-start gap-3 text-sm text-slate-600"
                 data-testid="selection-rule-banner"
               >
                 <ShieldCheck className="w-4 h-4 text-sky-600 mt-0.5 flex-shrink-0" />
@@ -107,6 +107,20 @@ export default function ClinicMatchPage() {
                   клиника. Ако се колебаете, използвайте „Помогнете ми да избера“.
                 </p>
               </div>
+
+              {/* Transparency note for partner placement. Rendered only when at
+                  least one card actually carries a placement label. Wording is
+                  conservative and never implies ranking. */}
+              {data.clinics.some((c) => !!c.placement_label) && (
+                <p
+                  className="text-xs text-slate-500 mb-6 leading-relaxed"
+                  data-testid="match-placement-note"
+                >
+                  Някои партньорски клиники могат да имат допълнителна видимост
+                  в Zubite. Препоръките се съобразяват с вашия град и тип
+                  заявка.
+                </p>
+              )}
 
               {/* Cards */}
               <div
