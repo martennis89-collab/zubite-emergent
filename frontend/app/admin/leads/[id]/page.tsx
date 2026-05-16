@@ -205,16 +205,30 @@ export default function LeadDetailPage() {
   
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-sky-500 animate-spin" />
+      <main className="min-h-screen bg-slate-50">
+        <AdminHeader
+          pageTitle="Детайли на лийд"
+          backHref="/admin/leads"
+          backLabel="Към лийдовете"
+        />
+        <div className="flex items-center justify-center py-32">
+          <Loader2 className="w-8 h-8 text-sky-500 animate-spin" />
+        </div>
       </main>
     )
   }
   
   if (!lead) {
     return (
-      <main className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <p className="text-slate-600">Лийдът не е намерен</p>
+      <main className="min-h-screen bg-slate-50">
+        <AdminHeader
+          pageTitle="Детайли на лийд"
+          backHref="/admin/leads"
+          backLabel="Към лийдовете"
+        />
+        <div className="flex items-center justify-center py-32">
+          <p className="text-slate-600">Лийдът не е намерен</p>
+        </div>
       </main>
     )
   }

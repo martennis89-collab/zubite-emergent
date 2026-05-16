@@ -146,8 +146,11 @@ export default function AdminAnalyticsPage() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-sky-500 animate-spin" />
+      <main className="min-h-screen bg-slate-50">
+        <AdminHeader pageTitle="Анализи" />
+        <div className="flex items-center justify-center py-32">
+          <Loader2 className="w-8 h-8 text-sky-500 animate-spin" />
+        </div>
       </main>
     )
   }

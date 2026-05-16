@@ -1,5 +1,112 @@
 # Zubite.bg — Changelog
 
+## 2026-05-16 — Admin Header Consistency
+
+Standardized the admin chrome across every page under `/admin/*`. Single
+shared `AdminHeader` component replaces the 8 different inline header
+variants (full nav / compact / dark-themed public Header / no header).
+**Frontend-only batch. Zero backend changes. Zero patient-flow / clinic-
+portal / analytics-pipeline / dependency changes.**
+
+### Files changed
+- `frontend/components/admin/AdminHeader.tsx` — **new**, ~220 LOC.
+  Single source of truth with two layouts:
+    - **List mode** (default): brand "Zubite.bg" + page title + 6 nav
+      icons (Табло / Заявки / Партньори / Кандидатури / Анализи / Блог)
+      + Изход. Active item gets `aria-current="page"` + sky-50/sky-700
+      pill styling. Labels collapse to icon-only below `lg`.
+    - **Compact mode** (when `backHref` prop is set): hides nav, shows
+      "← {backLabel}" link instead. Used on every detail / editor page.
+  - Logout encapsulated: `POST /api/admin/logout` (credentials: include)
+    + `localStorage.removeItem('admin_token','admin_user')` + `router.push('/admin')`.
+  - Sticky `top-0 z-40`, white background, slate-200 border. data-testids
+    on every interactive element: `admin-header`, `admin-header-brand`,
+    `admin-header-back`, `admin-header-back-mobile`, `admin-header-logout`,
+    `admin-nav-{dashboard|consultation-requests|clinics|applications|analytics|blog}`.
+
+- `frontend/app/admin/dashboard/page.tsx` — replaced 60-line inline header.
+- `frontend/app/admin/analytics/page.tsx` — replaced inline header,
+  added `pageTitle="Анализи"`. Loading state now also renders header.
+- `frontend/app/admin/blog/page.tsx` — replaced inline header,
+  `pageTitle="Блог"`.
+- `frontend/app/admin/clinic-applications/page.tsx` — replaced inline
+  header, `pageTitle="Кандидатури за клиники"`.
+- `frontend/app/admin/clinics/page.tsx` — replaced English-text minimal
+  header ("Partner Clinics" / "Назад" / "New clinic") with full nav
+  + Bulgarian H2 "Партньорски клиники" + "Нова клиника" button.
+- `frontend/app/admin/consultation-requests/page.tsx` — replaced
+  minimal header with full nav.
+- `frontend/app/admin/consultation-requests/[id]/page.tsx` — compact
+  variant (back to `/admin/consultation-requests`).
+- `frontend/app/admin/clinics/[id]/page.tsx` — compact variant
+  (`pageTitle="Профил: {clinicName}"`, back to `/admin/clinics`).
+  Save button moved out of header chrome into a separate action row.
+  Loading state also renders header.
+- `frontend/app/admin/leads/page.tsx` — **major rewrite of chrome**:
+  was using public `Header`/`Footer` + `bg-[#0f172a]` dark theme. Now
+  light bg-slate-50 + AdminHeader compact (back to `/admin/dashboard`).
+  Page body unchanged.
+- `frontend/app/admin/leads/[id]/page.tsx` — compact variant
+  (back to `/admin/leads`). Action buttons moved to action row below
+  header. Loading + not-found states also render header.
+- `frontend/app/admin/blog/new/page.tsx` — compact (back to `/admin/blog`),
+  Save / Publish buttons moved to action row.
+- `frontend/app/admin/blog/[id]/page.tsx` — compact, action row.
+  Loading state renders header.
+- `frontend/app/admin/blog/import/page.tsx` — compact, replaces the
+  centered title+link top-bar.
+- `memory/CHANGELOG.md` — appended entry.
+
+### Login page (intentional exclusion)
+`frontend/app/admin/page.tsx` — login UI is **not** wrapped in
+`AdminHeader`. The login screen has its own dedicated lock-icon panel
+("Админ Панел / Zubite.bg - Вход за администратори"); the chrome would
+be misleading before authentication.
+
+### Per-page titles (Bulgarian)
+| Path | pageTitle |
+|---|---|
+| `/admin/dashboard` | (default) "Админ панел" |
+| `/admin/consultation-requests` | "Заявки за консултации" |
+| `/admin/clinics` | "Партньорски клиники" |
+| `/admin/clinic-applications` | "Кандидатури за клиники" |
+| `/admin/analytics` | "Анализи" |
+| `/admin/blog` | "Блог" |
+| `/admin/leads` | "Всички лийдове" |
+| `/admin/clinics/{id}` | "Профил: {clinicName}" |
+| `/admin/consultation-requests/{id}` | "Детайли на заявка" |
+| `/admin/leads/{id}` | "Детайли на лийд" |
+| `/admin/blog/new` | "Нова статия" |
+| `/admin/blog/{id}` | "Редакция на статия" |
+| `/admin/blog/import` | "Импортиране на статия" |
+
+### Tests
+- **Testing agent iteration_38**: 64/64 frontend checks PASS, 100%.
+  Covered: shared header presence on every list + detail page, brand
+  link, nav active states + `aria-current="page"`, compact back-link
+  on all detail pages, mobile 390px readability, logout flow (POST
+  `/api/admin/logout` + localStorage cleanup + redirect to `/admin`),
+  login page correctly excludes header, no body regressions.
+- **TypeScript** `npx tsc --noEmit` → zero new errors. The 6 pre-existing
+  errors in `admin/blog/import` (Set iteration), `admin/dashboard`
+  (line 561 boolean comparison), `lib/api.ts`, `lib/articleTestRender`,
+  `lib/attribution` are unchanged.
+
+### Out of scope (per user instruction)
+✅ Backend: untouched.
+✅ Patient flow: untouched.
+✅ Clinic portal: untouched.
+✅ Analytics pipeline: untouched.
+✅ No new dependencies (`package.json` unchanged).
+✅ No `Save to GitHub` / no push / no deploy.
+
+### Unresolved risks
+- 🔴 Git secrets-leak remains BLOCKED — local-only.
+- 🟡 `frontend/app/admin/blog/page.tsx` and other blog pages still have
+  unused `Link` imports left in place (no tsc/eslint warning); minor
+  cleanup deferred to keep this batch chrome-only.
+
+
 ## 2026-05-16 — Lead Identity Capture Standardization + Duplicate Contact UX Fix
 
 Tightened the patient onboarding contract: any lead destined for the

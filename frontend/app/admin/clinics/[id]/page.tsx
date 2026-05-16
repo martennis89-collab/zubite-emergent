@@ -204,7 +204,16 @@ export default function AdminClinicEditPage() {
   }
 
   if (loading) {
-    return <main className="min-h-screen grid place-items-center text-slate-400">Зареждане…</main>
+    return (
+      <main className="min-h-screen bg-slate-50" data-testid="admin-clinic-editor">
+        <AdminHeader
+          pageTitle="Профил на клиника"
+          backHref="/admin/clinics"
+          backLabel="Към списъка"
+        />
+        <div className="grid place-items-center py-32 text-slate-400">Зареждане…</div>
+      </main>
+    )
   }
 
   return (
