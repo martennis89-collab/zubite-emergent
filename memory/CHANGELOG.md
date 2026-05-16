@@ -1,5 +1,129 @@
 # Zubite.bg — Changelog
 
+## 2026-02-16 — Patient Layer — Batch P3.5: Lead-Contextual Clinic Profile
+
+Patients can now open a read-only profile preview for each recommended
+clinic from the matching shortlist. **No new backend endpoint, no
+request-call submission, no consultation creation.** Profile is strictly
+lead-contextual — reachable only via `/results/[leadId]/clinics/[clinicId]`.
+
+### Phase 0 inspection result
+No existing public/patient-facing clinic profile route was found. Closest
+neighbours were `/app/clinic/*` (B2B portal), `/app/admin/clinics/*`
+(admin-only), and `/app/za-kliniki` (B2B marketing landing). None were
+suitable. New route created under `/app/results/[leadId]/clinics/[clinicId]`
+so the profile stays bound to the lead context.
+
+### Files touched
+- `frontend/app/results/[leadId]/clinics/[clinicId]/page.tsx` (NEW) —
+  the profile page, including all 8 sections + 4 error states + skeleton
+  loader + preview-only modal.
+- `frontend/components/patient/ReviewSignalsSection.tsx` (NEW, ~115 LOC)
+  — reusable review block, BG-localised plural ("отзив" / "отзива"),
+  amber star icon, external links with `rel="noopener nofollow"` and
+  `aria-label="Виж отзивите в {platform} (отваря нов прозорец)"`,
+  date formatted DD.MM.YYYY, fallback disclaimer if backend disclaimer
+  is missing.
+- `frontend/components/patient/ClinicRecommendationCard.tsx` — dual CTA:
+  primary `Виж профила` (Next.js `<Link>` to the profile route) +
+  secondary `Искам обаждане` (still opens the preview-only `NextStepModal`).
+  Card prop now requires `leadId`.
+- `frontend/app/results/[leadId]/clinics/page.tsx` — passes `leadId={leadId}`
+  to each card.
+- `frontend/lib/api.ts` — extended `RecommendedClinic` type with the
+  `review_signals?` object shape matching backend R1 contract.
+
+### Data source
+Single call to `GET /api/leads/{leadId}/recommended-clinics?limit=3`
+(existing P2/R1 endpoint). The profile page locates the selected clinic
+by `clinicId` inside the returned `clinics[]` array. If not found →
+`clinic_not_in_list` error state with a back-to-list CTA.
+
+### Card CTA changes (exact)
+- Primary (filled sky): `Виж профила` → `<Link href="/results/{leadId}/clinics/{id}">` ; `data-testid="clinic-card-view-profile-{id}"`.
+- Secondary (white, bordered): `Искам обаждане` → opens existing
+  `NextStepModal` ; `data-testid="clinic-card-cta-{id}"`.
+- **No backend call from either button.**
+
+### Profile sections (in order)
+1. Back link `← Назад към препоръчаните клиники`.
+2. Header card: building icon, optional placement badge (Premium
+   amber / Featured slate), clinic name, city with map-pin icon,
+   placement disclosure (if present), top CTA `Искам обаждане от тази клиника`.
+3. `Защо виждате тази клиника` — uses backend `clinic.reason` + a
+   small explanatory line ("Тази препоръка е базирана на наличната
+   партньорска информация, града и типа заявка.").
+4. `Подходяща за` — treatment chips via `TREATMENT_LABELS`. Empty →
+   "Информацията за конкретните направления ще бъде потвърдена при
+   разговор." Optional `Партньор на Zubite от {YEAR}` line.
+5. `Отзиви и доверие` — rendered **only** when
+   `review_signals && sources.length > 0`. Star + platform label +
+   rating + count in BG plural + external link. Standard clinics show
+   nothing here (no empty section, no "няма отзиви").
+6. `Какво се случва, ако изберете тази клиника` — exact required copy.
+7. Bottom CTA row: repeat `Искам обаждане от тази клиника` + secondary
+   `Виж другите препоръки` (link back to shortlist).
+8. Trust note: "Zubite не поставя диагноза…".
+
+### Tier visibility behavior
+- `partner_tier === 'standard'` OR `placement_label` missing → no badge,
+  no commercial section, no disclosure.
+- `placement_label` present → badge (amber for premium, slate for featured)
+  + disclosure text in the header card.
+
+### Review signal behavior
+- Section rendered only when `review_signals?.sources?.length > 0`.
+- Each row: star + platform name (Google / Facebook / Superdoc) + rating
+  (1 decimal) + count + optional external link (`target="_blank"`,
+  `rel="noopener nofollow"`, BG `aria-label`).
+- Date rendered DD.MM.YYYY (UTC). Disclaimer from backend, with safe
+  fallback if absent.
+- Standard clinic without review signals (Test Diagnostic Clinic) → 0
+  review section rendered.
+
+### Modal behavior (preview-only)
+- Same disabled CTA pattern as the matching page.
+- Title: `Следваща стъпка`, subtitle: `За {clinicName}`, body:
+  exact required copy.
+- The internal CTA is `disabled` + `aria-disabled="true"` ; label:
+  `Ще бъде активирано в следващата стъпка`. **No backend call. No
+  consultation request created.**
+
+### Smoke test results (Feb 16, 2026 — preview env)
+- Matching page (desktop 1280×900): `view_profile_btns=3`, `call_btns=3` ✅
+- Profile page — Sofia Premium Clinic: name renders, `premium_badge=1`,
+  `review_section=1`, `google=1`, `superdoc=1`, `last_checked=1`,
+  `top_cta=1`, `bottom_cta=1`, `back=1`, `trust=1`, treatments rendered.
+- Modal: `modal_shown=1`, `aria_disabled=true` (CTA correctly inert).
+- Profile page — Test Diagnostic Clinic (standard): `premium=0`,
+  `featured=0`, `review=0`, `treatments_empty=1` (empty-treatments
+  fallback copy rendered).
+- Profile page — unknown clinic UUID: `clinic_not_in_list error_shown=1`,
+  `back_btn=1`.
+- Mobile (375×800): `overflow_px=0` (no horizontal overflow).
+- TypeScript: `tsc --noEmit` clean for all touched files.
+
+### Forbidden ranking/marketing language audit
+The profile page strings contain none of: "най-добра", "топ", "#1",
+"гарантирано", "проверено качество", "certified", "recommended doctor",
+"expert pick", "trust score", "overall score", "рейтинг на Zubite".
+
+### Out of scope / backlog
+- **Richer public clinic profiles require additional admin-managed
+  clinic profile fields** (long description, doctors, opening hours,
+  photos, certifications, language preferences). Not in P3.5 scope.
+- R2 — Admin "Edit reviews" modal (R2 batch).
+- P4 — `POST /api/leads/{id}/request-call` backend wiring (next batch).
+
+### Confirmation
+- 0 backend files changed (`git status` confirms only frontend + memory).
+- 0 admin files changed.
+- 0 clinic portal files changed.
+- 0 external provider calls (no Resend/Twilio/ElevenLabs).
+- 0 backend endpoints added.
+
+
+
 ## 2026-02-16 — Patient Layer — Review Signals R1 (Backend only)
 
 Backend support for external review signals (Google / Superdoc / Facebook)

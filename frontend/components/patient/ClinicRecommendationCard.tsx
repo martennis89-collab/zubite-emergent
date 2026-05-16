@@ -1,13 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import { Building2, MapPin, ShieldCheck, Calendar, X, Sparkle } from 'lucide-react'
+import Link from 'next/link'
+import { Building2, MapPin, ShieldCheck, Calendar, X, Sparkle, ArrowRight } from 'lucide-react'
 import type { RecommendedClinic } from '@/lib/api'
 import { TREATMENT_LABELS } from '@/lib/consultationLabels'
 
 interface Props {
   clinic: RecommendedClinic
   position: number  // 1-based for accessibility
+  leadId: string    // required so the card can deep-link to the profile page
 }
 
 // Ethical, non-medical placement badge.
@@ -44,7 +46,7 @@ function PlacementBadge({
   )
 }
 
-export function ClinicRecommendationCard({ clinic, position }: Props) {
+export function ClinicRecommendationCard({ clinic, position, leadId }: Props) {
   const [preview, setPreview] = useState(false)
 
   // BG label fallback: prefer the centralized treatment label map, else raw.
@@ -131,15 +133,30 @@ export function ClinicRecommendationCard({ clinic, position }: Props) {
         )}
       </div>
 
-      {/* CTA — P3: opens preview modal only, no backend submit */}
-      <button
-        type="button"
-        onClick={() => setPreview(true)}
-        className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-sky-500 text-white text-sm font-medium rounded-full hover:bg-sky-600 transition-colors"
-        data-testid={`clinic-card-cta-${clinic.id}`}
-      >
-        Искам обаждане от тази клиника
-      </button>
+      {/* CTA — P3.5: dual action.
+          Primary  → "Виж профила" deep-links to the lead-contextual
+                     clinic profile page (read-only preview).
+          Secondary → "Искам обаждане" still opens the preview-only modal;
+                     no backend submit until Batch P4. */}
+      <div className="space-y-2">
+        <Link
+          href={`/results/${leadId}/clinics/${clinic.id}`}
+          className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-sky-500 text-white text-sm font-medium rounded-full hover:bg-sky-600 transition-colors"
+          data-testid={`clinic-card-view-profile-${clinic.id}`}
+          aria-label={`Виж профила на ${clinic.name}`}
+        >
+          Виж профила
+          <ArrowRight className="w-4 h-4" aria-hidden="true" />
+        </Link>
+        <button
+          type="button"
+          onClick={() => setPreview(true)}
+          className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-white border border-slate-200 text-slate-800 text-sm font-medium rounded-full hover:bg-slate-50 transition-colors"
+          data-testid={`clinic-card-cta-${clinic.id}`}
+        >
+          Искам обаждане
+        </button>
+      </div>
 
       {preview && (
         <NextStepModal

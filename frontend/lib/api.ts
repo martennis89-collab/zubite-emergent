@@ -67,6 +67,19 @@ export interface RecommendedClinic {
   is_featured?: boolean;
   placement_label?: string | null;
   placement_disclosure?: string | null;
+  // External review signals (R1 — display-only, admin-gated).
+  // Omitted entirely by backend when no source is publishable, so consumers
+  // must `if (clinic.review_signals)` before rendering.
+  review_signals?: {
+    sources: Array<{
+      platform: 'google' | 'facebook' | 'superdoc' | string;
+      rating: number;
+      review_count: number;
+      url?: string | null;
+    }>;
+    last_checked_at: string | null;
+    disclaimer: string;
+  };
 }
 
 export interface RecommendedClinicsResponse {

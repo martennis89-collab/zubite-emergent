@@ -138,6 +138,7 @@ export default function ClinicMatchPage() {
                     key={c.id}
                     clinic={c}
                     position={i + 1}
+                    leadId={leadId}
                   />
                 ))}
               </div>
