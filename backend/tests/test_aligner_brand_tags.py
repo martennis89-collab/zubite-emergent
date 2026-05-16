@@ -36,6 +36,7 @@ def _wipe():
         await _database.db.admin_users.delete_many({})
         await _database.db.leads.delete_many({})
         await _database.db.audit_log.delete_many({})
+        await _database.db.auth_sessions.delete_many({})
     _run(go())
     yield
     _run(go())
@@ -60,7 +61,8 @@ def _admin_token() -> str:
         "is_active": True,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }))
-    return create_token(aid, "admin-brand-tests")
+    token, _jti = _run(create_token(aid, "admin-brand-tests"))
+    return token
 
 
 async def _seed_clinic(cid: str, **overrides):

@@ -1,20 +1,34 @@
-"""Authentication helpers (P2 — Batch E1: cookie-or-Bearer support).
+"""Authentication helpers (P2 — Batch E1: cookie-or-Bearer support;
+P5 — Batch E5: server-side auth_sessions governance).
 
-E1 contract:
-- Bearer header support is fully preserved. Header takes precedence over cookie.
-- httpOnly cookies are accepted as an alternative credential source. Admin
-  routes accept the admin cookie ONLY; clinic routes accept the clinic cookie
-  ONLY. Cross-cookie use is rejected with the same role error as before.
-- When authentication originates from a cookie AND the request is a
-  state-changing method (POST/PUT/PATCH/DELETE), an Origin/Referer check
-  is enforced. Bearer-authenticated requests bypass the CSRF guard so the
-  existing frontend continues to work unchanged.
-- `AUTH_REQUIRE_COOKIE` is read but NOT enforced in E1 (reserved for E4).
+E5 contract (Feb 2026):
+- Every newly issued admin/clinic JWT carries a `jti` (UUID) AND a
+  matching row is created in the `auth_sessions` Mongo collection.
+- `get_current_user` / `get_current_clinic` look up the session by
+  `jti` on every protected request and reject:
+    • tokens without `jti`            (legacy pre-E5 tokens)
+    • sessions that don't exist
+    • sessions with `revoked_at` set
+    • sessions whose `expires_at` is past
+    • sessions whose `user_type` doesn't match the route
+    • sessions whose `user_id` doesn't match the JWT's sub
+- `last_seen_at` is refreshed at most once every 60s (cheap).
+- `/api/admin/logout` and `/api/clinic/logout` revoke the current jti
+  in addition to clearing the cookie.
+- `/api/admin/logout-all` and `/api/clinic/logout-all` revoke every
+  active session for the current user_id+user_type.
+
+E1 contract (preserved):
+- Bearer header support is fully preserved. Header takes precedence
+  over cookie. Cookie auth still triggers the CSRF origin guard for
+  state-changing methods.
 """
 from __future__ import annotations
 
 import re
-from typing import Optional
+import os as _os
+import uuid
+from typing import Optional, Tuple
 from urllib.parse import urlparse
 
 import jwt
@@ -42,19 +56,164 @@ def verify_password(plain: str, hashed: str) -> bool:
     return bcrypt.checkpw(plain.encode(), hashed.encode())
 
 
-def create_token(user_id: str, username: str) -> str:
-    payload = {"sub": user_id, "username": username, "exp": datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRATION_HOURS)}
-    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+# ── E5: server-side session machinery ────────────────────────────
+
+# How often last_seen_at is refreshed on protected reads (seconds).
+_LAST_SEEN_DEBOUNCE_SECONDS = 60
 
 
-def create_clinic_token(user_id: str, email: str) -> str:
+def _now_utc() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+async def _create_auth_session(
+    *,
+    user_id: str,
+    user_type: str,
+    jti: str,
+    expires_at: datetime,
+) -> None:
+    """Insert a new active auth_sessions row.
+
+    Stored fields are minimal — no raw IP/UA — to stay aligned with the
+    privacy posture used elsewhere in the app. Existing test envs that
+    don't have the collection just get one created on first insert."""
+    now = _now_utc()
+    await db.auth_sessions.insert_one({
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "user_type": user_type,        # "admin" | "clinic"
+        "jti": jti,
+        "created_at": now.isoformat(),
+        "last_seen_at": now.isoformat(),
+        "expires_at": expires_at.isoformat(),
+        "revoked_at": None,
+        "revoked_reason": None,
+    })
+
+
+async def _validate_auth_session(
+    *, jti: Optional[str], user_id: str, user_type: str,
+) -> dict:
+    """Look up the session bound to this jti and enforce all gates.
+    Returns the session document on success."""
+    if not jti or not isinstance(jti, str):
+        # Legacy pre-E5 tokens have no jti — reject. Users re-login.
+        raise HTTPException(status_code=401, detail="Session required")
+    session = await db.auth_sessions.find_one(
+        {"jti": jti}, {"_id": 0},
+    )
+    if not session:
+        raise HTTPException(status_code=401, detail="Session not found")
+    if session.get("revoked_at"):
+        raise HTTPException(status_code=401, detail="Session revoked")
+    exp = session.get("expires_at")
+    try:
+        exp_dt = datetime.fromisoformat(exp) if isinstance(exp, str) else exp
+    except Exception:
+        exp_dt = None
+    if exp_dt is None or exp_dt < _now_utc():
+        raise HTTPException(status_code=401, detail="Session expired")
+    if session.get("user_type") != user_type:
+        # Cross-role token reuse — never allowed even if the jti exists.
+        raise HTTPException(status_code=403, detail="Wrong session type")
+    if session.get("user_id") != user_id:
+        raise HTTPException(status_code=401, detail="Session mismatch")
+    # Cheap last_seen_at refresh (debounced).
+    last_seen = session.get("last_seen_at")
+    try:
+        last_seen_dt = datetime.fromisoformat(last_seen) if isinstance(last_seen, str) else None
+    except Exception:
+        last_seen_dt = None
+    if (
+        last_seen_dt is None
+        or (_now_utc() - last_seen_dt).total_seconds() > _LAST_SEEN_DEBOUNCE_SECONDS
+    ):
+        await db.auth_sessions.update_one(
+            {"jti": jti},
+            {"$set": {"last_seen_at": _now_utc().isoformat()}},
+        )
+    return session
+
+
+async def revoke_session_by_jti(jti: str, *, reason: str = "logout") -> bool:
+    """Revoke a single session. Idempotent — re-revoking is a no-op
+    that still returns True so callers don't have to special-case it."""
+    if not jti:
+        return False
+    res = await db.auth_sessions.update_one(
+        {"jti": jti, "revoked_at": None},
+        {"$set": {
+            "revoked_at": _now_utc().isoformat(),
+            "revoked_reason": reason,
+        }},
+    )
+    return res.modified_count > 0
+
+
+async def revoke_all_sessions_for_user(
+    user_id: str, user_type: str, *, reason: str = "logout_all",
+) -> int:
+    """Revoke every still-active session belonging to (user_id, user_type)."""
+    res = await db.auth_sessions.update_many(
+        {"user_id": user_id, "user_type": user_type, "revoked_at": None},
+        {"$set": {
+            "revoked_at": _now_utc().isoformat(),
+            "revoked_reason": reason,
+        }},
+    )
+    return res.modified_count
+
+
+async def cleanup_expired_auth_sessions() -> int:
+    """Mark sessions whose expires_at has passed as revoked. Deletion is
+    intentionally avoided so audit-style queries can still see them."""
+    now = _now_utc().isoformat()
+    res = await db.auth_sessions.update_many(
+        {"revoked_at": None, "expires_at": {"$lt": now}},
+        {"$set": {"revoked_at": now, "revoked_reason": "expired"}},
+    )
+    return res.modified_count
+
+
+async def create_token(user_id: str, username: str) -> Tuple[str, str]:
+    """Issue an admin JWT and persist the matching auth_sessions row.
+    Returns (token, jti)."""
+    jti = str(uuid.uuid4())
+    expires_at = _now_utc() + timedelta(hours=JWT_EXPIRATION_HOURS)
+    payload = {
+        "sub": user_id,
+        "username": username,
+        "role": "admin",
+        "jti": jti,
+        "iat": int(_now_utc().timestamp()),
+        "exp": expires_at,
+    }
+    token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    await _create_auth_session(
+        user_id=user_id, user_type="admin", jti=jti, expires_at=expires_at,
+    )
+    return token, jti
+
+
+async def create_clinic_token(user_id: str, email: str) -> Tuple[str, str]:
+    """Issue a clinic JWT and persist the matching auth_sessions row.
+    Returns (token, jti)."""
+    jti = str(uuid.uuid4())
+    expires_at = _now_utc() + timedelta(hours=JWT_EXPIRATION_HOURS)
     payload = {
         "sub": user_id,
         "email": email,
         "role": "clinic",
-        "exp": datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRATION_HOURS),
+        "jti": jti,
+        "iat": int(_now_utc().timestamp()),
+        "exp": expires_at,
     }
-    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    await _create_auth_session(
+        user_id=user_id, user_type="clinic", jti=jti, expires_at=expires_at,
+    )
+    return token, jti
 
 
 # ── CSRF / Origin guard (P2 E1) ───────────────────────────────────
@@ -213,6 +372,13 @@ async def get_current_user(
     if payload.get("role") == "clinic":
         raise HTTPException(status_code=403, detail="Admin access required")
 
+    # E5 — server-side session governance
+    await _validate_auth_session(
+        jti=payload.get("jti"),
+        user_id=payload.get("sub"),
+        user_type="admin",
+    )
+
     if via_cookie:
         await _enforce_csrf_for_cookie_auth(request, actor_type="admin")
 
@@ -246,6 +412,13 @@ async def get_current_clinic(
     payload = _decode_jwt(token)
     if payload.get("role") != "clinic":
         raise HTTPException(status_code=403, detail="Not a clinic user")
+
+    # E5 — server-side session governance
+    await _validate_auth_session(
+        jti=payload.get("jti"),
+        user_id=payload.get("sub"),
+        user_type="clinic",
+    )
 
     clinic = await db.clinics.find_one({"id": payload.get("sub")}, {"_id": 0, "password_hash": 0})
     if not clinic:

@@ -13,7 +13,7 @@ from schemas import (
 )
 from auth import (
     get_current_user, get_current_clinic, hash_password, verify_password,
-    create_clinic_token,
+    create_clinic_token, revoke_session_by_jti, revoke_all_sessions_for_user,
 )
 from config import (
     RESEND_API_KEY, SENDER_EMAIL, ADMIN_EMAIL,
@@ -384,7 +384,7 @@ async def clinic_login(data: ClinicLogin, request: Request, response: Response):
         raise HTTPException(status_code=401, detail="Невалидни данни за вход")
     if clinic.get("status") == "paused":
         raise HTTPException(status_code=403, detail="Акаунтът е спрян")
-    token = create_clinic_token(clinic["id"], clinic["email"])
+    token, _jti = await create_clinic_token(clinic["id"], clinic["email"])
     # Always set httpOnly clinic session cookie.
     response.set_cookie(
         key=AUTH_COOKIE_NAME_CLINIC,
@@ -404,8 +404,25 @@ async def clinic_login(data: ClinicLogin, request: Request, response: Response):
 
 @router.post("/clinic/logout")
 async def clinic_logout(request: Request, response: Response):
-    """Idempotent clinic logout (E1)."""
+    """Idempotent clinic logout (E1 + E5)."""
     had_cookie = bool(request.cookies.get(AUTH_COOKIE_NAME_CLINIC))
+    revoked_jti = None
+    try:
+        from auth import _decode_jwt  # type: ignore
+        token = None
+        auth_h = request.headers.get("authorization") or ""
+        if auth_h.lower().startswith("bearer "):
+            token = auth_h[7:].strip()
+        if not token:
+            token = request.cookies.get(AUTH_COOKIE_NAME_CLINIC)
+        if token:
+            payload = _decode_jwt(token)
+            jti = payload.get("jti")
+            if jti and payload.get("role") == "clinic":
+                if await revoke_session_by_jti(jti, reason="clinic_logout"):
+                    revoked_jti = jti
+    except HTTPException:
+        pass
     response.delete_cookie(
         key=AUTH_COOKIE_NAME_CLINIC,
         path="/",
@@ -413,16 +430,43 @@ async def clinic_logout(request: Request, response: Response):
         samesite=AUTH_COOKIE_SAMESITE,
         httponly=True,
     )
-    if had_cookie:
+    if had_cookie or revoked_jti:
         await audit_log(
             "auth.clinic_logout",
             actor_type="clinic",
             target_type="system",
             target_id=None,
+            metadata={"revoked": bool(revoked_jti)},
             severity="info",
             request=request,
         )
-    return {"status": "ok"}
+    return {"status": "ok", "revoked": bool(revoked_jti)}
+
+
+@router.post("/clinic/logout-all")
+async def clinic_logout_all(
+    request: Request, response: Response,
+    clinic=Depends(get_current_clinic),
+):
+    """Revoke EVERY active session for the current clinic (E5)."""
+    revoked = await revoke_all_sessions_for_user(
+        clinic["id"], "clinic", reason="logout_all",
+    )
+    response.delete_cookie(
+        key=AUTH_COOKIE_NAME_CLINIC,
+        path="/",
+        secure=AUTH_COOKIE_SECURE,
+        samesite=AUTH_COOKIE_SAMESITE,
+        httponly=True,
+    )
+    await audit_log(
+        "auth.clinic_logout_all",
+        actor_type="clinic",
+        target_type="system", target_id=None,
+        metadata={"revoked_count": revoked, "clinic_id": clinic["id"]},
+        severity="info", request=request,
+    )
+    return {"status": "ok", "revoked_count": revoked}
 
 
 @router.get("/clinic/profile")

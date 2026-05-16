@@ -12,7 +12,11 @@ from schemas import (
     ConfirmationBody, CleanupLeadsBody,
     RESET_ANALYTICS_TOKEN, RESET_BLOG_VIEWS_TOKEN, CLEANUP_LEADS_TOKEN,
 )
-from auth import verify_password, create_token, get_current_user
+from auth import (
+    verify_password, create_token, get_current_user,
+    revoke_session_by_jti, revoke_all_sessions_for_user,
+    cleanup_expired_auth_sessions,
+)
 from config import (
     IS_PRODUCTION, logger,
     AUTH_COOKIE_NAME_ADMIN, AUTH_COOKIE_SECURE, AUTH_COOKIE_SAMESITE,
@@ -61,7 +65,7 @@ async def admin_login(data: AdminLogin, request: Request, response: Response):
             request=request,
         )
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    token = create_token(user["id"], user["username"])
+    token, _jti = await create_token(user["id"], user["username"])
     admin_user = AdminUser(id=user["id"], username=user["username"])
     # Always set the httpOnly admin session cookie.
     response.set_cookie(
@@ -92,13 +96,32 @@ async def admin_login(data: AdminLogin, request: Request, response: Response):
 
 @router.post("/admin/logout")
 async def admin_logout(request: Request, response: Response):
-    """Idempotent admin logout (E1).
+    """Idempotent admin logout (E1 + E5).
 
-    Does NOT require a valid session — always clears the cookie. Audit row
-    is best-effort: emitted only when a cookie was actually present, so we
-    don't flood the log with empty-state hits.
+    E5: extracts jti from the presented Bearer/cookie token (best-effort,
+    no exception if the token is malformed) and revokes that single
+    session row in `auth_sessions`. Cookie is always cleared.
     """
     had_cookie = bool(request.cookies.get(AUTH_COOKIE_NAME_ADMIN))
+    # Best-effort jti extraction — never fail the logout.
+    revoked_jti: Optional[str] = None
+    try:
+        from auth import _decode_jwt  # type: ignore
+        token: Optional[str] = None
+        auth_h = request.headers.get("authorization") or ""
+        if auth_h.lower().startswith("bearer "):
+            token = auth_h[7:].strip()
+        if not token:
+            token = request.cookies.get(AUTH_COOKIE_NAME_ADMIN)
+        if token:
+            payload = _decode_jwt(token)
+            jti = payload.get("jti")
+            if jti and payload.get("role") != "clinic":
+                if await revoke_session_by_jti(jti, reason="admin_logout"):
+                    revoked_jti = jti
+    except HTTPException:
+        # Expired/invalid token at logout time — still clear the cookie.
+        pass
     response.delete_cookie(
         key=AUTH_COOKIE_NAME_ADMIN,
         path="/",
@@ -106,16 +129,58 @@ async def admin_logout(request: Request, response: Response):
         samesite=AUTH_COOKIE_SAMESITE,
         httponly=True,
     )
-    if had_cookie:
+    if had_cookie or revoked_jti:
         await audit_log(
             "auth.admin_logout",
             actor_type="admin",
             target_type="system",
             target_id=None,
+            metadata={"revoked": bool(revoked_jti)},
             severity="info",
             request=request,
         )
-    return {"status": "ok"}
+    return {"status": "ok", "revoked": bool(revoked_jti)}
+
+
+@router.post("/admin/logout-all")
+async def admin_logout_all(
+    request: Request, response: Response,
+    user: AdminUser = Depends(get_current_user),
+):
+    """Revoke EVERY active admin session for the current admin (E5)."""
+    revoked = await revoke_all_sessions_for_user(user.id, "admin", reason="logout_all")
+    response.delete_cookie(
+        key=AUTH_COOKIE_NAME_ADMIN,
+        path="/",
+        secure=AUTH_COOKIE_SECURE,
+        samesite=AUTH_COOKIE_SAMESITE,
+        httponly=True,
+    )
+    await audit_log(
+        "auth.admin_logout_all",
+        actor=user, actor_type="admin",
+        target_type="system", target_id=None,
+        metadata={"revoked_count": revoked},
+        severity="info", request=request,
+    )
+    return {"status": "ok", "revoked_count": revoked}
+
+
+@router.post("/admin/auth-sessions/cleanup-expired")
+async def admin_cleanup_expired_sessions(
+    request: Request,
+    user: AdminUser = Depends(get_current_user),
+):
+    """Mark expired auth sessions as revoked. Admin-only (E5)."""
+    n = await cleanup_expired_auth_sessions()
+    await audit_log(
+        "auth.cleanup_expired_sessions",
+        actor=user, actor_type="admin",
+        target_type="system", target_id=None,
+        metadata={"revoked_count": n},
+        severity="info", request=request,
+    )
+    return {"status": "ok", "revoked_count": n}
 
 
 @router.get("/admin/me")
