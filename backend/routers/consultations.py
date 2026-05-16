@@ -1012,6 +1012,18 @@ _ACTION_TO_STATUS: Dict[str, Dict[str, Any]] = {
     "admin_note":          {"event": "admin_note_added",       "status": None,                "ts_field": None},
 }
 
+# Terminal statuses — destructive/forward transitions are not allowed
+# once the request is in one of these. `mark_viewed` is exempt because
+# the endpoint already short-circuits it (no status mutation, no
+# clinic_viewed_at overwrite). `admin_note` is exempt because it does
+# not change status at all.
+_TERMINAL_STATUSES = frozenset({
+    "attended", "no_show",
+    "patient_declined", "not_suitable",
+    "cancelled", "expired",
+})
+_TRANSITION_EXEMPT_ACTIONS = frozenset({"mark_viewed", "admin_note"})
+
 
 @router.post("/clinic/consultation-requests/{req_id}/action")
 async def clinic_perform_action(
@@ -1032,6 +1044,18 @@ async def clinic_perform_action(
     )
     if not req:
         raise HTTPException(status_code=404, detail="Request not found")
+
+    # Transition safety: once a request reaches a terminal status, the
+    # clinic cannot push it forward into another status. `mark_viewed`
+    # and `admin_note` are exempt (they are idempotent / non-mutating).
+    if (
+        req.get("status") in _TERMINAL_STATUSES
+        and body.action_type not in _TRANSITION_EXEMPT_ACTIONS
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail="Заявката е приключена и не може да бъде променяна.",
+        )
 
     now = _now_iso()
     update: Dict[str, Any] = {"updated_at": now}

@@ -1,5 +1,152 @@
 # Zubite.bg — Changelog
 
+## 2026-05-16 — Clinic Status Control Batch (Transition Safety + Test Lock)
+
+Made the clinic portal operational by locking down the controlled-action
+workflow on `POST /api/clinic/consultation-requests/{id}/action`. All 11
+required action types already existed and worked; this batch adds the
+missing **terminal-status transition guard** + comprehensive contract
+tests + frontend regression coverage.
+
+### Files changed
+- `backend/routers/consultations.py` — added `_TERMINAL_STATUSES` and
+  `_TRANSITION_EXEMPT_ACTIONS` frozensets; added a single guard
+  block at the top of `clinic_perform_action` that returns HTTP 409
+  with a Bulgarian message when a clinic tries to push a terminal
+  request forward.
+- `backend/tests/test_clinic_status_control.py` — **new**, 20 tests
+  covering every action + access control + transition safety +
+  event timeline + patient_context survivability.
+- `memory/CHANGELOG.md` — appended entry.
+
+**No frontend changes required.** The existing detail page already
+implements every spec UI behaviour (loading state, friendly success
+message via `actionSuccessMessage()`, friendly error via `j.detail`,
+destructive-action confirmation via `ACTIONS_TERTIARY`, contextual
+stage filtering via `ctaStageFromStatus()`, post-action refetch via
+`load()`). All required Bulgarian labels already present in
+`consultationLabels.ts`. **Per spec rule** ("if it already works,
+do not redesign") nothing was touched in the UI.
+
+### Pre-existing actions already supported (verified by tests)
+All 11 required actions were already wired up in `_ACTION_TO_STATUS`
+with consistent canonical status names:
+
+| action_type        | → status            | event_type                |
+|--------------------|---------------------|---------------------------|
+| `mark_viewed`      | clinic_viewed       | clinic_viewed_request     |
+| `call_attempted`   | call_attempted      | call_attempted            |
+| `patient_contacted`| patient_contacted   | patient_contacted         |
+| `no_answer`        | no_answer           | no_answer                 |
+| `book_consultation`| booked              | appointment_booked        |
+| `reschedule`       | rescheduled         | appointment_rescheduled   |
+| `mark_attended`    | attended            | marked_attended           |
+| `mark_no_show`     | no_show             | marked_no_show            |
+| `patient_declined` | patient_declined    | patient_declined          |
+| `not_suitable`     | not_suitable        | marked_not_suitable       |
+| `cancel`           | cancelled           | cancelled                 |
+
+### Added: transition safety
+Terminal statuses (`attended`, `no_show`, `patient_declined`,
+`not_suitable`, `cancelled`, `expired`) now reject any further
+status-changing action with **HTTP 409** + body
+`{"detail": "Заявката е приключена и не може да бъде променяна."}`.
+
+Exempt actions (always allowed even on terminal requests):
+- `mark_viewed` — idempotent, no status mutation, no timestamp overwrite.
+- `admin_note` — non-mutating note attachment.
+
+### Event timeline (already correct, locked by test 17)
+Every successful action appends a `consultation_events` row with:
+`action_type` (as `event_type`), `previous_status`, `new_status`,
+`created_at`, `clinic_id`, optional `note`. No tokens / cookies /
+passwords / verification tokens are ever written into the event.
+Verified by test 17 against the freshly inserted document.
+
+### Frontend UX (verified, no code changes)
+- Action buttons disabled while `busy === true`.
+- Friendly Bulgarian success message via existing `actionSuccessMessage()`
+  helper ("Записано" / "Маркирано" / etc.); raw action keys never
+  rendered.
+- Backend 409 error renders inline as
+  "Грешка: Заявката е приключена и не може да бъде променяна."
+  via the existing `setActionMsg(`Грешка: …`)` branch.
+- Destructive actions (`patient_declined`, `not_suitable`, `cancel`)
+  collapsed under `ACTIONS_TERTIARY` with `window.confirm()` gate.
+- Completed/terminal statuses render the "Заявката е приключена"
+  read-only state via the existing `stage === 'completed'` branch.
+- `patient_context` section keeps rendering across status changes
+  (locked by test 20).
+
+### Tests (isolated DB, no network, Resend mocked)
+1.  ✅ Clinic can `mark_viewed` → `clinic_viewed` + timestamp set.
+2.  ✅ `call_attempted` records status + event.
+3.  ✅ `patient_contacted`.
+4.  ✅ `no_answer`.
+5.  ✅ `book_consultation` with valid appointment payload — request
+    becomes `booked`, appointment row inserted with `status=booked`.
+6.  ✅ `reschedule` on existing appointment — request becomes
+    `rescheduled`, appointment doc updated with `status=rescheduled`.
+7.  ✅ `mark_attended` after booking → `attended`.
+8.  ✅ `mark_no_show` after booking → `no_show`.
+9.  ✅ `patient_declined`.
+10. ✅ `not_suitable`.
+11. ✅ `cancel`.
+12. ✅ Clinic B → 404 on Clinic A's request.
+13. ✅ Unauthenticated → 401/403.
+14. ✅ Admin token cannot use clinic action endpoint (401/403/404).
+15. ✅ Invalid action_type rejected (422 from Pydantic).
+16. ✅ **NEW**: Terminal transitions rejected (409). Tested across
+    `cancel`, `not_suitable`, `patient_declined`, `call_attempted`,
+    `patient_contacted` after attaining `attended`.
+17. ✅ Event timeline entry written with all required fields.
+18. ✅ Action response returns updated `request` with new status.
+19. ✅ `mark_viewed` is idempotent — multiple calls do not overwrite
+    `clinic_viewed_at`, do not rewind a later status.
+20. ✅ `patient_context` payload still returned after status changes
+    (visibility upgrade survives).
+
+Regression run on all related suites:
+- `test_clinic_status_control.py` → **20/20**
+- `test_clinic_request_context_visibility.py` → 11/11
+- `test_admin_patient_request_handling.py` → 12/12
+- `test_patient_request_call.py` → 31/31
+- `test_patient_assisted_choice.py` → 28/28
+- `test_p4_p5_admin_notifications.py` → 11/11
+
+**Total: 113/113 PASS.**
+
+### TypeScript
+`npx tsc --noEmit` → zero new errors. The 6 pre-existing errors in
+unrelated files (`admin/blog/import`, `admin/dashboard`,
+`lib/articleTestRender`, `lib/api.ts`, `lib/attribution.ts`) are
+unchanged.
+
+### Mobile verification (live preview)
+- 375 px → no horizontal overflow (`sw=cw=375`).
+- Action panel "Какво следва?" renders; status badge updates in-place
+  on action click (`Видяна` → `Без отговор` smoke).
+- `patient_context` section "Информация от пациента" continues to
+  render after the status change (test 20 verified live, not just in
+  unit tests).
+- Zero raw enum keys (`call_attempted`, `patient_contacted`,
+  `mark_attended`, `not_suitable`, etc.) visible to the user.
+
+### Out of scope (intentionally untouched)
+Patient quiz, patient matching, P4/P5 logic, admin frontend, admin
+rich clinic profile editor, auth/session/CSRF, analytics tracking,
+audit logs, `/za-kliniki`, article importer, Resend/Twilio/ElevenLabs,
+package.json / dependencies. The frontend file was reviewed and left
+unmodified per the "do not redesign if it already works" spec rule.
+
+### Unresolved risks
+- 🔴 Git secrets-leak remains BLOCKED — local-only, no push/deploy.
+- 🟡 No-op: `disputed` and `expired` are surfaced in the BG label map
+  but not yet reachable from any clinic action. If/when an admin-side
+  expiry sweep is added, the terminal-status guard already protects
+  them from clinic mutation.
+
+
 ## 2026-05-16 — Clinic Dashboard Visibility Upgrade: Patient Context + Source Attribution
 
 Clinics now see patient-reported context behind each request after it
