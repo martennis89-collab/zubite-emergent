@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
 from datetime import datetime, timezone, timedelta
-from typing import Optional
+from typing import Optional, List
 import asyncio
 import uuid
 
@@ -202,6 +202,299 @@ async def update_lead_contact(lead_id: str, data: LeadContactUpdate):
             asyncio.create_task(send_lead_confirmation_email(full_lead))
 
     return lead
+
+
+# ─── Patient layer: recommended clinics (Phase P2) ────────────────
+#
+# GET /leads/{lead_id}/recommended-clinics returns up to N partner clinics
+# matched deterministically against the lead's city and treatment interest.
+#
+# Product rule (also surfaced to the client in `selection_rule`):
+#   • Patients may VIEW up to 3 recommended clinics on the match screen.
+#   • Patients may request a CALL from only ONE clinic. If they are unsure
+#     they should use "Помогнете ми да избера" (Zubite-assisted flow).
+#
+# This endpoint is READ-ONLY. P2 does not create consultation_requests,
+# does not send emails, and does not modify any clinic/lead state.
+
+# How recent a lead must be to fetch recommendations.
+# Mirrors the spirit of the existing `PATCH /leads/{id}/contact` window:
+# old leads are stale entry points and patient context decays.
+_RECO_WINDOW_DAYS = 7
+
+# Treatment categories that should NOT narrow the match by treatment
+# (broad/discovery flows). Match by city only and use a generic reason text.
+_BROAD_TREATMENT_TYPES = frozenset({"diagnostic_quiz", "master_quiz", "general"})
+
+# Clinic statuses that MUST be excluded even if other "active-ish" signals
+# look ok. Conservative allow-list approach is used instead — we explicitly
+# only accept these statuses. New unrecognised values do NOT leak through.
+_VISIBLE_LEGACY_IS_ACTIVE = True
+_VISIBLE_ADMIN_STATUSES = frozenset({"active"})
+_VISIBLE_CLINIC_STATUSES = frozenset({"active_partner", "evaluation_partner"})
+
+# BG city_slug -> display name mapping. Lazily resolved against CITIES at
+# read time so a missing entry falls back to the slug itself.
+def _city_name_for(slug: Optional[str], fallback: Optional[str] = None) -> Optional[str]:
+    if not slug:
+        return fallback
+    name = CITIES.get(slug)
+    return name or fallback or slug
+
+
+def _treatments_of(clinic: dict) -> List[str]:
+    """Union of `treatments_supported` (legacy/routing schema) and
+    `treatments_offered` (admin/partner schema). De-duplicated, lowercased."""
+    a = clinic.get("treatments_supported") or []
+    b = clinic.get("treatments_offered") or []
+    seen: List[str] = []
+    for t in list(a) + list(b):
+        if not isinstance(t, str):
+            continue
+        norm = t.strip().lower()
+        if norm and norm not in seen:
+            seen.append(norm)
+    return seen
+
+
+def _is_clinic_visible(clinic: dict) -> bool:
+    """Conservative allow-list visibility check across mixed schemas.
+    Returns True only when at least one positive signal is present AND
+    no negative signal is present.
+
+    Negative signals (any -> hidden):
+      • is_active == False
+      • clinic_status in {applicant, suspended, churned, paused}
+      • status in {suspended, churned, paused, applicant}
+
+    Positive signals (need at least one -> visible):
+      • is_active == True
+      • clinic_status in {active_partner, evaluation_partner}
+      • status == "active"
+    """
+    # Hard negatives.
+    if clinic.get("is_active") is False:
+        return False
+    cs = (clinic.get("clinic_status") or "").lower()
+    if cs and cs in {"applicant", "suspended", "churned", "paused"}:
+        return False
+    st = (clinic.get("status") or "").lower()
+    if st and st in {"suspended", "churned", "paused", "applicant"}:
+        return False
+
+    # Need at least one positive signal.
+    if clinic.get("is_active") is _VISIBLE_LEGACY_IS_ACTIVE:
+        return True
+    if cs in _VISIBLE_CLINIC_STATUSES:
+        return True
+    if st in _VISIBLE_ADMIN_STATUSES:
+        return True
+    return False
+
+
+def _clinic_name(clinic: dict) -> Optional[str]:
+    return clinic.get("name") or clinic.get("clinic_name")
+
+
+def _clinic_city_slug(clinic: dict) -> Optional[str]:
+    """Resolve a clinic's city_slug. Legacy clinics have it directly;
+    admin-created docs only have free-text `city`. We map by exact city
+    name to the configured CITIES dict for safety. Unmappable -> None."""
+    slug = clinic.get("city_slug")
+    if isinstance(slug, str) and slug:
+        return slug
+    city = (clinic.get("city") or "").strip()
+    if not city:
+        return None
+    for s, n in CITIES.items():
+        if n.strip().lower() == city.lower():
+            return s
+    return None
+
+
+def _score_clinic(clinic: dict, lead_city: str, lead_treatment: str, is_broad: bool) -> int:
+    """Deterministic score. Returns -1 to mark clinic as ineligible (no city match)."""
+    cs = _clinic_city_slug(clinic)
+    if cs != lead_city:
+        return -1
+    score = 100  # same-city base
+    if not is_broad:
+        if lead_treatment.lower() in _treatments_of(clinic):
+            score += 50
+    return score
+
+
+def _reason_for(clinic: dict, lead_treatment: str, is_broad: bool) -> str:
+    """Deterministic Bulgarian reason text. No AI, no fake claims."""
+    city = _city_name_for(_clinic_city_slug(clinic))
+    treatments = _treatments_of(clinic)
+    if is_broad:
+        return "Партньорска клиника във вашия град, подходяща за първа консултация."
+    if lead_treatment.lower() in treatments:
+        # Surface the matched treatment in BG via a small mapping.
+        _TREATMENT_BG = {
+            "aligners": "алайнери",
+            "braces": "ортодонтия с брекети",
+            "implants": "импланти",
+            "orthodontics": "ортодонтия",
+            "veneers": "фасети",
+            "whitening": "избелване",
+            "tmj": "проблеми с челюстна става",
+            "sleep_airway": "сън и дихателни пътища",
+        }
+        treat_bg = _TREATMENT_BG.get(lead_treatment.lower(), lead_treatment.lower())
+        return f"Във вашия град и с фокус върху {treat_bg}."
+    return f"Партньорска клиника в {city}, подходяща за консултация."
+
+
+def _safe_clinic_payload(clinic: dict, lead_treatment: str, is_broad: bool) -> dict:
+    """Strict whitelist projection. Everything not listed here is dropped."""
+    slug = _clinic_city_slug(clinic)
+    created_at_raw = clinic.get("created_at")
+    partner_since_year: Optional[int] = None
+    try:
+        if isinstance(created_at_raw, str):
+            partner_since_year = datetime.fromisoformat(created_at_raw).year
+        elif hasattr(created_at_raw, "year"):
+            partner_since_year = created_at_raw.year
+    except Exception:
+        partner_since_year = None
+
+    return {
+        "id": clinic.get("id"),
+        "name": _clinic_name(clinic),
+        "city_name": _city_name_for(slug, clinic.get("city_name")),
+        "city_slug": slug,
+        "treatments": _treatments_of(clinic),
+        "reason": _reason_for(clinic, lead_treatment, is_broad),
+        # Honest, conservative wording. We do NOT promise an SLA.
+        "response_expectation": (
+            "Клиниката ще получи заявката ви и ще може да се свърже с вас "
+            "при потвърдено съгласие."
+        ),
+        "partner_since_year": partner_since_year,
+    }
+
+
+_EMPTY_MESSAGE = (
+    "В момента нямаме достатъчно партньорски клиники за автоматична "
+    "препоръка. Zubite може да ви помогне ръчно да изберете следваща стъпка."
+)
+
+
+@router.get(
+    "/leads/{lead_id}/recommended-clinics",
+    dependencies=[Depends(rate_limit("recommended_clinics", 30, 300))],
+)
+async def recommended_clinics(lead_id: str, limit: int = 3):
+    """Public read endpoint that returns up to `limit` partner clinics for a
+    lead, with strict field whitelisting and conservative copy.
+
+    Errors:
+      • 404 if lead does not exist
+      • 410 if lead is older than _RECO_WINDOW_DAYS
+    """
+    # Clamp limit defensively. Product rule: patient can view max 3.
+    if not isinstance(limit, int) or limit < 1:
+        limit = 3
+    limit = min(limit, 3)
+
+    # 1) Lead lookup — minimal projection, no PII pulled into memory.
+    lead = await db.leads.find_one(
+        {"id": lead_id},
+        {"_id": 0, "id": 1, "city_slug": 1, "treatment_type": 1, "created_at": 1},
+    )
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    # 2) Freshness window.
+    created_at_raw = lead.get("created_at")
+    try:
+        if isinstance(created_at_raw, str):
+            created_at_dt = datetime.fromisoformat(created_at_raw)
+        else:
+            created_at_dt = created_at_raw
+        if created_at_dt and created_at_dt.tzinfo is None:
+            created_at_dt = created_at_dt.replace(tzinfo=timezone.utc)
+        age_days = (
+            (datetime.now(timezone.utc) - created_at_dt).total_seconds() / 86400.0
+            if created_at_dt
+            else 0
+        )
+    except Exception:
+        age_days = 0
+    if age_days > _RECO_WINDOW_DAYS:
+        raise HTTPException(status_code=410, detail="Lead recommendation window expired")
+
+    lead_city = (lead.get("city_slug") or "").strip().lower()
+    lead_treatment = (lead.get("treatment_type") or "").strip().lower()
+    is_broad = lead_treatment in _BROAD_TREATMENT_TYPES
+
+    # Shared selection_rule echoed in every response (and in 0-match case).
+    selection_rule = {
+        "can_view_clinics": 3,
+        "can_request_call_from_clinics": 1,
+        "assisted_choice_available": True,
+    }
+    empty_response = {
+        "lead_id": lead_id,
+        "city_slug": lead_city,
+        "treatment_type": lead_treatment,
+        "clinic_count": 0,
+        "fallback_used": False,
+        "assisted_help_available": True,
+        "selection_rule": selection_rule,
+        "message": _EMPTY_MESSAGE,
+        "clinics": [],
+    }
+
+    if not lead_city:
+        # No city => no deterministic match possible. Honest empty.
+        return empty_response
+
+    # 3) Candidate clinics. Pull a broad page; in-memory filter/score.
+    # Cap is generous but bounded.
+    raw_candidates = await db.clinics.find(
+        {},
+        {
+            "_id": 0,
+            "id": 1, "name": 1, "clinic_name": 1,
+            "city_slug": 1, "city_name": 1, "city": 1,
+            "treatments_supported": 1, "treatments_offered": 1,
+            "is_active": 1, "clinic_status": 1, "status": 1,
+            "created_at": 1,
+        },
+    ).to_list(500)
+
+    scored: List[tuple[int, str, dict]] = []
+    for c in raw_candidates:
+        if not _is_clinic_visible(c):
+            continue
+        s = _score_clinic(c, lead_city, lead_treatment, is_broad)
+        if s < 0:
+            continue
+        scored.append((s, (_clinic_name(c) or "").lower(), c))
+
+    # Deterministic sort: score desc, then name asc (alphabetical tie-break).
+    scored.sort(key=lambda x: (-x[0], x[1]))
+
+    top = scored[:limit]
+
+    if not top:
+        return empty_response
+
+    clinics_out = [_safe_clinic_payload(c, lead_treatment, is_broad) for _, _, c in top]
+
+    return {
+        "lead_id": lead_id,
+        "city_slug": lead_city,
+        "treatment_type": lead_treatment,
+        "clinic_count": len(clinics_out),
+        "fallback_used": False,
+        "assisted_help_available": True,
+        "selection_rule": selection_rule,
+        "clinics": clinics_out,
+    }
 
 
 # ─── Seed admin-password hygiene (Phase 2B) ──────────────────────

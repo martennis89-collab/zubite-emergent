@@ -1,5 +1,57 @@
 # Zubite.bg — Changelog
 
+## 2026-02-15 — Patient Layer — Batch P2 (Recommended-clinics endpoint)
+
+### Backend
+- **NEW `GET /api/leads/{lead_id}/recommended-clinics?limit=N`** (`backend/routers/public.py`)
+  - Public read endpoint. Returns up to 3 partner clinics matched deterministically against the lead's city + treatment.
+  - Lead window: 7 days from `created_at` → 410 Gone after that. 404 if missing.
+  - Hard safety filters across mixed clinic schemas:
+    - **Negative signals**: `is_active=False`, `clinic_status ∈ {applicant, suspended, churned, paused}`, `status ∈ {suspended, churned, paused, applicant}` → excluded.
+    - **Required positive signal**: at least one of `is_active=True`, `clinic_status ∈ {active_partner, evaluation_partner}`, `status=active`.
+  - Scoring: same-city = +100 base (required), treatment match (legacy `treatments_supported` ∪ admin `treatments_offered`) = +50. Alphabetical name tie-breaker.
+  - **No out-of-city auto-fill** to reach 3. Returns fewer if fewer match.
+  - `treatment_type ∈ {diagnostic_quiz, master_quiz, general}` ⇒ city-only match (broad reason text "за първа консултация").
+  - **Response whitelist** (only): `id, name, city_name, city_slug, treatments, reason, response_expectation, partner_since_year`. Forbidden fields (email/phone/password_hash/notification_email/owner_id/subscription_status/monthly_plan/description/internal_notes/address/is_active/status/clinic_status/_id) cannot leak.
+  - **selection_rule** echoed every time: `{can_view_clinics: 3, can_request_call_from_clinics: 1, assisted_choice_available: true}`. Surfaces the product rule "view up to 3, call from 1".
+  - Conservative `response_expectation` copy: "Клиниката ще получи заявката ви и ще може да се свърже с вас при потвърдено съгласие." **NO SLA promise.**
+  - 0-match response: empty list + Bulgarian assisted-help message.
+  - Rate-limited: 30 req / 300s per IP via existing `rate_limit("recommended_clinics", ...)`.
+
+### Tests (`backend/tests/test_patient_recommended_clinics.py`, NEW, 16 cases)
+- 01: lead not found → 404
+- 02: lead older than window → 410
+- 03: same-city + treatment match returns clinic with BG reason
+- 04: forbidden fields whitelist check (seeded with real leak values, not just absence)
+- 05: inactive / applicant / suspended clinics excluded
+- 06: both `treatments_supported` AND `treatments_offered` matched
+- 07: `master_quiz` ⇒ city-only match, broad reason text
+- 08: returns fewer than 3 when only 1-2 clinics match
+- 09: NO auto-fill with out-of-city clinics
+- 10: 0 matches ⇒ empty clinics array + assisted_help_available + BG message + selection_rule still echoed
+- 11: deterministic order (score desc, name asc), verified across 2 calls
+- 12: selection_rule values exact
+- 12b: limit=10 clamped to 3
+- 13: rate limit eventually returns 429 after 32 requests
+- 14: response_expectation copy NEVER contains "1 работен ден" / "24 часа" / SLA promises, MUST contain "съгласие"
+- 15: lead with empty city_slug ⇒ honest empty payload (no crash)
+
+**Result**: 16/16 passed (0.68s). Existing P2-E1 (43/43) and P2-E4 (22/22) regression suites still green in isolation.
+
+### Safety
+- No frontend touched. No clinic portal / admin / patient UI files changed.
+- No consultation_requests created.
+- No emails. Resend mocked. No Twilio/ElevenLabs calls.
+- Production DB untouched (isolated `zubite_test_p2_reco` test DB).
+- No new dependencies.
+
+### Known limitations (documented for P3+)
+- **Mixed clinic schema** not unified — endpoint reads both legacy (`name, city_slug, treatments_supported, is_active`) and admin (`clinic_name, city, treatments_offered, status, clinic_status`) shapes via runtime field detection. Admin-created docs with only free-text `city` (no `city_slug`) are mapped via the `CITIES` slug-name dict; unmapped names ⇒ clinic excluded. Tech debt deferred to P4 architecture cleanup.
+- No public-visibility flag on clinic docs. We approximate visibility with the conservative allow-list of statuses above. If admin needs finer-grain control (e.g. partner-but-hidden), future field `clinic.public_visible: bool` should be added.
+- No `accepting_new_patients` / capacity field — out of P2 scope.
+
+
+
 ## 2026-02-10 — Clinic Portal UX — Batch C4 (Dashboard Overview Redesign)
 
 ### Backend — `/api/clinic/dashboard-overview` enriched
