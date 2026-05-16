@@ -22,11 +22,6 @@ export function Header() {
     return pathname === path || pathname.startsWith(path + '/')
   }
 
-  const scrollToQuiz = (e: React.MouseEvent) => {
-    e.preventDefault()
-    window.location.href = '/quiz'
-  }
-
   const navLinks = [
     { href: '/', label: 'Начало' },
     { href: '/symptoms', label: 'Симптоми' },
@@ -65,17 +60,6 @@ export function Header() {
             ))}
           </nav>
           
-          {/* CTA Button */}
-          <div className="hidden md:block">
-            <button
-              onClick={scrollToQuiz}
-              className="inline-flex items-center justify-center h-10 px-6 rounded-full bg-sky-500 text-white text-sm font-medium hover:bg-sky-600 transition-all duration-200 hover:shadow-lg hover:shadow-sky-500/25"
-              data-testid="nav-cta"
-            >
-              Провери етапа си
-            </button>
-          </div>
-          
           {/* Mobile menu button */}
           <div className="md:hidden">
             <button 
@@ -101,15 +85,6 @@ export function Header() {
                 {link.label}
               </Link>
             ))}
-            <button
-              onClick={(e) => {
-                setIsOpen(false)
-                scrollToQuiz(e)
-              }}
-              className="w-full mt-4 inline-flex items-center justify-center h-12 px-6 rounded-full bg-sky-500 text-white text-sm font-medium"
-            >
-              Провери етапа си
-            </button>
           </nav>
         )}
       </div>

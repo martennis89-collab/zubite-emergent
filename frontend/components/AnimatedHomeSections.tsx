@@ -760,13 +760,6 @@ export function AnimatedHeader() {
             <Link href="/blog" className="text-sm text-slate-600 hover:text-sky-600 hover:-translate-y-0.5 transition-all duration-300">
               Блог
             </Link>
-            <Link
-              href="/quiz"
-              className="flex items-center gap-2 px-6 py-2.5 bg-sky-500 text-white text-sm font-medium rounded-full hover:bg-sky-600 hover:shadow-lg hover:shadow-sky-500/25 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300"
-            >
-              Провери етапа си
-              <ArrowRight className="w-4 h-4" />
-            </Link>
           </div>
         </div>
       </nav>
