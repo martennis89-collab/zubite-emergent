@@ -1,5 +1,68 @@
 # Zubite.bg — Changelog
 
+## 2026-02-16 — /za-kliniki — Partner Terms section refinement
+
+Reframed the existing `FoundingPartnerSection` into a confident
+**Партньорски условия** section that explains early-stage individual
+partnership terms — without introducing public pricing or a "contact us
+for price" framing. Form and submission flow untouched.
+
+### Files touched
+- `frontend/components/ForClinicsContent.tsx` — `FoundingPartnerSection`
+  rewritten: new title, three new paragraphs, six new bullets, new CTA
+  linking to the existing `#application` anchor. Section's
+  `data-testid="clinics-founding"` preserved.
+- `memory/CHANGELOG.md`
+
+### Exact copy added
+- **Badge**: `Founding Partner — ограничен брой места`
+- **Title**: `Партньорски условия`
+- **Body paragraphs (3)**:
+  1. "Zubite не работи като стандартен listing или масов lead marketplace."
+  2. "В началния етап партньорските условия се обсъждат индивидуално
+     според града, типа лечения, капацитета на клиниката и начина, по
+     който искате да обработвате заявките."
+  3. "Целта е да изградим партньорство, което има смисъл и за двете
+     страни — не просто още един месечен абонамент."
+- **Bullets** (`data-testid="partner-terms-list"`):
+  - ограничен брой партньорски клиники в началния етап
+  - условия според град, лечение и капацитет
+  - достъп до партньорски dashboard
+  - заявки с повече пациентски контекст
+  - възможност за допълнителна видимост в каналите на Zubite
+  - участие във формирането на early partner workflow
+- **CTA** (`data-testid="partner-terms-cta"`, `href="#application"`):
+  `Обсъдете партньорски условия`
+
+### Pricing audit
+A full grep confirmed the page never had public pricing, package tables,
+monthly fees, "лв" / "BGN" / "EUR" / "€" / "цена" / "пакет" / "месечна
+такса" copy. The only previous "price" mention is line 174 — a *patient*
+quote about "пациенти, които питат само за цена" (unrelated, kept).
+**No pricing was removed because there was none to remove. The new
+section explicitly denies a flat-fee subscription framing.**
+
+### Form behavior confirmation
+- `data-testid="clinic-application-form"` still renders on both desktop
+  and mobile (smoke test: `form_present=1` for both).
+- Anchor `#application` unchanged.
+- Submit endpoint and required fields unchanged.
+- No API payload changes.
+
+### Smoke test (Feb 16, 2026 — preview env)
+- Desktop 1280×900: title rendered, marketplace line rendered, individual-
+  terms line rendered, subscription-denial line rendered, 6 bullets,
+  CTA "Обсъдете партньорски условия" with `href="#application"`, form
+  present, no pricing words detected.
+- Mobile 375×800: `overflow_px=0`, form present.
+- TypeScript: `tsc --noEmit` clean for `ForClinicsContent.tsx`.
+
+### Tone
+Premium, confident, selective. Reads as "we are still choosing the
+right clinics and cities", not "we are hiding the price".
+
+
+
 ## 2026-02-16 — Patient Layer — Batch P3.5: Lead-Contextual Clinic Profile
 
 Patients can now open a read-only profile preview for each recommended

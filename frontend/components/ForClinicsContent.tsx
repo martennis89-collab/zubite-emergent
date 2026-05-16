@@ -532,15 +532,15 @@ function PartnerValueSection() {
 }
 
 /* ════════════════════════════════════════════════════════════
-   FOUNDING PARTNER
+   PARTNER TERMS  (Партньорски условия — early-stage individual terms)
    ════════════════════════════════════════════════════════════ */
-const foundingBenefits = [
-  'По-висока видимост в началните канали на Zubite',
-  'Възможност за spotlight представяне',
-  'Достъп до нови patient insight материали',
-  'Участие във формирането на партньорския workflow',
-  'Ранен достъп до clinic dashboard функционалности',
-  'Приоритетно включване в подходящи patient flows',
+const partnerTerms = [
+  'ограничен брой партньорски клиники в началния етап',
+  'условия според град, лечение и капацитет',
+  'достъп до партньорски dashboard',
+  'заявки с повече пациентски контекст',
+  'възможност за допълнителна видимост в каналите на Zubite',
+  'участие във формирането на early partner workflow',
 ]
 
 function FoundingPartnerSection() {
@@ -557,20 +557,35 @@ function FoundingPartnerSection() {
         <ScrollReveal animation="fade-up">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-sky-500/10 border border-sky-400/30 rounded-full text-xs text-sky-300 mb-6">
             <Award className="w-3.5 h-3.5" />
-            Ограничен брой места
+            Founding Partner — ограничен брой места
           </div>
           <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-medium tracking-tight text-white mb-6 max-w-2xl">
-            Founding Partner програма
+            Партньорски условия
           </h2>
-          <p className="text-slate-300 text-lg leading-relaxed max-w-2xl mb-12">
-            В началния етап Zubite ще работи с ограничен брой клиники, за да
-            запази качеството на процеса, обратната връзка и партньорската
-            видимост.
-          </p>
+
+          {/* Three short, confident paragraphs. No pricing. No "contact us for price". */}
+          <div className="space-y-4 max-w-2xl mb-10">
+            <p className="text-slate-200 text-base sm:text-lg leading-relaxed">
+              Zubite не работи като стандартен listing или масов lead
+              marketplace.
+            </p>
+            <p className="text-slate-300 text-base leading-relaxed">
+              В началния етап партньорските условия се обсъждат индивидуално
+              според града, типа лечения, капацитета на клиниката и начина,
+              по който искате да обработвате заявките.
+            </p>
+            <p className="text-slate-300 text-base leading-relaxed">
+              Целта е да изградим партньорство, което има смисъл и за двете
+              страни — не просто още един месечен абонамент.
+            </p>
+          </div>
         </ScrollReveal>
 
-        <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {foundingBenefits.map((b, i) => (
+        <ul
+          className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-10"
+          data-testid="partner-terms-list"
+        >
+          {partnerTerms.map((b, i) => (
             <ScrollReveal key={b} animation="fade-up" delay={i * 70}>
               <li className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
                 <CheckCircle2 className="w-4 h-4 text-sky-400 mt-0.5 flex-shrink-0" />
@@ -579,6 +594,16 @@ function FoundingPartnerSection() {
             </ScrollReveal>
           ))}
         </ul>
+
+        <ScrollReveal animation="fade-up">
+          <a
+            href="#application"
+            className="inline-flex items-center gap-2 px-7 py-3.5 bg-sky-500 hover:bg-sky-400 text-white text-sm font-medium rounded-full transition-colors"
+            data-testid="partner-terms-cta"
+          >
+            Обсъдете партньорски условия
+          </a>
+        </ScrollReveal>
       </div>
     </section>
   )
