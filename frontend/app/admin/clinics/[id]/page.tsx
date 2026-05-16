@@ -52,6 +52,40 @@ interface ClinicProfile {
   case_library?: Array<Omit<CaseRow, '_key'>>
 }
 
+// Aligner brand tags (Feb 2026) — top-level on the clinic doc.
+type AlignerBrandSlug =
+  | 'invisalign' | 'spark' | 'angel_aligner'
+  | 'dentalign'  | 'clearcorrect' | 'other'
+
+interface AlignerBrandEntry {
+  brand: AlignerBrandSlug
+  label?: string
+  relationship: 'offered' | 'official_provider'
+  verification_status: 'unverified' | 'pending_verification' | 'verified'
+  visible: boolean
+  other_label?: string
+}
+
+const ALIGNER_BRAND_OPTIONS: Array<{ slug: AlignerBrandSlug; label: string }> = [
+  { slug: 'invisalign',    label: 'Invisalign'    },
+  { slug: 'spark',         label: 'Spark'         },
+  { slug: 'angel_aligner', label: 'Angel Aligner' },
+  { slug: 'dentalign',     label: 'Dentalign'     },
+  { slug: 'clearcorrect',  label: 'ClearCorrect'  },
+  { slug: 'other',         label: 'Other'         },
+]
+
+const RELATIONSHIP_LABELS: Record<AlignerBrandEntry['relationship'], string> = {
+  offered:           'Работи с марката',
+  official_provider: 'Официален provider',
+}
+
+const VERIFICATION_LABELS: Record<AlignerBrandEntry['verification_status'], string> = {
+  unverified:           'Неверифицирано',
+  pending_verification: 'Чака проверка',
+  verified:             'Верифицирано',
+}
+
 const TIER_LABELS: Array<{ value: Tier; label: string }> = [
   { value: 'standard', label: 'Standard партньор' },
   { value: 'featured', label: 'Featured партньор' },
@@ -104,6 +138,7 @@ export default function AdminClinicEditPage() {
   const [focusInput, setFocusInput] = useState('')
   const [cases, setCases] = useState<CaseRow[]>([])
   const caseKeyRef = useRef<number>(0)
+  const [brands, setBrands] = useState<AlignerBrandEntry[]>([])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -148,6 +183,18 @@ export default function AdminClinicEditPage() {
           _key: ++caseKeyRef.current,
         })),
       )
+      // Aligner brand tags (Feb 2026) — top-level on the clinic doc.
+      const rawBrands = Array.isArray(c.aligner_brands_supported)
+        ? (c.aligner_brands_supported as Partial<AlignerBrandEntry>[])
+        : []
+      setBrands(rawBrands.map((b) => ({
+        brand: (b.brand as AlignerBrandSlug) || 'invisalign',
+        label: b.label,
+        relationship: (b.relationship as AlignerBrandEntry['relationship']) || 'offered',
+        verification_status: (b.verification_status as AlignerBrandEntry['verification_status']) || 'unverified',
+        visible: b.visible !== false,
+        other_label: b.other_label || '',
+      })))
     } finally { setLoading(false) }
   }, [clinicId, router])
 
@@ -158,6 +205,13 @@ export default function AdminClinicEditPage() {
     try {
       const body = {
         partner_tier: tier,
+        aligner_brands_supported: brands.map((b) => ({
+          brand: b.brand,
+          relationship: b.relationship,
+          verification_status: b.verification_status,
+          visible: b.visible,
+          ...(b.brand === 'other' ? { other_label: (b.other_label || '').trim() } : {}),
+        })),
         clinic_profile: {
           profile_status: profile.profile_status,
           short_description: profile.short_description || null,
@@ -456,6 +510,160 @@ export default function AdminClinicEditPage() {
             <textarea value={profile.consultation_process || ''} onChange={(e) => setProfile({ ...profile, consultation_process: e.target.value })}
               maxLength={1000} rows={4} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" data-testid="field-consultation_process" />
           </Field>
+        </Section>
+
+        {/* Section: Алайнер системи / Provider badges */}
+        <Section title="Алайнер системи / Provider badges" testid="section-aligner-brands">
+          <p className="text-xs text-slate-500 leading-relaxed mb-3">
+            Добавете марките алайнери, с които клиниката работи. Публично
+            <strong> &laquo;Официален provider&raquo;</strong> се показва{' '}
+            <strong>само</strong> когато статусът е <em>Верифицирано</em>.
+            Иначе на профила се показва безопасното &laquo;Работи с …&raquo;.
+          </p>
+          <div className="space-y-3">
+            {brands.map((b, i) => (
+              <div
+                key={i}
+                className="rounded-lg border border-slate-200 p-3 grid grid-cols-1 md:grid-cols-12 gap-2 items-end"
+                data-testid={`brand-row-${i}`}
+              >
+                <div className="md:col-span-3">
+                  <Field label="Марка">
+                    <select
+                      value={b.brand}
+                      onChange={(e) =>
+                        setBrands((arr) =>
+                          arr.map((x, idx) =>
+                            idx === i ? { ...x, brand: e.target.value as AlignerBrandSlug } : x,
+                          ),
+                        )
+                      }
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
+                      data-testid={`brand-slug-${i}`}
+                    >
+                      {ALIGNER_BRAND_OPTIONS.map((o) => (
+                        <option key={o.slug} value={o.slug}>{o.label}</option>
+                      ))}
+                    </select>
+                  </Field>
+                </div>
+                {b.brand === 'other' && (
+                  <div className="md:col-span-3">
+                    <Field label="Кратко име (за марка ‘Other’, до 60)">
+                      <input
+                        type="text"
+                        value={b.other_label || ''}
+                        onChange={(e) =>
+                          setBrands((arr) =>
+                            arr.map((x, idx) =>
+                              idx === i ? { ...x, other_label: e.target.value.slice(0, 60) } : x,
+                            ),
+                          )
+                        }
+                        maxLength={60}
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
+                        data-testid={`brand-other-label-${i}`}
+                        placeholder="Напр. CustomBrand"
+                      />
+                    </Field>
+                  </div>
+                )}
+                <div className="md:col-span-3">
+                  <Field label="Тип отношение">
+                    <select
+                      value={b.relationship}
+                      onChange={(e) =>
+                        setBrands((arr) =>
+                          arr.map((x, idx) =>
+                            idx === i
+                              ? { ...x, relationship: e.target.value as AlignerBrandEntry['relationship'] }
+                              : x,
+                          ),
+                        )
+                      }
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
+                      data-testid={`brand-relationship-${i}`}
+                    >
+                      {(Object.keys(RELATIONSHIP_LABELS) as AlignerBrandEntry['relationship'][]).map((k) => (
+                        <option key={k} value={k}>{RELATIONSHIP_LABELS[k]}</option>
+                      ))}
+                    </select>
+                  </Field>
+                </div>
+                <div className="md:col-span-3">
+                  <Field label="Верификация">
+                    <select
+                      value={b.verification_status}
+                      onChange={(e) =>
+                        setBrands((arr) =>
+                          arr.map((x, idx) =>
+                            idx === i
+                              ? { ...x, verification_status: e.target.value as AlignerBrandEntry['verification_status'] }
+                              : x,
+                          ),
+                        )
+                      }
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
+                      data-testid={`brand-verification-${i}`}
+                    >
+                      {(Object.keys(VERIFICATION_LABELS) as AlignerBrandEntry['verification_status'][]).map((k) => (
+                        <option key={k} value={k}>{VERIFICATION_LABELS[k]}</option>
+                      ))}
+                    </select>
+                  </Field>
+                </div>
+                <div className="md:col-span-12 flex items-center justify-between gap-3 pt-1">
+                  <label className="inline-flex items-center gap-1.5 text-xs text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={b.visible}
+                      onChange={(e) =>
+                        setBrands((arr) =>
+                          arr.map((x, idx) => (idx === i ? { ...x, visible: e.target.checked } : x)),
+                        )
+                      }
+                      data-testid={`brand-visible-${i}`}
+                    />
+                    Показвай публично
+                  </label>
+                  {b.relationship === 'official_provider' && b.verification_status !== 'verified' && (
+                    <span className="text-[11px] text-amber-700 bg-amber-50 ring-1 ring-amber-100 rounded-full px-2 py-0.5">
+                      Публичното &laquo;официален&raquo; ще се покаже едва след
+                      &laquo;Верифицирано&raquo;.
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setBrands((arr) => arr.filter((_, idx) => idx !== i))}
+                    className="ml-auto inline-flex items-center gap-1 text-rose-600 hover:text-rose-700 text-xs"
+                    data-testid={`brand-remove-${i}`}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Премахни
+                  </button>
+                </div>
+              </div>
+            ))}
+            {brands.length < 12 && (
+              <button
+                type="button"
+                onClick={() =>
+                  setBrands((arr) => [
+                    ...arr,
+                    {
+                      brand: 'invisalign',
+                      relationship: 'offered',
+                      verification_status: 'unverified',
+                      visible: true,
+                    },
+                  ])
+                }
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 text-white text-sm"
+                data-testid="brand-add"
+              >
+                <Plus className="w-3.5 h-3.5" /> Добави марка
+              </button>
+            )}
+          </div>
         </Section>
 
         {/* Section 8 — Библиотека със случаи */}

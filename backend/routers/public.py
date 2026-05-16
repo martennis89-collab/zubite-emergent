@@ -5,6 +5,7 @@ import asyncio
 import uuid
 
 from database import db
+from aligner_brands import public_aligner_brand_chips
 from schemas import Clinic, LeadCreate, LeadContactUpdate, Lead, RequestCallBody, RequestZubiteHelpBody
 from auth import hash_password
 from config import CITIES, logger
@@ -797,6 +798,13 @@ def _safe_clinic_payload(clinic: dict, lead_treatment: str, is_broad: bool) -> d
     if profile_public is not None:
         payload["clinic_profile"] = profile_public
 
+    # ── Aligner brand / provider tags (Feb 2026) ──────────────────────
+    # Helper applies the public-display downgrade (no "official" without
+    # admin-verified status) and strips visible=false entries.
+    chips = public_aligner_brand_chips(clinic.get("aligner_brands_supported"))
+    if chips:
+        payload["aligner_brands_supported"] = chips
+
     return payload
 
 
@@ -892,6 +900,9 @@ async def recommended_clinics(lead_id: str, limit: int = 3):
             "featured_rank": 1, "sponsored_rank": 1,
             # Rich Profile (R1) — admin-managed, tier-gated public surface.
             "clinic_profile": 1,
+            # Aligner brand tags (Feb 2026) — projected raw; the helper
+            # applies the public downgrade + visibility filter.
+            "aligner_brands_supported": 1,
             # External review signals (optional; admin-gated, display-only).
             # MUST NOT influence ranking — see `_score_clinic`.
             "google_rating": 1, "google_review_count": 1, "google_place_url": 1,
@@ -1076,6 +1087,7 @@ async def request_call(lead_id: str, body: RequestCallBody):
             "partner_tier": 1, "is_featured": 1, "is_premium": 1,
             "featured_rank": 1, "sponsored_rank": 1,
             "subscription_status": 1,
+            "aligner_brands_supported": 1,
         },
     ).to_list(500)
 

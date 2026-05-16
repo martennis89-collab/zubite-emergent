@@ -84,6 +84,17 @@ export interface RecommendedClinic {
     last_checked_at: string | null;
     disclaimer: string;
   };
+  // Aligner brand / provider tags (Feb 2026). Public projection only —
+  // backend already strips visibility-false entries and downgrades any
+  // unverified "official_provider" claim to "offered" before surfacing.
+  // Omitted entirely when the clinic has no visible brand entries, so
+  // consumers must guard on truthiness.
+  aligner_brands_supported?: Array<{
+    brand: string
+    label: string
+    relationship: 'offered' | 'official_provider'
+    verified_official: boolean
+  }>;
   // Rich Profile (R1) — admin-managed. Only present when
   // `profile_status === "published"` and only the tier-allowed slice.
   // Standard: short_description + treatment_focus.

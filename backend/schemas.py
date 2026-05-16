@@ -629,6 +629,8 @@ class ClinicCreate(BaseModel):
     subscription_status: str = "trial"
     monthly_plan: Optional[str] = Field(default=None, max_length=100)
     notification_email: Optional[EmailStr] = None
+    # Aligner brand/provider tags — validated by `aligner_brands.normalize_aligner_brand_entries`.
+    aligner_brands_supported: Optional[List[Dict[str, Any]]] = None
 
 
 # ─── Admin Rich Clinic Profile Editor (R1, Feb 2026) ────────────────
@@ -747,6 +749,13 @@ class ClinicAdminUpdate(BaseModel):
     superdoc_profile_url: Optional[str] = Field(default=None, max_length=500)
     review_sources_last_checked_at: Optional[datetime] = None
     review_sources_verified_by_admin: Optional[bool] = None
+
+    # ── Aligner brand / provider tags (Feb 2026) ─────────────────
+    # Structured list of brand entries; validated and normalised in
+    # the router layer via `aligner_brands.normalize_aligner_brand_entries`.
+    # We accept `Any` here so the strict whitelist enforcement stays in
+    # one place (the helper) and produces a uniform 400 response.
+    aligner_brands_supported: Optional[List[Dict[str, Any]]] = None
 
 
 class ConsultationRequestCreate(BaseModel):

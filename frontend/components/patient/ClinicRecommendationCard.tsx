@@ -6,6 +6,7 @@ import { Building2, MapPin, ShieldCheck, Calendar, Sparkle, ArrowRight, CheckCir
 import type { RecommendedClinic } from '@/lib/api'
 import { TREATMENT_LABELS } from '@/lib/consultationLabels'
 import { RequestCallModal } from '@/components/patient/RequestCallModal'
+import { AlignerBrandChips } from '@/components/patient/AlignerBrandChips'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
 import { getStoredLeadContact } from '@/lib/leadContact'
 
@@ -133,6 +134,9 @@ export function ClinicRecommendationCard({
       {treatmentBadges.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-3">{treatmentBadges}</div>
       )}
+
+      {/* Aligner brand chips — compact form, omitted when no brands. */}
+      <AlignerBrandChips chips={clinic.aligner_brands_supported} layout="card" />
 
       {/* Reason */}
       <p className="text-sm text-slate-700 leading-relaxed mb-4 flex-1">

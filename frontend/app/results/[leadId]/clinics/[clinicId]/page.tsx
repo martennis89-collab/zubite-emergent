@@ -24,6 +24,7 @@ import { TREATMENT_LABELS } from '@/lib/consultationLabels'
 // import { ReviewSignalsSection } from '@/components/patient/ReviewSignalsSection' // R1: superseded by TrustSignalsSection
 import { RequestCallModal } from '@/components/patient/RequestCallModal'
 import { PublicReviewsSection } from '@/components/patient/PublicReviewsSection'
+import { AlignerBrandChips } from '@/components/patient/AlignerBrandChips'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
 import { getStoredLeadContact } from '@/lib/leadContact'
 
@@ -611,6 +612,27 @@ function ProfileBody({
 
       {/* R1 — "Сигнали за доверие" using existing data only. */}
       <TrustSignalsSection clinic={clinic} />
+
+      {/* Aligner brand / provider tags (Feb 2026). Backend already
+          downgrades any unverified "official" claim to safe text, and
+          omits invisible entries. Renders nothing when the list is
+          empty so it never adds visual noise to clinics that don't
+          curate brand tags yet. */}
+      {clinic.aligner_brands_supported && clinic.aligner_brands_supported.length > 0 && (
+        <section
+          className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+          data-testid="profile-aligner-brands-section"
+        >
+          <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 mb-1">
+            Алайнер системи
+          </h2>
+          <p className="text-xs text-slate-500 mb-3 leading-relaxed">
+            Етикетите по-долу показват с кои марки клиниката работи. Етикет
+            със знак за верификация означава администраторски потвърден статус.
+          </p>
+          <AlignerBrandChips chips={clinic.aligner_brands_supported} layout="profile" />
+        </section>
+      )}
 
       {/* R2 — Approved patient reviews (moderated, public-safe).
           The component derives the secondary "Leave a review" CTA URL

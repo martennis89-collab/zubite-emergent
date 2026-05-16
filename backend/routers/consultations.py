@@ -18,6 +18,11 @@ import uuid
 import logging
 
 from database import db
+from aligner_brands import (
+    normalize_aligner_brand_entries,
+    public_aligner_brand_chips,
+    AlignerBrandValidationError,
+)
 from schemas import (
     AdminUser,
     ClinicCreate, ClinicAdminUpdate,
@@ -61,6 +66,12 @@ def _public_clinic_dict(c: Dict[str, Any]) -> Dict[str, Any]:
     # has the legacy `treatments_offered` field. Idempotent: if the doc
     # already has `treatments_supported`, the helper just normalizes it.
     out["treatments_supported"] = _canonical_treatments_for_doc(out)
+    # Aligner brand tags — admin sees the full structured list (incl.
+    # verification_status). The PUBLIC projection uses
+    # `public_aligner_brand_chips` instead and is applied in
+    # `routers/public.py::_safe_clinic_payload`.
+    if "aligner_brands_supported" not in out or out.get("aligner_brands_supported") is None:
+        out["aligner_brands_supported"] = []
     return out
 
 
@@ -247,6 +258,14 @@ async def admin_create_clinic(
         "treatments_offered": data.treatments_offered,
     })
 
+    # ── Aligner brand tags (Feb 2026) ──────────────────────────
+    try:
+        normalized_brands = normalize_aligner_brand_entries(
+            getattr(data, "aligner_brands_supported", None)
+        )
+    except AlignerBrandValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
     # Auto-generate temporary password (admin can reset later via existing endpoint)
     import secrets as _secrets
     temp_password = _secrets.token_urlsafe(12)
@@ -264,6 +283,7 @@ async def admin_create_clinic(
         "treatments_supported": canonical_treatments,
         # Legacy mirror — temporary backwards-compat bridge.
         "treatments_offered": canonical_treatments,
+        "aligner_brands_supported": normalized_brands,
         "clinic_status": data.clinic_status,
         "subscription_status": data.subscription_status,
         "monthly_plan": data.monthly_plan,
@@ -404,6 +424,15 @@ async def admin_update_clinic(
         canonical = _canonical_treatments_for_doc(merged)
         update["treatments_supported"] = canonical
         update["treatments_offered"] = canonical
+
+    # ── Aligner brand tags (Feb 2026) ──────────────────────────
+    if "aligner_brands_supported" in update:
+        try:
+            update["aligner_brands_supported"] = normalize_aligner_brand_entries(
+                update["aligner_brands_supported"]
+            )
+        except AlignerBrandValidationError as e:
+            raise HTTPException(status_code=400, detail=str(e))
 
     update["updated_at"] = _now_iso()
     before = await db.clinics.find_one({"id": clinic_id}, {"_id": 0, "password_hash": 0})
