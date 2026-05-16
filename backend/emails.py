@@ -227,3 +227,186 @@ async def send_verification_flagged_alert(
     except Exception as e:
         logging.error(f"send_verification_flagged_alert failed: {e}")
         return False
+
+
+# ─────────────────────────────────────────────────────────────
+# P4 / P5 — Admin notifications on patient-flow request creation
+# ─────────────────────────────────────────────────────────────
+#
+# Both helpers share the same operational shape:
+#   • Internal admin email (Bulgarian subject, neutral tone).
+#   • Best-effort: missing RESEND_API_KEY or ADMIN_EMAIL → log + return False.
+#   • Never raises — callers wrap in try/except too, so a Resend outage
+#     can never block the patient submit.
+#   • Privacy: patient name/phone are admin-visible already (admin queue).
+#     We do NOT include quiz answers, attribution objects, tokens,
+#     cookies, verification tokens, or password hashes.
+
+def _h(value) -> str:
+    """HTML-escape user content for safe insertion into the email body."""
+    import html as _html
+    return _html.escape("" if value is None else str(value))
+
+
+def _truncate(s: str | None, limit: int) -> str:
+    s = (s or "").strip()
+    if len(s) <= limit:
+        return s
+    return s[: max(0, limit - 1)].rstrip() + "…"
+
+
+def _admin_url(path: str) -> str:
+    """Compose an absolute admin URL using PRODUCTION_URL when available."""
+    from config import PRODUCTION_URL
+    base = (PRODUCTION_URL or "https://zubite.bg").rstrip("/")
+    if not path.startswith("/"):
+        path = "/" + path
+    return f"{base}{path}"
+
+
+async def send_admin_selected_clinic_request_alert(
+    *,
+    request_id: str,
+    lead_id: str,
+    patient_name: str | None,
+    patient_phone: str | None,
+    patient_city: str | None,
+    treatment_interest: str | None,
+    clinic_id: str,
+    clinic_name: str | None,
+    source: str | None,
+    created_at: str | None,
+) -> bool:
+    """P4 admin alert: a patient picked a specific recommended clinic."""
+    if not RESEND_API_KEY or not ADMIN_EMAIL:
+        logging.warning(
+            "P4 admin alert skipped — RESEND_API_KEY / ADMIN_EMAIL missing"
+        )
+        return False
+    subject = "Нова заявка към избрана клиника — Zubite"
+    city_name = CITIES.get((patient_city or "").lower(), patient_city or "—")
+    treatment_label = TREATMENT_NAMES.get(
+        (treatment_interest or "").lower(), treatment_interest or "—"
+    )
+    detail_url = _admin_url(f"/admin/consultation-requests/{request_id}")
+    list_url = _admin_url(
+        "/admin/consultation-requests?created_from=recommended_clinics_flow"
+    )
+    html = f"""
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px 0;">
+        <h1 style="font-size: 18px; color: #0f172a; margin: 0 0 8px;">Нова заявка към избрана клиника</h1>
+        <p style="color: #475569; font-size: 14px; line-height: 1.55; margin: 0 0 16px;">
+            Пациентът избра конкретна клиника от препоръчаните и поиска тя да се свърже с него.
+        </p>
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <tr><td style="padding: 6px 0; color: #64748b; width: 170px;">Тип заявка:</td>
+                <td style="padding: 6px 0; color: #0f172a;">Пациентът избра конкретна клиника</td></tr>
+            <tr><td style="padding: 6px 0; color: #64748b;">Пациент:</td>
+                <td style="padding: 6px 0; color: #0f172a;">{_h(patient_name) or "—"}</td></tr>
+            <tr><td style="padding: 6px 0; color: #64748b;">Телефон:</td>
+                <td style="padding: 6px 0; color: #0f172a;">{_h(patient_phone) or "—"}</td></tr>
+            <tr><td style="padding: 6px 0; color: #64748b;">Град:</td>
+                <td style="padding: 6px 0; color: #0f172a;">{_h(city_name)}</td></tr>
+            <tr><td style="padding: 6px 0; color: #64748b;">Тип лечение:</td>
+                <td style="padding: 6px 0; color: #0f172a;">{_h(treatment_label)}</td></tr>
+            <tr><td style="padding: 6px 0; color: #64748b;">Избрана клиника:</td>
+                <td style="padding: 6px 0; color: #0f172a;">{_h(clinic_name) or "—"}</td></tr>
+            <tr><td style="padding: 6px 0; color: #64748b;">Clinic ID:</td>
+                <td style="padding: 6px 0; color: #0f172a;"><code>{_h(clinic_id)}</code></td></tr>
+            <tr><td style="padding: 6px 0; color: #64748b;">Lead ID:</td>
+                <td style="padding: 6px 0; color: #0f172a;"><code>{_h(lead_id)}</code></td></tr>
+            <tr><td style="padding: 6px 0; color: #64748b;">Consultation Request ID:</td>
+                <td style="padding: 6px 0; color: #0f172a;"><code>{_h(request_id)}</code></td></tr>
+            <tr><td style="padding: 6px 0; color: #64748b;">Източник:</td>
+                <td style="padding: 6px 0; color: #0f172a;">{_h(source or "recommended_clinics_flow")}</td></tr>
+            <tr><td style="padding: 6px 0; color: #64748b;">Създадена в:</td>
+                <td style="padding: 6px 0; color: #0f172a;">{_h(created_at) or "—"}</td></tr>
+        </table>
+        <p style="margin: 18px 0 4px;">
+            <a href="{detail_url}" style="color: #0ea5e9; text-decoration: none; font-weight: 500;">Отвори заявката в админ панела →</a>
+        </p>
+        <p style="margin: 4px 0 0;">
+            <a href="{list_url}" style="color: #64748b; text-decoration: none; font-size: 13px;">Виж всички заявки от препоръчани клиники</a>
+        </p>
+        <p style="color: #94a3b8; font-size: 12px; margin: 18px 0 0;">— Zubite.bg automated internal alert</p>
+    </div>
+    """
+    try:
+        return await _send_email(ADMIN_EMAIL, subject, html)
+    except Exception as e:
+        logging.error(f"send_admin_selected_clinic_request_alert failed: {e}")
+        return False
+
+
+async def send_admin_assisted_choice_request_alert(
+    *,
+    request_id: str,
+    lead_id: str,
+    patient_name: str | None,
+    patient_phone: str | None,
+    patient_city: str | None,
+    treatment_interest: str | None,
+    patient_message: str | None,
+    source: str | None,
+    created_at: str | None,
+) -> bool:
+    """P5 admin alert: a patient asked Zubite to help them choose."""
+    if not RESEND_API_KEY or not ADMIN_EMAIL:
+        logging.warning(
+            "P5 admin alert skipped — RESEND_API_KEY / ADMIN_EMAIL missing"
+        )
+        return False
+    subject = "Нова заявка за помощ при избор — Zubite"
+    city_name = CITIES.get((patient_city or "").lower(), patient_city or "—")
+    treatment_label = TREATMENT_NAMES.get(
+        (treatment_interest or "").lower(), treatment_interest or "—"
+    )
+    # Spec: truncate patient message to 500 chars in the email body.
+    safe_message = _truncate(patient_message, 500)
+    queue_url = _admin_url(
+        "/admin/consultation-requests?status=needs_zubite_review"
+    )
+    message_block = (
+        f"""<tr><td style="padding: 6px 0; color: #64748b; vertical-align: top;">Съобщение от пациента:</td>
+            <td style="padding: 6px 0; color: #0f172a; white-space: pre-wrap;">{_h(safe_message)}</td></tr>"""
+        if safe_message else ""
+    )
+    html = f"""
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px 0;">
+        <h1 style="font-size: 18px; color: #0f172a; margin: 0 0 8px;">Нова заявка за помощ при избор</h1>
+        <p style="color: #475569; font-size: 14px; line-height: 1.55; margin: 0 0 16px;">
+            Пациентът поиска помощ от Zubite, за да избере подходяща клиника.
+            Изисква преглед от екипа.
+        </p>
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <tr><td style="padding: 6px 0; color: #64748b; width: 200px;">Тип заявка:</td>
+                <td style="padding: 6px 0; color: #0f172a;">Пациентът поиска помощ от Zubite</td></tr>
+            <tr><td style="padding: 6px 0; color: #64748b;">Пациент:</td>
+                <td style="padding: 6px 0; color: #0f172a;">{_h(patient_name) or "—"}</td></tr>
+            <tr><td style="padding: 6px 0; color: #64748b;">Телефон:</td>
+                <td style="padding: 6px 0; color: #0f172a;">{_h(patient_phone) or "—"}</td></tr>
+            <tr><td style="padding: 6px 0; color: #64748b;">Град:</td>
+                <td style="padding: 6px 0; color: #0f172a;">{_h(city_name)}</td></tr>
+            <tr><td style="padding: 6px 0; color: #64748b;">Тип лечение:</td>
+                <td style="padding: 6px 0; color: #0f172a;">{_h(treatment_label)}</td></tr>
+            {message_block}
+            <tr><td style="padding: 6px 0; color: #64748b;">Lead ID:</td>
+                <td style="padding: 6px 0; color: #0f172a;"><code>{_h(lead_id)}</code></td></tr>
+            <tr><td style="padding: 6px 0; color: #64748b;">Assisted-choice Request ID:</td>
+                <td style="padding: 6px 0; color: #0f172a;"><code>{_h(request_id)}</code></td></tr>
+            <tr><td style="padding: 6px 0; color: #64748b;">Източник:</td>
+                <td style="padding: 6px 0; color: #0f172a;">{_h(source or "assisted_choice_flow")}</td></tr>
+            <tr><td style="padding: 6px 0; color: #64748b;">Създадена в:</td>
+                <td style="padding: 6px 0; color: #0f172a;">{_h(created_at) or "—"}</td></tr>
+        </table>
+        <p style="margin: 18px 0 4px;">
+            <a href="{queue_url}" style="color: #0ea5e9; text-decoration: none; font-weight: 500;">Отвори опашката „Чака преглед" →</a>
+        </p>
+        <p style="color: #94a3b8; font-size: 12px; margin: 18px 0 0;">— Zubite.bg automated internal alert</p>
+    </div>
+    """
+    try:
+        return await _send_email(ADMIN_EMAIL, subject, html)
+    except Exception as e:
+        logging.error(f"send_admin_assisted_choice_request_alert failed: {e}")
+        return False

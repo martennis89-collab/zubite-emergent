@@ -385,10 +385,16 @@ def test_13_assisted_request_invisible_to_clinics(app):
 # 14. No external provider invoked.
 def test_14_no_external_provider(app):
     lead = _make_lead()
+    _resend.Emails.send.reset_mock()
     _post_help(app, lead, _valid_help_body())
     _emails_mod.send_lead_notification_email.assert_not_called()
     _emails_mod.send_lead_confirmation_email.assert_not_called()
-    _resend.Emails.send.assert_not_called()
+    # Admin alert via Resend → ADMIN_EMAIL is allowed and tested
+    # separately in test_p4_p5_admin_notifications.py.
+    assert _resend.Emails.send.call_count <= 1
+    for call in _resend.Emails.send.mock_calls:
+        params = call.args[0] if call.args else {}
+        assert params.get("to") == [os.environ.get("ADMIN_EMAIL")]
 
 
 # 15. Source matching_page/clinic_profile stored.

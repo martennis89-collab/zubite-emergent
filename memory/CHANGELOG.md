@@ -1,5 +1,113 @@
 # Zubite.bg — Changelog
 
+## 2026-05-16 — P4 / P5 Admin Email Notifications
+
+When a patient submits a P4 (selected-clinic) or P5 (assisted-choice)
+request, the Zubite admin team is notified by email via the existing
+Resend integration. No new provider added. No SMS / Twilio / ElevenLabs.
+
+### Files changed
+- `backend/emails.py` — added `send_admin_selected_clinic_request_alert()`
+  and `send_admin_assisted_choice_request_alert()` helpers. Both reuse
+  the existing `_send_email()` Resend wrapper. Best-effort: missing
+  `RESEND_API_KEY` / `ADMIN_EMAIL` → log warning + return False. Both
+  catch every internal exception so a Resend outage cannot bubble.
+- `backend/routers/public.py` — imported the new helpers and added one
+  `try/except` invocation at the very end of each successful insert path
+  (P4 step 10, P5 step 8). Both calls happen AFTER the
+  `consultation_requests.insert_one()` so duplicates / 409 / 422 paths
+  never reach them.
+- `backend/tests/test_p4_p5_admin_notifications.py` — new, 11 test cases.
+- `backend/tests/test_patient_request_call.py` — updated `test_16`
+  ("no_external_provider") to allow exactly one Resend call to
+  `ADMIN_EMAIL` (the new admin alert). Still asserts the two legacy
+  helpers (`send_lead_notification_email`, `send_lead_confirmation_email`)
+  are NOT invoked.
+- `backend/tests/test_patient_assisted_choice.py` — same update for
+  `test_14`.
+
+### Env vars used
+- `ADMIN_EMAIL` (already documented in `.env.example`, default
+  `admin@zubite.bg`).
+- `RESEND_API_KEY` (already configured).
+- `SENDER_EMAIL` (already configured; reused).
+- `PRODUCTION_URL` (already configured; used to build absolute admin
+  URLs in the email body).
+
+### Trigger points (exact duplicate prevention)
+- **P4** — `POST /api/leads/{lead_id}/request-call`. The email is sent
+  ONLY after a brand-new `consultation_requests` insert succeeds.
+  Idempotent retry (same clinic) returns at the `already_requested: True`
+  short-circuit branches BEFORE reaching the insert; 409 paths raise
+  before; 422 paths raise before. None of them reach the alert call.
+- **P5** — `POST /api/leads/{lead_id}/request-zubite-help`. Same shape:
+  email is fired ONLY after the new insert. The three idempotent-retry
+  branches return early; the two 409 paths raise; 422 paths raise.
+
+### Email subjects & bodies
+- **P4 subject**: `Нова заявка към избрана клиника — Zubite`
+  Body includes: тип заявка ("Пациентът избра конкретна клиника"),
+  patient name, phone, city (resolved BG label), treatment label,
+  selected clinic name + clinic id, lead id, consultation request id,
+  source, created_at, and two admin links (detail + filtered list).
+- **P5 subject**: `Нова заявка за помощ при избор — Zubite`
+  Body includes: тип заявка ("Пациентът поиска помощ от Zubite"),
+  patient name, phone, city, treatment, patient message
+  (**truncated to 500 chars** with `…`), lead id, request id, source,
+  created_at, and an admin link to the "Чака преглед" queue.
+
+### Privacy
+Patient name / phone are admin-visible already (admin queue surfaces them
+in the dashboard). All other inputs are HTML-escaped via `html.escape()`.
+Email body **never** carries any of: raw quiz answers, attribution
+object, JWT/Bearer/session tokens, cookies, verification tokens,
+password hashes, raw webhook payloads, MONGO_URL, JWT_SECRET, or
+RESEND_API_KEY. Verified by `test_email_body_does_not_leak_forbidden_keys`.
+
+### Tests (Resend SDK fully mocked)
+1. ✅ P4 new request → exactly 1 admin email.
+2. ✅ P5 new request → exactly 1 admin email.
+3. ✅ P4 idempotent retry (same clinic) → no second email.
+4. ✅ P5 idempotent retry → no second email.
+5. ✅ P4 validation failure (no consent) → 0 emails.
+6. ✅ P5 missing consent → 0 emails.
+7. ✅ Missing `ADMIN_EMAIL` → request still 200, 0 Resend calls.
+8. ✅ Resend raises → request still 200, no crash.
+9. ✅ P4 long-form: subject + body include phone, clinic name, request id,
+   lead id, source, treatment, recommended_clinics_flow tag.
+10. ✅ P5 long-form: subject + body include phone, request id, lead id,
+    `needs_zubite_review` deep link, patient message.
+11. ✅ Patient message >500 chars truncated to 500 in email body.
+12. ✅ No clinic notification fired from P4/P5 endpoints.
+13. ✅ Email body contains none of the 13 forbidden keys.
+
+Also: full re-run of `test_patient_request_call.py` (31/31 pass) and
+`test_patient_assisted_choice.py` (28/28 pass) including the updated
+"no_external_provider" assertions.
+
+### Live preview smoke
+- `POST /api/leads/{P4-fresh-lead}/request-call` → 200, request_id returned.
+- Backend log shows the Resend call was attempted with the configured
+  ADMIN_EMAIL recipient. Resend rejected this preview env's sender
+  domain (`"zubite.bg domain is not verified"` — env-only config issue),
+  the helper logged the error and the **patient endpoint still returned
+  200**. This proves the resilience contract: external provider failure
+  does NOT block patient flow.
+
+### Out of scope (intentionally untouched)
+Frontend, patient UI, clinic portal, admin frontend, auth / session /
+CSRF, audit logs, analytics, matching algorithm, clinic profile editor,
+`/za-kliniki`. No SMS, no Twilio, no ElevenLabs, no SendGrid / Mailgun
+added. `package.json` unchanged. No new dependencies installed.
+
+### Unresolved risks
+- 🔴 Git secrets-leak BLOCKED — local-only, no push / no deploy.
+- 🟠 Preview env's Resend sender domain is not verified, so emails will
+  not actually deliver in this env until DNS verification is completed
+  in the Resend dashboard. Production env may already have this set;
+  no code change required either way.
+
+
 ## 2026-05-16 — Patient Layer Batch P7 — Final Polish & Mobile QA
 
 End-to-end demo-readiness pass across the patient journey. **No new features.**

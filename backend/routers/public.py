@@ -9,7 +9,12 @@ from schemas import Clinic, LeadCreate, LeadContactUpdate, Lead, RequestCallBody
 from auth import hash_password
 from config import CITIES, logger
 from scoring import calculate_score
-from emails import send_lead_notification_email, send_lead_confirmation_email
+from emails import (
+    send_lead_notification_email,
+    send_lead_confirmation_email,
+    send_admin_selected_clinic_request_alert,
+    send_admin_assisted_choice_request_alert,
+)
 from rate_limit import rate_limit
 
 router = APIRouter()
@@ -1152,6 +1157,28 @@ async def request_call(lead_id: str, body: RequestCallBody):
         {"$set": {"selected_clinic_request_id": req_id}},
     )
 
+    # 10) Admin email alert (best-effort, non-blocking). Triggered ONLY
+    #     on a successful new insert — never on idempotent retry or 409
+    #     duplicate paths (they return before reaching this point).
+    try:
+        await send_admin_selected_clinic_request_alert(
+            request_id=req_id,
+            lead_id=lead_id,
+            patient_name=fresh_lead.get("name"),
+            patient_phone=fresh_lead.get("phone"),
+            patient_city=fresh_lead.get("city_slug") or fresh_lead.get("city"),
+            treatment_interest=consultation_doc.get("treatment_interest"),
+            clinic_id=body.clinic_id,
+            clinic_name=_clinic_name(selected_clinic),
+            source=body.source,
+            created_at=now_iso,
+        )
+    except Exception as alert_exc:
+        # Email failure must NEVER block the patient flow.
+        logger.warning(
+            f"P4 admin alert failed for req {req_id}: {alert_exc}"
+        )
+
     return {
         "success": True,
         "request_id": req_id,
@@ -1450,6 +1477,26 @@ async def request_zubite_help(lead_id: str, body: RequestZubiteHelpBody):
         "updated_at": now_iso,
     }
     await db.consultation_requests.insert_one(consultation_doc)
+
+    # 8) Admin email alert (best-effort, non-blocking). Triggered ONLY on
+    #    a successful new insert — never on idempotent retry / 409 paths
+    #    (those return before reaching this point).
+    try:
+        await send_admin_assisted_choice_request_alert(
+            request_id=req_id,
+            lead_id=lead_id,
+            patient_name=fresh_lead.get("name"),
+            patient_phone=fresh_lead.get("phone"),
+            patient_city=fresh_lead.get("city_slug") or fresh_lead.get("city"),
+            treatment_interest=consultation_doc.get("treatment_interest"),
+            patient_message=safe_message,
+            source=body.source,
+            created_at=now_iso,
+        )
+    except Exception as alert_exc:
+        logger.warning(
+            f"P5 admin alert failed for req {req_id}: {alert_exc}"
+        )
 
     return {
         "success": True,

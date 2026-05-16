@@ -461,14 +461,23 @@ def test_15_no_cross_clinic_leak(app):
     assert count_other == 0
 
 
-# 16. No email/external provider invoked.
+# 16. No clinic/patient-facing email provider invoked. (Admin alert via
+#     Resend → ADMIN_EMAIL is allowed and tested separately in
+#     test_p4_p5_admin_notifications.py — here we only assert that the
+#     legacy clinic/patient helpers are not invoked from this endpoint.)
 def test_16_no_external_provider_called(app):
     lead = _make_lead()
     clinic = _make_clinic()
+    _resend.Emails.send.reset_mock()
     _post_request_call(app, lead, _valid_body(clinic))
     _emails_mod.send_lead_notification_email.assert_not_called()
     _emails_mod.send_lead_confirmation_email.assert_not_called()
-    _resend.Emails.send.assert_not_called()
+    # Exactly one Resend call is expected — the admin alert. Recipient
+    # must be ADMIN_EMAIL and nothing else.
+    assert _resend.Emails.send.call_count <= 1
+    for call in _resend.Emails.send.mock_calls:
+        params = call.args[0] if call.args else {}
+        assert params.get("to") == [os.environ.get("ADMIN_EMAIL")]
 
 
 # 17. Source matching_card/clinic_profile stored safely.
