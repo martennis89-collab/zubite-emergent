@@ -3,9 +3,10 @@
 import { useEffect, useState, useCallback } from 'react'
 import { QRCodeCanvas } from 'qrcode.react'
 import { ClinicShell } from '@/components/ClinicShell'
+import { ReviewPoster } from '@/components/ReviewPoster'
 import {
   Loader2, Copy, Check, Printer, Star, ShieldCheck, Clock,
-  CheckCircle2, XCircle, Inbox,
+  CheckCircle2, XCircle, Inbox, Eye,
 } from 'lucide-react'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
@@ -31,6 +32,8 @@ interface Review {
 
 interface LinkPayload {
   clinic_id: string
+  clinic_name?: string | null
+  city_name?: string | null
   review_url: string
   qr_status: string
   qr_note?: string
@@ -55,6 +58,7 @@ export default function ClinicReviewsPage() {
   const [filter, setFilter] = useState<Status | 'all'>('all')
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
+  const [showPosterPreview, setShowPosterPreview] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -148,6 +152,15 @@ export default function ClinicReviewsPage() {
               </div>
 
               <div className="mt-3 flex flex-wrap gap-2 items-center">
+                <button
+                  type="button"
+                  onClick={() => setShowPosterPreview((v) => !v)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-sky-200 text-sky-700 hover:bg-sky-50 text-xs font-medium"
+                  data-testid="clinic-review-preview-btn"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  {showPosterPreview ? 'Скрий преглед' : 'Преглед на постера'}
+                </button>
                 <button
                   type="button"
                   onClick={handlePrint}
@@ -293,44 +306,70 @@ export default function ClinicReviewsPage() {
           )}
         </div>
 
+        {/* Inline poster preview (on-screen, scaled) */}
+        {link && showPosterPreview && (
+          <div
+            className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 print:hidden"
+            data-testid="clinic-review-poster-preview"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  Преглед на постера
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Така ще изглежда вашият принтиран постер (A4, портрет).
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPosterPreview(false)}
+                className="text-xs text-slate-500 hover:text-slate-900"
+              >
+                Затвори
+              </button>
+            </div>
+            <div className="flex justify-center bg-slate-50 rounded-xl p-4 sm:p-6">
+              <ReviewPoster
+                clinicName={link.clinic_name}
+                cityName={link.city_name}
+                reviewUrl={link.review_url}
+                variant="preview"
+              />
+            </div>
+          </div>
+        )}
+
         {/* Print poster (only visible during print) */}
         {link && (
           <div className="hidden print:block" data-testid="clinic-review-print-poster">
-            <div className="text-center py-12 px-8">
-              <p className="text-xs uppercase tracking-widest text-slate-500 mb-2">
-                Zubite.bg
-              </p>
-              <h1 className="font-serif text-4xl font-semibold mb-3">
-                Споделете обратна връзка за нашата клиника
-              </h1>
-              <p className="text-base text-slate-700 max-w-md mx-auto">
-                Сканирайте QR кода и оставете мнение в Zubite.bg.
-              </p>
-              <div className="my-10 grid place-items-center">
-                <QRCodeCanvas
-                  value={link.review_url}
-                  size={240}
-                  level="M"
-                  includeMargin={false}
-                  bgColor="#ffffff"
-                  fgColor="#0f172a"
-                  data-testid="clinic-review-print-qr"
-                />
-                <p className="mt-3 text-xs font-mono break-all max-w-md">
-                  {link.review_url}
-                </p>
-              </div>
-              <p className="text-sm text-slate-700 mt-6">
-                Обратната връзка се преглежда преди публично показване.
-              </p>
-            </div>
+            <ReviewPoster
+              clinicName={link.clinic_name}
+              cityName={link.city_name}
+              reviewUrl={link.review_url}
+              variant="print"
+            />
           </div>
         )}
 
         <style jsx global>{`
           @media print {
-            body { background: white !important; }
+            @page {
+              size: A4 portrait;
+              margin: 0;
+            }
+            html, body {
+              background: white !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
             nav, aside, header { display: none !important; }
+            .review-poster {
+              page-break-after: avoid;
+              page-break-inside: avoid;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
           }
         `}</style>
       </section>

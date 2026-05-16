@@ -208,6 +208,8 @@ async def clinic_review_link(clinic: Dict[str, Any] = Depends(get_current_clinic
     rejected = await db.clinic_reviews.count_documents({"clinic_id": cid, "status": "rejected"})
     return {
         "clinic_id": cid,
+        "clinic_name": clinic.get("clinic_name") or clinic.get("name") or "",
+        "city_name": clinic.get("city_name"),
         "review_url": _public_review_url(cid),
         "qr_status": "pending_dependency_decision",
         "qr_note": (
