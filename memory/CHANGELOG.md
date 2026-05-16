@@ -1,5 +1,87 @@
 # Zubite.bg — Changelog
 
+## 2026-02-16 — Patient Layer — Review Signals R1 (Backend only)
+
+Backend support for external review signals (Google / Superdoc / Facebook)
+on the patient clinic matching response. **No scraping, no external API
+calls, no frontend changes, no admin UI changes.** All signals are
+display-only patient confidence cues — **never** affect ranking.
+
+### Touched files
+- `backend/schemas.py` — `ClinicAdminUpdate` extended with 11 optional fields:
+  `google_rating/_review_count/_place_url`, `facebook_rating/_review_count/_page_url`,
+  `superdoc_rating/_review_count/_profile_url`, `review_sources_last_checked_at`,
+  `review_sources_verified_by_admin`. Rating bounded [0, 5], count [0, 100_000],
+  URLs ≤500 chars. (URL host whitelisting is enforced at response-build time,
+  not at write time — admin may store URLs, but unsafe ones never surface.)
+- `backend/routers/public.py` — added:
+  - `_REVIEW_HOST_WHITELIST` (Google: 6 hosts; Facebook: 4; Superdoc: 2) — **exact** host match, no wildcards.
+  - `_is_safe_review_url()` — rejects non-http(s), userinfo (`@`), non-string, missing host, >500 chars.
+  - `_coerce_rating()` / `_coerce_count()` — strict numeric coercion that **rejects bool**.
+  - `_build_review_signals(clinic)` — gates publishing on `verified_by_admin === true`, drops sources with `review_count < 5`, missing rating, or unsafe URL. Returns `None` when nothing publishable.
+  - `_score_clinic()` docstring updated: review signals are deliberately not read here. **Comment:** "External review signals are display-only patient confidence signals and must not affect ranking."
+  - Projection in the `db.clinics.find(...)` call extended with the 11 review-signal field keys.
+- `backend/tests/test_patient_recommended_clinics.py` — `ALLOWED_CLINIC_FIELDS` set extended with `"review_signals"` for regression safety.
+
+### Response contract (additive, optional)
+```jsonc
+{
+  // ...existing clinic keys...
+  "review_signals": {                     // omitted entirely when none publishable
+    "sources": [                          // deterministic order:
+      { "platform": "google",     "rating": 4.7, "review_count": 213, "url": "https://maps.google.com/?cid=…" },
+      { "platform": "superdoc",   "rating": 4.9, "review_count": 41,  "url": "https://superdoc.bg/clinic/…" },
+      { "platform": "facebook",   "rating": 4.5, "review_count": 88,  "url": "https://www.facebook.com/…" }
+    ],
+    "last_checked_at": "2026-02-12T08:00:00Z",
+    "disclaimer": "Данните са публични сигнали от външни платформи и може да се променят."
+  }
+}
+```
+
+### Hard rules enforced by code + tests
+- `review_sources_verified_by_admin !== true` → no `review_signals` key.
+- A source with rating missing / outside [1.0, 5.0] / non-numeric → dropped.
+- `review_count < 5` → that source dropped.
+- URL on a non-whitelisted host → dropped.
+- URL with non-http(s) scheme (`javascript:`, `data:`, `file:`, `ftp:`, …) → dropped.
+- URL with userinfo (`user@host`) → dropped.
+- Hostnames are compared lower-cased, **exact match only** — no `*.google.com` patterns. `google.com.attacker.tld` is rejected.
+- Boolean values for rating/count → rejected (not silently coerced to 1).
+- No `trust_score`, `combined_rating`, `overall_score`, `ranking`, `review_texts`, `testimonials`, `reviewer_name`, `screenshot` keys — anywhere in the response.
+- Source objects contain **only** `{platform, rating, review_count, url}`.
+- Source order: **google → superdoc → facebook**, regardless of insertion order in the Mongo doc.
+
+### Ranking guarantee
+`_score_clinic` does not read any review-signal field. Test
+`test_09_review_signals_do_not_change_order` proves two identical-tier
+clinics retain their alphabetical tiebreak regardless of how rich one's
+review profile is.
+
+### Tests
+- `backend/tests/test_patient_review_signals.py` (NEW) — **23 cases, all PASS** in 0.69s on isolated `zubite_test_r1_review_signals` DB:
+  - `test_01_unverified_clinic_hides_review_signals`
+  - `test_02_verified_valid_google_returns_source`
+  - `test_03_review_count_below_five_hides_source` + `_03b_exactly_five_publishes` (boundary)
+  - `test_04_unsafe_host_rejected` + `_04b_no_wildcard_bypass` + `_04c_userinfo_rejected`
+  - `test_05_unsafe_scheme_rejected` × 7 parametrized cases (`javascript:`, `data:`, `file:`, `ftp:`, `/relative`, host-only, empty)
+  - `test_06_deterministic_source_order`
+  - `test_07_no_review_text_or_raw_fields_leak`
+  - `test_08_no_aggregate_keys_anywhere`
+  - `test_09_review_signals_do_not_change_order`
+  - `test_10_admin_schema_rejects_invalid_rating_bounds`
+  - `test_11_missing_url_hides_source` + `_11b_missing_rating_hides_source`
+  - `test_12_standard_clinic_without_review_fields`
+  - `test_13_boolean_values_rejected`
+- **Regression**: `backend/tests/test_patient_recommended_clinics.py` — **28/28 pass** (no behavior change for non-review responses).
+
+### Out of scope (next batches)
+- R3 — patient UI rendering of review signals (next).
+- R2 — admin "Edit reviews" modal in `/admin/clinics`.
+- R4 — demo seed script (non-production DB only).
+
+
+
 ## 2026-02-16 — Patient Layer — Partner Tiers (UI badges, frontend-only)
 
 Surfaces the already-shipped backend partner-tier fields on the patient

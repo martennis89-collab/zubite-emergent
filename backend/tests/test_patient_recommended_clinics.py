@@ -254,6 +254,8 @@ ALLOWED_CLINIC_FIELDS = {
     "is_featured",
     "placement_label",
     "placement_disclosure",
+    # External review signals (R1 — display-only, admin-gated).
+    "review_signals",
 }
 
 

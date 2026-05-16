@@ -270,6 +270,162 @@ _PLACEMENT_DISCLOSURE = {
 }
 
 
+# ── External review signals (display-only, admin-gated) ───────────
+#
+# Patient confidence signals from public external platforms. These fields
+# MAY be set manually by admins on a clinic document. They are NEVER
+# scraped, fetched from any external API, or auto-aggregated.
+#
+# Hard rules:
+#   • `review_sources_verified_by_admin` MUST be True for any data to leave
+#     the backend. Defaults to False on every clinic.
+#   • Each source needs: numeric rating in [1.0, 5.0], review_count >= 5,
+#     and a URL on an explicit per-platform host whitelist.
+#   • A source with any missing/invalid field is silently dropped.
+#   • Output ordering is fixed: Google -> Superdoc -> Facebook.
+#   • No combined trust score, no overall rating, no ranking impact.
+#   • No review texts, reviewer names, screenshots, or quotes are ever
+#     surfaced — by construction the schema doesn't carry them.
+
+# Lower bound matches policy decision: hide tiny sample sizes that don't
+# convey statistical confidence to patients.
+_REVIEW_MIN_COUNT = 5
+_REVIEW_RATING_MIN = 1.0
+_REVIEW_RATING_MAX = 5.0
+_REVIEW_DISCLAIMER = (
+    "Данните са публични сигнали от външни платформи и може да се променят."
+)
+
+# Explicit host whitelist. EXACT host match only — no wildcard subdomain
+# patterns to avoid `evil.google.com.attacker.tld`-style bypasses.
+_REVIEW_HOST_WHITELIST: dict[str, frozenset[str]] = {
+    "google": frozenset({
+        "google.com", "www.google.com",
+        "maps.google.com",
+        "g.page",
+        "maps.app.goo.gl",
+        "g.co",
+    }),
+    "facebook": frozenset({
+        "facebook.com", "www.facebook.com",
+        "m.facebook.com",
+        "fb.com",
+    }),
+    "superdoc": frozenset({
+        "superdoc.bg", "www.superdoc.bg",
+    }),
+}
+
+# Deterministic surface order (Google -> Superdoc -> Facebook).
+_REVIEW_PLATFORM_ORDER: tuple[str, ...] = ("google", "superdoc", "facebook")
+
+
+def _is_safe_review_url(url: object, platform: str) -> bool:
+    """Strict http(s) + per-platform exact host check.
+    Reject any non-string, any non-http(s) scheme (javascript:, data:,
+    file:, ftp:, ...), and any host not present in the whitelist."""
+    if not isinstance(url, str):
+        return False
+    s = url.strip()
+    if not s or len(s) > 500:
+        return False
+    try:
+        from urllib.parse import urlparse
+        parsed = urlparse(s)
+    except Exception:
+        return False
+    scheme = (parsed.scheme or "").lower()
+    if scheme not in ("http", "https"):
+        return False
+    # `urlparse` lower-cases hostname for us. Reject userinfo / empty host.
+    host = (parsed.hostname or "").lower()
+    if not host or "@" in s.split("://", 1)[-1].split("/", 1)[0]:
+        return False
+    allowed = _REVIEW_HOST_WHITELIST.get(platform)
+    if not allowed:
+        return False
+    return host in allowed
+
+
+def _coerce_rating(v: object) -> Optional[float]:
+    """Return a float in [1.0, 5.0] or None. Booleans are rejected so
+    `True`/`False` never silently coerce to a rating."""
+    if isinstance(v, bool) or v is None:
+        return None
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return None
+    if f < _REVIEW_RATING_MIN or f > _REVIEW_RATING_MAX:
+        return None
+    # Round to one decimal — display contract.
+    return round(f, 1)
+
+
+def _coerce_count(v: object) -> Optional[int]:
+    if isinstance(v, bool) or v is None:
+        return None
+    try:
+        n = int(v)
+    except (TypeError, ValueError):
+        return None
+    if n < 0 or n > 100_000:
+        return None
+    return n
+
+
+def _build_review_signals(clinic: dict) -> Optional[dict]:
+    """Return the public `review_signals` object for a clinic, or None.
+
+    Display-only. Never affects ranking. Gated on
+    `review_sources_verified_by_admin == True`. Returns None when no source
+    is publishable."""
+    if clinic.get("review_sources_verified_by_admin") is not True:
+        return None
+
+    sources: list[dict] = []
+    for platform in _REVIEW_PLATFORM_ORDER:
+        rating = _coerce_rating(clinic.get(f"{platform}_rating"))
+        count = _coerce_count(clinic.get(f"{platform}_review_count"))
+        url_key = "google_place_url" if platform == "google" else (
+            "superdoc_profile_url" if platform == "superdoc" else "facebook_page_url"
+        )
+        url_raw = clinic.get(url_key)
+        if rating is None:
+            continue
+        if count is None or count < _REVIEW_MIN_COUNT:
+            continue
+        if not _is_safe_review_url(url_raw, platform):
+            continue
+        sources.append({
+            "platform": platform,
+            "rating": rating,
+            "review_count": count,
+            "url": (url_raw or "").strip(),
+        })
+
+    if not sources:
+        return None
+
+    # last_checked_at is informational; accept ISO strings or datetimes.
+    last_checked: Optional[str] = None
+    raw_ts = clinic.get("review_sources_last_checked_at")
+    if isinstance(raw_ts, str) and raw_ts.strip():
+        last_checked = raw_ts.strip()
+    elif hasattr(raw_ts, "isoformat"):
+        try:
+            last_checked = raw_ts.isoformat()
+        except Exception:
+            last_checked = None
+
+    return {
+        "sources": sources,
+        "last_checked_at": last_checked,
+        "disclaimer": _REVIEW_DISCLAIMER,
+    }
+
+
+
 def _resolve_partner_tier(clinic: dict) -> str:
     """Pure: read clinic placement signals and resolve to a tier string."""
     raw = (clinic.get("partner_tier") or "").strip().lower()
@@ -368,6 +524,10 @@ def _score_clinic(clinic: dict, lead_city: str, lead_treatment: str, is_broad: b
     Eligibility (city) is checked FIRST. Partner-tier boost is added ONLY
     after eligibility passes, so an ineligible premium clinic can never
     out-rank an eligible standard clinic.
+
+    External review signals (google/facebook/superdoc ratings & counts) are
+    display-only patient confidence signals and must not affect ranking.
+    They are deliberately NOT read here.
     """
     cs = _clinic_city_slug(clinic)
     if cs != lead_city:
@@ -419,7 +579,7 @@ def _safe_clinic_payload(clinic: dict, lead_treatment: str, is_broad: bool) -> d
 
     tier = _resolve_partner_tier(clinic)
 
-    return {
+    payload = {
         "id": clinic.get("id"),
         "name": _clinic_name(clinic),
         "city_name": _city_name_for(slug, clinic.get("city_name")),
@@ -438,6 +598,15 @@ def _safe_clinic_payload(clinic: dict, lead_treatment: str, is_broad: bool) -> d
         "placement_label": _PLACEMENT_LABEL[tier],
         "placement_disclosure": _PLACEMENT_DISCLOSURE[tier],
     }
+
+    # External review signals — display-only, never affect ranking.
+    # `_build_review_signals` returns None when verified_by_admin is False
+    # or no publishable source exists, in which case we omit the key entirely.
+    rs = _build_review_signals(clinic)
+    if rs is not None:
+        payload["review_signals"] = rs
+
+    return payload
 
 
 _EMPTY_MESSAGE = (
@@ -530,6 +699,13 @@ async def recommended_clinics(lead_id: str, limit: int = 3):
             # Partner placement (optional; missing => safe defaults).
             "partner_tier": 1, "is_featured": 1, "is_premium": 1,
             "featured_rank": 1, "sponsored_rank": 1,
+            # External review signals (optional; admin-gated, display-only).
+            # MUST NOT influence ranking — see `_score_clinic`.
+            "google_rating": 1, "google_review_count": 1, "google_place_url": 1,
+            "facebook_rating": 1, "facebook_review_count": 1, "facebook_page_url": 1,
+            "superdoc_rating": 1, "superdoc_review_count": 1, "superdoc_profile_url": 1,
+            "review_sources_last_checked_at": 1,
+            "review_sources_verified_by_admin": 1,
         },
     ).to_list(500)
 

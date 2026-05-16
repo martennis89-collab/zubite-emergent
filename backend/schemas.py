@@ -570,6 +570,23 @@ class ClinicAdminUpdate(BaseModel):
     notification_email: Optional[EmailStr] = None
     description: Optional[str] = Field(default=None, max_length=2000)
 
+    # ── External review signals (display-only, admin-gated) ──────────
+    # All fields are optional. Bounds match the publish gate in
+    # `backend/routers/public.py::_build_review_signals`. The router is the
+    # ultimate authority on whether a value is surfaced publicly; the
+    # schema here only validates write-side admin input.
+    google_rating: Optional[float] = Field(default=None, ge=0.0, le=5.0)
+    google_review_count: Optional[int] = Field(default=None, ge=0, le=100_000)
+    google_place_url: Optional[str] = Field(default=None, max_length=500)
+    facebook_rating: Optional[float] = Field(default=None, ge=0.0, le=5.0)
+    facebook_review_count: Optional[int] = Field(default=None, ge=0, le=100_000)
+    facebook_page_url: Optional[str] = Field(default=None, max_length=500)
+    superdoc_rating: Optional[float] = Field(default=None, ge=0.0, le=5.0)
+    superdoc_review_count: Optional[int] = Field(default=None, ge=0, le=100_000)
+    superdoc_profile_url: Optional[str] = Field(default=None, max_length=500)
+    review_sources_last_checked_at: Optional[datetime] = None
+    review_sources_verified_by_admin: Optional[bool] = None
+
 
 class ConsultationRequestCreate(BaseModel):
     """Admin creates a consultation request directly (rare — usually
