@@ -114,6 +114,61 @@ export const getRecommendedClinics = async (
   return response.data;
 };
 
+// ── Patient layer P4 ─────────────────────────────────────────
+// POST /api/leads/{leadId}/request-call
+// Patient selects ONE recommended clinic and consents to share their
+// request. The endpoint is single-clinic-only and idempotent on retry
+// of the SAME clinic; choosing a different clinic returns 409.
+
+export interface RequestCallBody {
+  clinic_id: string;
+  phone: string;
+  consent_to_share: boolean;
+  source: 'matching_card' | 'clinic_profile';
+}
+
+export interface RequestCallSuccess {
+  success: true;
+  request_id: string;
+  clinic: { id: string; name: string; city_name: string };
+  message: string;
+  already_requested?: boolean;
+}
+
+export interface SelectionState {
+  lead_id: string;
+  has_request: boolean;
+  selected_clinic_id: string | null;
+  selected_clinic_request_id: string | null;
+  clinic_selection_source: 'matching_card' | 'clinic_profile' | null;
+  request_call_status: 'requested' | null;
+  selected_clinic_requested_at: string | null;
+  clinic?: { id: string; name: string; city_name: string };
+}
+
+export const postRequestCall = async (
+  leadId: string,
+  body: RequestCallBody,
+): Promise<RequestCallSuccess> => {
+  const base = process.env.NEXT_PUBLIC_API_URL || '';
+  const response = await axios.post<RequestCallSuccess>(
+    `${base}/api/leads/${leadId}/request-call`,
+    body,
+  );
+  return response.data;
+};
+
+export const getSelectionState = async (leadId: string): Promise<SelectionState> => {
+  const base = process.env.NEXT_PUBLIC_API_URL || '';
+  const response = await axios.get<SelectionState>(
+    `${base}/api/leads/${leadId}/selection-state`,
+  );
+  return response.data;
+};
+
+export const PATIENT_CONSENT_TEXT =
+  'Съгласен/съгласна съм Zubite да сподели заявката ми с избраната клиника.';
+
 export const seedDatabase = async () => {
   try {
     const response = await api.post('/seed');

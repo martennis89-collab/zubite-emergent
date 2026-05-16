@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict, EmailStr, field_validator
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Literal
 from datetime import datetime, timezone
 import uuid
 
@@ -99,6 +99,23 @@ class LeadContactUpdate(BaseModel):
     phone: Optional[str] = Field(default=None, max_length=50)
     email: Optional[EmailStr] = None
     consent: bool = False
+
+
+# ─── Patient layer P4: request-call ───────────────────────────────
+# Body for POST /api/leads/{lead_id}/request-call. The endpoint enforces
+# `consent_to_share=True` and that `clinic_id` belongs to the lead's
+# recommended set. Phone validation is intentionally permissive (digit
+# count check + optional `+` prefix) — matches existing platform rules
+# for `LeadContactUpdate` while preventing empty / placeholder input.
+RequestCallSource = Literal["matching_card", "clinic_profile"]
+
+
+class RequestCallBody(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    clinic_id: str = Field(min_length=1, max_length=200)
+    phone: str = Field(min_length=4, max_length=50)
+    consent_to_share: bool
+    source: RequestCallSource = "matching_card"
 
 
 class Lead(BaseModel):

@@ -6,13 +6,15 @@ import Link from 'next/link'
 import axios from 'axios'
 import {
   AlertCircle, Compass, ArrowLeft, ShieldCheck, Sparkles,
-  Loader2,
+  Loader2, CheckCircle2,
 } from 'lucide-react'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import {
   getRecommendedClinics,
+  getSelectionState,
   type RecommendedClinicsResponse,
+  type SelectionState,
 } from '@/lib/api'
 import { ClinicRecommendationCard } from '@/components/patient/ClinicRecommendationCard'
 import { ClinicMatchEmptyState } from '@/components/patient/ClinicMatchEmptyState'
@@ -24,6 +26,7 @@ export default function ClinicMatchPage() {
   const leadId = params.leadId as string
 
   const [data, setData] = useState<RecommendedClinicsResponse | null>(null)
+  const [selection, setSelection] = useState<SelectionState | null>(null)
   const [loading, setLoading] = useState(true)
   const [errKind, setErrKind] = useState<ErrKind>(null)
   const [assistedPreview, setAssistedPreview] = useState(false)
@@ -32,8 +35,13 @@ export default function ClinicMatchPage() {
     setLoading(true)
     setErrKind(null)
     try {
-      const r = await getRecommendedClinics(leadId, 3)
+      // Fetch recommendations + selection state in parallel.
+      const [r, s] = await Promise.all([
+        getRecommendedClinics(leadId, 3),
+        getSelectionState(leadId).catch(() => null),
+      ])
       setData(r)
+      setSelection(s)
     } catch (e) {
       if (axios.isAxiosError(e)) {
         const s = e.response?.status
@@ -48,6 +56,30 @@ export default function ClinicMatchPage() {
       setLoading(false)
     }
   }, [leadId])
+
+  // Called by a card when its modal submits successfully — patches local
+  // selection state immediately so all sibling cards reflect "Вече избрахте
+  // клиника" without a refetch round-trip.
+  const handleSubmitted = useCallback(
+    (selectedClinicId: string, clinicName: string) => {
+      setSelection((prev) => ({
+        lead_id: leadId,
+        has_request: true,
+        selected_clinic_id: selectedClinicId,
+        selected_clinic_request_id: prev?.selected_clinic_request_id ?? null,
+        clinic_selection_source: prev?.clinic_selection_source ?? 'matching_card',
+        request_call_status: 'requested',
+        selected_clinic_requested_at:
+          prev?.selected_clinic_requested_at ?? new Date().toISOString(),
+        clinic: {
+          id: selectedClinicId,
+          name: clinicName,
+          city_name: prev?.clinic?.city_name ?? '',
+        },
+      }))
+    },
+    [leadId],
+  )
 
   useEffect(() => {
     if (leadId) load()
@@ -122,6 +154,27 @@ export default function ClinicMatchPage() {
                 </p>
               )}
 
+              {/* Already-selected banner (P4) — visible whenever the lead
+                  has previously submitted a request. */}
+              {selection?.has_request && selection?.clinic && (
+                <div
+                  className="mb-6 rounded-2xl border border-emerald-100 bg-emerald-50 p-4 sm:p-5 flex items-start gap-3"
+                  data-testid="match-already-selected-banner"
+                >
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 mt-0.5 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-emerald-900">
+                      Вече избрахте клиника
+                    </p>
+                    <p className="text-xs text-emerald-800 mt-1 leading-relaxed">
+                      Заявката е изпратена към{' '}
+                      <strong>{selection.clinic.name}</strong>. Тя ще може да се
+                      свърже с вас според процеса си за обработка на заявки.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Cards */}
               <div
                 className={`grid gap-5 ${
@@ -139,6 +192,8 @@ export default function ClinicMatchPage() {
                     clinic={c}
                     position={i + 1}
                     leadId={leadId}
+                    selectedClinicId={selection?.selected_clinic_id ?? null}
+                    onSubmitted={handleSubmitted}
                   />
                 ))}
               </div>

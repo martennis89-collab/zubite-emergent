@@ -9,15 +9,19 @@ import {
   Sparkle, AlertCircle, X, Compass, Loader2, PlayCircle,
   Stethoscope, Image as ImageIcon, FileText,
   BookOpenCheck, UserCircle2, Footprints, MessagesSquare,
+  CheckCircle2,
 } from 'lucide-react'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import {
   getRecommendedClinics,
+  getSelectionState,
   type RecommendedClinic,
+  type SelectionState,
 } from '@/lib/api'
 import { TREATMENT_LABELS } from '@/lib/consultationLabels'
 import { ReviewSignalsSection } from '@/components/patient/ReviewSignalsSection'
+import { RequestCallModal } from '@/components/patient/RequestCallModal'
 
 type ErrKind =
   | null
@@ -46,15 +50,19 @@ export default function ClinicProfilePage() {
   const clinicId = params.clinicId as string
 
   const [clinic, setClinic] = useState<RecommendedClinic | null>(null)
+  const [selection, setSelection] = useState<SelectionState | null>(null)
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState<ErrKind>(null)
-  const [preview, setPreview] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
     setErr(null)
     try {
-      const r = await getRecommendedClinics(leadId, 3)
+      const [r, s] = await Promise.all([
+        getRecommendedClinics(leadId, 3),
+        getSelectionState(leadId).catch(() => null),
+      ])
       const match = r.clinics.find((c) => c.id === clinicId)
       if (!match) {
         setErr('clinic_not_in_list')
@@ -62,6 +70,7 @@ export default function ClinicProfilePage() {
       } else {
         setClinic(match)
       }
+      setSelection(s)
     } catch (e) {
       if (axios.isAxiosError(e)) {
         const s = e.response?.status
@@ -80,6 +89,31 @@ export default function ClinicProfilePage() {
   useEffect(() => {
     if (leadId && clinicId) load()
   }, [leadId, clinicId, load])
+
+  const isThisClinicSelected =
+    !!selection?.selected_clinic_id && selection.selected_clinic_id === clinicId
+  const hasAnySelection = !!selection?.selected_clinic_id
+
+  const handleSubmitted = useCallback(
+    (selectedClinicId: string, clinicName: string) => {
+      setSelection((prev) => ({
+        lead_id: leadId,
+        has_request: true,
+        selected_clinic_id: selectedClinicId,
+        selected_clinic_request_id: prev?.selected_clinic_request_id ?? null,
+        clinic_selection_source: prev?.clinic_selection_source ?? 'clinic_profile',
+        request_call_status: 'requested',
+        selected_clinic_requested_at:
+          prev?.selected_clinic_requested_at ?? new Date().toISOString(),
+        clinic: {
+          id: selectedClinicId,
+          name: clinicName,
+          city_name: prev?.clinic?.city_name ?? '',
+        },
+      }))
+    },
+    [leadId],
+  )
 
   // Container width varies by tier: premium gets the widest editorial width.
   const tier = clinic ? resolveTier(clinic) : 'standard'
@@ -109,16 +143,24 @@ export default function ClinicProfilePage() {
             <ProfileBody
               clinic={clinic}
               leadId={leadId}
-              onOpenPreview={() => setPreview(true)}
+              isThisSelected={isThisClinicSelected}
+              hasAnySelection={hasAnySelection}
+              selection={selection}
+              onOpenModal={() => setModalOpen(true)}
             />
           ) : null}
         </div>
       </section>
 
-      {preview && clinic && (
-        <NextStepModal
-          clinicName={clinic.name}
-          onClose={() => setPreview(false)}
+      {modalOpen && clinic && (
+        <RequestCallModal
+          leadId={leadId}
+          clinic={{ id: clinic.id, name: clinic.name, city_name: clinic.city_name }}
+          source="clinic_profile"
+          onClose={() => setModalOpen(false)}
+          onSuccess={(resp) => {
+            handleSubmitted(resp.clinic.id, resp.clinic.name || clinic.name)
+          }}
         />
       )}
 
@@ -132,11 +174,17 @@ export default function ClinicProfilePage() {
 function ProfileBody({
   clinic,
   leadId,
-  onOpenPreview,
+  isThisSelected,
+  hasAnySelection,
+  selection,
+  onOpenModal,
 }: {
   clinic: RecommendedClinic
   leadId: string
-  onOpenPreview: () => void
+  isThisSelected: boolean
+  hasAnySelection: boolean
+  selection: SelectionState | null
+  onOpenModal: () => void
 }) {
   const tier = resolveTier(clinic)
   const isPremium = tier === 'premium'
@@ -151,6 +199,26 @@ function ProfileBody({
       data-testid="clinic-profile"
       data-tier={tier}
     >
+      {/* Already-selected banner — visible on every tier when applicable. */}
+      {hasAnySelection && selection?.clinic && (
+        <div
+          className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 sm:p-5 flex items-start gap-3"
+          data-testid="profile-already-selected-banner"
+        >
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 mt-0.5 flex-shrink-0" />
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-emerald-900">
+              {isThisSelected ? 'Заявката е изпратена' : 'Вече избрахте клиника'}
+            </p>
+            <p className="text-xs text-emerald-800 mt-1 leading-relaxed">
+              Заявката е изпратена към{' '}
+              <strong>{selection.clinic.name}</strong>. Тя ще може да се свърже
+              с вас според процеса си за обработка на заявки.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ── HERO ─────────────────────────────────────────────
           Premium: 2-column with media placeholder
           Featured & Standard: single-column compact header
@@ -159,15 +227,19 @@ function ProfileBody({
         <PremiumHero
           clinic={clinic}
           showPlacement={showPlacement}
-          onOpenPreview={onOpenPreview}
+          onOpenPreview={onOpenModal}
           leadId={leadId}
+          isThisSelected={isThisSelected}
+          hasAnySelection={hasAnySelection}
         />
       ) : (
         <CompactHero
           clinic={clinic}
           showPlacement={showPlacement}
-          onOpenPreview={onOpenPreview}
+          onOpenPreview={onOpenModal}
           tier={tier}
+          isThisSelected={isThisSelected}
+          hasAnySelection={hasAnySelection}
         />
       )}
 
@@ -307,14 +379,12 @@ function ProfileBody({
           колебаете, разгледайте и другите препоръки.
         </p>
         <div className="flex flex-col sm:flex-row gap-3">
-          <button
-            type="button"
-            onClick={onOpenPreview}
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-sky-500 text-white text-sm font-medium rounded-full hover:bg-sky-600 transition-colors"
-            data-testid="profile-bottom-cta"
-          >
-            Искам обаждане от тази клиника
-          </button>
+          <RequestCallCta
+            isSelected={isThisSelected}
+            hasAnySelection={hasAnySelection}
+            onClick={onOpenModal}
+            testid="profile-bottom-cta"
+          />
           <Link
             href={`/results/${leadId}/clinics`}
             className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-800 text-sm font-medium rounded-full hover:bg-slate-50 transition-colors"
@@ -345,11 +415,15 @@ function CompactHero({
   showPlacement,
   onOpenPreview,
   tier,
+  isThisSelected,
+  hasAnySelection,
 }: {
   clinic: RecommendedClinic
   showPlacement: boolean
   onOpenPreview: () => void
   tier: 'featured' | 'standard'
+  isThisSelected: boolean
+  hasAnySelection: boolean
 }) {
   return (
     <header
@@ -393,14 +467,12 @@ function CompactHero({
       )}
 
       <div className="mt-6">
-        <button
-          type="button"
+        <RequestCallCta
+          isSelected={isThisSelected}
+          hasAnySelection={hasAnySelection}
           onClick={onOpenPreview}
-          className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-sky-500 text-white text-sm font-medium rounded-full hover:bg-sky-600 transition-colors"
-          data-testid="profile-top-cta"
-        >
-          Искам обаждане от тази клиника
-        </button>
+          testid="profile-top-cta"
+        />
       </div>
     </header>
   )
@@ -411,11 +483,15 @@ function PremiumHero({
   showPlacement,
   onOpenPreview,
   leadId,
+  isThisSelected,
+  hasAnySelection,
 }: {
   clinic: RecommendedClinic
   showPlacement: boolean
   onOpenPreview: () => void
   leadId: string
+  isThisSelected: boolean
+  hasAnySelection: boolean
 }) {
   return (
     <header
@@ -466,14 +542,12 @@ function PremiumHero({
           )}
 
           <div className="mt-7 flex flex-col sm:flex-row gap-3">
-            <button
-              type="button"
+            <RequestCallCta
+              isSelected={isThisSelected}
+              hasAnySelection={hasAnySelection}
               onClick={onOpenPreview}
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-sky-500 text-white text-sm font-medium rounded-full hover:bg-sky-600 transition-colors"
-              data-testid="profile-top-cta"
-            >
-              Искам обаждане от тази клиника
-            </button>
+              testid="profile-top-cta"
+            />
             <Link
               href={`/results/${leadId}/clinics`}
               className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-800 text-sm font-medium rounded-full hover:bg-slate-50 transition-colors"
@@ -969,66 +1043,65 @@ function ProfileErrorPanel({
   )
 }
 
-function NextStepModal({
-  clinicName,
-  onClose,
+function NextStepModal_DEPRECATED_REMOVED() {
+  // The preview-only modal has been replaced by `RequestCallModal` in P4.
+  // Keeping a stub so historical anchors referencing this name compile.
+  return null
+}
+
+
+
+/**
+ * Tier-agnostic CTA used in the hero(s) and the bottom CTA row.
+ * Renders one of THREE visual states based on lead selection:
+ *   • not yet selected → primary "Искам обаждане от тази клиника"
+ *   • THIS clinic selected → green confirmation pill
+ *   • SOME OTHER clinic selected → disabled "Вече избрахте клиника"
+ */
+function RequestCallCta({
+  isSelected,
+  hasAnySelection,
+  onClick,
+  testid,
 }: {
-  clinicName: string
-  onClose: () => void
+  isSelected: boolean
+  hasAnySelection: boolean
+  onClick: () => void
+  testid: string
 }) {
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="profile-next-step-title"
-      className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-sm flex items-center justify-center px-4 py-6"
-      onClick={onClose}
-      data-testid="profile-next-step-modal"
-    >
+  if (isSelected) {
+    return (
       <div
-        className="bg-white rounded-2xl max-w-md w-full p-6 sm:p-8 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
+        className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-emerald-50 border border-emerald-100 text-emerald-800 text-sm font-medium rounded-full"
+        data-testid={`${testid}-submitted`}
       >
-        <div className="flex items-start justify-between gap-3 mb-4">
-          <div>
-            <h3
-              id="profile-next-step-title"
-              className="font-serif text-xl font-semibold text-slate-900"
-            >
-              Следваща стъпка
-            </h3>
-            <p className="text-sm text-slate-500 mt-1">За {clinicName}</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1 rounded-full hover:bg-slate-100 text-slate-500"
-            aria-label="Затвори"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <p className="text-sm text-slate-700 leading-relaxed mb-5">
-          В следващата стъпка ще потвърдите телефона си и ще дадете съгласие
-          Zubite да сподели заявката ви с избраната клиника.
-        </p>
-
-        <div className="rounded-lg bg-slate-50 border border-slate-100 p-3 text-xs text-slate-500 leading-relaxed mb-5">
-          Тази стъпка все още се изгражда. Засега виждате преглед на това какво
-          ще се случи.
-        </div>
-
-        <button
-          type="button"
-          disabled
-          aria-disabled="true"
-          className="w-full px-5 py-3 bg-slate-100 text-slate-400 text-sm font-medium rounded-full cursor-not-allowed"
-          data-testid="profile-next-step-disabled-cta"
-        >
-          Ще бъде активирано в следващата стъпка
-        </button>
+        <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
+        Заявката е изпратена
       </div>
-    </div>
+    )
+  }
+  if (hasAnySelection) {
+    return (
+      <button
+        type="button"
+        disabled
+        aria-disabled="true"
+        className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-slate-100 text-slate-400 text-sm font-medium rounded-full cursor-not-allowed"
+        data-testid={`${testid}-disabled`}
+      >
+        Вече избрахте клиника
+      </button>
+    )
+  }
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-sky-500 text-white text-sm font-medium rounded-full hover:bg-sky-600 transition-colors"
+      data-testid={testid}
+    >
+      Искам обаждане от тази клиника
+    </button>
   )
 }
+

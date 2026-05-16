@@ -5,7 +5,7 @@ import asyncio
 import uuid
 
 from database import db
-from schemas import Clinic, LeadCreate, LeadContactUpdate, Lead
+from schemas import Clinic, LeadCreate, LeadContactUpdate, Lead, RequestCallBody
 from auth import hash_password
 from config import CITIES, logger
 from scoring import calculate_score
@@ -740,6 +740,373 @@ async def recommended_clinics(lead_id: str, limit: int = 3):
         "selection_rule": selection_rule,
         "clinics": clinics_out,
     }
+
+
+# ─── Patient layer P4: request a call from ONE selected clinic ────
+#
+# Hard product rule, enforced server-side AND echoed in the response:
+#   • ONE lead may request a call from ONLY ONE clinic.
+#   • The selected clinic must be in the lead's recommended set.
+#   • Patient must explicitly opt-in via `consent_to_share`.
+#
+# Atomicity:
+#   Mongo single-document atomic CAS via `update_one` with a guard
+#   filter ensures only the first valid request "wins" the selection.
+#   Subsequent requests (double-click, parallel POST, refresh) see the
+#   stored `selected_clinic_id` and return 409 with the already-selected
+#   clinic info — never a duplicate write.
+#
+# Idempotency vs different clinics:
+#   • Same lead + same already-selected clinic + retry → 200 with the
+#     existing request (treated as idempotent retry).
+#   • Same lead + different clinic → 409 (cannot switch).
+#
+# This endpoint does NOT send email/SMS/Twilio/ElevenLabs. Notification
+# is a later batch.
+
+# Exact consent text shown to the patient (in Bulgarian). Stored verbatim
+# on both the consultation_request and the lead so audit can replay the
+# precise wording the patient agreed to.
+REQUEST_CALL_CONSENT_TEXT = (
+    "Съгласен/съгласна съм Zubite да сподели заявката ми с избраната клиника."
+)
+
+_PHONE_DIGIT_RE = __import__("re").compile(r"\d")
+
+
+def _is_acceptable_phone(value: str) -> bool:
+    """Permissive check matching existing platform rules: at least 6
+    digits anywhere in the string. We deliberately do not enforce a strict
+    BG format; lead phone is also stored without strict validation in
+    LeadContactUpdate."""
+    if not isinstance(value, str):
+        return False
+    s = value.strip()
+    if not s:
+        return False
+    digits = "".join(_PHONE_DIGIT_RE.findall(s))
+    return len(digits) >= 6
+
+
+def _safe_clinic_summary(clinic: dict) -> dict:
+    """Public-safe minimal clinic info for success / duplicate responses."""
+    return {
+        "id": clinic.get("id"),
+        "name": _clinic_name(clinic),
+        "city_name": _city_name_for(_clinic_city_slug(clinic), clinic.get("city_name")),
+    }
+
+
+@router.post(
+    "/leads/{lead_id}/request-call",
+    dependencies=[Depends(rate_limit("request_call", 5, 300))],
+)
+async def request_call(lead_id: str, body: RequestCallBody):
+    """Patient selects ONE recommended clinic and consents to share their
+    request. Creates exactly one consultation_request (assigned to the
+    selected clinic) and stamps the selection back onto the lead.
+    """
+    # 1) Consent — fail fast before any DB work.
+    if not body.consent_to_share:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "success": False,
+                "code": "consent_required",
+                "message": (
+                    "Необходимо е съгласие, за да споделим заявката с "
+                    "избраната клиника."
+                ),
+            },
+        )
+
+    # 2) Phone validation (permissive — see _is_acceptable_phone).
+    if not _is_acceptable_phone(body.phone):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "success": False,
+                "code": "phone_invalid",
+                "message": "Моля, въведете валиден телефонен номер.",
+            },
+        )
+
+    # 3) Lead lookup. We need full lead for consultation_request copy +
+    #    selection state for idempotency.
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    # 4) Lead-recommendation freshness window (same rule as
+    #    recommended-clinics endpoint).
+    created_at_raw = lead.get("created_at")
+    try:
+        if isinstance(created_at_raw, str):
+            created_at_dt = datetime.fromisoformat(created_at_raw)
+        else:
+            created_at_dt = created_at_raw
+        if created_at_dt and created_at_dt.tzinfo is None:
+            created_at_dt = created_at_dt.replace(tzinfo=timezone.utc)
+        age_days = (
+            (datetime.now(timezone.utc) - created_at_dt).total_seconds() / 86400.0
+            if created_at_dt else 0
+        )
+    except Exception:
+        age_days = 0
+    if age_days > _RECO_WINDOW_DAYS:
+        raise HTTPException(status_code=410, detail="Lead recommendation window expired")
+
+    # 5) Recompute the recommended set with the EXACT same rules used by
+    #    GET /recommended-clinics. We trust nothing the client sends — the
+    #    selected clinic must be in this server-computed set.
+    lead_city = (lead.get("city_slug") or "").strip().lower()
+    lead_treatment = (lead.get("treatment_type") or "").strip().lower()
+    is_broad = lead_treatment in _BROAD_TREATMENT_TYPES
+    if not lead_city:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "success": False,
+                "code": "clinic_not_in_recommendations",
+                "message": "Тази клиника не е част от препоръките за този резултат.",
+            },
+        )
+
+    raw_candidates = await db.clinics.find(
+        {},
+        {
+            "_id": 0,
+            "id": 1, "name": 1, "clinic_name": 1,
+            "city_slug": 1, "city_name": 1, "city": 1,
+            "treatments_supported": 1, "treatments_offered": 1,
+            "is_active": 1, "clinic_status": 1, "status": 1,
+            "partner_tier": 1, "is_featured": 1, "is_premium": 1,
+            "featured_rank": 1, "sponsored_rank": 1,
+            "subscription_status": 1,
+        },
+    ).to_list(500)
+
+    scored: List[tuple[int, int, str, dict]] = []
+    for c in raw_candidates:
+        if not _is_clinic_visible(c):
+            continue
+        s = _score_clinic(c, lead_city, lead_treatment, is_broad)
+        if s < 0:
+            continue
+        scored.append((s, _placement_rank(c), (_clinic_name(c) or "").lower(), c))
+    scored.sort(key=lambda x: (-x[0], x[1], x[2]))
+    recommended = [c for _, _, _, c in scored[:3]]
+    recommended_by_id = {c.get("id"): c for c in recommended}
+
+    selected_clinic = recommended_by_id.get(body.clinic_id)
+    if selected_clinic is None:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "success": False,
+                "code": "clinic_not_in_recommendations",
+                "message": "Тази клиника не е част от препоръките за този резултат.",
+            },
+        )
+
+    # 6) Idempotency / duplicate-protection — TWO checks before any insert:
+    #    (a) lead.selected_clinic_id already pinned;
+    #    (b) consultation_request from this flow already exists.
+    #    If either is set, we don't create anything.
+    existing_selected_id: Optional[str] = lead.get("selected_clinic_id")
+    existing_request_id: Optional[str] = lead.get("selected_clinic_request_id")
+
+    # Cross-check: even if lead is missing the pin (e.g. partial write
+    # earlier), a flow-tagged consultation_request blocks duplicates.
+    flow_req = await db.consultation_requests.find_one(
+        {
+            "lead_id": lead_id,
+            "created_from": "recommended_clinics_flow",
+        },
+        {"_id": 0},
+    )
+
+    if existing_selected_id or flow_req:
+        pinned_id = existing_selected_id or (flow_req or {}).get("assigned_clinic_id")
+        pinned_req_id = existing_request_id or (flow_req or {}).get("id")
+        pinned_clinic = recommended_by_id.get(pinned_id) or await db.clinics.find_one(
+            {"id": pinned_id},
+            {"_id": 0, "id": 1, "name": 1, "clinic_name": 1, "city_slug": 1, "city_name": 1, "city": 1},
+        )
+        # If the same clinic the patient just chose IS the one already
+        # stored, this is an idempotent retry — return 200 with the
+        # existing request. Otherwise 409.
+        if pinned_id and pinned_id == body.clinic_id:
+            return {
+                "success": True,
+                "request_id": pinned_req_id,
+                "clinic": _safe_clinic_summary(pinned_clinic) if pinned_clinic else {"id": pinned_id, "name": "", "city_name": ""},
+                "message": "Заявката вече е изпратена към избраната клиника.",
+                "already_requested": True,
+            }
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "success": False,
+                "code": "already_requested",
+                "clinic": _safe_clinic_summary(pinned_clinic) if pinned_clinic else {"id": pinned_id or "", "name": "", "city_name": ""},
+                "message": "Вече сте изпратили заявка към клиника за този резултат.",
+            },
+        )
+
+    # 7) Atomic CAS on the lead — only the first POST that finds the lead
+    #    WITHOUT a selected_clinic_id wins. Concurrent requests lose and
+    #    fall through to the duplicate path on the retry / next pass.
+    now_iso = datetime.now(timezone.utc).isoformat()
+    cas = await db.leads.update_one(
+        {
+            "id": lead_id,
+            # Guard: only if currently unset (CAS semantics).
+            "$or": [
+                {"selected_clinic_id": {"$exists": False}},
+                {"selected_clinic_id": None},
+                {"selected_clinic_id": ""},
+            ],
+        },
+        {
+            "$set": {
+                "selected_clinic_id": body.clinic_id,
+                "selected_clinic_requested_at": now_iso,
+                "clinic_selection_source": body.source,
+                "request_call_status": "requested",
+                "consent_to_share_clinic": True,
+                "consent_to_share_clinic_at": now_iso,
+                # Patient may edit phone in the modal; persist updated value.
+                "phone": body.phone.strip(),
+            }
+        },
+    )
+    if cas.modified_count != 1:
+        # Lost the CAS — someone else pinned the lead in the meantime.
+        # Reload and respond with the duplicate path.
+        relead = await db.leads.find_one(
+            {"id": lead_id},
+            {"_id": 0, "selected_clinic_id": 1, "selected_clinic_request_id": 1},
+        ) or {}
+        pinned_id = relead.get("selected_clinic_id") or ""
+        pinned_req_id = relead.get("selected_clinic_request_id") or ""
+        pinned_clinic = recommended_by_id.get(pinned_id) or await db.clinics.find_one(
+            {"id": pinned_id},
+            {"_id": 0, "id": 1, "name": 1, "clinic_name": 1, "city_slug": 1, "city_name": 1, "city": 1},
+        )
+        if pinned_id == body.clinic_id:
+            return {
+                "success": True,
+                "request_id": pinned_req_id,
+                "clinic": _safe_clinic_summary(pinned_clinic) if pinned_clinic else {"id": pinned_id, "name": "", "city_name": ""},
+                "message": "Заявката вече е изпратена към избраната клиника.",
+                "already_requested": True,
+            }
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "success": False,
+                "code": "already_requested",
+                "clinic": _safe_clinic_summary(pinned_clinic) if pinned_clinic else {"id": pinned_id, "name": "", "city_name": ""},
+                "message": "Вече сте изпратили заявка към клиника за този резултат.",
+            },
+        )
+
+    # 8) Build and insert the consultation_request. We avoid importing
+    #    `_ensure_consultation_for_lead` from the consultations router to
+    #    keep this endpoint isolated and avoid email side-effects (that
+    #    helper is admin-facing). The doc shape is intentionally aligned
+    #    with what the clinic portal already reads.
+    fresh_lead = await db.leads.find_one({"id": lead_id}, {"_id": 0}) or lead
+    req_id = str(uuid.uuid4())
+    consultation_doc = {
+        "id": req_id,
+        "patient_name": fresh_lead.get("name") or "",
+        "patient_phone": fresh_lead.get("phone") or "",
+        "patient_email": fresh_lead.get("email"),
+        "patient_city": fresh_lead.get("city_slug") or fresh_lead.get("city"),
+        "preferred_contact_time": None,
+        "treatment_interest": (fresh_lead.get("treatment_type") or "general").lower(),
+        "urgency": (fresh_lead.get("answers") or {}).get("urgency"),
+        "readiness": (fresh_lead.get("answers") or {}).get("readiness") or fresh_lead.get("band"),
+        "quiz_result_id": (fresh_lead.get("answers") or {}).get("session_id"),
+        "lead_id": lead_id,
+        "source": "patient_selected_clinic",
+        "created_from": "recommended_clinics_flow",
+        "selection_source": body.source,
+        "utm_source": fresh_lead.get("utm_source") or fresh_lead.get("first_utm_source"),
+        "utm_campaign": fresh_lead.get("utm_campaign") or fresh_lead.get("first_utm_campaign"),
+        "utm_adset": fresh_lead.get("utm_adset") or fresh_lead.get("first_utm_adset"),
+        "utm_ad": fresh_lead.get("utm_ad") or fresh_lead.get("first_utm_ad"),
+        "assigned_clinic_id": body.clinic_id,
+        "status": "assigned",
+        "assigned_at": now_iso,
+        "clinic_viewed_at": None,
+        "first_action_at": None,
+        "call_attempted_at": None,
+        "patient_contacted_at": None,
+        "appointment_booked_at": None,
+        "attended_at": None,
+        "no_show_at": None,
+        "cancelled_at": None,
+        "notes": None,
+        # Consent capture (verbatim, with timestamp) — for compliance audit.
+        "consent_to_share_clinic": True,
+        "consent_to_share_clinic_at": now_iso,
+        "consent_to_share_clinic_text": REQUEST_CALL_CONSENT_TEXT,
+        "created_at": now_iso,
+        "updated_at": now_iso,
+    }
+    await db.consultation_requests.insert_one(consultation_doc)
+
+    # 9) Backfill the lead with the request id (best-effort; lead is
+    #    already pinned to this clinic by step 7).
+    await db.leads.update_one(
+        {"id": lead_id},
+        {"$set": {"selected_clinic_request_id": req_id}},
+    )
+
+    return {
+        "success": True,
+        "request_id": req_id,
+        "clinic": _safe_clinic_summary(selected_clinic),
+        "message": "Заявката е изпратена към избраната клиника.",
+    }
+
+
+@router.get("/leads/{lead_id}/selection-state")
+async def lead_selection_state(lead_id: str):
+    """Tiny read-only endpoint the patient frontend hits after navigation /
+    refresh to know whether the lead has already requested a call (and
+    from which clinic). Returns 404 if the lead does not exist."""
+    lead = await db.leads.find_one(
+        {"id": lead_id},
+        {"_id": 0, "selected_clinic_id": 1, "selected_clinic_request_id": 1,
+         "clinic_selection_source": 1, "request_call_status": 1,
+         "selected_clinic_requested_at": 1},
+    )
+    if lead is None:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    pinned_id = lead.get("selected_clinic_id")
+    out = {
+        "lead_id": lead_id,
+        "has_request": bool(pinned_id),
+        "selected_clinic_id": pinned_id or None,
+        "selected_clinic_request_id": lead.get("selected_clinic_request_id"),
+        "clinic_selection_source": lead.get("clinic_selection_source"),
+        "request_call_status": lead.get("request_call_status"),
+        "selected_clinic_requested_at": lead.get("selected_clinic_requested_at"),
+    }
+    if pinned_id:
+        cl = await db.clinics.find_one(
+            {"id": pinned_id},
+            {"_id": 0, "id": 1, "name": 1, "clinic_name": 1, "city_slug": 1, "city_name": 1, "city": 1},
+        )
+        if cl:
+            out["clinic"] = _safe_clinic_summary(cl)
+    return out
+
+
 
 
 # ─── Seed admin-password hygiene (Phase 2B) ──────────────────────

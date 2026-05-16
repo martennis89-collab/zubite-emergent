@@ -2,14 +2,19 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Building2, MapPin, ShieldCheck, Calendar, X, Sparkle, ArrowRight } from 'lucide-react'
+import { Building2, MapPin, ShieldCheck, Calendar, Sparkle, ArrowRight, CheckCircle2 } from 'lucide-react'
 import type { RecommendedClinic } from '@/lib/api'
 import { TREATMENT_LABELS } from '@/lib/consultationLabels'
+import { RequestCallModal } from '@/components/patient/RequestCallModal'
 
 interface Props {
   clinic: RecommendedClinic
   position: number  // 1-based for accessibility
   leadId: string    // required so the card can deep-link to the profile page
+  // P4 selection state — drives "Заявката е изпратена" / "Вече избрахте клиника"
+  // disabled CTA variants across all sibling cards.
+  selectedClinicId?: string | null
+  onSubmitted?: (selectedClinicId: string, clinicName: string) => void
 }
 
 // Ethical, non-medical placement badge.
@@ -46,8 +51,17 @@ function PlacementBadge({
   )
 }
 
-export function ClinicRecommendationCard({ clinic, position, leadId }: Props) {
-  const [preview, setPreview] = useState(false)
+export function ClinicRecommendationCard({
+  clinic,
+  position,
+  leadId,
+  selectedClinicId,
+  onSubmitted,
+}: Props) {
+  const [modalOpen, setModalOpen] = useState(false)
+
+  const hasAnySelection = !!selectedClinicId
+  const isSelected = selectedClinicId === clinic.id
 
   // BG label fallback: prefer the centralized treatment label map, else raw.
   const treatmentBadges = clinic.treatments.slice(0, 3).map((t) => (
@@ -133,11 +147,11 @@ export function ClinicRecommendationCard({ clinic, position, leadId }: Props) {
         )}
       </div>
 
-      {/* CTA — P3.5: dual action.
-          Primary  → "Виж профила" deep-links to the lead-contextual
-                     clinic profile page (read-only preview).
-          Secondary → "Искам обаждане" still opens the preview-only modal;
-                     no backend submit until Batch P4. */}
+      {/* CTA — P4 dual action, tier- and selection-aware.
+          Primary  → "Виж профила" deep-links to the lead-contextual profile.
+          Secondary → "Искам обаждане" opens the real RequestCallModal.
+                      When the lead has already chosen a clinic, the
+                      secondary button is disabled and labelled accordingly. */}
       <div className="space-y-2">
         <Link
           href={`/results/${leadId}/clinics/${clinic.id}`}
@@ -148,90 +162,50 @@ export function ClinicRecommendationCard({ clinic, position, leadId }: Props) {
           Виж профила
           <ArrowRight className="w-4 h-4" aria-hidden="true" />
         </Link>
-        <button
-          type="button"
-          onClick={() => setPreview(true)}
-          className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-white border border-slate-200 text-slate-800 text-sm font-medium rounded-full hover:bg-slate-50 transition-colors"
-          data-testid={`clinic-card-cta-${clinic.id}`}
-        >
-          Искам обаждане
-        </button>
+
+        {isSelected ? (
+          <div
+            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-emerald-50 border border-emerald-100 text-emerald-800 text-sm font-medium rounded-full"
+            data-testid={`clinic-card-submitted-${clinic.id}`}
+          >
+            <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
+            Заявката е изпратена
+          </div>
+        ) : hasAnySelection ? (
+          <button
+            type="button"
+            disabled
+            aria-disabled="true"
+            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-slate-100 text-slate-400 text-sm font-medium rounded-full cursor-not-allowed"
+            data-testid={`clinic-card-disabled-${clinic.id}`}
+          >
+            Вече избрахте клиника
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setModalOpen(true)}
+            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-white border border-slate-200 text-slate-800 text-sm font-medium rounded-full hover:bg-slate-50 transition-colors"
+            data-testid={`clinic-card-cta-${clinic.id}`}
+          >
+            Искам обаждане
+          </button>
+        )}
       </div>
 
-      {preview && (
-        <NextStepModal
-          clinicName={clinic.name}
-          onClose={() => setPreview(false)}
+      {modalOpen && (
+        <RequestCallModal
+          leadId={leadId}
+          clinic={{ id: clinic.id, name: clinic.name, city_name: clinic.city_name }}
+          source="matching_card"
+          onClose={() => setModalOpen(false)}
+          onSuccess={(resp) => {
+            const pinnedId = resp.clinic.id
+            const pinnedName = resp.clinic.name || clinic.name
+            onSubmitted?.(pinnedId, pinnedName)
+          }}
         />
       )}
     </article>
-  )
-}
-
-function NextStepModal({
-  clinicName,
-  onClose,
-}: {
-  clinicName: string
-  onClose: () => void
-}) {
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="next-step-title"
-      className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-sm flex items-center justify-center px-4 py-6"
-      onClick={onClose}
-      data-testid="clinic-card-next-step-modal"
-    >
-      <div
-        className="bg-white rounded-2xl max-w-md w-full p-6 sm:p-8 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between gap-3 mb-4">
-          <div>
-            <h3
-              id="next-step-title"
-              className="font-serif text-xl font-semibold text-slate-900"
-            >
-              Следваща стъпка
-            </h3>
-            <p className="text-sm text-slate-500 mt-1">
-              За {clinicName}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1 rounded-full hover:bg-slate-100 text-slate-500"
-            aria-label="Затвори"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <p className="text-sm text-slate-700 leading-relaxed mb-5">
-          В следващата стъпка ще потвърдите телефона си и ще дадете съгласие
-          Zubite да сподели заявката ви с избраната клиника. Ще може да
-          поискате обаждане само от <strong>една</strong> клиника. Ако сте се
-          колебаете, използвайте „Помогнете ми да избера“.
-        </p>
-
-        <div className="rounded-lg bg-slate-50 border border-slate-100 p-3 text-xs text-slate-500 leading-relaxed mb-5">
-          Тази стъпка все още се изгражда. Засега виждате преглед на това какво
-          ще се случи.
-        </div>
-
-        <button
-          type="button"
-          disabled
-          aria-disabled="true"
-          className="w-full px-5 py-3 bg-slate-100 text-slate-400 text-sm font-medium rounded-full cursor-not-allowed"
-          data-testid="next-step-modal-disabled-cta"
-        >
-          Ще бъде активирано в следващата стъпка
-        </button>
-      </div>
-    </div>
   )
 }

@@ -1,5 +1,276 @@
 # Zubite.bg — Changelog
 
+## 2026-02-16 — Patient Layer — Batch P4: Request Call Flow (REAL submit)
+
+Replaced the preview-only "Искам обаждане" modals on the matching page
+and the clinic profile with a real submit flow. Patient now selects
+**exactly one** clinic from the recommended set, confirms phone +
+consent, and the system creates a single `consultation_request` (status
+`assigned`) for that clinic only. **No email/SMS/Twilio/ElevenLabs is
+invoked.** Hard rule "1 lead = 1 clinic request" is enforced server-side
+via atomic CAS on the `leads` document plus a flow-tagged duplicate
+guard against `consultation_requests`.
+
+### Files touched
+**Backend** (3 files):
+- `backend/schemas.py` — added `RequestCallBody` (Pydantic model with
+  `clinic_id`, `phone`, `consent_to_share`, `source: matching_card|clinic_profile`).
+- `backend/routers/public.py` — added two endpoints:
+  - `POST /api/leads/{lead_id}/request-call` (rate-limited 5/300s).
+  - `GET /api/leads/{lead_id}/selection-state` (read-only, used by
+    frontend after refresh/navigation to reconstruct submitted state).
+- `backend/tests/test_patient_request_call.py` (NEW) — **31 cases,
+  all PASS** in 0.75s on isolated `zubite_test_p4_request_call` DB.
+
+**Frontend** (4 files):
+- `frontend/lib/api.ts` — added `RequestCallBody`, `RequestCallSuccess`,
+  `SelectionState` types + `postRequestCall()`, `getSelectionState()`
+  helpers + `PATIENT_CONSENT_TEXT` constant (mirrors backend verbatim).
+- `frontend/components/patient/RequestCallModal.tsx` (NEW, ~340 LOC) —
+  real-submit modal with 3 phases (form / submitting / success / error).
+  Inline 409 / 422 / generic error handling. Hot rules: never fake
+  success, never call backend twice.
+- `frontend/components/patient/ClinicRecommendationCard.tsx` — replaced
+  the preview-only `NextStepModal` with the new modal; CTA now has 3
+  states (active / submitted / disabled) driven by `selectedClinicId`
+  prop.
+- `frontend/app/results/[leadId]/clinics/page.tsx` — fetches
+  `getSelectionState` in parallel; passes `selectedClinicId` +
+  `onSubmitted` to all cards; renders a green "Вече избрахте клиника"
+  banner above the grid when applicable.
+- `frontend/app/results/[leadId]/clinics/[clinicId]/page.tsx` — same
+  selection-state fetch; passes `isThisSelected` / `hasAnySelection` to
+  `CompactHero`, `PremiumHero`, and the bottom CTA; introduces tiny
+  `RequestCallCta` helper that renders one of 3 states with a stable
+  base `data-testid`.
+- `memory/CHANGELOG.md`.
+
+### Endpoint
+
+**`POST /api/leads/{lead_id}/request-call`** — rate-limited 5/300s.
+
+**Request body:**
+```json
+{
+  "clinic_id": "string",
+  "phone": "string",
+  "consent_to_share": true,
+  "source": "matching_card" | "clinic_profile"
+}
+```
+
+**Response (200 success):**
+```json
+{
+  "success": true,
+  "request_id": "uuid",
+  "clinic": { "id": "...", "name": "...", "city_name": "..." },
+  "message": "Заявката е изпратена към избраната клиника."
+}
+```
+
+**Response (200 idempotent retry — same clinic):** same shape with
+`"already_requested": true` and `"message": "Заявката вече е изпратена…"`.
+
+**Response (409 different-clinic duplicate):**
+```json
+{
+  "detail": {
+    "success": false,
+    "code": "already_requested",
+    "clinic": { "id": "...", "name": "...", "city_name": "..." },
+    "message": "Вече сте изпратили заявка към клиника за този резултат."
+  }
+}
+```
+
+**Response (400 not-in-recommendations):**
+```json
+{
+  "detail": {
+    "success": false,
+    "code": "clinic_not_in_recommendations",
+    "message": "Тази клиника не е част от препоръките за този резултат."
+  }
+}
+```
+
+**Response (422 consent_required / phone_invalid):**
+- `code: "consent_required"` → "Необходимо е съгласие, за да споделим заявката с избраната клиника."
+- `code: "phone_invalid"` → "Моля, въведете валиден телефонен номер."
+
+Other status codes: `404` (lead missing), `410` (lead expired beyond
+the recommendation window), `429` (rate-limited).
+
+### Database fields written
+
+**On `consultation_requests` (new doc):**
+```
+id, patient_name, patient_phone, patient_email, patient_city,
+treatment_interest, urgency, readiness, quiz_result_id, lead_id,
+source = "patient_selected_clinic",
+created_from = "recommended_clinics_flow",
+selection_source = "matching_card" | "clinic_profile",
+utm_*, assigned_clinic_id, status = "assigned",
+assigned_at, clinic_viewed_at=null, first_action_at=null,
+call_attempted_at=null, patient_contacted_at=null,
+appointment_booked_at=null, attended_at=null, no_show_at=null,
+cancelled_at=null, notes=null,
+consent_to_share_clinic = true,
+consent_to_share_clinic_at = ISO,
+consent_to_share_clinic_text = REQUEST_CALL_CONSENT_TEXT (verbatim BG),
+created_at, updated_at.
+```
+
+**On `leads` (atomic update):**
+```
+selected_clinic_id, selected_clinic_requested_at, selected_clinic_request_id,
+clinic_selection_source, request_call_status = "requested",
+consent_to_share_clinic = true, consent_to_share_clinic_at,
+phone  (if patient edited it in the modal).
+```
+
+### Exactly how "1 lead = 1 clinic" is enforced
+
+1. **Pre-write idempotency check** reads `lead.selected_clinic_id` AND
+   queries `consultation_requests` for any doc with
+   `lead_id == X AND created_from == "recommended_clinics_flow"`.
+   Either signal blocks creation.
+2. **Atomic CAS on the lead doc** — `update_one` with a guard filter
+   `selected_clinic_id` in `{not exists, null, ""}`. Only the first
+   POST in a concurrent race finds the lead "unpinned" and gets
+   `modified_count == 1`. The loser falls into the duplicate path.
+3. **Defensive re-read after CAS loss** — if CAS fails we re-read the
+   lead state and return 200 (same clinic → idempotent) or 409
+   (different clinic), with the existing clinic info.
+4. **Backend explicitly does NOT call any helper that fans out to all
+   recommended clinics.** The doc is built inline in this endpoint
+   from `fresh_lead` + the server-validated `selected_clinic`.
+
+### Clinic-not-in-recommendations enforcement
+The endpoint re-runs the EXACT scoring pipeline used by
+`GET /recommended-clinics` (`_is_clinic_visible`, `_score_clinic`,
+deterministic sort, top-3 slice). The client's `clinic_id` must be in
+that server-computed set — there is no client-supplied list to trust.
+City-mismatch, inactive, missing-treatment, or 4th+ rank → 400 with
+`code=clinic_not_in_recommendations`.
+
+### Consent storage
+- Backend constant `REQUEST_CALL_CONSENT_TEXT` (BG verbatim) is stored
+  on the consultation_request AND echoed by the frontend constant
+  `PATIENT_CONSENT_TEXT` so the text shown to the patient is exactly
+  what is persisted.
+- `consent_to_share_clinic_at` is set server-side from
+  `datetime.now(timezone.utc).isoformat()` — never client-supplied.
+- The lead doc carries the same `consent_to_share_clinic` + timestamp
+  for direct audit replay.
+
+### Frontend modal behavior
+- Open from: card `Искам обаждане` button → `source=matching_card`;
+  profile top/bottom CTA → `source=clinic_profile`.
+- Submit disabled until both: phone has ≥6 digits AND consent box
+  checked. Pre-submit gating confirmed live: empty → disabled, phone
+  alone → disabled, phone + consent → enabled.
+- During submit: button label switches to "Изпращане…", modal close +
+  Esc disabled.
+- 200 success → green confirmation panel + close button. Parent's
+  `onSuccess` callback patches local selection state immediately so
+  sibling cards / hero CTAs update without round-trip.
+- 409 → amber duplicate panel with the already-selected clinic name;
+  the parent receives a synthetic success so the UI reflects the
+  server's view even when the local state was out of date.
+- Other 4xx/5xx → inline rose error band ("Възникна грешка."); form
+  stays open and re-submittable. **Never fake success.**
+
+### Success / duplicate state across pages
+- Persistent state is canonical on the server (`GET /selection-state`).
+- Both the matching page and the profile page call it in parallel
+  with the recommendation fetch.
+- After refresh, navigation, or even cross-device retry the UI
+  reconstructs the submitted state from the server.
+- Card variants:
+  - selected clinic → green `Заявката е изпратена` pill (`clinic-card-submitted-{id}`)
+  - non-selected → disabled `Вече избрахте клиника` button (`clinic-card-disabled-{id}`)
+  - none → original `Искам обаждане` button (`clinic-card-cta-{id}`)
+- Profile hero/bottom CTAs use the same 3-state `RequestCallCta`
+  with derived testids: `profile-top-cta` / `profile-top-cta-submitted`
+  / `profile-top-cta-disabled`; same for `profile-bottom-cta-*`.
+
+### Selected clinic visibility in clinic portal
+Verified: the new consultation_request is stored with
+`assigned_clinic_id=<selected_id>` and `status="assigned"` — exactly
+the shape that the existing `/api/clinic/requests` endpoint
+(`backend/routers/consultations.py:344`) queries. Cross-clinic isolation
+is preserved (test 14 + 15 confirm only the assigned clinic sees the
+row). No backend portal changes required.
+
+### Test results
+- `backend/tests/test_patient_request_call.py` — **31 / 31 PASS**
+  (`pytest tests/test_patient_request_call.py -v --tb=short`, 0.75s).
+- Existing P2 reco tests still pass when run individually (28 / 28).
+- Existing R1 review-signals tests still pass when run individually
+  (23 / 23).
+- Total backend test footprint added by P4: 31 cases covering all
+  20 required scenarios plus 5 boundary/parametrize cases.
+
+### End-to-end smoke (preview env, against real backend)
+- Lead `4bb3b171-…` (Sofia, braces_adult).
+- Submit from matching card for **Test Clinic For Email** (Featured):
+  modal opens → gated submit → 200 success → matching grid shows
+  1 submitted pill + 2 disabled + green banner.
+- Refresh → state persists.
+- Navigate to **Sofia Premium Clinic** profile → top+bottom CTAs
+  switch to `disabled` ("Вече избрахте клиника"), already-selected
+  banner shown.
+- Navigate to **Test Clinic For Email** profile → green
+  `Заявката е изпратена` pill on top+bottom.
+- DB inspection: exactly 1 consultation_request, with
+  `consent_to_share_clinic_text` verbatim BG, `assigned_clinic_id`
+  matching the selected clinic, `selection_source="matching_card"`.
+
+### TypeScript
+`tsc --noEmit` clean for all touched files (pre-existing errors in
+admin pages unrelated).
+
+### Confirmation
+- ✅ 0 admin / clinic portal UI files changed.
+- ✅ 0 emails / SMS / Twilio / ElevenLabs / Resend invoked.
+  Resend `.send` is asserted NOT called by `test_16`.
+- ✅ 0 multi-clinic fan-out. Only the selected clinic receives a
+  consultation_request.
+- ✅ 0 mutation of unrelated lead fields (test 19 keeps name, email,
+  score_total, band, answers untouched).
+- ✅ Assisted choice ("Помогнете ми да избера") remains preview-only;
+  unchanged in this batch.
+
+### Unresolved risks
+1. **No `selected_clinic_id` index yet.** Single-doc CAS is correct on
+   any Mongo version; an index on `(lead_id)` of `consultation_requests`
+   would slightly speed up the duplicate guard. We can add an index in
+   P5 or with the next admin maintenance pass.
+2. **`request_call_status` enum is single-valued ("requested") for now.**
+   When notification fan-out lands in P6, we'll extend with
+   `notified` / `accepted` / `cancelled` etc.
+3. **Phone validation is intentionally permissive** (≥6 digits, optional
+   `+`). The clinic portal will see whatever the patient supplied.
+   Strict E.164 BG validation should land alongside the notification
+   batch so we don't reject international numbers prematurely.
+4. **Patient name is empty on the consultation_request** for leads
+   that didn't go through a "contact" submit before P4 (the quiz flow
+   doesn't yet collect name). This is consistent with existing
+   behavior — the clinic portal already handles empty `patient_name`.
+5. **`selected_clinic_request_id` backfill** in step 9 is not part of
+   the CAS — it's a second `update_one`. In a crash window between
+   steps 7-8-9, the lead is pinned but `request_id` is null. The flow
+   re-detects this on retry via the cross-check in step 6 and returns
+   the existing request id from the consultation_request.
+
+### Safe to proceed to P5 (Assisted choice)?
+**Yes.** P4 is complete and self-contained; the patient layer now has a
+fully operational, single-clinic, audit-ready request-call flow.
+
+
+
 ## 2026-02-16 — Patient Layer — Batch P3.7: Premium-only Profile Sections
 
 Added five **Premium-tier-only** profile sections (Case Library,
