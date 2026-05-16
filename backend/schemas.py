@@ -511,9 +511,15 @@ class BlogViewEvent(BaseModel):
 # ─── Analytics Models ──────────────────────────────────────
 
 class AnalyticsEvent(BaseModel):
+    # Defensive: Pydantic v2 default is `extra="ignore"` but we set it
+    # explicitly so a future Pydantic config change can't silently start
+    # accepting PII-looking keys (phone, email, patient_message, …).
+    model_config = ConfigDict(extra="ignore")
+
     event_type: str
     session_id: str
     timestamp: str
+    # Legacy quiz funnel fields ----------------------------------------
     question_id: Optional[str] = None
     question_index: Optional[int] = None
     answer: Optional[str] = None
@@ -530,6 +536,23 @@ class AnalyticsEvent(BaseModel):
     has_email: Optional[bool] = None
     segment: Optional[str] = None
     flags: Optional[List[str]] = None
+    # P6 patient-funnel fields (Feb 2026) ------------------------------
+    # Strictly non-PII. Each is wired from frontend/lib/patientAnalytics.ts.
+    lead_id: Optional[str] = None
+    clinic_id: Optional[str] = None
+    partner_tier: Optional[str] = None
+    placement_label: Optional[str] = None
+    source: Optional[str] = None
+    rank_position: Optional[int] = None
+    success: Optional[bool] = None
+    error_code: Optional[str] = None
+    reason: Optional[str] = None
+    attempted_action: Optional[str] = None
+    clinic_count: Optional[int] = None
+    has_premium: Optional[bool] = None
+    has_featured: Optional[bool] = None
+    has_standard: Optional[bool] = None
+    has_lead_id: Optional[bool] = None
 
 
 

@@ -1,5 +1,144 @@
 # Zubite.bg — Changelog
 
+## 2026-02-16 — Backend Analytics Schema Follow-up for P6
+
+Extended the `AnalyticsEvent` Pydantic model to accept & persist the
+P6 patient-funnel fields the frontend already sends. **Schema-only
+backend change. No endpoint logic, no routing, no frontend changes,
+no external providers, no auth changes.**
+
+### Files touched
+- `backend/schemas.py` — added 15 new `Optional[...]` fields to
+  `AnalyticsEvent`. Explicit `model_config = ConfigDict(extra="ignore")`
+  added so PII-looking keys stay dropped even if Pydantic defaults
+  change in a future version.
+- `backend/tests/test_patient_analytics_payload.py` (NEW, 11 cases) —
+  **11/11 PASS** in 0.73s on isolated `zubite_test_p6_analytics_schema`
+  DB.
+- `memory/CHANGELOG.md`.
+
+### Fields added
+```python
+# P6 patient-funnel fields (Feb 2026)
+lead_id:          Optional[str] = None
+clinic_id:        Optional[str] = None
+partner_tier:     Optional[str] = None
+placement_label:  Optional[str] = None
+source:           Optional[str] = None
+rank_position:    Optional[int] = None
+success:          Optional[bool] = None
+error_code:       Optional[str] = None
+reason:           Optional[str] = None
+attempted_action: Optional[str] = None
+clinic_count:     Optional[int] = None
+has_premium:      Optional[bool] = None
+has_featured:     Optional[bool] = None
+has_standard:     Optional[bool] = None
+has_lead_id:      Optional[bool] = None
+```
+
+(`band`, `segment`, `city` were already declared on the legacy quiz
+shape and are reused.)
+
+All optional, all default to `None`. The endpoint already strips
+`None` values before insert (existing dict-comp in
+`backend/routers/analytics.py`), so absent fields don't pollute the
+collection.
+
+### Tests added (`test_patient_analytics_payload.py`)
+| # | Test | Result |
+|---|---|---|
+| 01 | Legacy `article_view` event still works (extra keys dropped) | ✅ |
+| 02 | Legacy `question_answered` quiz event still works | ✅ |
+| 03 | P6 `request_call_submitted` — full attribution stored | ✅ |
+| 04 | P6 minimal event with only required fields | ✅ |
+| 05 | P6 `clinic_recommendations_viewed` with tier-flag booleans | ✅ |
+| 06 | P6 `request_call_failed` — `error_code` persisted | ✅ |
+| 07 | P6 `matching_choice_blocked` — `reason` + `attempted_action` persisted | ✅ |
+| 08 | Unknown extra field silently dropped (`extra="ignore"`) | ✅ |
+| 09 | **PII guard** — `name`/`phone`/`email`/`patient_*`/`message`/`consent_text`/`access_token`/`cookie` all dropped, values never reach Mongo | ✅ |
+| 10 | Full 4-event funnel roundtrip — `lead_id` correlates all events | ✅ |
+| 11 | Rate-limit (60/min) still enforced | ✅ |
+
+**Total: 11/11 PASS in 0.73s** on isolated test DB.
+
+### Live verification (production-equivalent preview)
+```
+$ curl -X POST .../api/analytics/events -d '{
+    event_type: "p6_smoke_post_schema",
+    session_id: "smoke-session-final",
+    timestamp: "...",
+    lead_id, clinic_id, partner_tier, placement_label,
+    source, rank_position, success,
+    phone: "+359888SHOULDDROP",     ← PII
+    patient_message: "SHOULD NOT…"  ← PII
+}'
+{"status": "ok"}
+
+$ db.analytics_events.findOne({session_id:"smoke-session-final"})
+{
+  id, event_type, session_id, timestamp, created_at,
+  lead_id: "smoke-lead-1",
+  clinic_id: "smoke-clinic-1",
+  partner_tier: "premium",
+  placement_label: "Premium партньор",
+  source: "matching_card",
+  rank_position: 1,
+  success: true
+}
+PII keys present: []
+```
+All 7 declared P6 fields stored; both PII keys dropped silently.
+
+### Legacy analytics — still works
+- `articleAnalytics.ts` events (`article_view`, etc. with `post_slug`,
+  `post_title`, `href`, `cta`) → POST 200, extras dropped, `event_type`
+  + `session_id` + `timestamp` persisted exactly as before.
+- `MasterQuiz.tsx` events (`question_answered`, `form_submitted`, etc.
+  with `question_id`, `score`, `answers`) → all legacy fields still
+  declared on the model, fully persisted.
+
+### Privacy / PII guarantee
+- `extra="ignore"` is now **explicit** on `AnalyticsEvent` — set by
+  config, not just by Pydantic v2 default. A future framework upgrade
+  or accidental config change can't silently turn it into
+  `extra="allow"` and start leaking PII keys.
+- The new fields are statically the non-PII subset listed in the
+  brief. **No** `name`/`phone`/`email`/`message`/`consent`/`token`/
+  `cookie` field declared on the model. Tests #08 and #09 pin this.
+
+### Confirmation
+- ✅ 0 frontend / admin / clinic-portal files changed.
+- ✅ 0 auth / session / CSRF / audit / external-provider changes.
+- ✅ 0 endpoint logic changed in `analytics.py` — purely schema-level.
+- ✅ 0 new dependencies.
+- ✅ Existing routes unchanged.
+- ✅ Backend rate-limit (60/min) still enforced (test 11).
+- ✅ Git not pushed, "Save to GitHub" not used, deploy not triggered.
+
+### Unresolved risks
+1. **Cross-suite DB pollution in some legacy test files**
+   (`test_refactored_api.py::TestAnalyticsEndpoints` uses a global
+   `BASE_URL` env var that's not set in this environment — pre-existing
+   issue, unrelated to this change). Each individual test suite passes
+   when run in isolation.
+2. **`articleAnalytics.ts` extras still dropped.** The new fields are
+   patient-funnel-specific; the blog tracking pipeline still drops
+   `post_slug` / `post_title` / `href` / `cta`. Out of scope per brief
+   ("avoid touching blog tracking unless necessary"). When/if needed,
+   add those keys the same way.
+3. **No mongo index** on `lead_id` or `clinic_id` in
+   `analytics_events`. For the funnel admin view, an index on
+   `(lead_id, timestamp)` will be helpful. Out of P6 scope; cheap
+   follow-up.
+
+### Safe to proceed to Admin Rich Clinic Profile Editor?
+✅ **Yes.** P6 backend follow-up is purely additive at the schema
+level. No surface area in admin / clinic / patient flows changed. The
+Admin Rich Profile Editor batch can proceed with confidence.
+
+
+
 ## 2026-02-16 — Patient Layer — Batch P6: Client-side Analytics Tracking
 
 Wired the patient decision flow with 12 first-party events so we can
