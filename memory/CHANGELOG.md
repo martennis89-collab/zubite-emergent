@@ -1,5 +1,133 @@
 # Zubite.bg — Changelog
 
+## 2026-02-16 — Patient Layer — Batch P3.7: Premium-only Profile Sections
+
+Added five **Premium-tier-only** profile sections (Case Library,
+Doctor Spotlight, Patient Journey, Zubite Feedback placeholder; plus the
+existing Environment/equipment block reordered into the new sequence) so
+the demo clearly shows what commercial tier unlocks on the
+patient-facing profile. **Frontend only. No backend, no submit, no fake
+clinical content.**
+
+### Files touched
+- `frontend/app/results/[leadId]/clinics/[clinicId]/page.tsx` — added 4
+  new colocated subcomponents (`CaseLibrarySection`,
+  `DoctorSpotlightSection`, `PatientJourneySection`,
+  `ZubiteFeedbackPlaceholderSection`); restructured premium-branch
+  rendering to the spec'd order. Featured/Standard branches untouched.
+- `memory/CHANGELOG.md`.
+
+### Final Premium section order (post-P3.7)
+1. Hero (2-column)
+2. Видео представяне (+ 2 video placeholders)
+3. Защо виждате тази клиника
+4. Подходяща за
+5. Отзиви и доверие *(only if `review_signals` present)*
+6. **Библиотека със случаи**  ← NEW
+7. **Водещ лекар / екип**  ← NEW (replaces P3.6 "Екип и лекари")
+8. Среда и оборудване
+9. **Как протича първата стъпка** (Patient Journey)  ← NEW (replaces P3.6 "Какво да очаквате")
+10. **Обратна връзка от пациенти през Zubite**  ← NEW
+11. Bottom CTA + trust note
+
+For Featured and Standard tiers, the generic "Какво да очаквате при
+първата стъпка" block is still rendered (only Premium opts out, since
+it has the richer Patient Journey).
+
+### Exact placeholder copy
+
+**Case Library** (`profile-case-library-section`):
+> Тук Premium клиниката ще може да покаже завършени случаи, когато има
+> разрешение за споделяне и съдържанието е одобрено.
+
+3 case cards (`profile-case-card-aligners` / `-orthodontics` / `-aesthetic`):
+- Subtitle: **Завършен случай**
+- Title: **Алайнери** / **Ортодонтско лечение** / **Естетично лечение**
+- Body: **Очаква реално съдържание от клиниката.**
+- Visual style: dashed border, muted slate-50/60 background, small
+  "Очаква съдържание" pill in the top-right of each card.
+- **No before/after imagery. No patient names. No durations. No outcomes.**
+
+**Doctor Spotlight** (`profile-doctor-spotlight-section`):
+> Тук клиниката ще може да представи водещ лекар или екип, който работи
+> по този тип случаи.
+- Avatar = circle with neutral `UserCircle2` icon (`profile-doctor-avatar-placeholder`).
+- Body: **Информацията за екипа ще бъде добавена от клиниката.**
+- Honesty stamp: **Все още не е добавено**
+- **No fake doctor name. No bio. No years of experience.**
+
+**Patient Journey** (`profile-patient-journey-section`):
+- Intro: "След като заявите обаждане, клиниката ще получи вашата заявка
+  през Zubite. След това ще може да се свърже с вас, за да уточни дали
+  е подходящо да запазите консултация."
+- 4-step ordered list (`profile-patient-journey-steps`):
+  1. Избирате клиника
+  2. Потвърждавате телефон и съгласие
+  3. Клиниката получава заявката
+  4. Уточнявате следващата стъпка
+- **No "guaranteed appointment". No "Zubite provides diagnosis".**
+
+**Zubite Feedback Placeholder** (`profile-zubite-feedback-section`):
+> Тук ще се показва структурирана обратна връзка от пациенти, които са
+> минали през Zubite процеса, когато има достатъчно реални данни.
+
+Empty state (`profile-zubite-feedback-empty`):
+> Все още няма достатъчно данни за публично обобщение.
+
+- **No fake ratings, testimonials, quotes, or aggregate scores.**
+
+### Tier visibility behavior (smoke-test confirmed)
+
+| Section | Standard | Featured | Premium |
+|---|:-:|:-:|:-:|
+| `profile-case-library-section` | 0 | 0 | **1** |
+| `profile-case-card-*` cards | 0 | 0 | **3** |
+| `profile-doctor-spotlight-section` | 0 | 0 | **1** |
+| `profile-patient-journey-section` | 0 | 0 | **1** (4 steps) |
+| `profile-zubite-feedback-section` | 0 | 0 | **1** |
+| `profile-environment-section` | 0 | 0 | **1** |
+| `profile-video-section` (P3.6) | 0 | 0 | **1** |
+| Generic `profile-next-step-section` | 1 | 1 | **0** (replaced by Patient Journey) |
+| `profile-about-section` (Featured-only) | 0 | 1 | 0 |
+| `profile-featured-extra-section` | 0 | 1 | 0 |
+| Premium tier labels | 0 | 0 | **6** |
+| Featured tier labels | 0 | 2 | 0 |
+
+### CTA behavior
+Both `profile-top-cta` and `profile-bottom-cta` still open the same
+preview-only `NextStepModal`. Smoke test confirms `modal=1` +
+`aria-disabled="true"` on the internal CTA. **No backend POST. No
+consultation request. No email.**
+
+### Forbidden-content audit (live DOM, all 3 tiers)
+Zero hits for: "най-добра", "топ клиника", "#1", "гарантирано",
+"проверено качество", "certified", "recommended doctor", "expert pick",
+"trust score", "overall score", "рейтинг на zubite", "успех",
+"успеваем". No "д-р", "dr.", "доктор" tokens (no fake doctor names).
+
+### Mobile (375×800 on Premium — the richest layout)
+`scrollWidth - clientWidth = 0` → no horizontal overflow. Case-cards
+grid collapses to 1 column, Patient Journey steps collapse to 1 column,
+Doctor Spotlight flex stays within viewport.
+
+### TypeScript
+`tsc --noEmit` clean for all touched files. Note: replaced
+non-existent `lucide-react` icon `Route` with `Footprints` (lucide
+doesn't ship a `Route` icon in this version).
+
+### Confirmation
+- ✅ 0 backend / admin / clinic portal files changed.
+- ✅ 0 external providers called.
+- ✅ 0 new dependencies (only an additional icon import from the
+  already-installed `lucide-react`).
+- ✅ Premium-only sections render strictly when
+  `partner_tier === 'premium' || placement_label === 'Premium партньор'`.
+- ✅ No fake patient names / photos / before-after / outcomes /
+  durations / awards / case studies / doctor names / testimonials /
+  review videos / pricing / quality claims.
+
+
+
 ## 2026-02-16 — Patient Layer — Batch P3.6: Rich Clinic Profile Layout (tier-aware)
 
 Upgraded the lead-contextual clinic profile to feel like a premium,

@@ -7,7 +7,8 @@ import axios from 'axios'
 import {
   ArrowLeft, Building2, MapPin, ShieldCheck, Calendar,
   Sparkle, AlertCircle, X, Compass, Loader2, PlayCircle,
-  Stethoscope, Users, Image as ImageIcon, FileText,
+  Stethoscope, Image as ImageIcon, FileText,
+  BookOpenCheck, UserCircle2, Footprints, MessagesSquare,
 } from 'lucide-react'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
@@ -224,35 +225,15 @@ function ProfileBody({
         )}
       </section>
 
-      {/* ── За клиниката (Featured + Premium) ───────────────── */}
-      {(isFeatured || isPremium) && (
+      {/* ── За клиниката (Featured only — Premium uses richer sections below) */}
+      {isFeatured && (
         <PlaceholderSection
           testid="profile-about-section"
-          tierLabel={isPremium ? 'premium' : 'featured'}
+          tierLabel="featured"
           title="За клиниката"
           icon={<FileText className="w-4 h-4 text-sky-600" />}
           body="Клиниката все още не е добавила подробно описание към профила си."
         />
-      )}
-
-      {/* ── Екип и лекари + Среда и оборудване (Premium only) */}
-      {isPremium && (
-        <>
-          <PlaceholderSection
-            testid="profile-team-section"
-            tierLabel="premium"
-            title="Екип и лекари"
-            icon={<Users className="w-4 h-4 text-sky-600" />}
-            body="Информация за екипа ще бъде добавена от клиниката."
-          />
-          <PlaceholderSection
-            testid="profile-environment-section"
-            tierLabel="premium"
-            title="Среда и оборудване"
-            icon={<Stethoscope className="w-4 h-4 text-sky-600" />}
-            body="Тук клиниката ще може да представи средата, технологиите и удобствата за пациента."
-          />
-        </>
       )}
 
       {/* ── Featured-only extra (lighter than Premium) ──────── */}
@@ -271,23 +252,47 @@ function ProfileBody({
         <ReviewSignalsSection signals={clinic.review_signals} />
       )}
 
-      {/* ── Какво се случва, ако изберете тази клиника ──────── */}
-      <section
-        className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
-        data-testid="profile-next-step-section"
-      >
-        <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 mb-3">
-          Какво да очаквате при първата стъпка
-        </h2>
-        <p className="text-sm text-slate-700 leading-relaxed">
-          Ако изберете тази клиника, в следващата стъпка ще потвърдите телефона
-          си и ще дадете съгласие Zubite да сподели заявката ви с клиниката.
-        </p>
-        <p className="mt-3 text-xs text-slate-500 leading-relaxed inline-flex items-start gap-2">
-          <ShieldCheck className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
-          <span>{clinic.response_expectation}</span>
-        </p>
-      </section>
+      {/* ── Premium-only rich section stack (P3.7) ──────────────
+          Per spec, on Premium profiles render after Reviews, in this
+          order: Case Library, Doctor Spotlight, Environment/equipment,
+          Patient Journey, Zubite Feedback Placeholder. */}
+      {isPremium && (
+        <>
+          <CaseLibrarySection />
+          <DoctorSpotlightSection />
+          <PlaceholderSection
+            testid="profile-environment-section"
+            tierLabel="premium"
+            title="Среда и оборудване"
+            icon={<Stethoscope className="w-4 h-4 text-sky-600" />}
+            body="Тук клиниката ще може да представи средата, технологиите и удобствата за пациента."
+          />
+          <PatientJourneySection />
+          <ZubiteFeedbackPlaceholderSection />
+        </>
+      )}
+
+      {/* ── Какво се случва, ако изберете тази клиника ──────────
+          For Premium this content lives inside Patient Journey above,
+          so we render the generic block ONLY for Standard + Featured. */}
+      {!isPremium && (
+        <section
+          className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+          data-testid="profile-next-step-section"
+        >
+          <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 mb-3">
+            Какво да очаквате при първата стъпка
+          </h2>
+          <p className="text-sm text-slate-700 leading-relaxed">
+            Ако изберете тази клиника, в следващата стъпка ще потвърдите телефона
+            си и ще дадете съгласие Zubite да сподели заявката ви с клиниката.
+          </p>
+          <p className="mt-3 text-xs text-slate-500 leading-relaxed inline-flex items-start gap-2">
+            <ShieldCheck className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
+            <span>{clinic.response_expectation}</span>
+          </p>
+        </section>
+      )}
 
       {/* ── Bottom CTA (all tiers) ──────────────────────────── */}
       <section
@@ -611,6 +616,200 @@ function PlaceholderSection({
     </section>
   )
 }
+
+/* ──────────────── Premium-only sections (P3.7) ────────────────
+   These render ONLY for Premium-tier clinics. Each section includes
+   a `Premium секция` tier label so the demo audience can see what
+   commercial tier unlocks. Wording is strictly about PROFILE DEPTH /
+   VISIBILITY — never clinical superiority.
+   ─────────────────────────────────────────────────────────────── */
+
+function CaseLibrarySection() {
+  const cases = [
+    {
+      title: 'Алайнери',
+      subtitle: 'Завършен случай',
+      body: 'Очаква реално съдържание от клиниката.',
+      testid: 'profile-case-card-aligners',
+    },
+    {
+      title: 'Ортодонтско лечение',
+      subtitle: 'Завършен случай',
+      body: 'Очаква реално съдържание от клиниката.',
+      testid: 'profile-case-card-orthodontics',
+    },
+    {
+      title: 'Естетично лечение',
+      subtitle: 'Завършен случай',
+      body: 'Очаква реално съдържание от клиниката.',
+      testid: 'profile-case-card-aesthetic',
+    },
+  ]
+  return (
+    <section
+      className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+      data-testid="profile-case-library-section"
+    >
+      <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
+        <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 inline-flex items-center gap-2">
+          <span className="w-7 h-7 rounded-md bg-sky-50 grid place-items-center">
+            <BookOpenCheck className="w-4 h-4 text-sky-600" aria-hidden="true" />
+          </span>
+          Библиотека със случаи
+        </h2>
+        <TierLabel tier="premium" />
+      </div>
+      <p className="text-sm text-slate-600 leading-relaxed mb-5 max-w-3xl">
+        Тук Premium клиниката ще може да покаже завършени случаи, когато има
+        разрешение за споделяне и съдържанието е одобрено.
+      </p>
+
+      <ul className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {cases.map((c) => (
+          <li
+            key={c.testid}
+            className="rounded-xl border border-dashed border-slate-300 bg-slate-50/60 p-5 flex flex-col min-h-[180px]"
+            data-testid={c.testid}
+          >
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <span className="text-[10px] tracking-[0.18em] uppercase text-slate-400 font-medium">
+                {c.subtitle}
+              </span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white border border-slate-200 text-[10px] text-slate-500">
+                Очаква съдържание
+              </span>
+            </div>
+            <h3 className="font-serif text-base font-semibold text-slate-800 mb-1.5">
+              {c.title}
+            </h3>
+            <p className="text-xs text-slate-500 leading-relaxed">{c.body}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+function DoctorSpotlightSection() {
+  return (
+    <section
+      className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+      data-testid="profile-doctor-spotlight-section"
+    >
+      <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
+        <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 inline-flex items-center gap-2">
+          <span className="w-7 h-7 rounded-md bg-sky-50 grid place-items-center">
+            <UserCircle2 className="w-4 h-4 text-sky-600" aria-hidden="true" />
+          </span>
+          Водещ лекар / екип
+        </h2>
+        <TierLabel tier="premium" />
+      </div>
+      <p className="text-sm text-slate-600 leading-relaxed mb-5 max-w-3xl">
+        Тук клиниката ще може да представи водещ лекар или екип, който работи
+        по този тип случаи.
+      </p>
+
+      <div className="flex items-center gap-4 rounded-xl border border-dashed border-slate-300 bg-slate-50/60 p-5">
+        <div
+          className="w-16 h-16 rounded-full bg-white border border-slate-200 grid place-items-center flex-shrink-0"
+          aria-hidden="true"
+          data-testid="profile-doctor-avatar-placeholder"
+        >
+          <UserCircle2 className="w-8 h-8 text-slate-300" strokeWidth={1.5} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-slate-700 leading-snug">
+            Информацията за екипа ще бъде добавена от клиниката.
+          </p>
+          <p className="mt-1 text-[10px] tracking-[0.18em] uppercase text-slate-400 font-medium">
+            Все още не е добавено
+          </p>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function PatientJourneySection() {
+  const steps = [
+    'Избирате клиника',
+    'Потвърждавате телефон и съгласие',
+    'Клиниката получава заявката',
+    'Уточнявате следващата стъпка',
+  ]
+  return (
+    <section
+      className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+      data-testid="profile-patient-journey-section"
+    >
+      <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
+        <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 inline-flex items-center gap-2">
+          <span className="w-7 h-7 rounded-md bg-sky-50 grid place-items-center">
+            <Footprints className="w-4 h-4 text-sky-600" aria-hidden="true" />
+          </span>
+          Как протича първата стъпка
+        </h2>
+        <TierLabel tier="premium" />
+      </div>
+      <p className="text-sm text-slate-700 leading-relaxed mb-6 max-w-3xl">
+        След като заявите обаждане, клиниката ще получи вашата заявка през
+        Zubite. След това ще може да се свърже с вас, за да уточни дали е
+        подходящо да запазите консултация.
+      </p>
+
+      <ol
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"
+        data-testid="profile-patient-journey-steps"
+      >
+        {steps.map((label, i) => (
+          <li
+            key={label}
+            className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 flex items-start gap-3"
+          >
+            <span className="w-7 h-7 rounded-full bg-white border border-slate-200 text-xs font-semibold text-sky-700 grid place-items-center flex-shrink-0 tabular-nums">
+              {i + 1}
+            </span>
+            <span className="text-sm text-slate-700 leading-snug">{label}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  )
+}
+
+function ZubiteFeedbackPlaceholderSection() {
+  return (
+    <section
+      className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+      data-testid="profile-zubite-feedback-section"
+    >
+      <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
+        <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 inline-flex items-center gap-2">
+          <span className="w-7 h-7 rounded-md bg-sky-50 grid place-items-center">
+            <MessagesSquare className="w-4 h-4 text-sky-600" aria-hidden="true" />
+          </span>
+          Обратна връзка от пациенти през Zubite
+        </h2>
+        <TierLabel tier="premium" />
+      </div>
+      <p className="text-sm text-slate-600 leading-relaxed mb-4 max-w-3xl">
+        Тук ще се показва структурирана обратна връзка от пациенти, които са
+        минали през Zubite процеса, когато има достатъчно реални данни.
+      </p>
+      <div
+        className="rounded-xl border border-dashed border-slate-300 bg-slate-50/60 p-5"
+        data-testid="profile-zubite-feedback-empty"
+      >
+        <p className="text-sm text-slate-600 leading-relaxed">
+          Все още няма достатъчно данни за публично обобщение.
+        </p>
+      </div>
+    </section>
+  )
+}
+
+
 
 /* ──────────────── Subcomponents ──────────────── */
 
