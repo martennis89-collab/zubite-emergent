@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { X, Cookie, ChevronDown, ChevronUp } from 'lucide-react'
 
@@ -13,7 +14,22 @@ interface CookiePreferences {
 const COOKIE_CONSENT_KEY = 'zubite_cookie_consent'
 const COOKIE_PREFERENCES_KEY = 'zubite_cookie_preferences'
 
+// Routes where the consent banner is NOT legally required because the page
+// only uses strictly-necessary cookies (auth/session/CSRF). These are
+// authenticated internal B2B portals — no Meta Pixel, no analytics, no
+// marketing trackers. Under GDPR + ePrivacy + BG ЗЕС, strictly-necessary
+// cookies are exempt from the consent requirement.
+const CONSENT_EXEMPT_PREFIXES = ['/admin', '/clinic'] as const
+
+function isConsentExemptPath(pathname: string | null): boolean {
+  if (!pathname) return false
+  return CONSENT_EXEMPT_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(p + '/'),
+  )
+}
+
 export function CookieConsent() {
+  const pathname = usePathname()
   const [isVisible, setIsVisible] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
   const [preferences, setPreferences] = useState<CookiePreferences>({
@@ -23,6 +39,11 @@ export function CookieConsent() {
   })
 
   useEffect(() => {
+    // Skip entirely on consent-exempt routes (admin / clinic portals).
+    if (isConsentExemptPath(pathname)) {
+      setIsVisible(false)
+      return
+    }
     // Check if user has already given consent
     const consent = localStorage.getItem(COOKIE_CONSENT_KEY)
     if (!consent) {
@@ -32,7 +53,7 @@ export function CookieConsent() {
       }, 1000)
       return () => clearTimeout(timer)
     }
-  }, [])
+  }, [pathname])
 
   const saveConsent = (allAccepted: boolean) => {
     const finalPreferences = allAccepted 
@@ -72,6 +93,7 @@ export function CookieConsent() {
     saveConsent(false)
   }
 
+  if (isConsentExemptPath(pathname)) return null
   if (!isVisible) return null
 
   return (

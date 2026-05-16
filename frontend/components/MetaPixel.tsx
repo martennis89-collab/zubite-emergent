@@ -2,8 +2,21 @@
 
 import Script from 'next/script'
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 
 const PIXEL_ID = '26074948688761177'
+
+// Internal portals (admin / clinic) don't need Meta Pixel — they're
+// authenticated B2B surfaces and would just add a tracker that never
+// fires. Skipping the script entirely keeps these routes clean.
+const PIXEL_EXEMPT_PREFIXES = ['/admin', '/clinic'] as const
+
+function isPixelExemptPath(pathname: string | null): boolean {
+  if (!pathname) return false
+  return PIXEL_EXEMPT_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(p + '/'),
+  )
+}
 
 // Extend window type for fbq
 declare global {
@@ -14,9 +27,11 @@ declare global {
 }
 
 export function MetaPixel() {
+  const pathname = usePathname()
   const [consentGranted, setConsentGranted] = useState(false)
 
   useEffect(() => {
+    if (isPixelExemptPath(pathname)) return
     // Check if marketing consent was already given (page refresh scenario)
     const savedPreferences = localStorage.getItem('zubite_cookie_preferences')
     if (savedPreferences) {
@@ -54,7 +69,9 @@ export function MetaPixel() {
     return () => {
       window.removeEventListener('cookie-consent-marketing', handleConsentChange)
     }
-  }, [])
+  }, [pathname])
+
+  if (isPixelExemptPath(pathname)) return null
 
   return (
     <>
