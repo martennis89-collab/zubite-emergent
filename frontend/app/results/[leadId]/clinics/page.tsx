@@ -221,14 +221,14 @@ export default function ClinicMatchPage() {
                 className="mb-6 overflow-hidden rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50/70 via-white to-white"
                 data-testid="care-pass-benefit-strip"
               >
-                <div className="grid grid-cols-1 sm:grid-cols-[160px_minmax(0,1fr)] gap-4 sm:gap-5 p-4 sm:p-5 items-center">
-                  <div className="relative w-full max-w-[200px] sm:max-w-none aspect-[5/4] sm:aspect-square rounded-xl bg-white ring-1 ring-slate-200 overflow-hidden mx-auto sm:mx-0">
+                <div className="grid grid-cols-1 sm:grid-cols-[260px_minmax(0,1fr)] gap-4 sm:gap-6 p-4 sm:p-6 items-center">
+                  <div className="relative w-full aspect-[4/3] rounded-xl bg-white ring-1 ring-slate-200 overflow-hidden">
                     <Image
                       src="/care-pass.png"
                       alt="Zubite Care Pass — карта с партньорски ползи"
                       fill
-                      sizes="(max-width: 640px) 200px, 160px"
-                      className="object-cover"
+                      sizes="(max-width: 640px) 100vw, 260px"
+                      className="object-contain"
                       priority={false}
                     />
                   </div>

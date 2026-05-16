@@ -191,13 +191,15 @@ function SuccessContent() {
           className="mt-6 rounded-xl border border-slate-200 bg-white/70 px-4 py-3 flex items-start gap-3"
           data-testid="success-care-pass-note"
         >
-          <Image
-            src="/care-pass.png"
-            alt="Zubite Care Pass"
-            width={56}
-            height={56}
-            className="w-14 h-14 rounded-lg object-cover flex-shrink-0 ring-1 ring-slate-200"
-          />
+          <div className="relative w-24 h-[72px] flex-shrink-0 rounded-lg bg-white ring-1 ring-slate-200 overflow-hidden">
+            <Image
+              src="/care-pass.png"
+              alt="Zubite Care Pass"
+              fill
+              sizes="96px"
+              className="object-contain"
+            />
+          </div>
           <p className="text-xs text-slate-600 leading-relaxed">
             <span className="font-semibold text-slate-800">Zubite Care Pass.</span>{' '}
             След като посетите консултация, заявена през Zubite.bg, клиниката
