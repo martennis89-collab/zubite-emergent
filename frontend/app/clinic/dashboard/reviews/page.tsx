@@ -6,7 +6,7 @@ import { ClinicShell } from '@/components/ClinicShell'
 import { ReviewPoster } from '@/components/ReviewPoster'
 import {
   Loader2, Copy, Check, Printer, Star, ShieldCheck, Clock,
-  CheckCircle2, XCircle, Inbox, Eye,
+  CheckCircle2, XCircle, Inbox, Eye, ExternalLink,
 } from 'lucide-react'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
@@ -60,6 +60,28 @@ export default function ClinicReviewsPage() {
   const [copied, setCopied] = useState(false)
   const [showPosterPreview, setShowPosterPreview] = useState(false)
 
+  // The backend default base URL ("https://zubite.bg") is a deployment
+  // placeholder — it 404s in preview environments. The QR code MUST
+  // always point to a host that actually serves the review page. Since
+  // the clinic dashboard is loaded from the same origin that hosts the
+  // public review route, `window.location.origin` is the only host we
+  // are guaranteed works. We rebuild the public URL from the clinic_id
+  // returned by the backend, and only fall back to the backend-supplied
+  // string on the server (SSR) where `window` is unavailable.
+  const [reviewUrl, setReviewUrl] = useState('')
+  useEffect(() => {
+    if (!link) return
+    const origin =
+      typeof window !== 'undefined' && window.location?.origin
+        ? window.location.origin
+        : ''
+    setReviewUrl(
+      origin
+        ? `${origin}/review/clinic/${link.clinic_id}`
+        : link.review_url || ''
+    )
+  }, [link])
+
   const load = useCallback(async () => {
     setLoading(true)
     try {
@@ -84,9 +106,9 @@ export default function ClinicReviewsPage() {
   useEffect(() => { load() }, [load])
 
   const handleCopy = async () => {
-    if (!link?.review_url) return
+    if (!reviewUrl) return
     try {
-      await navigator.clipboard.writeText(link.review_url)
+      await navigator.clipboard.writeText(reviewUrl)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch { /* noop */ }
@@ -131,15 +153,26 @@ export default function ClinicReviewsPage() {
           >
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
-                Линк за обратна връзка
+                Линк за ревюта
               </p>
               <div className="flex items-center gap-2 rounded-lg bg-slate-50 border border-slate-200 px-3 py-2">
                 <span
-                  className="text-xs sm:text-sm text-slate-700 truncate font-mono"
+                  className="text-xs sm:text-sm text-sky-700 truncate font-mono flex-1 min-w-0"
                   data-testid="clinic-review-url"
+                  title={reviewUrl}
                 >
-                  {link.review_url}
+                  {reviewUrl || 'Зареждане…'}
                 </span>
+                <button
+                  type="button"
+                  onClick={() => reviewUrl && window.open(reviewUrl, '_blank', 'noopener,noreferrer')}
+                  disabled={!reviewUrl}
+                  className="flex-shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-sky-600 hover:bg-sky-50 disabled:opacity-40"
+                  data-testid="clinic-review-open-btn"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  Отвори
+                </button>
                 <button
                   type="button"
                   onClick={handleCopy}
@@ -147,7 +180,7 @@ export default function ClinicReviewsPage() {
                   data-testid="clinic-review-copy-btn"
                 >
                   {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                  {copied ? 'Копирано' : 'Копирай'}
+                  {copied ? 'Копирано' : 'Копирай линк'}
                 </button>
               </div>
 
@@ -183,7 +216,7 @@ export default function ClinicReviewsPage() {
               data-testid="clinic-review-qr"
             >
               <QRCodeCanvas
-                value={link.review_url}
+                value={reviewUrl}
                 size={144}
                 level="M"
                 includeMargin={false}
@@ -333,7 +366,7 @@ export default function ClinicReviewsPage() {
               <ReviewPoster
                 clinicName={link.clinic_name}
                 cityName={link.city_name}
-                reviewUrl={link.review_url}
+                reviewUrl={reviewUrl}
                 variant="preview"
               />
             </div>
@@ -346,7 +379,7 @@ export default function ClinicReviewsPage() {
             <ReviewPoster
               clinicName={link.clinic_name}
               cityName={link.city_name}
-              reviewUrl={link.review_url}
+              reviewUrl={reviewUrl}
               variant="print"
             />
           </div>
