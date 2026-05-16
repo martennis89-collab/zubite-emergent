@@ -532,6 +532,111 @@ function PartnerValueSection() {
 }
 
 /* ════════════════════════════════════════════════════════════
+   NEUTRAL DECISION LAYER  (Не просто lead. По-информиран пациент.)
+   ════════════════════════════════════════════════════════════ */
+const neutralLayerBullets = [
+  'пациентът идва с повече контекст, не само с въпрос „колко струва“',
+  'вижда ограничен брой подходящи опции, не безкраен списък',
+  'може да поиска помощ от Zubite, ако не е сигурен',
+  'клиниката получава по-структурирана заявка',
+  'намалява хаотичното сравняване само по цена',
+  'партньорските клиники работят с по-информирани пациенти',
+]
+
+function NeutralDecisionLayerSection() {
+  return (
+    <section
+      className="py-24 md:py-32 bg-white relative overflow-hidden"
+      data-testid="clinics-neutral-layer"
+    >
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute -top-32 -left-32 w-[420px] h-[420px] rounded-full bg-sky-100/40 blur-3xl" />
+      </div>
+
+      <div className="relative max-w-6xl mx-auto px-6 md:px-12">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.05fr,1fr] gap-12 lg:gap-16 items-start">
+          {/* Left column — copy */}
+          <ScrollReveal animation="fade-up">
+            <p className="font-sans text-xs font-semibold tracking-[0.25em] uppercase text-sky-600 mb-4">
+              Неутрален слой между пациента и клиниката
+            </p>
+            <h2
+              className="font-serif text-2xl sm:text-3xl lg:text-4xl font-medium tracking-tight text-slate-900 mb-6 max-w-xl leading-tight"
+              data-testid="neutral-layer-title"
+            >
+              Не просто lead. По-информиран пациент.
+            </h2>
+
+            <div className="space-y-4 text-slate-600 text-base md:text-lg leading-relaxed max-w-xl">
+              <p data-testid="neutral-layer-p1">
+                Zubite не изпраща пациента директно към произволен списък с клиники.
+              </p>
+              <p data-testid="neutral-layer-p2">
+                Първо помагаме на човека да подреди симптомите, притесненията и
+                целта си в ясен процес. След това му показваме ограничен брой
+                подходящи опции.
+              </p>
+              <p data-testid="neutral-layer-p3">
+                Ако пациентът не е сигурен коя клиника да избере, може да поиска
+                помощ от Zubite като неутрален ориентиращ слой. Целта не е да
+                поставяме диагноза, а да помогнем на пациента да направи по-ясна
+                следваща стъпка.
+              </p>
+            </div>
+
+            <div className="mt-10">
+              <Link
+                href="#application"
+                className="inline-flex items-center gap-2 h-11 px-6 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium transition-colors"
+                data-testid="neutral-layer-cta"
+              >
+                Кандидатствайте като партньорска клиника
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </ScrollReveal>
+
+          {/* Right column — bullets card */}
+          <ScrollReveal animation="fade-up" delay={120}>
+            <div className="rounded-2xl bg-slate-50 border border-slate-100 p-7 md:p-9">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 grid place-items-center">
+                  <Compass className="w-4 h-4 text-sky-600" />
+                </div>
+                <div className="text-xs font-semibold tracking-[0.2em] uppercase text-slate-500">
+                  Какво променя това за клиниката
+                </div>
+              </div>
+
+              <ul
+                className="space-y-3.5"
+                data-testid="neutral-layer-bullets"
+              >
+                {neutralLayerBullets.map((b) => (
+                  <li
+                    key={b}
+                    className="flex items-start gap-3 text-slate-700 text-sm md:text-base leading-relaxed"
+                  >
+                    <span className="flex-shrink-0 mt-1 w-1.5 h-1.5 rounded-full bg-sky-500" />
+                    <span>{b}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <p className="mt-6 pt-5 border-t border-slate-200 text-xs text-slate-500 leading-relaxed">
+                Zubite не поставя диагноза и не заменя преглед при лекар.
+                Платформата помага на пациента да структурира контекста си преди
+                разговора с клиниката.
+              </p>
+            </div>
+          </ScrollReveal>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ════════════════════════════════════════════════════════════
    PARTNER TERMS  (Партньорски условия — early-stage individual terms)
    ════════════════════════════════════════════════════════════ */
 const partnerTerms = [
@@ -1502,6 +1607,7 @@ export function ForClinicsContent() {
       <ContextSection />
       <HowItWorksSection />
       <PartnerValueSection />
+      <NeutralDecisionLayerSection />
       <FoundingPartnerSection />
       <WhoItIsForSection />
       <DashboardPreviewSection />

@@ -1,5 +1,128 @@
 # Zubite.bg — Changelog
 
+## 2026-02-16 — /za-kliniki — Neutral decision layer messaging section
+
+Added a new B2B section that explicitly positions Zubite as a neutral
+patient-decision layer (not a directory / lead marketplace), so clinic
+owners reading `/za-kliniki` immediately understand they receive
+informed patient demand, not cold price-shopping leads. **Frontend
+copy + layout only. No backend, no form changes, no pricing.**
+
+### Files touched
+- `frontend/components/ForClinicsContent.tsx` — added
+  `NeutralDecisionLayerSection` (~95 LOC) plus the `neutralLayerBullets`
+  list, then wired it into the page between `<PartnerValueSection />`
+  and `<FoundingPartnerSection />` (i.e. right after the partner-value
+  stack, well before the application form).
+- `memory/CHANGELOG.md`.
+
+### Placement
+```
+HeroSection
+ProblemSection
+DifferentiationSection
+ContextSection
+HowItWorksSection
+PartnerValueSection
+NeutralDecisionLayerSection   ← NEW
+FoundingPartnerSection
+WhoItIsForSection
+DashboardPreviewSection
+ApplicationSection
+FaqSection
+```
+
+### Exact copy added
+
+- **Eyebrow** (`text-sky-600 uppercase tracking-[0.25em]`):
+  `Неутрален слой между пациента и клиниката`
+
+- **Title** (`data-testid="neutral-layer-title"`,
+  `font-serif text-2xl→text-4xl`):
+  **Не просто lead. По-информиран пациент.**
+
+- **Body paragraphs** (`data-testid="neutral-layer-p1|2|3"`):
+  1. "Zubite не изпраща пациента директно към произволен списък с клиники."
+  2. "Първо помагаме на човека да подреди симптомите, притесненията и
+     целта си в ясен процес. След това му показваме ограничен брой
+     подходящи опции."
+  3. "Ако пациентът не е сигурен коя клиника да избере, може да поиска
+     помощ от Zubite като неутрален ориентиращ слой. Целта не е да
+     поставяме диагноза, а да помогнем на пациента да направи по-ясна
+     следваща стъпка."
+
+- **Right-column eyebrow**:
+  `Какво променя това за клиниката`
+
+- **Bullets** (`data-testid="neutral-layer-bullets"`):
+  - пациентът идва с повече контекст, не само с въпрос „колко струва"
+  - вижда ограничен брой подходящи опции, не безкраен списък
+  - може да поиска помощ от Zubite, ако не е сигурен
+  - клиниката получава по-структурирана заявка
+  - намалява хаотичното сравняване само по цена
+  - партньорските клиники работят с по-информирани пациенти
+
+- **Trust micro-note** under the bullets:
+  "Zubite не поставя диагноза и не заменя преглед при лекар.
+  Платформата помага на пациента да структурира контекста си преди
+  разговора с клиниката."
+
+- **CTA** (`data-testid="neutral-layer-cta"`, `href="#application"`,
+  dark slate-900 pill):
+  **Кандидатствайте като партньорска клиника →**
+
+### Layout
+- Desktop (`lg:`): 2-column grid `lg:grid-cols-[1.05fr,1fr]` —
+  copy on the left, slate-50 bullets card on the right. Subtle
+  sky-100/40 ambient blur in the background. `py-24 md:py-32`.
+- Mobile (<`lg`): single column, copy then card. Card stays
+  inside the `max-w-6xl mx-auto px-6 md:px-12` container, so no
+  horizontal overflow.
+
+### Verification (preview env, Feb 16 2026)
+- Desktop 1280×900: `data-testid="clinics-neutral-layer"` rendered,
+  title text exactly "Не просто lead. По-информиран пациент.",
+  bullet count = 6, CTA label "Кандидатствайте като партньорска клиника",
+  CTA `href="#application"`, application form still rendered on the
+  page.
+- Mobile 375×800: section rendered, application form rendered,
+  `scrollWidth - clientWidth = 0` (no horizontal overflow).
+- Forbidden-word audit (live DOM scan): **0 hits** for
+  `медицинска консултация от Zubite`, `най-добра`, `топ клиника`,
+  `гарантирани пациенти`, `гарантирани записвания`, `гарантиран старт`,
+  `проверено качество`, `Zubite рейтинг`. The token `диагноза` appears
+  only in negation contexts (`не поставяме диагноза`, `без диагноза`,
+  `не поставя диагноза`) — exactly as required by the verbatim copy in
+  the brief and consistent with the existing trust note.
+- `tsc --noEmit`: clean for `ForClinicsContent.tsx` (no new errors).
+
+### Confirmation
+- ✅ 0 backend / API / schema files changed.
+- ✅ 0 patient results / clinic portal / admin frontend files changed.
+- ✅ 0 auth / session / CSRF / quiz / API payload changes.
+- ✅ Application form behaviour (`#application`, submit endpoint, fields,
+  validation) untouched — only a new CTA link points to its existing
+  anchor.
+- ✅ 0 new dependencies (`Compass` icon was already imported from
+  `lucide-react`).
+- ✅ No pricing, no monthly fees, no `лв` / `BGN` / `EUR` / `€` copy
+  added.
+- ✅ No clinical superiority / diagnostic / quality claims added.
+
+### Unresolved risks
+1. **Copy density on right-column card.** Six bullets fit comfortably
+   on desktop and mobile, but if a future iteration adds a 7th item,
+   the section may need to break into 2 columns of bullets.
+2. **CTA stacking.** The page now has multiple `#application` CTAs
+   (hero, partner-value, neutral-layer, founding-partner, FAQ).
+   Tracking which CTA converts will need analytics wiring in P6.
+
+### Ready for review
+✅ Yes. Section is live in the preview env, mobile-safe, copy-locked
+to the brief, no scope creep beyond the two allowed files.
+
+
+
 ## 2026-02-16 — Admin Handling — P4/P5 Patient Request Visibility & Triage
 
 Added admin-side visibility and triage for patient-flow consultation
