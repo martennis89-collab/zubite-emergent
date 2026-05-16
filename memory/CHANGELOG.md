@@ -1,6 +1,181 @@
 # Zubite.bg — Changelog
 
+## 2026-05-16 — Lead Identity Capture Standardization + Duplicate Contact UX Fix
+
+Tightened the patient onboarding contract: any lead destined for the
+recommendation flow now has name + phone + email upfront, and the P4 /
+P5 modals confirm what the patient already shared instead of asking
+twice. **No design rewrite of the modals; no admin/clinic-portal
+changes; no external providers invoked.**
+
+### User-chosen scope
+- Backend approach **1c — Quiz-only strict**: only `source ∈
+  {diagnostic_quiz, diagnostic_quiz_v1, quiz}` triggers the new strict
+  required-contact gate. Other lead sources (article snippets, soft
+  commits, legacy `LeadCaptureForm`) keep the existing
+  blank-string-to-None coercion → no regression for dormant forms.
+- Phone validation: trim whitespace, allow `+`, digits, spaces, dashes,
+  parentheses, require ≥6 digits. (BG E.164 not enforced — too brittle
+  for the BG number variants in the field.)
+- Email validation: friendly Bulgarian message; raw 422 never shown.
+- Edit button label in modals: **"Промени данните"**.
+
+### Files changed
+- `backend/routers/public.py` — added `_STRICT_CONTACT_LEAD_SOURCES`
+  set, `_validate_quiz_contact()` helper, called at the top of
+  `create_lead`. Three structured error codes:
+  `missing_required_contact`, `invalid_phone`, `invalid_phone_format`.
+  Each returns HTTP 422 with a **friendly Bulgarian** `detail.message`.
+- `frontend/lib/leadContact.ts` — **new**, ~70 LOC. localStorage-only
+  helper (`zubite_lead_contact_v1` key, JSON-keyed by leadId). All
+  read/write paths wrapped in `try/catch` so private mode / blocked
+  storage silently no-ops. Never sends data back to the backend
+  automatically — only prefills UI inputs.
+- `frontend/components/MasterQuiz.tsx`:
+  - `handleSubmit()` now enforces all 5 strict validations client-side
+    with explicit Bulgarian messages before the network call.
+  - On successful submit, calls `setStoredLeadContact(leadId, {...})`
+    so the next page's modal can confirm-instead-of-ask.
+  - Form rendering removed the `formVersion === 'A'` gates around
+    Име and Имейл — all 3 fields are now visible & required regardless
+    of A/B variant. `formVersion` analytics tag preserved.
+  - Improved error surfacing: backend's `detail.message` flows through
+    to the inline error so the patient sees the actual reason.
+- `frontend/components/patient/RequestCallModal.tsx`:
+  - New optional `initialContact?: {name, phone, email}` prop.
+  - When ANY of name/phone/email is present, default mode = "confirm".
+    Renders read-only block (data-testid `request-call-contact-confirm`)
+    with name/phone/email + "Промени данните" button (data-testid
+    `request-call-edit-contact-btn`).
+  - "Промени данните" toggles to edit mode (existing phone input).
+  - Backwards-compatible: callers that don't pass `initialContact`
+    keep the empty-input layout exactly as before.
+- `frontend/components/patient/AssistedChoiceModal.tsx` — same pattern
+  with `assisted-choice-contact-confirm` / `assisted-choice-edit-contact-btn`.
+- `frontend/components/patient/ClinicRecommendationCard.tsx`,
+  `frontend/app/results/[leadId]/clinics/page.tsx`,
+  `frontend/app/results/[leadId]/clinics/[clinicId]/page.tsx` — read
+  `getStoredLeadContact(leadId)` and pass `initialContact` to the
+  modals.
+- `backend/tests/test_strict_quiz_contact.py` — **new**, 13/13 PASS.
+- `memory/CHANGELOG.md` — appended entry.
+
+### Backend strict gate (server.py route untouched, all logic in
+`_validate_quiz_contact()`)
+| Condition | HTTP | detail.code | detail.message |
+|---|---|---|---|
+| Quiz source + missing name/phone/email (any) | 422 | `missing_required_contact` | "Моля, попълнете името, телефона и email-а си, за да получите препоръчани клиники." |
+| Quiz source + phone has disallowed chars | 422 | `invalid_phone_format` | "Моля, въведете телефонен номер само с цифри, интервали, тирета, скоби или знака „+“." |
+| Quiz source + phone has <6 digits | 422 | `invalid_phone` | "Моля, въведете валиден телефонен номер (поне 6 цифри)." |
+| Quiz source + invalid email format | 422 | (Pydantic EmailStr) | (frontend translates to "Моля, въведете валиден email адрес.") |
+| Non-quiz source + blank fields | 200 | – | (legacy coerce-to-None preserved) |
+| No `source` provided | 200 | – | (backwards-compatible) |
+
+`detail.missing` is a list of the offending field names so the
+frontend can highlight them if it ever wants finer per-field UX.
+
+### Frontend client-side messages (matches backend wording)
+- "Моля, въведете името си."
+- "Моля, въведете телефонен номер."
+- "Моля, въведете телефонен номер само с цифри, интервали, тирета, скоби или знака „+“."
+- "Моля, въведете валиден телефонен номер (поне 6 цифри)."
+- "Моля, въведете email адрес."
+- "Моля, въведете валиден email адрес."
+- "Моля, изберете град."
+
+### Modal UX
+- **Confirm mode** (any of name/phone/email prefilled):
+  ```
+  ЩЕ СЕ СВЪРЖЕМ С ВАС НА:
+    Име:     Тест Контакт
+    Телефон: +359888112233
+    Email:   contact-test@example.com
+  [Промени данните]
+  ```
+- **Edit mode** (button clicked, or no prefill): existing phone input,
+  exactly as it was before this batch.
+- Consent checkbox + Care Pass note unchanged.
+- Submit still posts only `phone` to the backend (P4) /
+  `phone` + optional `message` (P5) — no schema change.
+
+### Tests
+- `pytest tests/test_strict_quiz_contact.py` → **13/13 PASS** (0.65s).
+  Coverage:
+  1. Quiz source happy path (all 3 fields valid) → 200.
+  2. Missing name → 422 missing_required_contact.
+  3. Missing phone → 422 missing_required_contact.
+  4. Missing email → 422 missing_required_contact.
+  5. All 3 missing → 422 with full `missing` list.
+  6. Phone too short → 422 invalid_phone.
+  7. Phone with disallowed chars → 422 invalid_phone_format.
+  8. Phone with allowed chars `(02) 123-4567` → 200.
+  9. Invalid email format → 422 (Pydantic).
+  10. Non-quiz source + blank email + blank name → 200, fields = null
+      (regression test).
+  11. No source field → 200, no strict check.
+  12. All 3 quiz aliases (`diagnostic_quiz`, `diagnostic_quiz_v1`,
+      `quiz`) → strict.
+  13. Whitespace-only name + phone → 422 missing_required_contact.
+
+- Regression run on related backend suites (each in isolation):
+  - `test_patient_request_call.py` → 31/31
+  - `test_patient_assisted_choice.py` → 28/28
+  - `test_p4_p5_admin_notifications.py` → 11/11
+  - `test_clinic_status_control.py` → 20/20
+  - `test_clinic_request_context_visibility.py` → 11/11
+  - `test_admin_patient_request_handling.py` → 12/12
+  - `test_admin_request_assignment.py` → 16/16
+  - `test_security_audit.py` → 25/25
+  - `test_admin_clinic_profile_editor.py` → 24/24
+  - `test_phase2_batch_a.py` → 24/24
+  - **Total: 215/215 PASS** (excl. pre-existing
+    `test_lead_verification.py` BASE_URL env issue, unrelated).
+
+### Frontend testing-agent verification
+- 100% pass on `iteration_37.json`. Covered: form 3-field rendering,
+  client-side validation strings, modal confirm-block + edit-toggle
+  on both RequestCallModal and AssistedChoiceModal, full P4 + P5
+  submit cycle with prefill, backwards-compat fallback when no
+  prefill exists.
+- Manual smoke screenshot confirmed the confirmation block renders:
+  `ЩЕ СЕ СВЪРЖЕМ С ВАС НА: Име: Тест Контакт / Телефон: +359888112233
+  / Email: contact-test@example.com / [Промени данните]`.
+
+### Live preview smoke (curl)
+- `POST /api/leads source=diagnostic_quiz_v1 name=phone=email=""` →
+  422 + Bulgarian message "Моля, попълнете името, телефона и email-а си…".
+- `POST /api/leads source=diagnostic_quiz_v1 valid` → 200 + lead id +
+  all 3 fields persisted.
+
+### TypeScript
+`npx tsc --noEmit` → same 6 pre-existing errors in unrelated files
+(`admin/blog/import`, `admin/dashboard`, `lib/articleTestRender`,
+`lib/api.ts`, `lib/attribution.ts`). **Zero new errors from this
+batch.**
+
+### Out of scope (per user instruction)
+- Admin assignment / clinic portal / clinic profile engagement: NOT
+  touched.
+- No modal redesign — only added the confirmation block on top.
+- Other quiz components (`TreatmentQuiz`, `AlignersVsBracesQuiz`,
+  `OrthodonticsQuiz`, `LeadCaptureForm`, `[city]/[treatment]/quiz`)
+  intentionally left as-is; their `source` values are not in the
+  strict set so they keep current behaviour.
+
+### Unresolved risks
+- 🔴 Git secrets-leak remains BLOCKED — local-only, NO push / NO deploy.
+- 🟡 Future quiz variants (e.g. `diagnostic_quiz_v2`) need to be added
+  to `_STRICT_CONTACT_LEAD_SOURCES` to participate in strict mode.
+  Suggested follow-up: refactor to a regex `r"^(diagnostic_quiz|quiz)(_v\d+)?$"`.
+- 🟡 `localStorage` prefill works only on the same browser. Patients
+  switching device between quiz and modal will see the empty-input
+  fallback (existing behaviour). A backend `GET /leads/{id}/contact`
+  endpoint with the existing 60-min edit window would solve this; not
+  implemented in this batch to keep scope minimal.
+
+
 ## 2026-05-16 — P0 Admin Request Handling Fix
+
 
 Resolved five operational issues blocking admin from understanding,
 assigning, and routing P4/P5 consultation requests.
