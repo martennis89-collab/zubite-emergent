@@ -34,6 +34,8 @@ api_router.include_router(calls.router)
 api_router.include_router(verification.router)
 api_router.include_router(seo.router)
 api_router.include_router(consultations.router)
+from routers import reviews as _reviews  # noqa: E402
+api_router.include_router(_reviews.router)
 api_router.include_router(audit_logs.router)
 
 app.include_router(api_router)
