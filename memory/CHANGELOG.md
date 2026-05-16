@@ -1,5 +1,70 @@
 # Zubite.bg — Changelog
 
+## 2026-05-16 — P0 Hotfix: Empty Email Field Broke Lead Submission
+
+### Symptom
+User report: filling out the homepage / treatment-page lead form with
+city + name + phone but **no email**, then pressing "Изпрати и получи
+3 опции", surfaced the inline error "Възникна грешка. Моля, опитайте
+отново.". Backend logs showed
+`POST /api/leads → 422 value is not a valid email address`.
+
+### Root cause
+`schemas.LeadCreate.email: Optional[EmailStr] = None` accepts `null` or
+a valid email but rejects the empty string `""`. Five separate frontend
+lead-capture entry points (MasterQuiz, TreatmentQuiz, AlignersVsBracesQuiz,
+LeadCaptureForm, `/[city]/[treatment]/quiz`) all default the email input
+to `""` and submit that empty string when the patient leaves the field
+blank.
+
+### Fix
+Defensive coercion at the **system boundary** (Pydantic schema). One new
+`@field_validator` on `LeadCreate` runs in `mode="before"` and turns any
+empty / whitespace-only string into `None` for `email`, `name`, `phone`.
+This covers all current and future lead-capture entry points without
+touching frontend components.
+
+```python
+@field_validator("email", "name", "phone", mode="before")
+@classmethod
+def _coerce_blank_string_to_none(cls, v):
+    if isinstance(v, str) and not v.strip():
+        return None
+    return v
+```
+
+Belt-and-braces frontend hardening on `MasterQuiz.tsx` only: omit the
+`email` key entirely when the field is blank, instead of sending
+`email: ''`. Other lead-capture components are now protected by the
+backend coercion so no further frontend changes are needed.
+
+### Verification (curl against preview)
+| Scenario | Before | After |
+|---|---|---|
+| `email: ""` (empty) | 422 | **200** + `email: null` |
+| `email: "real@example.com"` | 200 | 200 |
+| `email: "not-an-email"` | 422 | 422 (still rejected) |
+
+### Regression
+All seven backend test suites pass after the fix:
+- `test_clinic_status_control.py` → 20/20
+- `test_clinic_request_context_visibility.py` → 11/11
+- `test_admin_patient_request_handling.py` → 12/12
+- `test_patient_request_call.py` → 31/31
+- `test_patient_assisted_choice.py` → 28/28
+- `test_p4_p5_admin_notifications.py` → 11/11
+- `test_consultation_workflow.py` → 25/25 (after a backend restart to
+  clear the in-memory rate-limit bucket; this is unrelated to the fix —
+  same bucket pollution causes 429s when running multiple suites in a
+  single pytest invocation, as documented in the previous final-smoke
+  report).
+
+### Files changed
+- `backend/schemas.py` — one `@field_validator` on `LeadCreate`.
+- `frontend/components/MasterQuiz.tsx` — only sends `email` when
+  non-empty (defense-in-depth).
+
+
 ## 2026-05-16 — Final Full-Platform Smoke Test + One Blocker Fix
 
 End-to-end readiness pass across the whole patient → admin → clinic

@@ -602,7 +602,10 @@ export function MasterQuiz() {
         answers: { ...answersObj, quiz_score: result?.totalScore || 0, quiz_band: result?.band || '', quiz_flags: result?.flags || [], segment, form_version: formVersion, session_id: sessionId.current, source: 'diagnostic_quiz_v1' },
         score_total: result?.totalScore || 0,
         band: bandMap[result?.band || 'low'],
-        name: formData.name || '', phone: formData.phone, email: formData.email || '',
+        name: formData.name || '', phone: formData.phone,
+        // Backend uses Optional[EmailStr]: empty string fails validation,
+        // so omit the key entirely when the patient left email blank.
+        ...(formData.email && formData.email.trim() ? { email: formData.email.trim() } : {}),
         consent: true, source: 'diagnostic_quiz_v1', form_version: formVersion,
         // ─── Attribution data — never throws (returns {} if storage blocked) ───
         ...(typeof window !== 'undefined'

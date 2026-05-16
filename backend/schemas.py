@@ -37,6 +37,20 @@ class LeadCreate(BaseModel):
     utm_ad: Optional[str] = Field(default=None, max_length=200)
     page_path: Optional[str] = Field(default=None, max_length=500)
 
+    # Coerce empty / whitespace-only strings to None BEFORE Pydantic
+    # tries to validate them as `EmailStr`. Frontend lead-capture forms
+    # (MasterQuiz, TreatmentQuiz, AlignersVsBracesQuiz, the per-city /
+    # treatment quiz, LeadCaptureForm) all default the email input to
+    # `""` and currently submit that empty string when the patient
+    # leaves the field blank — `EmailStr` would otherwise reject it
+    # with HTTP 422 and break the entire onboarding.
+    @field_validator("email", "name", "phone", mode="before")
+    @classmethod
+    def _coerce_blank_string_to_none(cls, v):
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
+
     # ─── First-touch attribution (immutable) ────────────────────────
     first_utm_source: Optional[str] = Field(default=None, max_length=300)
     first_utm_medium: Optional[str] = Field(default=None, max_length=200)
