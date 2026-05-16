@@ -1,5 +1,144 @@
 # Zubite.bg — Changelog
 
+## 2026-05-16 — Resend Live Delivery Verification (P4/P5 Admin Alerts) — BLOCKED
+
+Verification-only batch: confirm whether the existing P4/P5 admin email
+alerts deliver in the preview environment now that the user reports
+`zubite.bg` is verified in Resend. **No code changes**, no new feature,
+no automation added.
+
+### Result: ❌ Domain still rejected by this API key
+
+The `RESEND_API_KEY` currently configured in the preview environment
+**still rejects `zubite.bg` as unverified**, with the error message:
+
+> `The zubite.bg domain is not verified. Please, add and verify your
+> domain on https://resend.com/domains`
+
+This was confirmed three independent ways:
+1. Direct `resend.Emails.send({from: SENDER_EMAIL, to: ADMIN_EMAIL, …})`
+   from a python REPL using the live env vars → same domain error.
+2. `POST /api/leads` lead-create alert path → backend logs:
+   `Failed to send lead notification email: The zubite.bg domain is not verified`.
+3. `POST /api/leads/{id}/request-call` and
+   `POST /api/leads/{id}/request-zubite-help` admin-alert path → backend
+   logs: `_send_email failed to almareleood@gmail.com: The zubite.bg
+   domain is not verified`.
+
+### Likely root cause
+The configured API key cannot list domains:
+`resend.Domains.list()` → `This API key is restricted to only send emails`.
+That is consistent with two scenarios:
+- (A) Domain `zubite.bg` was verified in a **different Resend account
+  / team** than the one that owns this API key.
+- (B) The verification was completed but the key in
+  `backend/.env` is from a separate, older account.
+
+Action required by the user: confirm the API key in the env belongs
+to the same Resend workspace where `zubite.bg` was verified, OR rotate
+the key to one from that workspace. **The code is correct; only the
+config / key-domain pairing needs to be aligned.**
+
+### What WAS verified to work correctly
+
+#### 1. Environment config (no secrets exposed)
+- `SENDER_EMAIL` = `he***@zubite.bg` (uses verified domain pattern).
+- `ADMIN_EMAIL` = `al***@gmail.com` (configured).
+- `RESEND_API_KEY` = configured (36 chars).
+
+#### 2. P4 selected-clinic flow (1 fresh test lead)
+- `POST /api/leads` → 200, lead `e8fd3ec9-…1994` created.
+- `POST /api/leads/{id}/request-call` → 200, `request_id`
+  `d6527a56-…4ba8` returned.
+- Backend invoked `send_admin_selected_clinic_request_alert()` exactly
+  once (1 `_send_email failed` log line at 20:32:23). Subject template
+  in code: `Нова заявка към избрана клиника — Zubite`. Body composer
+  includes patient name + phone + email + selected clinic name + lead
+  id + consultation_request id + admin link (verified by
+  `test_p4_p5_admin_notifications.py::test_p4_long_form_body`).
+- Resend rejected at SDK level → admin email NOT delivered.
+- Patient response was unaffected: status 200, the resilience contract
+  holds.
+
+#### 3. P5 assisted-choice flow (1 fresh test lead)
+- `POST /api/leads` → 200, lead `11176ce7-…0896` created.
+- `POST /api/leads/{id}/request-zubite-help` → 200, `request_id`
+  `e1c71bbd-…2d48` returned.
+- Backend invoked `send_admin_assisted_choice_request_alert()` exactly
+  once (1 `_send_email failed` log line at 20:33:00). Subject template
+  in code: `Нова заявка за помощ при избор — Zubite`. Body composer
+  includes patient name + phone + email + truncated message + lead id
+  + request id + admin link (verified by
+  `test_p4_p5_admin_notifications.py::test_p5_long_form_body` and
+  `test_email_body_does_not_leak_forbidden_keys`).
+- Resend rejected at SDK level → admin email NOT delivered.
+- Patient response unaffected.
+
+#### 4. Duplicate protection ✅
+- P4 retry with same `clinic_id` → `200 already_requested:true`,
+  **NO** second `_send_email` log line. (Backend grep:
+  `_send_email failed to almareleood@gmail.com` count = 2,
+  matching exactly one P4 + one P5 alert; zero retries.)
+- P5 retry → `200 already_requested:true`, no second alert.
+
+#### 5. Resilience ✅
+- Resend SDK exception did NOT bubble up to the patient endpoint.
+  Both P4 and P5 returned `success:true` with the consultation
+  request id despite the email failing. This pins the contract
+  `routers/public.py` line ~1370 / ~1561 (try/except around the
+  best-effort alert call).
+
+### Tests run
+| Suite | Result |
+|---|---|
+| `test_p4_p5_admin_notifications.py` | **11/11 PASS** |
+| `test_patient_request_call.py` | **31/31 PASS** |
+| `test_patient_assisted_choice.py` | **28/28 PASS** |
+| **Total** | **70/70 PASS** |
+
+All Resend interactions in tests are mocked via `MagicMock`, so
+the test results are independent of the live domain-verification
+state and remain green. **No live emails were sent** beyond the
+single P4 attempt and single P5 attempt described above (both
+rejected before leaving Resend's API).
+
+### No scope drift
+- ✅ No patient email automation added.
+- ✅ No clinic email notifications added.
+- ✅ No SMS / Twilio / ElevenLabs invocation.
+- ✅ No UI redesign / no patient flow change / no admin UI change.
+- ✅ No `package.json` / dependency changes.
+- ✅ Local-only — no git push / no deploy / no Save to GitHub.
+
+### Files changed
+**Code: NONE.** Only `memory/CHANGELOG.md` (this entry) and
+`memory/PRD.md` (status note).
+
+### Remaining email risks
+- 🔴 Admin alerts are NOT actually being delivered in this preview env
+  until the API-key ↔ verified-domain pairing is corrected.
+- 🟡 The legacy `Failed to send lead notification email` path (older
+  pre-P4/P5 helper triggered on every `POST /api/leads`) also fails
+  silently — same root cause, not a separate bug.
+- 🟡 Patient confirmation emails to lead-supplied addresses (e.g.
+  `resend-p4-test@example.com`) also fail — same root cause.
+
+### Safe to proceed?
+- **Auth E5 (Session Governance)** ✅ — independent surface; the
+  Resend gap doesn't block it.
+- **Production smoke** ⚠️ — production should be checked separately:
+  the production env may have a different `RESEND_API_KEY` paired with
+  the verified `zubite.bg` domain. **Do NOT assume preview = production
+  for this config.**
+
+### Recommended next step (for the user)
+Rotate the preview env's `RESEND_API_KEY` to one issued from the
+Resend workspace where `zubite.bg` was actually verified, then re-run
+this same verification (one P4 + one P5 fresh request). No code change
+is required; the existing helpers will start delivering on the first
+successful request after the key swap.
+
+
 ## 2026-05-16 — Technical Cleanup: Unify Clinic Treatment Fields
 
 Resolved the long-standing schema duality between `treatments_supported`
