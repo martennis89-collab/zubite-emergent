@@ -1,5 +1,129 @@
 # Zubite.bg — Changelog
 
+## 2026-02-16 — Patient Layer — Batch P3.6: Rich Clinic Profile Layout (tier-aware)
+
+Upgraded the lead-contextual clinic profile to feel like a premium,
+full-screen decision page on desktop — with **tier-aware** section
+rendering. **Frontend only, same data source (`GET /api/leads/{lead_id}/recommended-clinics`).**
+No new dependencies. No fake content.
+
+### Files touched
+- `frontend/app/results/[leadId]/clinics/[clinicId]/page.tsx` — full rewrite
+  of the profile body around a `resolveTier()` helper. New subcomponents
+  (all colocated to keep file count low and changes contained):
+  `PremiumHero`, `CompactHero`, `VideoIntroSection`, `VideoPlaceholderCard`,
+  `ClinicImagePlaceholder`, `PlaceholderSection`, `TierLabel`.
+- `memory/CHANGELOG.md`.
+- (No backend / admin / clinic portal / external providers touched.)
+
+### Tier resolution
+```ts
+isPremium  = partner_tier === 'premium'  || placement_label === 'Premium партньор'
+isFeatured = partner_tier === 'featured' || placement_label === 'Представена клиника'
+isStandard = !isPremium && !isFeatured
+```
+Container width also varies: Premium `max-w-6xl`, Featured `max-w-4xl`,
+Standard `max-w-3xl` — so the page literally feels different per tier.
+`<article data-tier="{tier}">` exposes the active tier to QA/automation.
+
+### Sections by tier (final matrix)
+
+| Section | Standard | Featured | Premium |
+|---|:-:|:-:|:-:|
+| Back link, name, city, top CTA | ✅ | ✅ | ✅ |
+| **2-column hero w/ large image placeholder** | — | — | ✅ |
+| Placement badge + disclosure | — | ✅ | ✅ |
+| **Видео представяне** (clinic video + doctor video placeholders) | — | — | ✅ |
+| Защо виждате тази клиника | ✅ | ✅ | ✅ |
+| Подходяща за | ✅ | ✅ | ✅ |
+| **За клиниката** placeholder | — | ✅ | ✅ |
+| **Допълнителна информация от клиниката** (Featured-only) | — | ✅ | — |
+| **Екип и лекари** placeholder | — | — | ✅ |
+| **Среда и оборудване** placeholder | — | — | ✅ |
+| Отзиви и доверие (only if `review_signals` present) | ✅* | ✅* | ✅* |
+| Какво да очаквате при първата стъпка | ✅ | ✅ | ✅ |
+| Bottom CTA + view-others | ✅ | ✅ | ✅ |
+| Trust note | ✅ | ✅ | ✅ |
+
+\* All tiers display review signals when admin has verified them — they
+are not commercial; they are public confidence signals.
+
+### Placeholder copy (exact)
+- Image placeholder caption: **Снимка на клиниката** —
+  "Клиниката все още не е добавила снимка към профила си."
+- **Видео от клиниката**: "Тук клиниката ще може да добави кратко видео
+  представяне на средата и начина на работа." + "Все още не е добавено"
+- **Видео обръщение от водещ лекар**: "Тук водещ лекар от клиниката ще
+  може да обясни подхода към първата консултация." + "Все още не е добавено"
+- **За клиниката**: "Клиниката все още не е добавила подробно описание
+  към профила си."
+- **Екип и лекари**: "Информация за екипа ще бъде добавена от клиниката."
+- **Среда и оборудване**: "Тук клиниката ще може да представи средата,
+  технологиите и удобствата за пациента."
+- **Допълнителна информация от клиниката** (Featured): "Тази секция е
+  видима, защото клиниката е представен партньор в Zubite. Клиниката
+  може да добави повече информация за пациентите."
+
+### Tier labels on premium/featured sections
+- **Premium секция**: "Видимо за пациенти, защото клиниката е Premium
+  партньор в Zubite." (rendered via `title` attribute + visible pill).
+- **Featured профил**: "Тази секция е видима, защото клиниката е
+  представен партньор в Zubite."
+- The labels exist so the demo clearly shows that **profile DEPTH /
+  VISIBILITY** changes by tier — never clinical quality.
+
+### Hero specifics
+- **Premium hero**: 2-column grid (`lg:grid-cols-[1.1fr,1fr]`).
+  Left column = badge, name (`text-3xl→text-5xl`), city, eyebrow
+  "Профил на партньорска клиника в Zubite", reason summary, placement
+  disclosure, primary + secondary CTAs, trust microcopy. Right column
+  = large gradient image placeholder (`min-h-[420px]` on `lg`) with
+  honest "Клиниката все още не е добавила снимка…" caption.
+- **Compact hero** (Featured + Standard): single-column white card
+  matching previous P3.5 design.
+
+### CTA behavior (unchanged from P3.5)
+All Request-Call CTAs (`profile-top-cta`, `profile-bottom-cta`) open
+the same preview-only `NextStepModal` with inner CTA `disabled` +
+`aria-disabled="true"`. **No backend submit, no consultation creation,
+no email.**
+
+### Smoke test results (desktop 1440×900 unless noted)
+
+| Tier | Tier attr | Image | Video | Team | Env | About | Feat extra | Premium labels | Feat labels |
+|---|---|:-:|:-:|:-:|:-:|:-:|:-:|---|---|
+| PREMIUM (Sofia Premium Clinic) | premium | 1 | 1 (+2 cards) | 1 | 1 | 1 | 0 | 4 | 0 |
+| FEATURED (Test Clinic For Email) | featured | 0 | 0 | 0 | 0 | 1 | 1 | 0 | 2 |
+| STANDARD (Test Diagnostic Clinic) | standard | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+
+- CTA preview-only confirmed: modal opens, internal CTA `aria-disabled="true"`.
+- **Mobile 375px on Premium (richest layout)**: `overflow_px = 0`. All
+  rich sections stack vertically via responsive `grid-cols-1` /
+  `sm:grid-cols-2` etc.
+- Forbidden-language audit (live DOM scan): zero hits of "най-добра",
+  "топ клиника", "#1", "гарантирано", "проверено качество", "certified",
+  "recommended doctor", "expert pick", "trust score", "overall score",
+  "рейтинг на zubite" — on all three tier profiles.
+- TypeScript `tsc --noEmit` clean for touched files.
+
+### Backlog
+> Richer public clinic profiles require admin-managed fields for clinic
+> images, video URLs, doctor video, clinic description, team,
+> environment, working hours and treatment focus. Until those fields
+> exist in the backend schema and admin UI, the placeholder copy stays
+> exactly as above — no real content will be fabricated.
+
+### Confirmation
+- ✅ 0 backend files changed (`git status` confirms).
+- ✅ 0 admin / clinic portal files changed.
+- ✅ 0 external providers called.
+- ✅ 0 new dependencies.
+- ✅ No fake clinic photos / doctors / videos / testimonials / awards /
+  experience / case studies / availability / prices / success rates / rankings.
+- ✅ Request-call flow remains preview-only.
+
+
+
 ## 2026-02-16 — /za-kliniki — Partner Terms section refinement
 
 Reframed the existing `FoundingPartnerSection` into a confident
