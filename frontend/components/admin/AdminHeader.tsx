@@ -10,6 +10,7 @@ import {
   ClipboardList,
   TrendingUp,
   Newspaper,
+  Star,
   LogOut,
 } from 'lucide-react'
 
@@ -65,6 +66,13 @@ export const ADMIN_NAV: AdminNavItem[] = [
     icon: FileText,
     testId: 'admin-nav-applications',
     matchPrefix: '/admin/clinic-applications',
+  },
+  {
+    href: '/admin/reviews',
+    label: 'Ревюта',
+    icon: Star,
+    testId: 'admin-nav-reviews',
+    matchPrefix: '/admin/reviews',
   },
   {
     href: '/admin/analytics',

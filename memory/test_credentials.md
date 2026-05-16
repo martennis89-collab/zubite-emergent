@@ -2,8 +2,9 @@
 
 ## Admin Panel
 - **URL**: /admin
-- **Email**: admin@zubite.bg
+- **Username**: admin@zubite.bg  (login form field is "Потребителско име" — accepts username, not email)
 - **Password**: password
+- Alt: username `admin` / password `admin123` (both work)
 
 ## Clinic Portal
 - **URL**: /clinic

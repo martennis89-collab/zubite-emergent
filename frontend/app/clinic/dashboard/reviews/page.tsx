@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { QRCodeCanvas } from 'qrcode.react'
 import { ClinicShell } from '@/components/ClinicShell'
 import {
-  Loader2, Copy, Check, QrCode, Printer, Star, ShieldCheck, Clock,
+  Loader2, Copy, Check, Printer, Star, ShieldCheck, Clock,
   CheckCircle2, XCircle, Inbox,
 } from 'lucide-react'
 
@@ -163,14 +164,22 @@ export default function ClinicReviewsPage() {
               </div>
             </div>
 
-            {/* QR placeholder */}
+            {/* QR code (locally rendered) */}
             <div
-              className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 grid place-items-center text-center min-w-[180px]"
-              data-testid="clinic-review-qr-placeholder"
+              className="rounded-xl border border-slate-200 bg-white p-4 grid place-items-center text-center min-w-[180px]"
+              data-testid="clinic-review-qr"
             >
-              <QrCode className="w-10 h-10 text-slate-400 mb-2" aria-hidden="true" />
-              <p className="text-[11px] text-slate-500 leading-snug max-w-[140px]">
-                QR генерация е в процес на одобрение. За R1 използвайте линка отгоре.
+              <QRCodeCanvas
+                value={link.review_url}
+                size={144}
+                level="M"
+                includeMargin={false}
+                bgColor="#ffffff"
+                fgColor="#0f172a"
+                data-testid="clinic-review-qr-canvas"
+              />
+              <p className="mt-2 text-[11px] text-slate-500 leading-snug max-w-[150px]">
+                Сканирайте за оставяне на мнение
               </p>
             </div>
           </div>
@@ -298,9 +307,15 @@ export default function ClinicReviewsPage() {
                 Сканирайте QR кода и оставете мнение в Zubite.bg.
               </p>
               <div className="my-10 grid place-items-center">
-                <div className="w-48 h-48 border-2 border-dashed border-slate-300 grid place-items-center">
-                  <QrCode className="w-24 h-24 text-slate-300" />
-                </div>
+                <QRCodeCanvas
+                  value={link.review_url}
+                  size={240}
+                  level="M"
+                  includeMargin={false}
+                  bgColor="#ffffff"
+                  fgColor="#0f172a"
+                  data-testid="clinic-review-print-qr"
+                />
                 <p className="mt-3 text-xs font-mono break-all max-w-md">
                   {link.review_url}
                 </p>
