@@ -249,6 +249,11 @@ ALLOWED_CLINIC_FIELDS = {
     "reason",
     "response_expectation",
     "partner_since_year",
+    # Partner placement (P3.5 demo support).
+    "partner_tier",
+    "is_featured",
+    "placement_label",
+    "placement_disclosure",
 }
 
 
@@ -597,3 +602,289 @@ def test_15_lead_without_city_returns_empty(app):
     assert body["clinic_count"] == 0
     assert body["clinics"] == []
     assert body["assisted_help_available"] is True
+
+
+# ════════════════════════════════════════════════════════════════
+# P3.5 — Partner-tier / featured / premium placement support
+# ════════════════════════════════════════════════════════════════
+
+# Allowed values for `placement_label` and `placement_disclosure` text.
+# These MUST be deterministic and match the BG copy in the endpoint.
+_LABEL_PREMIUM = "Premium партньор"
+_LABEL_FEATURED = "Представена клиника"
+_DISC_PREMIUM = "Тази клиника има допълнителна партньорска видимост в Zubite."
+_DISC_FEATURED = "Тази клиника е представена като партньор на Zubite."
+
+
+# ─── 16. Standard clinic = default tier, no badge fields ───
+
+
+def test_16_standard_clinic_has_no_placement_badge(app):
+    _make_clinic(name="Plain Clinic", treatments_supported=["aligners"])
+    lead_id = _make_lead()
+    _, body = _get(app, lead_id)
+    c = body["clinics"][0]
+    assert c["partner_tier"] == "standard"
+    assert c["is_featured"] is False
+    assert c["placement_label"] is None
+    assert c["placement_disclosure"] is None
+
+
+# ─── 17. Premium clinic exposes Premium copy and is_featured=True ───
+
+
+def test_17_premium_clinic_exposes_premium_copy(app):
+    _make_clinic(
+        name="Premium Clinic",
+        treatments_supported=["aligners"],
+        extra={"partner_tier": "premium"},
+    )
+    lead_id = _make_lead()
+    _, body = _get(app, lead_id)
+    c = body["clinics"][0]
+    assert c["partner_tier"] == "premium"
+    assert c["is_featured"] is True
+    assert c["placement_label"] == _LABEL_PREMIUM
+    assert c["placement_disclosure"] == _DISC_PREMIUM
+
+
+# ─── 18. Featured clinic exposes Featured copy ───
+
+
+def test_18_featured_clinic_exposes_featured_copy(app):
+    _make_clinic(
+        name="Featured Clinic",
+        treatments_supported=["aligners"],
+        extra={"partner_tier": "featured"},
+    )
+    lead_id = _make_lead()
+    _, body = _get(app, lead_id)
+    c = body["clinics"][0]
+    assert c["partner_tier"] == "featured"
+    assert c["is_featured"] is True
+    assert c["placement_label"] == _LABEL_FEATURED
+    assert c["placement_disclosure"] == _DISC_FEATURED
+
+
+# ─── 19. Legacy boolean fields (is_premium/is_featured) are honored ───
+
+
+def test_19_legacy_bool_fields_resolve_to_correct_tier(app):
+    _make_clinic(
+        name="Bool Premium",
+        treatments_supported=["aligners"],
+        extra={"is_premium": True},
+    )
+    _make_clinic(
+        name="Bool Featured",
+        treatments_supported=["aligners"],
+        extra={"is_featured": True},
+    )
+    _make_clinic(name="Bool Plain", treatments_supported=["aligners"])
+    lead_id = _make_lead()
+    _, body = _get(app, lead_id)
+    by_name = {c["name"]: c for c in body["clinics"]}
+    assert by_name["Bool Premium"]["partner_tier"] == "premium"
+    assert by_name["Bool Featured"]["partner_tier"] == "featured"
+    assert by_name["Bool Plain"]["partner_tier"] == "standard"
+
+
+# ─── 20. Premium clinic is still EXCLUDED if inactive ───
+
+
+def test_20_premium_inactive_is_still_excluded(app):
+    _make_clinic(
+        name="Inactive Premium",
+        treatments_supported=["aligners"],
+        is_active=False,
+        extra={"partner_tier": "premium"},
+    )
+    # Active control so the endpoint isn't trivially empty.
+    _make_clinic(name="Active Plain", treatments_supported=["aligners"])
+    lead_id = _make_lead()
+    _, body = _get(app, lead_id)
+    names = [c["name"] for c in body["clinics"]]
+    assert names == ["Active Plain"], (
+        f"premium tier must NOT override the inactive filter, got {names}"
+    )
+
+
+# ─── 21. Premium out-of-city clinic does NOT outrank eligible local ───
+
+
+def test_21_premium_out_of_city_does_not_leak_into_results(app):
+    # Plovdiv premium with treatment match — must NOT appear for Sofia lead.
+    _make_clinic(
+        name="Premium Plovdiv",
+        city_slug="plovdiv", city_name="Пловдив",
+        treatments_supported=["aligners"],
+        extra={"partner_tier": "premium"},
+    )
+    # Local standard clinic without treatment match.
+    _make_clinic(
+        name="Standard Sofia",
+        treatments_supported=["whitening"],
+    )
+    lead_id = _make_lead(city="sofia", treatment="aligners")
+    _, body = _get(app, lead_id)
+    names = [c["name"] for c in body["clinics"]]
+    # Only the local Sofia clinic shows up; premium Plovdiv is filtered.
+    assert names == ["Standard Sofia"], names
+
+
+# ─── 22. Premium boost orders among otherwise-tied eligible clinics ───
+
+
+def test_22_premium_boost_breaks_tie_among_eligible(app):
+    # Three Sofia clinics, all with the same +50 treatment match.
+    # Without tier boost the alphabetical tiebreak would order:
+    #   A, B, C → A first.
+    # With premium on C: C gets +8, so order is C, A, B.
+    _make_clinic(name="A Std", treatments_supported=["aligners"])
+    _make_clinic(name="B Std", treatments_supported=["aligners"])
+    _make_clinic(
+        name="C Premium",
+        treatments_supported=["aligners"],
+        extra={"partner_tier": "premium"},
+    )
+    lead_id = _make_lead(treatment="aligners")
+    _, body = _get(app, lead_id)
+    names = [c["name"] for c in body["clinics"]]
+    assert names == ["C Premium", "A Std", "B Std"], names
+
+
+# ─── 23. Premium boost CANNOT override a real treatment match ───
+
+
+def test_23_premium_cannot_override_treatment_match(app):
+    # Standard Sofia clinic WITH treatment match: score = 100 + 50 = 150.
+    # Premium Sofia clinic WITHOUT treatment match: score = 100 + 0 + 8 = 108.
+    # Standard must still rank first.
+    _make_clinic(
+        name="Sofia Treatment Match",
+        treatments_supported=["aligners"],
+    )
+    _make_clinic(
+        name="Sofia Premium Generic",
+        treatments_supported=["whitening"],  # mismatch
+        extra={"partner_tier": "premium"},
+    )
+    lead_id = _make_lead(treatment="aligners")
+    _, body = _get(app, lead_id)
+    names = [c["name"] for c in body["clinics"]]
+    assert names == [
+        "Sofia Treatment Match",
+        "Sofia Premium Generic",
+    ], (
+        f"premium tier must not outrank a real treatment match: {names}"
+    )
+
+
+# ─── 24. Featured/sponsored_rank tiebreaks within the same score ───
+
+
+def test_24_featured_rank_tiebreaks_within_same_score(app):
+    # Two featured clinics with identical tier + treatment match.
+    # `featured_rank: 1` should sort before `featured_rank: 2`.
+    _make_clinic(
+        name="Featured Two",
+        treatments_supported=["aligners"],
+        extra={"partner_tier": "featured", "featured_rank": 2},
+    )
+    _make_clinic(
+        name="Featured One",
+        treatments_supported=["aligners"],
+        extra={"partner_tier": "featured", "featured_rank": 1},
+    )
+    lead_id = _make_lead(treatment="aligners")
+    _, body = _get(app, lead_id)
+    names = [c["name"] for c in body["clinics"]]
+    assert names == ["Featured One", "Featured Two"], names
+
+
+# ─── 25. Unsafe fields still NOT leaked even when placement is enabled ───
+
+
+def test_25_no_unsafe_fields_leak_for_premium_clinic(app):
+    _make_clinic(
+        name="Leaky Premium",
+        treatments_supported=["aligners"],
+        extra={
+            "partner_tier": "premium",
+            "is_premium": True,
+            "featured_rank": 1,
+            "sponsored_rank": 0,
+            # Real PII/financial fields — must not leak even on premium card.
+            "email": "leak-premium@example.com",
+            "phone": "+359000000000",
+            "password_hash": "$2b$leak",
+            "notification_email": "ops@leak.com",
+            "owner_id": "owner-leak",
+            "subscription_status": "active_premium",
+            "monthly_plan": "growth",
+            "description": "internal blurb",
+        },
+    )
+    lead_id = _make_lead()
+    _, body = _get(app, lead_id)
+    c = body["clinics"][0]
+    # Whitelist must hold.
+    extra_keys = set(c.keys()) - ALLOWED_CLINIC_FIELDS
+    assert not extra_keys, f"unexpected keys leaked on premium card: {extra_keys}"
+    # Negative: no forbidden field in the dict.
+    leaks = set(c.keys()) & FORBIDDEN_CLINIC_FIELDS
+    assert not leaks, f"forbidden fields leaked: {leaks}"
+    # featured_rank / sponsored_rank ARE used internally for sorting but
+    # must NOT appear in the response payload (they're not whitelisted).
+    assert "featured_rank" not in c
+    assert "sponsored_rank" not in c
+
+
+# ─── 26. Placement copy never contains forbidden marketing terms ───
+
+
+def test_26_placement_copy_has_no_forbidden_marketing_terms(app):
+    _make_clinic(
+        name="Marketing Clinic",
+        treatments_supported=["aligners"],
+        extra={"partner_tier": "premium"},
+    )
+    lead_id = _make_lead()
+    _, body = _get(app, lead_id)
+    c = body["clinics"][0]
+    forbidden = [
+        "най-добра", "топ", "#1", "гарантирано", "проверено качество",
+        "best", "guaranteed",
+    ]
+    for word in forbidden:
+        assert word.lower() not in (c["placement_label"] or "").lower(), c
+        assert word.lower() not in (c["placement_disclosure"] or "").lower(), c
+        assert word.lower() not in (c["reason"] or "").lower(), c
+
+
+# ─── 27. Deterministic order across repeated calls with tiers mixed ───
+
+
+def test_27_deterministic_order_with_tiers(app):
+    _make_clinic(
+        name="Alpha Standard",
+        treatments_supported=["aligners"],
+    )
+    _make_clinic(
+        name="Bravo Featured",
+        treatments_supported=["aligners"],
+        extra={"partner_tier": "featured"},
+    )
+    _make_clinic(
+        name="Charlie Premium",
+        treatments_supported=["aligners"],
+        extra={"partner_tier": "premium"},
+    )
+    lead_id = _make_lead(treatment="aligners")
+    _, body1 = _get(app, lead_id)
+    _, body2 = _get(app, lead_id)
+    names1 = [c["name"] for c in body1["clinics"]]
+    names2 = [c["name"] for c in body2["clinics"]]
+    # premium first (+8), featured second (+5), standard third (+0).
+    assert names1 == ["Charlie Premium", "Bravo Featured", "Alpha Standard"]
+    assert names1 == names2

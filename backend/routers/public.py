@@ -242,6 +242,56 @@ def _city_name_for(slug: Optional[str], fallback: Optional[str] = None) -> Optio
     return name or fallback or slug
 
 
+# ── Partner placement (demo support, no schema migration) ─────────
+#
+# Demo / monetization layer. Clinic docs MAY carry the optional fields:
+#   • partner_tier        : "standard" | "featured" | "premium"
+#   • is_featured         : bool   (legacy boolean, treated as `featured` tier)
+#   • is_premium          : bool   (legacy boolean, treated as `premium` tier)
+#   • featured_rank / sponsored_rank : int  (lower = surfaces first within tier)
+#
+# Missing or invalid values => "standard" tier with no placement copy.
+# Tier boost is applied AFTER hard eligibility filters and is small enough
+# that it can never override a treatment match (+50) or out-rank an
+# eligible clinic over an ineligible one (ineligible = excluded entirely).
+
+_VALID_TIERS = frozenset({"standard", "featured", "premium"})
+_TIER_BOOST = {"premium": 8, "featured": 5, "standard": 0}
+
+_PLACEMENT_LABEL = {
+    "premium": "Premium партньор",
+    "featured": "Представена клиника",
+    "standard": None,
+}
+_PLACEMENT_DISCLOSURE = {
+    "premium": "Тази клиника има допълнителна партньорска видимост в Zubite.",
+    "featured": "Тази клиника е представена като партньор на Zubite.",
+    "standard": None,
+}
+
+
+def _resolve_partner_tier(clinic: dict) -> str:
+    """Pure: read clinic placement signals and resolve to a tier string."""
+    raw = (clinic.get("partner_tier") or "").strip().lower()
+    if raw in _VALID_TIERS:
+        return raw
+    if clinic.get("is_premium") is True:
+        return "premium"
+    if clinic.get("is_featured") is True:
+        return "featured"
+    return "standard"
+
+
+def _placement_rank(clinic: dict) -> int:
+    """Lower rank surfaces first within the same (score, tier-boost) group.
+    Falls back to a large sentinel when absent so absent < present is consistent."""
+    for k in ("featured_rank", "sponsored_rank"):
+        v = clinic.get(k)
+        if isinstance(v, int):
+            return v
+    return 1_000_000
+
+
 def _treatments_of(clinic: dict) -> List[str]:
     """Union of `treatments_supported` (legacy/routing schema) and
     `treatments_offered` (admin/partner schema). De-duplicated, lowercased."""
@@ -313,7 +363,12 @@ def _clinic_city_slug(clinic: dict) -> Optional[str]:
 
 
 def _score_clinic(clinic: dict, lead_city: str, lead_treatment: str, is_broad: bool) -> int:
-    """Deterministic score. Returns -1 to mark clinic as ineligible (no city match)."""
+    """Deterministic score. Returns -1 to mark clinic as ineligible (no city match).
+
+    Eligibility (city) is checked FIRST. Partner-tier boost is added ONLY
+    after eligibility passes, so an ineligible premium clinic can never
+    out-rank an eligible standard clinic.
+    """
     cs = _clinic_city_slug(clinic)
     if cs != lead_city:
         return -1
@@ -321,6 +376,8 @@ def _score_clinic(clinic: dict, lead_city: str, lead_treatment: str, is_broad: b
     if not is_broad:
         if lead_treatment.lower() in _treatments_of(clinic):
             score += 50
+    # Tier boost AFTER eligibility — pure additive, max +8.
+    score += _TIER_BOOST.get(_resolve_partner_tier(clinic), 0)
     return score
 
 
@@ -360,6 +417,8 @@ def _safe_clinic_payload(clinic: dict, lead_treatment: str, is_broad: bool) -> d
     except Exception:
         partner_since_year = None
 
+    tier = _resolve_partner_tier(clinic)
+
     return {
         "id": clinic.get("id"),
         "name": _clinic_name(clinic),
@@ -373,6 +432,11 @@ def _safe_clinic_payload(clinic: dict, lead_treatment: str, is_broad: bool) -> d
             "при потвърдено съгласие."
         ),
         "partner_since_year": partner_since_year,
+        # Partner placement (transparent demo support).
+        "partner_tier": tier,
+        "is_featured": tier in ("featured", "premium"),
+        "placement_label": _PLACEMENT_LABEL[tier],
+        "placement_disclosure": _PLACEMENT_DISCLOSURE[tier],
     }
 
 
@@ -463,27 +527,32 @@ async def recommended_clinics(lead_id: str, limit: int = 3):
             "treatments_supported": 1, "treatments_offered": 1,
             "is_active": 1, "clinic_status": 1, "status": 1,
             "created_at": 1,
+            # Partner placement (optional; missing => safe defaults).
+            "partner_tier": 1, "is_featured": 1, "is_premium": 1,
+            "featured_rank": 1, "sponsored_rank": 1,
         },
     ).to_list(500)
 
-    scored: List[tuple[int, str, dict]] = []
+    scored: List[tuple[int, int, str, dict]] = []
     for c in raw_candidates:
         if not _is_clinic_visible(c):
             continue
         s = _score_clinic(c, lead_city, lead_treatment, is_broad)
         if s < 0:
             continue
-        scored.append((s, (_clinic_name(c) or "").lower(), c))
+        scored.append((s, _placement_rank(c), (_clinic_name(c) or "").lower(), c))
 
-    # Deterministic sort: score desc, then name asc (alphabetical tie-break).
-    scored.sort(key=lambda x: (-x[0], x[1]))
+    # Deterministic sort: score desc (includes tier boost), then
+    # featured/sponsored_rank asc (lower = surface first within same score
+    # bucket), then alphabetical name asc.
+    scored.sort(key=lambda x: (-x[0], x[1], x[2]))
 
     top = scored[:limit]
 
     if not top:
         return empty_response
 
-    clinics_out = [_safe_clinic_payload(c, lead_treatment, is_broad) for _, _, c in top]
+    clinics_out = [_safe_clinic_payload(c, lead_treatment, is_broad) for _, _, _, c in top]
 
     return {
         "lead_id": lead_id,
