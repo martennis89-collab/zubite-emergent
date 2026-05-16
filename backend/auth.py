@@ -62,7 +62,16 @@ def create_clinic_token(user_id: str, email: str) -> str:
 _UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
 # Preview hosts already trusted by the CORS layer.
-_PREVIEW_HOST_RE = re.compile(r"^[a-z0-9-]+\.preview\.emergentagent\.com$", re.IGNORECASE)
+# Two patterns are accepted because the preview infrastructure presents the
+# request to the backend under either:
+#   1. *.preview.emergentagent.com         (legacy preview hostnames)
+#   2. *.cluster-N.preview.emergentcf.cloud (ingress-rewritten host in newer
+#      preview clusters — same trust boundary, different DNS surface)
+_PREVIEW_HOST_RE = re.compile(
+    r"^[a-z0-9-]+\.preview\.emergentagent\.com$"
+    r"|^[a-z0-9-]+\.cluster-[a-z0-9]+\.preview\.emergentcf\.cloud$",
+    re.IGNORECASE,
+)
 
 
 def _allowed_csrf_hosts() -> set[str]:

@@ -672,3 +672,167 @@ class TestPublicEndpointsUnaffected:
         r = _run(go())
         # 200 / 201 / 404 (slug doesn't exist) / 422 — all prove CSRF didn't fire.
         assert r.status_code in (200, 201, 404, 422), r.text
+
+
+# ── 8. Preview-host CSRF allow-list regression (post-incident May 2026) ──
+#
+# The preview infrastructure now presents some clusters under
+# `*.cluster-N.preview.emergentcf.cloud` instead of the original
+# `*.preview.emergentagent.com`. Both are the same trust boundary; the
+# regex must accept BOTH but still reject lookalikes.
+
+
+def _host(url: str) -> str | None:
+    from urllib.parse import urlparse
+    return urlparse(url).hostname
+
+
+class TestPreviewHostAllowList:
+    """Unit tests on the host allow-list helper. No DB / no ASGI."""
+
+    def test_legacy_preview_host_allowed(self):
+        from auth import _is_allowed_origin
+        assert _is_allowed_origin(
+            _host("https://ortho-preview-2.preview.emergentagent.com")
+        ) is True
+
+    def test_new_cluster_preview_host_allowed(self):
+        from auth import _is_allowed_origin
+        assert _is_allowed_origin(
+            _host("https://ortho-preview-2.cluster-3.preview.emergentcf.cloud")
+        ) is True
+
+    def test_new_cluster_preview_alt_cluster_id_allowed(self):
+        from auth import _is_allowed_origin
+        # cluster-N segment must accept any alphanumeric id, not just '3'.
+        assert _is_allowed_origin(
+            _host("https://foo-bar.cluster-7a.preview.emergentcf.cloud")
+        ) is True
+
+    def test_production_zubite_allowed(self):
+        from auth import _is_allowed_origin
+        assert _is_allowed_origin(_host("https://zubite.bg")) is True
+
+    def test_production_www_zubite_allowed(self):
+        from auth import _is_allowed_origin
+        assert _is_allowed_origin(_host("https://www.zubite.bg")) is True
+
+    def test_evil_origin_rejected(self):
+        from auth import _is_allowed_origin
+        assert _is_allowed_origin(_host("https://evil.example.com")) is False
+
+    def test_suffix_attack_emergentcf_rejected(self):
+        """An attacker-controlled host that has `.preview.emergentcf.cloud` as
+        a *substring* but is NOT actually that domain must be rejected."""
+        from auth import _is_allowed_origin
+        assert _is_allowed_origin(
+            _host("https://preview.emergentcf.cloud.evil.example.com")
+        ) is False
+
+    def test_suffix_attack_emergentagent_rejected(self):
+        from auth import _is_allowed_origin
+        assert _is_allowed_origin(
+            _host("https://preview.emergentagent.com.evil.example.com")
+        ) is False
+
+    def test_missing_host_rejected(self):
+        from auth import _is_allowed_origin
+        assert _is_allowed_origin(None) is False
+        assert _is_allowed_origin("") is False
+
+    def test_emergentcf_without_cluster_segment_rejected(self):
+        """`*.preview.emergentcf.cloud` *without* the `cluster-N.` middle
+        segment must not match — guards against accidental broadening."""
+        from auth import _is_allowed_origin
+        assert _is_allowed_origin(
+            _host("https://something.preview.emergentcf.cloud")
+        ) is False
+
+
+class TestCsrfWithNewPreviewOrigin:
+    """End-to-end (in-process ASGI) integration: cookie-auth POST with the new
+    cluster preview Origin must pass CSRF; an evil Origin must still 403."""
+
+    def test_cookie_auth_post_with_emergentcf_cluster_origin_succeeds(self, app):
+        async def go():
+            _, cookies = await _admin_login(app)
+            cookie = cookies[ADMIN_COOKIE]
+            async with _client(app) as c:
+                return await c.post(
+                    "/api/admin/calls/cleanup-stuck",
+                    headers={
+                        "Cookie": f"{ADMIN_COOKIE}={cookie}",
+                        "Origin": "https://ortho-preview-2.cluster-3.preview.emergentcf.cloud",
+                    },
+                )
+
+        r = _run(go())
+        assert r.status_code == 200, r.text
+
+    def test_cookie_auth_post_with_evil_origin_still_returns_403(self, app):
+        async def go():
+            _, cookies = await _admin_login(app)
+            cookie = cookies[ADMIN_COOKIE]
+            async with _client(app) as c:
+                return await c.post(
+                    "/api/admin/calls/cleanup-stuck",
+                    headers={
+                        "Cookie": f"{ADMIN_COOKIE}={cookie}",
+                        "Origin": "https://evil.example.com",
+                    },
+                )
+
+        r = _run(go())
+        assert r.status_code == 403, r.text
+
+    def test_cookie_auth_post_with_emergentcf_origin_does_not_emit_csrf_audit(self, app):
+        """Allowed preview origin must NOT generate auth.csrf_origin_mismatch rows."""
+        async def go():
+            import database as _database
+            _, cookies = await _admin_login(app)
+            cookie = cookies[ADMIN_COOKIE]
+            async with _client(app) as c:
+                await c.post(
+                    "/api/admin/calls/cleanup-stuck",
+                    headers={
+                        "Cookie": f"{ADMIN_COOKIE}={cookie}",
+                        "Origin": "https://abc.cluster-9.preview.emergentcf.cloud",
+                    },
+                )
+            return await _database.db.admin_audit_logs.find(
+                {"action": "auth.csrf_origin_mismatch"}, {"_id": 0},
+            ).to_list(50)
+
+        rows = _run(go())
+        assert rows == [], f"unexpected CSRF audit rows for allowed origin: {rows}"
+
+    def test_cookie_auth_clinic_post_with_emergentcf_cluster_origin_succeeds(self, app):
+        """Same fix path must apply to the clinic-role guard."""
+        async def go():
+            _, cookies = await _clinic_login(app)
+            cookie = cookies[CLINIC_COOKIE]
+            async with _client(app) as c:
+                # change-password is a clinic-cookie-gated POST that exercises
+                # the same CSRF guard. We provide the (deliberately wrong)
+                # current password so that we land in the route handler past
+                # CSRF — a 400/422/401 from the handler is still proof that
+                # CSRF did NOT short-circuit at 403.
+                return await c.post(
+                    "/api/clinic/change-password",
+                    headers={
+                        "Cookie": f"{CLINIC_COOKIE}={cookie}",
+                        "Origin": "https://ortho-preview-2.cluster-3.preview.emergentcf.cloud",
+                    },
+                    json={
+                        "current_password": CLINIC_PASSWORD,
+                        "new_password": "NewClinicPassFromCsrfTest1!",
+                    },
+                )
+
+        r = _run(go())
+        # CSRF must have allowed the request through. The handler itself may
+        # return 200 (password actually changed) or 4xx — either proves CSRF
+        # did not block.
+        assert r.status_code != 403, (
+            f"clinic CSRF wrongly rejected allowed emergentcf preview origin: {r.text}"
+        )
