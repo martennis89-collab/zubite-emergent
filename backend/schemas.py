@@ -549,6 +549,10 @@ CONSULTATION_STATUS_VALUES = (
     "patient_contacted", "no_answer", "booked", "rescheduled",
     "patient_declined", "not_suitable", "attended", "no_show",
     "cancelled", "expired", "disputed",
+    # P5 assisted-choice flow — admin-only triage queue. Rows with this
+    # status carry `assigned_clinic_id=null` and `created_from="assisted_choice_flow"`
+    # and are intentionally invisible to clinic-portal queries.
+    "needs_zubite_review",
 )
 APPOINTMENT_STATUS_VALUES = (
     "booked", "confirmed", "rescheduled", "cancelled",

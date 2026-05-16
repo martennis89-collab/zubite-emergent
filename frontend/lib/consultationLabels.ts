@@ -1,21 +1,22 @@
 // Shared labels and helpers for the consultation workflow UI.
 
 export const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
-  new:                { label: 'Нова',                  cls: 'bg-slate-100 text-slate-700' },
-  assigned:           { label: 'Назначена',             cls: 'bg-sky-100 text-sky-700' },
-  clinic_viewed:      { label: 'Видяна',                cls: 'bg-sky-100 text-sky-700' },
-  call_attempted:     { label: 'Опит за обаждане',      cls: 'bg-amber-100 text-amber-800' },
-  patient_contacted:  { label: 'Свързано с пациента',   cls: 'bg-amber-100 text-amber-800' },
-  no_answer:          { label: 'Без отговор',           cls: 'bg-amber-100 text-amber-800' },
-  booked:             { label: 'Резервирана',           cls: 'bg-emerald-100 text-emerald-700' },
-  rescheduled:        { label: 'Преместена',            cls: 'bg-amber-100 text-amber-800' },
-  patient_declined:   { label: 'Пациентът отказа',      cls: 'bg-rose-100 text-rose-700' },
-  not_suitable:       { label: 'Неподходяща',           cls: 'bg-rose-100 text-rose-700' },
-  attended:           { label: 'Посетила',              cls: 'bg-emerald-100 text-emerald-700' },
-  no_show:            { label: 'Не се яви',             cls: 'bg-rose-100 text-rose-700' },
-  cancelled:          { label: 'Отменена',              cls: 'bg-slate-100 text-slate-500' },
-  expired:            { label: 'Изтекла',               cls: 'bg-slate-100 text-slate-500' },
-  disputed:           { label: 'В спор',                cls: 'bg-rose-100 text-rose-700' },
+  new:                  { label: 'Нова',                  cls: 'bg-slate-100 text-slate-700' },
+  assigned:             { label: 'Назначена',             cls: 'bg-sky-100 text-sky-700' },
+  clinic_viewed:        { label: 'Видяна',                cls: 'bg-sky-100 text-sky-700' },
+  call_attempted:       { label: 'Опит за обаждане',      cls: 'bg-amber-100 text-amber-800' },
+  patient_contacted:    { label: 'Свързано с пациента',   cls: 'bg-amber-100 text-amber-800' },
+  no_answer:            { label: 'Без отговор',           cls: 'bg-amber-100 text-amber-800' },
+  booked:               { label: 'Резервирана',           cls: 'bg-emerald-100 text-emerald-700' },
+  rescheduled:          { label: 'Преместена',            cls: 'bg-amber-100 text-amber-800' },
+  patient_declined:     { label: 'Пациентът отказа',      cls: 'bg-rose-100 text-rose-700' },
+  not_suitable:         { label: 'Неподходяща',           cls: 'bg-rose-100 text-rose-700' },
+  attended:             { label: 'Посетила',              cls: 'bg-emerald-100 text-emerald-700' },
+  no_show:              { label: 'Не се яви',             cls: 'bg-rose-100 text-rose-700' },
+  cancelled:            { label: 'Отменена',              cls: 'bg-slate-100 text-slate-500' },
+  expired:              { label: 'Изтекла',               cls: 'bg-slate-100 text-slate-500' },
+  disputed:             { label: 'В спор',                cls: 'bg-rose-100 text-rose-700' },
+  needs_zubite_review:  { label: 'Чака преглед',          cls: 'bg-violet-100 text-violet-700' },
 }
 
 export const APPOINTMENT_TYPE_LABELS: Record<string, string> = {
@@ -369,6 +370,17 @@ export interface ConsultationRequest {
   urgency?: string | null
   readiness?: string | null
   source?: string | null
+  // P4/P5 patient-flow markers (optional; legacy/admin-created rows lack them).
+  created_from?: string | null
+  selection_source?: string | null
+  patient_message?: string | null
+  // Consent capture (P4 = clinic share, P5 = zubite share). All optional.
+  consent_to_share_clinic?: boolean | null
+  consent_to_share_clinic_at?: string | null
+  consent_to_share_clinic_text?: string | null
+  consent_to_share_zubite?: boolean | null
+  consent_to_share_zubite_at?: string | null
+  consent_to_share_zubite_text?: string | null
   utm_source?: string | null
   utm_campaign?: string | null
   utm_adset?: string | null
@@ -376,6 +388,7 @@ export interface ConsultationRequest {
   status: string
   assigned_clinic_id?: string | null
   assigned_clinic_name?: string | null
+  assigned_clinic_city?: string | null
   assigned_at?: string | null
   clinic_viewed_at?: string | null
   first_action_at?: string | null
@@ -428,3 +441,56 @@ export const APPOINTMENT_TYPES: Array<{ value: string; label: string }> = [
   { value: 'full_mouth_rehab_consultation', label: 'Цяла уста' },
   { value: 'general_consultation', label: 'Обща' },
 ]
+
+// Patient-flow request type (driven by `created_from` on the consultation_request
+// doc). Keeps copy and visual treatment in one place so list + detail stay
+// aligned.
+export type RequestKindKey = 'selected_clinic' | 'assisted_choice' | 'other'
+
+export interface RequestKindDescriptor {
+  key: RequestKindKey
+  badgeLabel: string       // short pill on list rows
+  detailTitle: string      // section title on detail page
+  detailDescription: string
+  badgeCls: string         // tailwind classes for the badge
+  rowAccentCls: string     // tailwind classes appended to the row/card when this kind needs to stand out
+}
+
+export const REQUEST_KIND_DESCRIPTORS: Record<RequestKindKey, RequestKindDescriptor> = {
+  selected_clinic: {
+    key: 'selected_clinic',
+    badgeLabel: 'Пациентът избра клиника',
+    detailTitle: 'Избрана клиника',
+    detailDescription: 'Пациентът е избрал конкретна клиника.',
+    badgeCls: 'bg-sky-50 text-sky-700 border border-sky-200',
+    rowAccentCls: '',
+  },
+  assisted_choice: {
+    key: 'assisted_choice',
+    badgeLabel: 'Пациентът поиска помощ от Zubite',
+    detailTitle: 'Помощ от Zubite',
+    detailDescription: 'Пациентът не е сигурен коя клиника да избере и е поискал помощ от Zubite.',
+    badgeCls: 'bg-violet-50 text-violet-700 border border-violet-200',
+    rowAccentCls: 'bg-violet-50/40 hover:bg-violet-50/70',
+  },
+  other: {
+    key: 'other',
+    badgeLabel: 'Друг източник',
+    detailTitle: 'Друг източник',
+    detailDescription: 'Заявката не идва от P4/P5 patient-layer flow.',
+    badgeCls: 'bg-slate-100 text-slate-600 border border-slate-200',
+    rowAccentCls: '',
+  },
+}
+
+export function requestKindFromCreatedFrom(createdFrom?: string | null): RequestKindKey {
+  if (createdFrom === 'recommended_clinics_flow') return 'selected_clinic'
+  if (createdFrom === 'assisted_choice_flow') return 'assisted_choice'
+  return 'other'
+}
+
+export const SELECTION_SOURCE_LABELS: Record<string, string> = {
+  matching_card: 'От картата в списъка',
+  clinic_profile: 'От профила на клиниката',
+  matching_page: 'От страницата с препоръки',
+}

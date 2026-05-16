@@ -331,10 +331,21 @@ async def admin_update_clinic(
 
 # ─── Admin: Consultation Requests ─────────────────────────
 
+# Allowed values for the admin list filter on `created_from`. Patient layer
+# P4/P5 produce these two values; admin-created/legacy rows may have other
+# values, so we whitelist only the patient-flow ones to keep the API contract
+# tight.
+_ADMIN_CREATED_FROM_VALUES = (
+    "recommended_clinics_flow",   # P4 — patient picked a specific clinic
+    "assisted_choice_flow",       # P5 — patient asked Zubite for help
+)
+
+
 @router.get("/admin/consultation-requests")
 async def admin_list_consultation_requests(
     status: Optional[str] = None,
     clinic_id: Optional[str] = None,
+    created_from: Optional[str] = None,
     user: AdminUser = Depends(get_current_user),
 ):
     q: Dict[str, Any] = {}
@@ -342,15 +353,28 @@ async def admin_list_consultation_requests(
         q["status"] = status
     if isinstance(clinic_id, str) and clinic_id:
         q["assigned_clinic_id"] = clinic_id
+    if isinstance(created_from, str) and created_from in _ADMIN_CREATED_FROM_VALUES:
+        q["created_from"] = created_from
     requests = await db.consultation_requests.find(q, {"_id": 0}).sort("created_at", -1).to_list(1000)
     # attach clinic name for the listing table
     clinic_ids = list({r.get("assigned_clinic_id") for r in requests if r.get("assigned_clinic_id")})
     name_map: Dict[str, str] = {}
+    city_map: Dict[str, str] = {}
     if clinic_ids:
-        clinics = await db.clinics.find({"id": {"$in": clinic_ids}}, {"_id": 0, "id": 1, "clinic_name": 1}).to_list(500)
-        name_map = {c["id"]: c.get("clinic_name", "") for c in clinics}
+        clinics = await db.clinics.find(
+            {"id": {"$in": clinic_ids}},
+            {"_id": 0, "id": 1, "clinic_name": 1, "name": 1, "city": 1, "city_name": 1},
+        ).to_list(500)
+        for c in clinics:
+            cid = c.get("id")
+            if not cid:
+                continue
+            name_map[cid] = c.get("clinic_name") or c.get("name") or ""
+            city_map[cid] = c.get("city_name") or c.get("city") or ""
     for r in requests:
-        r["assigned_clinic_name"] = name_map.get(r.get("assigned_clinic_id") or "")
+        cid = r.get("assigned_clinic_id") or ""
+        r["assigned_clinic_name"] = name_map.get(cid)
+        r["assigned_clinic_city"] = city_map.get(cid)
     return {"requests": requests}
 
 
@@ -366,11 +390,15 @@ async def admin_get_consultation_request(
         raise HTTPException(status_code=404, detail="Request not found")
 
     clinic_name = None
+    clinic_city = None
     if req.get("assigned_clinic_id"):
         c = await db.clinics.find_one(
-            {"id": req["assigned_clinic_id"]}, {"_id": 0, "clinic_name": 1}
+            {"id": req["assigned_clinic_id"]},
+            {"_id": 0, "clinic_name": 1, "name": 1, "city": 1, "city_name": 1},
         )
-        clinic_name = (c or {}).get("clinic_name")
+        if c:
+            clinic_name = c.get("clinic_name") or c.get("name")
+            clinic_city = c.get("city_name") or c.get("city")
     appointment = await db.clinic_appointments.find_one(
         {"consultation_request_id": req_id}, {"_id": 0}
     )
@@ -387,6 +415,7 @@ async def admin_get_consultation_request(
     return {
         "request": req,
         "clinic_name": clinic_name,
+        "clinic_city": clinic_city,
         "appointment": appointment,
         "lead": lead,
     }

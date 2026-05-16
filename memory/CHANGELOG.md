@@ -1,5 +1,226 @@
 # Zubite.bg — Changelog
 
+## 2026-02-16 — Admin Handling — P4/P5 Patient Request Visibility & Triage
+
+Added admin-side visibility and triage for patient-flow consultation
+requests created by P4 (`recommended_clinics_flow`) and P5
+(`assisted_choice_flow`). **Admin-only. No patient/clinic-portal flow,
+no notifications, no Twilio/ElevenLabs/Resend, no auto-assignment.**
+
+### Files touched
+
+**Backend (3):**
+- `backend/schemas.py` — added `needs_zubite_review` to
+  `CONSULTATION_STATUS_VALUES` so the admin PATCH endpoint can transition
+  rows in/out of the new triage status without 400.
+- `backend/routers/consultations.py`:
+  - `GET /api/admin/consultation-requests` — added `created_from` query
+    param, whitelisted to `{recommended_clinics_flow, assisted_choice_flow}`
+    (unknown values are silently ignored, behaving like "no filter").
+    Also enriched the row payload with `assigned_clinic_city` (resolved
+    from `clinics.city_name|city`) and `assigned_clinic_name` (resolved
+    from `clinics.clinic_name|name`, supporting both schemas).
+  - `GET /api/admin/consultation-requests/{id}` — added top-level
+    `clinic_city` next to the existing `clinic_name`.
+- `backend/tests/test_admin_patient_request_handling.py` (NEW, 12 cases) —
+  **12/12 PASS** in 3.71s on isolated `zubite_test_admin_p4_p5_handling`
+  DB. P4 regression (`test_patient_request_call.py`) and P5 regression
+  (`test_patient_assisted_choice.py`) still **31/31** and **28/28** pass.
+
+**Frontend (3):**
+- `frontend/lib/consultationLabels.ts`:
+  - Added `needs_zubite_review` to `STATUS_LABELS`
+    (label: "Чака преглед", violet pill).
+  - Extended `ConsultationRequest` type with the P4/P5 flow markers and
+    consent fields (`created_from`, `selection_source`, `patient_message`,
+    `consent_to_share_clinic*`, `consent_to_share_zubite*`,
+    `assigned_clinic_city`).
+  - Added `REQUEST_KIND_DESCRIPTORS` map + `requestKindFromCreatedFrom()`
+    helper. Three kinds: `selected_clinic`, `assisted_choice`, `other`.
+    Each carries a badge label, detail title/description, badge classes,
+    and a row-accent class for visual stand-out on the list.
+  - Added `SELECTION_SOURCE_LABELS` for BG copy of `selection_source`
+    values (`matching_card`, `clinic_profile`, `matching_page`).
+- `frontend/app/admin/consultation-requests/page.tsx` — full BG
+  rewrite:
+  - 4 tabs (`data-testid="admin-cr-tab-*"`): **Всички**,
+    **Избрана клиника** (→`created_from=recommended_clinics_flow`),
+    **Помощ от Zubite** (→`created_from=assisted_choice_flow`),
+    **Чака преглед** (→`status=needs_zubite_review`).
+  - Per-row badge "Пациентът избра клиника" (sky) or
+    "Пациентът поиска помощ от Zubite" (violet). P5 rows also have a
+    violet row-tint (`bg-violet-50/40`) and the clinic column shows
+    "Без клиника · чака преглед" instead of the assign-clinic dropdown.
+  - Footer count strip: total + per-kind sub-counts.
+  - All BG labels: Пациент / Тип заявка / Лечение / Клиника / Статус /
+    Създадена / Отвори.
+- `frontend/app/admin/consultation-requests/[id]/page.tsx` — full BG
+  rewrite + 3 new sections:
+  - **"Тип заявка"** (`admin-cr-kind-section`) — explicit human
+    sentence per kind:
+    - selected → "Пациентът е избрал конкретна клиника." + sky-tinted
+      box with the resolved clinic name / city / id.
+    - assisted → "Пациентът не е сигурен коя клиника да избере и е
+      поискал помощ от Zubite." (violet tint).
+    Plus a "Източник на заявката" sub-line driven by `selection_source`.
+  - **"Съобщение от пациента"** (`admin-cr-patient-message-section`) —
+    rendered only when `patient_message` is non-empty. PII sensitivity
+    note included.
+  - **"Съгласие на пациента"** (`admin-cr-consent-section`) — split
+    into two sub-blocks (clinic / Zubite). Each shows the consent type
+    in BG, the timestamp, and the verbatim consent text in a quoted
+    blockquote (`admin-cr-consent-clinic-text` / `-zubite-text`).
+  - Existing event timeline + internal-note flow kept intact (BG
+    relabel only).
+- `memory/CHANGELOG.md`.
+
+### Backend endpoint contract changes
+
+**`GET /api/admin/consultation-requests`** — additive only.
+```
+Query params:
+  status?       — single status string (unchanged)
+  clinic_id?    — single clinic id (unchanged)
+  created_from? — NEW. Whitelisted to {recommended_clinics_flow,
+                  assisted_choice_flow}. Unknown values fall back
+                  to "no filter".
+
+Response row shape: existing fields + new
+  - assigned_clinic_name (was already present)
+  - assigned_clinic_city (NEW)
+```
+
+**`GET /api/admin/consultation-requests/{id}`** — additive only.
+```
+Response: existing keys + new top-level
+  - clinic_city  (NEW; matches the clinic doc's city_name/city)
+```
+
+P4/P5 patient-flow fields already stored on the doc — `created_from`,
+`selection_source`, `patient_message`, `consent_to_share_clinic*`,
+`consent_to_share_zubite*` — are returned natively because the existing
+endpoint projects only `{_id: 0}` (no field whitelist). They were never
+hidden — they were just not surfaced in the admin UI.
+
+### Bulgarian labels (exact)
+
+| Тaб | Label | Filter |
+|---|---|---|
+| `admin-cr-tab-all` | Всички | (none) |
+| `admin-cr-tab-selected_clinic` | Избрана клиника | `created_from=recommended_clinics_flow` |
+| `admin-cr-tab-assisted_choice` | Помощ от Zubite | `created_from=assisted_choice_flow` |
+| `admin-cr-tab-awaiting_review` | Чака преглед | `status=needs_zubite_review` |
+
+| Kind badge | Color | Row tint |
+|---|---|---|
+| Пациентът избра клиника | sky | none |
+| Пациентът поиска помощ от Zubite | violet | `bg-violet-50/40` |
+
+| Status (new) | Label | Class |
+|---|---|---|
+| `needs_zubite_review` | Чака преглед | `bg-violet-100 text-violet-700` |
+
+### How P4 (selected-clinic) requests display
+- **List row**: sky badge "Пациентът избра клиника" + assign-clinic
+  dropdown (existing) + status badge.
+- **Detail page**: kind section title "Избрана клиника" with sub-card
+  showing resolved clinic name, city, id. "Източник на заявката"
+  line (`От картата в списъка` / `От профила на клиниката`). Consent
+  section shows the "Споделяне на данните с избраната клиника" block
+  with timestamp + verbatim consent text.
+
+### How P5 (assisted-choice) requests display
+- **List row**: violet badge "Пациентът поиска помощ от Zubite",
+  violet row tint, clinic column reads "Без клиника · чака преглед"
+  (no dropdown), status badge "Чака преглед".
+- **Detail page**: violet-tinted kind section, title "Помощ от Zubite",
+  description "Пациентът не е сигурен коя клиника да избере и е
+  поискал помощ от Zubite." Patient message rendered in its own block
+  with a PII sensitivity note. Consent section shows the "Споделяне на
+  данните с екипа на Zubite" block.
+
+### Privacy guarantees
+- Clinic `password_hash`, `notification_email`, JWT secrets, and other
+  secrets are **never** included in the list or detail payloads
+  (asserted by `test_09_no_unsafe_fields_leak`).
+- Patient PII (name, phone, email, message) is visible to the admin
+  user — by design — but never to the clinic portal nor to
+  unauthenticated clients.
+- Clinic JWTs cannot access `/api/admin/consultation-requests*` —
+  asserted by `test_07`.
+- Unauthenticated requests are rejected — asserted by `test_08`.
+
+### Tests
+- `backend/tests/test_admin_patient_request_handling.py` — **12 / 12
+  PASS** in 3.71s. Covers list + filter (created_from, status) +
+  detail (P4 and P5) + access control (admin vs clinic vs anonymous) +
+  PII / secret leak guard + status PATCH regression + the new
+  `needs_zubite_review` status enum + note flow on a P5 row with
+  `assigned_clinic_id=null`.
+- Regression: `test_patient_request_call.py` → 31/31, the new status
+  enum did not affect it. `test_patient_assisted_choice.py` → 28/28.
+
+### TypeScript
+`tsc --noEmit` clean for all touched files (no new errors).
+
+### End-to-end smoke (preview env, admin@zubite.bg)
+- List page (desktop 1440×900): 4 BG tabs render, 49 rows present,
+  49 kind badges, P5 row visually distinct (violet badge + tint +
+  "Без клиника · чака преглед" text).
+- Click "Помощ от Zubite" tab → exactly 1 row (the existing live P5
+  submission `7ea07968-…`).
+- Open detail page → kind title "Помощ от Zubite", patient message
+  rendered, "Съгласие на пациента" block with the verbatim
+  REQUEST_ZUBITE_HELP_CONSENT_TEXT in a quoted blockquote. No
+  "selected-clinic" sub-card (correct).
+
+### Confirmation
+- ✅ 0 patient-flow files changed (matching page, profile page, request
+  modals, assisted-choice modal — all untouched).
+- ✅ 0 clinic-portal files changed.
+- ✅ 0 auth/session/CSRF/audit code changed beyond the existing
+  `audit_log` calls inside the unchanged admin PATCH path.
+- ✅ 0 external providers invoked (no Resend, no Twilio, no
+  ElevenLabs). Existing module-level `_resend.Emails.send` mock in
+  tests confirms.
+- ✅ 0 auto-assignment of assisted-choice rows to clinics.
+- ✅ 0 clinic notifications emitted.
+- ✅ Assisted-choice rows are still **invisible** to the clinic portal —
+  they carry `assigned_clinic_id=null` and the existing
+  `/api/clinic/requests` filter excludes them.
+- ✅ Git not pushed, "Save to GitHub" not used, deploy not triggered.
+
+### Unresolved risks
+1. **No bulk actions on the admin list.** Admin must open each P5 row
+   one at a time. Acceptable for current volume; revisit if the
+   `needs_zubite_review` queue grows.
+2. **PATCH endpoint accepts `needs_zubite_review` for any doc.** An
+   admin could in theory move a P4 row into this status. This is by
+   design (manual triage / re-routing), but means clinic-portal-visible
+   counts can change retroactively. Audit log captures the transition.
+3. **Selection-source label fallback.** If the backend ever stores a
+   new `selection_source` value not in `SELECTION_SOURCE_LABELS`, the
+   UI falls back to the raw string. Not a correctness bug; just a copy
+   gap to watch.
+4. **Empty list filter `clinic_id`** is no-op for assisted-choice rows
+   (they have `null` clinic). Mixing the clinic filter + Помощ от Zubite
+   tab will return zero rows; this is correct behaviour but could be
+   confusing — the tab visually fronts the intent.
+
+### Safe to proceed?
+- ✅ **Notifications batch**: Yes. The triage queue is now visible to
+  admins, which is the precondition for adding admin email/SMS alerts
+  on new P4/P5 submissions.
+- ✅ **Analytics batch (P6)**: Yes. No dependency on this work.
+- ⚠️ **Auto-clinic-assignment from the P5 detail page**: explicitly
+  **deferred**. Would need: (a) admin-side clinic-picker that respects
+  the same scoring rules as the patient-side P2 endpoint, (b) clear
+  audit trail flagging "assigned manually by admin from assisted-choice
+  queue", (c) decision on whether to notify the clinic. Out of this
+  batch's scope.
+
+
+
 ## 2026-02-16 — Patient Layer — Batch P5: Assisted Choice ("Помогнете ми да избера")
 
 Replaced the preview-only "Помогнете ми да избера" CTA with a real
