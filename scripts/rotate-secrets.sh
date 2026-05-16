@@ -184,8 +184,6 @@ NEXT STEPS — order matters:
 
   2.  Provider-side cleanup (delete the OLD keys you replaced):
         • Resend       → delete the previous API key
-        • Twilio       → confirm rotation propagated, delete old token
-        • ElevenLabs   → delete prior key, regenerate webhook secret
         • Emergent     → confirm old Universal Key is invalidated
         • MongoDB      → if password rotated, drop the previous user
                          or rotate again to invalidate the leaked one
