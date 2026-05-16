@@ -1,5 +1,83 @@
 # Zubite.bg — Changelog
 
+## 2026-05-16 — Final Full-Platform Smoke Test + One Blocker Fix
+
+End-to-end readiness pass across the whole patient → admin → clinic
+journey. **No new features.** One UI blocker found and fixed; everything
+else passed cleanly.
+
+### Files changed (1 file, 2 lines)
+- `frontend/app/admin/consultation-requests/page.tsx` — admin status
+  filter dropdown was rendering raw enum keys (`needs_zubite_review`,
+  `call_attempted`, `no_show`, …) as visible option labels. Imported
+  the existing `STATUS_LABELS` map and resolved each option via
+  `STATUS_LABELS[s]?.label || s`. Dropdown now shows
+  `Всички статуси / Нова / Назначена / Видяна / Опит за обаждане /
+  Свързано с пациента / Без отговор / Резервирана / Преместена /
+  Посетила / Не се яви / Отменена / Чака преглед`. No data model
+  change; existing values still post the canonical enum string.
+
+### Backend regression (each suite in isolation)
+| Suite | Result |
+|---|---|
+| `test_clinic_status_control.py` | 20/20 |
+| `test_clinic_request_context_visibility.py` | 11/11 |
+| `test_admin_patient_request_handling.py` | 12/12 |
+| `test_patient_request_call.py` | 31/31 |
+| `test_patient_assisted_choice.py` | 28/28 |
+| `test_p4_p5_admin_notifications.py` | 11/11 |
+| **Total** | **113/113** |
+
+(When run as one pytest invocation the bootstrap fixtures of the
+later suites collide on `os.environ.setdefault("DB_NAME", ...)`. This
+is not a regression — each suite passes individually as designed.)
+
+### Backend live smoke (preview, fresh leads)
+- P4 fresh → 200 with `request_id`. Same-clinic retry → 200 +
+  `already_requested=true`. Different clinic on locked lead → 409
+  `already_requested`.
+- P5 fresh → 200 with `request_id`. Retry → 200 `already_requested=true`.
+- Admin queue: `?created_from=recommended_clinics_flow` and
+  `?status=needs_zubite_review` both surface the new rows correctly.
+- Resend admin alert was invoked (visible in backend logs); it
+  returned `"zubite.bg domain is not verified"` from Resend, the
+  helper logged the error and the patient endpoint still returned
+  200 — proving the resilience contract one more time.
+
+### TypeScript
+`npx tsc --noEmit` → 6 pre-existing errors in unrelated files
+(`admin/blog/import`, `admin/dashboard`, `lib/articleTestRender`,
+`lib/api.ts`, `lib/attribution.ts`). Zero new errors from this pass.
+
+### Mobile QA (4 viewports × 4 patient pages, plus admin & clinic)
+| Page | 375 | 390 | 768 | 1440 |
+|---|---|---|---|---|
+| Homepage | ✅ | ✅ | ✅ | ✅ |
+| Quiz success | ✅ | ✅ | ✅ | ✅ |
+| Recommended clinics | ✅ | ✅ | ✅ | ✅ |
+| Sofia Premium profile | ✅ | ✅ | ✅ | ✅ |
+| Admin queue | ✅ | — | — | ✅ |
+| Clinic request detail | ✅ | — | — | ✅ |
+
+No horizontal overflow at any tested viewport. No forbidden patient
+copy on any of the four patient pages. No raw enum keys leaking on
+the clinic detail page (`call_attempted`, `patient_contacted`,
+`mark_attended`, `not_suitable`, `patient_declined`, `action_type`
+all absent). Admin queue raw enums **fixed** (see above).
+
+### External providers
+- **Resend** — invoked for admin alerts on every successful
+  P4/P5 insert. Preview env's `zubite.bg` sender domain is **not yet
+  verified**, so emails fail at the SDK level with
+  `"domain is not verified"`. The patient flow returns 200 regardless.
+- **Twilio** — never invoked.
+- **ElevenLabs** — never invoked.
+- **SMS** — none.
+- **Patient confirmation email** — none.
+- **Clinic notification email** — none (intentionally not yet
+  implemented; admin-only alerts for now).
+
+
 ## 2026-05-16 — Care Pass Visibility R1 (Frontend Copy + Visual Only)
 
 Patient-facing visibility of the Zubite Care Pass benefit: a partner-

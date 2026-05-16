@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import {
   ConsultationRequest, statusBadge, formatDate, TREATMENT_LABELS,
-  REQUEST_KIND_DESCRIPTORS, requestKindFromCreatedFrom,
+  REQUEST_KIND_DESCRIPTORS, requestKindFromCreatedFrom, STATUS_LABELS,
 } from '@/lib/consultationLabels'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
@@ -155,7 +155,7 @@ export default function AdminConsultationRequestsPage() {
           >
             <option value="">Всички статуси</option>
             {['new','assigned','clinic_viewed','call_attempted','patient_contacted','no_answer','booked','rescheduled','attended','no_show','cancelled','needs_zubite_review'].map((s) => (
-              <option key={s} value={s}>{s}</option>
+              <option key={s} value={s}>{STATUS_LABELS[s]?.label || s}</option>
             ))}
           </select>
           <select
