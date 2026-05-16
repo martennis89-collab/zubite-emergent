@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, Suspense } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 import { CheckCircle, ArrowRight, MapPin, Shield, Sparkles } from 'lucide-react'
 import { trackPageView } from '@/components/MetaPixel'
@@ -184,6 +185,26 @@ function SuccessContent() {
           Не си сигурен/на? На следващата страница можеш да избереш „Помогнете
           ми да избера".
         </p>
+
+        {/* Care Pass benefit note — subtle, secondary to the main CTA. */}
+        <div
+          className="mt-6 rounded-xl border border-slate-200 bg-white/70 px-4 py-3 flex items-start gap-3"
+          data-testid="success-care-pass-note"
+        >
+          <Image
+            src="/care-pass.png"
+            alt="Zubite Care Pass"
+            width={56}
+            height={56}
+            className="w-14 h-14 rounded-lg object-cover flex-shrink-0 ring-1 ring-slate-200"
+          />
+          <p className="text-xs text-slate-600 leading-relaxed">
+            <span className="font-semibold text-slate-800">Zubite Care Pass.</span>{' '}
+            След като посетите консултация, заявена през Zubite.bg, клиниката
+            ще ви предостави Zubite Care Pass с партньорски ползи от марки за
+            орална хигиена.
+          </p>
+        </div>
       </div>
 
       {/* Trust + medical disclaimer */}

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import NextImage from 'next/image'
 import axios from 'axios'
 import {
   ArrowLeft, Building2, MapPin, ShieldCheck, Calendar,
@@ -270,6 +271,36 @@ function ProfileBody({
           hasAnySelection={hasAnySelection}
         />
       )}
+
+      {/* Care Pass — small premium card near the CTA area. Never larger
+          than the hero, never implies treatment discount. */}
+      <section
+        className="rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50/70 via-white to-white overflow-hidden"
+        data-testid="profile-care-pass-section"
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-[140px_minmax(0,1fr)] gap-4 sm:gap-5 p-4 sm:p-5 items-center">
+          <div className="relative w-full max-w-[200px] sm:max-w-none aspect-[5/4] sm:aspect-square rounded-xl bg-white ring-1 ring-slate-200 overflow-hidden mx-auto sm:mx-0">
+            <NextImage
+              src="/care-pass.png"
+              alt="Zubite Care Pass — карта с партньорски ползи"
+              fill
+              sizes="(max-width: 640px) 200px, 140px"
+              className="object-cover"
+            />
+          </div>
+          <div className="min-w-0">
+            <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-700 mb-1.5">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              Zubite Care Pass при посетена консултация
+            </div>
+            <p className="text-slate-700 text-sm leading-relaxed">
+              Ако заявите консултация през Zubite.bg и я посетите, клиниката
+              ще ви предостави Care Pass с партньорски ползи — например
+              отстъпки от марки за орална хигиена.
+            </p>
+          </div>
+        </div>
+      </section>
 
       {/* ── Видео представяне (Premium only) ─────────────────
           Render real video URL if admin published one; otherwise use

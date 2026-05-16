@@ -1,5 +1,140 @@
 # Zubite.bg — Changelog
 
+## 2026-05-16 — Care Pass Visibility R1 (Frontend Copy + Visual Only)
+
+Patient-facing visibility of the Zubite Care Pass benefit: a partner-
+benefits pass (oral-hygiene-brand discounts and partner offers) that
+the clinic provides after a patient attends a consultation requested
+through Zubite.bg.
+
+**No backend / eligibility / QR / PDF / discount config / patient
+email / clinic dashboard / admin tracking changes.** R1 is pure
+copy + a single approved Care Pass image asset.
+
+### Files changed
+- `frontend/public/care-pass.png` — **new**: 1.4 MB approved image
+  asset uploaded by the user (Zubite.bg Care Pass card with shield /
+  gift / smile icons + Bulgarian copy).
+- `frontend/app/quiz/success/page.tsx` — subtle Care Pass note with
+  56×56 thumbnail under the helper-text line; does NOT compete with
+  the primary "Виж препоръчаните клиники" CTA.
+- `frontend/app/results/[leadId]/clinics/page.tsx` — strong but
+  premium Care Pass benefit strip above the cards grid (image +
+  ZUBITE CARE PASS badge + benefit copy + disclaimer
+  "след реално посетена консултация").
+- `frontend/app/results/[leadId]/clinics/[clinicId]/page.tsx` —
+  Care Pass section directly under the hero (above the rest of the
+  body). Image is `aspect-square` capped at `140px` on desktop, never
+  larger than the clinic CTA area.
+- `frontend/components/patient/RequestCallModal.tsx` — Care Pass note
+  with `ShieldCheck` icon between the inline-error and the submit
+  buttons; success state gets a second Care Pass card prompting the
+  patient to ask the clinic for their pass after attending.
+- `frontend/components/patient/AssistedChoiceModal.tsx` — conditional
+  Care Pass note inside the form (clinic not selected yet → uses "ако
+  …заявите и посетите консултация…") and a success-state note ("Care
+  Pass се предоставя от клиниката след реално посетена консултация").
+- `memory/CHANGELOG.md` — appended entry.
+
+### Care Pass image asset
+✅ **Used** — `public/care-pass.png` (uploaded by user, approved).
+Rendered via `next/image` with `fill` + `sizes` for responsive cropping.
+On the clinic profile page it is imported as `NextImage` to avoid a
+name collision with `lucide-react`'s `Image as ImageIcon`.
+
+### Exact Care Pass copy per surface
+
+**Quiz success page** (`data-testid="success-care-pass-note"`)
+> **Zubite Care Pass.** След като посетите консултация, заявена през
+> Zubite.bg, клиниката ще ви предостави Zubite Care Pass с партньорски
+> ползи от марки за орална хигиена.
+
+**Recommended clinics page** (`data-testid="care-pass-benefit-strip"`)
+> ZUBITE CARE PASS  
+> Изберете клиника, посетете консултацията и получете Care Pass от
+> клиниката — с партньорски ползи и предложения за орална грижа.
+>
+> Care Pass се предоставя след реално посетена консултация през
+> Zubite.bg.
+
+**Clinic profile page** (`data-testid="profile-care-pass-section"`)
+> ZUBITE CARE PASS ПРИ ПОСЕТЕНА КОНСУЛТАЦИЯ  
+> Ако заявите консултация през Zubite.bg и я посетите, клиниката ще
+> ви предостави Care Pass с партньорски ползи — например отстъпки от
+> марки за орална хигиена.
+
+**RequestCallModal — form** (`data-testid="request-call-care-pass-note"`)
+> След посещение на консултацията ще получите **Zubite Care Pass** от
+> клиниката — с партньорски ползи и предложения за орална грижа.
+
+**RequestCallModal — success** (`data-testid="request-call-success-care-pass"`)
+> След като посетите консултацията, попитайте клиниката за вашия
+> **Zubite Care Pass**.
+
+**AssistedChoiceModal — form** (`data-testid="assisted-choice-care-pass-note"`)
+> Ако след помощ от Zubite заявите и посетите консултация през
+> платформата, клиниката ще ви предостави **Zubite Care Pass**.
+
+**AssistedChoiceModal — success** (`data-testid="assisted-choice-success-care-pass"`)
+> Следващата стъпка е да уточним подходящия път. **Zubite Care Pass**
+> се предоставя от клиниката след реално посетена консултация през
+> Zubite.bg.
+
+### Mobile verification (375 px live preview)
+| Surface                    | Overflow | Care Pass visible | Forbidden copy |
+|----------------------------|----------|-------------------|----------------|
+| Quiz success               | none     | ✅                | none           |
+| Recommended clinics        | none     | ✅                | none           |
+| Sofia Premium profile      | none     | ✅                | none           |
+| RequestCallModal           | none     | ✅                | none           |
+| AssistedChoiceModal        | none     | ✅                | none           |
+
+- Submit button on `RequestCallModal @ 375` is at `y=628` inside a 900 px
+  viewport — Care Pass note did not push it off-screen.
+- Forbidden phrases verified absent on every surface: `награда`,
+  `подарък за избор`, `гарантирана отстъпка за лечение`,
+  `безплатно лечение`, `Zubite плаща лечението`, `купон за лечение`,
+  `гарантиран резултат`.
+- All Care Pass copy stays in the allowed-vocabulary set:
+  `Zubite Care Pass`, `партньорски ползи`, `отстъпки и предложения от
+  марки за орална хигиена`, `след като посетите консултацията`,
+  `получавате от клиниката`.
+
+### TypeScript
+`npx tsc --noEmit` → zero new errors. The 6 pre-existing errors in
+unrelated files (`admin/blog/import`, `admin/dashboard`,
+`lib/articleTestRender`, `lib/api.ts`, `lib/attribution.ts`) are
+unchanged.
+
+### No backend / admin / clinic-portal scope drift
+✅ Backend: untouched (no route changes, no DB writes, no eligibility
+flag).
+✅ Admin frontend: untouched.
+✅ Clinic portal: untouched.
+✅ Auth / session / CSRF: untouched.
+✅ Analytics: no new events fired by R1 (could be added in R2).
+✅ No new dependencies. `package.json` unchanged.
+✅ No external providers invoked. No Resend / Twilio / ElevenLabs.
+
+### Eligibility / QR / pass generation
+**Not implemented in R1.** Spec is visibility/copy only.
+
+### Unresolved risks
+- 🔴 Git secrets-leak remains BLOCKED — local-only, no push / deploy.
+- 🟠 The asset is a 1.4 MB PNG; if pageload performance becomes
+  important we can compress it or convert to WebP in a future polish
+  pass. `next/image` already auto-resizes via `sizes`.
+
+### Recommended R2 next step
+- **R2 — Care Pass eligibility tracking & post-attended trigger.**
+  Once a request reaches `status=attended`, write a simple
+  `care_pass_eligibility` row (lead_id, clinic_id, request_id,
+  attended_at, status=`earned`) so the admin team has a list to
+  honour and partner brands have a future hook. Frontend would add a
+  read-only "Вашият Care Pass" pill on a post-attendance landing
+  page. Still no QR / no PDF / no patient email — just data plumbing.
+
+
 ## 2026-05-16 — Clinic Status Control Batch (Transition Safety + Test Lock)
 
 Made the clinic portal operational by locking down the controlled-action

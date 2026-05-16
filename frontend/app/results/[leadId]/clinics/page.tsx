@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import axios from 'axios'
 import {
   AlertCircle, Compass, ArrowLeft, ShieldCheck, Sparkles,
@@ -212,6 +213,42 @@ export default function ClinicMatchPage() {
                   </div>
                 </div>
               )}
+
+              {/* Care Pass benefit strip — premium, subtle, never dominates
+                  the clinic cards. Renders above the grid so patients see
+                  the after-visit benefit before they pick a clinic. */}
+              <section
+                className="mb-6 overflow-hidden rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50/70 via-white to-white"
+                data-testid="care-pass-benefit-strip"
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-[160px_minmax(0,1fr)] gap-4 sm:gap-5 p-4 sm:p-5 items-center">
+                  <div className="relative w-full max-w-[200px] sm:max-w-none aspect-[5/4] sm:aspect-square rounded-xl bg-white ring-1 ring-slate-200 overflow-hidden mx-auto sm:mx-0">
+                    <Image
+                      src="/care-pass.png"
+                      alt="Zubite Care Pass — карта с партньорски ползи"
+                      fill
+                      sizes="(max-width: 640px) 200px, 160px"
+                      className="object-cover"
+                      priority={false}
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-700 mb-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      Zubite Care Pass
+                    </div>
+                    <p className="text-slate-700 text-sm leading-relaxed">
+                      Изберете клиника, посетете консултацията и получете
+                      Care Pass от клиниката — с партньорски ползи и
+                      предложения за орална грижа.
+                    </p>
+                    <p className="text-xs text-slate-500 leading-relaxed mt-2">
+                      Care Pass се предоставя след реално посетена
+                      консултация през Zubite.bg.
+                    </p>
+                  </div>
+                </div>
+              </section>
 
               {/* Cards */}
               <div

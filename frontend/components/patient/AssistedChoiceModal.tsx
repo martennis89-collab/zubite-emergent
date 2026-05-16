@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import axios from 'axios'
-import { X, CheckCircle2, AlertTriangle, Sparkles } from 'lucide-react'
+import { X, CheckCircle2, AlertTriangle, Sparkles, ShieldCheck } from 'lucide-react'
 import {
   postRequestZubiteHelp,
   PATIENT_ZUBITE_HELP_CONSENT_TEXT,
@@ -216,6 +216,18 @@ function FormBody({
         информацията от оценката ви и да ви помогне с по-ясна следваща стъпка.
       </p>
 
+      <div
+        className="mb-5 rounded-lg border border-sky-100 bg-sky-50/60 p-3 flex items-start gap-2.5"
+        data-testid="assisted-choice-care-pass-note"
+      >
+        <ShieldCheck className="w-4 h-4 mt-0.5 flex-shrink-0 text-sky-600" />
+        <p className="text-xs text-slate-700 leading-relaxed">
+          Ако след помощ от Zubite заявите и посетите консултация през
+          платформата, клиниката ще ви предостави{' '}
+          <span className="font-semibold text-slate-900">Zubite Care Pass</span>.
+        </p>
+      </div>
+
       <label className="block text-xs font-medium text-slate-700 mb-1.5">
         Телефон
       </label>
@@ -320,6 +332,19 @@ function SuccessBody({ onClose }: { onClose: () => void }) {
             по-ясна следваща стъпка.
           </p>
         </div>
+      </div>
+
+      <div
+        className="rounded-lg bg-sky-50/70 border border-sky-100 p-3 mb-4 flex items-start gap-2.5"
+        data-testid="assisted-choice-success-care-pass"
+      >
+        <ShieldCheck className="w-4 h-4 mt-0.5 flex-shrink-0 text-sky-600" />
+        <p className="text-xs text-slate-700 leading-relaxed">
+          Следващата стъпка е да уточним подходящия път.{' '}
+          <span className="font-semibold text-slate-900">Zubite Care Pass</span>{' '}
+          се предоставя от клиниката след реално посетена консултация през
+          Zubite.bg.
+        </p>
       </div>
 
       <button

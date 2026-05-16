@@ -287,6 +287,20 @@ function FormBody({
         </div>
       )}
 
+      {/* Care Pass — subtle note before submit. Visible inside the modal
+          so the patient sees the after-visit benefit at decision time. */}
+      <div
+        className="mt-4 rounded-lg border border-sky-100 bg-sky-50/60 p-3 flex items-start gap-2.5 text-xs text-slate-700"
+        data-testid="request-call-care-pass-note"
+      >
+        <ShieldCheck className="w-4 h-4 mt-0.5 flex-shrink-0 text-sky-600" />
+        <span className="leading-relaxed">
+          След посещение на консултацията ще получите{' '}
+          <span className="font-semibold text-slate-900">Zubite Care Pass</span>{' '}
+          от клиниката — с партньорски ползи и предложения за орална грижа.
+        </span>
+      </div>
+
       <div className="mt-6 flex flex-col-reverse sm:flex-row gap-2.5 sm:justify-end">
         <button
           type="button"
@@ -333,6 +347,17 @@ function SuccessBody({
             заявки.
           </p>
         </div>
+      </div>
+
+      <div
+        className="rounded-lg bg-sky-50/70 border border-sky-100 p-3 mb-4 flex items-start gap-2.5"
+        data-testid="request-call-success-care-pass"
+      >
+        <ShieldCheck className="w-4 h-4 mt-0.5 flex-shrink-0 text-sky-600" />
+        <p className="text-xs text-slate-700 leading-relaxed">
+          След като посетите консултацията, попитайте клиниката за вашия{' '}
+          <span className="font-semibold text-slate-900">Zubite Care Pass</span>.
+        </p>
       </div>
 
       <p className="text-xs text-slate-500 mb-5 inline-flex items-center gap-1.5">
