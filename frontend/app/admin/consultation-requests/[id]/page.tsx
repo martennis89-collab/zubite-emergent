@@ -9,10 +9,12 @@ import {
   statusBadge, formatDate, TREATMENT_LABELS, EVENT_LABELS,
   APPOINTMENT_TYPE_LABELS,
   REQUEST_KIND_DESCRIPTORS, requestKindFromCreatedFrom,
-  SELECTION_SOURCE_LABELS,
+  SELECTION_SOURCE_LABELS, requestSourceLabel,
 } from '@/lib/consultationLabels'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+
+interface ClinicOption { id: string; clinic_name: string }
 
 interface DetailResp {
   request: ConsultationRequest
@@ -32,15 +34,22 @@ export default function AdminConsultationDetail() {
   const [loading, setLoading] = useState(true)
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
+  const [clinics, setClinics] = useState<ClinicOption[]>([])
+  const [assignClinicId, setAssignClinicId] = useState('')
+  const [assignBusy, setAssignBusy] = useState(false)
+  const [assignMsg, setAssignMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [a, b] = await Promise.all([
+      const [a, b, c] = await Promise.all([
         fetch(`${API_URL}/api/admin/consultation-requests/${id}`, {
           credentials: 'include' as RequestCredentials,
         }),
         fetch(`${API_URL}/api/admin/consultation-requests/${id}/events`, {
+          credentials: 'include' as RequestCredentials,
+        }),
+        fetch(`${API_URL}/api/admin/clinics`, {
           credentials: 'include' as RequestCredentials,
         }),
       ])
@@ -51,10 +60,38 @@ export default function AdminConsultationDetail() {
       }
       if (a.ok) setData(await a.json())
       if (b.ok) setEvents(((await b.json()) as EventsResp).events || [])
+      if (c.ok) setClinics(((await c.json()).clinics || []) as ClinicOption[])
     } finally { setLoading(false) }
   }, [id, router])
 
   useEffect(() => { if (id) load() }, [id, load])
+
+  const assignClinic = async () => {
+    if (!assignClinicId) return
+    setAssignBusy(true)
+    setAssignMsg(null)
+    try {
+      const resp = await fetch(
+        `${API_URL}/api/admin/consultation-requests/${id}/assign-clinic`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clinic_id: assignClinicId }),
+          credentials: 'include' as RequestCredentials,
+        },
+      )
+      if (resp.ok) {
+        const j = await resp.json()
+        setAssignMsg({ ok: true, text: `Заявката е назначена на ${j.assigned_to || 'клиниката'}.` })
+        setAssignClinicId('')
+        await load()
+      } else {
+        let detail = 'Възникна грешка при назначаването.'
+        try { detail = (await resp.json()).detail || detail } catch { /* noop */ }
+        setAssignMsg({ ok: false, text: detail })
+      }
+    } finally { setAssignBusy(false) }
+  }
 
   const addNote = async () => {
     if (!note.trim()) return
@@ -117,7 +154,7 @@ export default function AdminConsultationDetail() {
               </div>
 
               <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-slate-500">
-                <div>source: <span className="font-mono text-slate-700">{r.source || '—'}</span></div>
+                <div>Източник: <span className="text-slate-700" data-testid="admin-cr-source-label">{requestSourceLabel(r.source)}</span></div>
                 <div>utm_source: <span className="font-mono text-slate-700">{r.utm_source || '—'}</span></div>
                 <div>utm_campaign: <span className="font-mono text-slate-700">{r.utm_campaign || '—'}</span></div>
                 <div>utm_ad: <span className="font-mono text-slate-700">{r.utm_ad || '—'}</span></div>
@@ -147,19 +184,114 @@ export default function AdminConsultationDetail() {
                     {kind.detailDescription}
                   </p>
 
-                  {/* P4 → show selected clinic info */}
-                  {kind.key === 'selected_clinic' && (
-                    <div className="mt-3 bg-white rounded-xl border border-slate-200 p-3 text-sm" data-testid="admin-cr-selected-clinic">
-                      <div className="text-xs text-slate-500">Избрана клиника</div>
-                      <div className="font-medium text-slate-900">{data?.clinic_name || '—'}</div>
-                      <div className="text-xs text-slate-500 mt-0.5">
-                        {data?.clinic_city || '—'}
-                        {r.assigned_clinic_id && (
-                          <span className="font-mono text-slate-400"> · {r.assigned_clinic_id}</span>
+                  {/* P4 → show selected clinic info with explicit fallbacks. */}
+                  {kind.key === 'selected_clinic' && (() => {
+                    const cid = r.assigned_clinic_id
+                    const cname = data?.clinic_name
+                    if (!cid) {
+                      return (
+                        <div
+                          className="mt-3 bg-rose-50 border border-rose-200 rounded-xl p-3 text-sm text-rose-800"
+                          data-testid="admin-cr-selected-clinic-missing"
+                        >
+                          Липсва избрана клиника
+                        </div>
+                      )
+                    }
+                    if (!cname) {
+                      return (
+                        <div
+                          className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-900"
+                          data-testid="admin-cr-selected-clinic-not-found"
+                        >
+                          Избраната клиника не е намерена
+                          <span className="block text-xs text-amber-700/80 font-mono mt-0.5">{cid}</span>
+                        </div>
+                      )
+                    }
+                    return (
+                      <div className="mt-3 bg-white rounded-xl border border-slate-200 p-3 text-sm" data-testid="admin-cr-selected-clinic">
+                        <div className="text-xs text-slate-500">Избрана клиника</div>
+                        <div className="font-medium text-slate-900">{cname}</div>
+                        <div className="text-xs text-slate-500 mt-0.5">
+                          {data?.clinic_city || '—'}
+                          <span className="font-mono text-slate-400"> · {cid}</span>
+                        </div>
+                      </div>
+                    )
+                  })()}
+
+                  {/* P5 assisted-choice → if no clinic assigned yet, let admin assign one. */}
+                  {kind.key === 'assisted_choice' && (() => {
+                    const cid = r.assigned_clinic_id
+                    if (cid && data?.clinic_name) {
+                      return (
+                        <div
+                          className="mt-3 bg-white rounded-xl border border-emerald-200 p-3 text-sm"
+                          data-testid="admin-cr-assisted-clinic-assigned"
+                        >
+                          <div className="text-xs text-emerald-700 font-medium uppercase tracking-wide">
+                            Назначена клиника
+                          </div>
+                          <div className="font-medium text-slate-900 mt-0.5">{data.clinic_name}</div>
+                          <div className="text-xs text-slate-500 mt-0.5">
+                            {data?.clinic_city || '—'}
+                            <span className="font-mono text-slate-400"> · {cid}</span>
+                          </div>
+                        </div>
+                      )
+                    }
+                    return (
+                      <div
+                        className="mt-3 bg-white rounded-xl border border-violet-200 p-3 space-y-2"
+                        data-testid="admin-cr-assign-clinic-block"
+                      >
+                        <div className="text-xs text-violet-700 font-medium uppercase tracking-wide">
+                          Назначи клиника
+                        </div>
+                        <p className="text-xs text-slate-500 leading-relaxed">
+                          Изберете подходяща клиника, която да поеме заявката
+                          след прегледа от Zubite. Заявката ще стане видима за
+                          избраната клиника.
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <select
+                            value={assignClinicId}
+                            onChange={(e) => setAssignClinicId(e.target.value)}
+                            className="flex-1 border border-slate-200 rounded-lg px-3 py-1.5 text-sm bg-white"
+                            data-testid="admin-cr-assign-select"
+                            disabled={assignBusy}
+                          >
+                            <option value="" disabled>Избери клиника…</option>
+                            {clinics.map((c) => (
+                              <option key={c.id} value={c.id}>{c.clinic_name}</option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={assignClinic}
+                            disabled={!assignClinicId || assignBusy}
+                            className="px-4 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-medium"
+                            data-testid="admin-cr-assign-submit"
+                          >
+                            {assignBusy ? 'Назначавам…' : 'Назначи клиника'}
+                          </button>
+                        </div>
+                        {assignMsg && (
+                          <div
+                            className={
+                              'text-xs ' +
+                              (assignMsg.ok
+                                ? 'text-emerald-700'
+                                : 'text-rose-700')
+                            }
+                            data-testid="admin-cr-assign-msg"
+                          >
+                            {assignMsg.text}
+                          </div>
                         )}
                       </div>
-                    </div>
-                  )}
+                    )
+                  })()}
 
                   {/* Selection source — where on the patient site did they submit */}
                   {selectionSourceLabel && (

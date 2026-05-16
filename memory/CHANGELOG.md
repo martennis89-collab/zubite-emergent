@@ -1,5 +1,115 @@
 # Zubite.bg — Changelog
 
+## 2026-05-16 — P0 Admin Request Handling Fix
+
+Resolved five operational issues blocking admin from understanding,
+assigning, and routing P4/P5 consultation requests.
+
+### Files changed
+- `frontend/lib/consultationLabels.ts` — fixed treatment typo
+  `Алайнъри → Алайнери`; added `diagnostic_quiz` /
+  `diagnostic_quiz_v1` / `quiz` → `Диагностичен въпросник` mappings;
+  added `REQUEST_SOURCE_LABELS` map + `requestSourceLabel()` helper;
+  changed `Друг източник` → `Неизвестен източник`.
+- `frontend/app/admin/consultation-requests/page.tsx` — replaced the
+  empty-by-default clinic dropdown for P4 selected-clinic rows with a
+  read-only chip showing the selected clinic name, plus explicit
+  fallbacks: `Липсва избрана клиника` (no id at all) and
+  `Избраната клиника не е намерена` (id present but record missing).
+- `frontend/app/admin/consultation-requests/[id]/page.tsx` — wired
+  the existing `POST /api/admin/consultation-requests/{id}/assign-clinic`
+  endpoint into the detail page: clinic selector + "Назначи клиника"
+  button visible only on P5 assisted-choice rows that are still
+  unassigned. After success, refetches detail and shows the assigned
+  clinic prominently. P4 detail block now distinguishes the three
+  states (assigned with clinic, assigned id but record not found,
+  data inconsistency). Raw `source` mono-text replaced with
+  `requestSourceLabel(r.source)`.
+- `backend/tests/test_admin_request_assignment.py` — **new**, 16 tests.
+- `memory/CHANGELOG.md` — appended entry.
+
+**No backend code changes.** The assignment endpoint was already
+fully wired in `consultations.py` (lines 558-627): canonical
+`assigned_clinic_id` field, status → `assigned`, timeline event
+`assigned_to_clinic` with `clinic_id` + admin `user_id` +
+`previous_status` + `new_status`. This batch only added test
+coverage and frontend wiring.
+
+### Root cause of empty clinic dropdown
+The list-page rendered a free-edit `<select>` for every assigned-clinic
+column. For P4 selected-clinic rows the `<select>` had
+`value={r.assigned_clinic_id || ''}`, but if (a) the `clinics` array
+was still loading, (b) the assigned id matched no item in the list, or
+(c) the id was simply missing on the doc, the browser had nothing to
+preselect → a visually empty box. Fixed by replacing the dropdown with
+a read-only chip when the row is a P4 selected-clinic row, and surfacing
+two explicit fallback states for the other two cases.
+
+### Canonical clinic-assignment field
+- `consultation_requests.assigned_clinic_id` — the clinic currently
+  routed to handle the request. Set on P4 creation; null on P5 until
+  admin assigns; updated atomically on the assign-clinic endpoint.
+- `leads.selected_clinic_id` — the patient-side pin for P4. Already
+  written by the request-call endpoint (`public.py` step 7). Kept as
+  read-only context.
+
+No new fields introduced. No duplicate parallel assignment fields.
+
+### Source label mapping
+| created_from / source | label |
+|---|---|
+| `recommended_clinics_flow` | Пациентът избра клиника |
+| `assisted_choice_flow` | Помощ от Zubite |
+| `diagnostic_quiz` / `diagnostic_quiz_v1` / `quiz` | Диагностичен въпросник |
+| `article` / `blog` | Статия / Блог |
+| `campaign` | Кампания |
+| `direct` | Директна заявка |
+| missing / unknown | Неизвестен източник |
+
+### Treatment label fixes
+- `aligners` → `Алайнери` (was `Алайнъри` typo)
+- `diagnostic_quiz` / `diagnostic_quiz_v1` / `quiz` → `Диагностичен въпросник` (raw enum no longer leaks)
+
+### Tests run + results
+- `pytest tests/test_admin_request_assignment.py` → **16/16 PASS**
+- Regression suites:
+  - `test_admin_patient_request_handling.py` → 12/12
+  - `test_clinic_status_control.py` → 20/20
+  - `test_clinic_request_context_visibility.py` → 11/11
+  - `test_patient_request_call.py` → 31/31
+  - `test_patient_assisted_choice.py` → 28/28
+  - `test_p4_p5_admin_notifications.py` → 11/11
+- **Total: 129/129 PASS.**
+
+### TypeScript
+`npx tsc --noEmit` → 6 pre-existing errors in unrelated files
+(`admin/blog/import`, `admin/dashboard`, `lib/articleTestRender`,
+`lib/api.ts`, `lib/attribution.ts`). **Zero new errors from this batch.**
+
+### No scope drift
+- ✅ Patient quiz / matching / clinic profile / request-call / assisted-choice
+  modals: untouched.
+- ✅ Clinic portal: untouched (clinic-side detail still reads canonical
+  `assigned_clinic_id`, so the assignment from this batch is
+  immediately visible to the assigned clinic, verified by tests 8 + 14).
+- ✅ Auth / session / CSRF / analytics / audit / clinic profile editor /
+  `/za-kliniki` / article importer: untouched.
+- ✅ No new dependencies. `package.json` unchanged.
+- ✅ No SMS, no Twilio, no ElevenLabs invocation. Resend SDK is fully
+  mocked in tests; the existing best-effort assignment-notice email
+  (pre-existing behaviour from a prior batch) is unchanged.
+
+### Unresolved risks
+- 🔴 Git secrets-leak remains BLOCKED — local-only, no push/deploy.
+- 🟡 Reassignment UI not added — backend endpoint supports it
+  (`reassigned_to_clinic` event), but the spec says "Do not implement
+  reassignment unless already supported safely" → tracking as future
+  work.
+- 🟡 Resend sender domain `zubite.bg` not yet DNS-verified in preview
+  env — admin assignment notice (pre-existing) logs an error and
+  skips delivery. Not introduced by this batch.
+
+
 ## 2026-05-16 — P0 Hotfix: Empty Email Field Broke Lead Submission
 
 ### Symptom

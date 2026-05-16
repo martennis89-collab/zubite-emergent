@@ -222,6 +222,40 @@ export default function AdminConsultationRequestsPage() {
                           <span className="text-xs text-violet-700" data-testid={`admin-cr-no-clinic-${r.id}`}>
                             Без клиника · чака преглед
                           </span>
+                        ) : kind.key === 'selected_clinic' ? (
+                          // P4: patient already chose this clinic. Show the
+                          // selected clinic as a read-only chip; do NOT show
+                          // a free-edit dropdown — that would silently look
+                          // empty if the assigned id is missing or doesn't
+                          // match an item in `clinics`.
+                          (() => {
+                            const cid = r.assigned_clinic_id
+                            const cname = r.assigned_clinic_name
+                              ?? clinics.find((c) => c.id === cid)?.clinic_name
+                            if (!cid) {
+                              return (
+                                <span className="text-xs text-rose-600" data-testid={`admin-cr-missing-clinic-${r.id}`}>
+                                  Липсва избрана клиника
+                                </span>
+                              )
+                            }
+                            if (!cname) {
+                              return (
+                                <span className="text-xs text-amber-700" data-testid={`admin-cr-clinic-not-found-${r.id}`}>
+                                  Избраната клиника не е намерена
+                                </span>
+                              )
+                            }
+                            return (
+                              <span
+                                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-sky-50 text-sky-800 border border-sky-200"
+                                data-testid={`admin-cr-selected-clinic-${r.id}`}
+                                title={`Избрана от пациента (${cid})`}
+                              >
+                                {cname}
+                              </span>
+                            )
+                          })()
                         ) : (
                           <select
                             value={r.assigned_clinic_id || ''}

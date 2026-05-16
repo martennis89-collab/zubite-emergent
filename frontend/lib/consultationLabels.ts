@@ -30,7 +30,7 @@ export const APPOINTMENT_TYPE_LABELS: Record<string, string> = {
 }
 
 export const TREATMENT_LABELS: Record<string, string> = {
-  aligners: 'Алайнъри',
+  aligners: 'Алайнери',
   braces: 'Брекети',
   implants: 'Импланти',
   invisalign: 'Invisalign',
@@ -39,6 +39,29 @@ export const TREATMENT_LABELS: Record<string, string> = {
   'cosmetic-dentistry': 'Естетика',
   full_mouth: 'Цяла уста',
   general: 'Обща',
+  diagnostic_quiz: 'Диагностичен въпросник',
+  diagnostic_quiz_v1: 'Диагностичен въпросник',
+  quiz: 'Диагностичен въпросник',
+}
+
+// Friendly labels for the request "source" / "selection_source" /
+// "created_from" / `lead.source` fields. Avoid raw enum values in admin UI.
+export const REQUEST_SOURCE_LABELS: Record<string, string> = {
+  recommended_clinics_flow: 'Пациентът избра клиника',
+  assisted_choice_flow:     'Помощ от Zubite',
+  diagnostic_quiz:          'Диагностичен въпросник',
+  diagnostic_quiz_v1:       'Диагностичен въпросник',
+  quiz:                     'Диагностичен въпросник',
+  article:                  'Статия / Блог',
+  blog:                     'Статия / Блог',
+  campaign:                 'Кампания',
+  direct:                   'Директна заявка',
+  unknown:                  'Неизвестен източник',
+}
+
+export function requestSourceLabel(v?: string | null): string {
+  if (!v) return 'Неизвестен източник'
+  return REQUEST_SOURCE_LABELS[v] || 'Неизвестен източник'
 }
 
 export const ACTION_LABELS: Record<string, string> = {
@@ -475,8 +498,8 @@ export const REQUEST_KIND_DESCRIPTORS: Record<RequestKindKey, RequestKindDescrip
   },
   other: {
     key: 'other',
-    badgeLabel: 'Друг източник',
-    detailTitle: 'Друг източник',
+    badgeLabel: 'Неизвестен източник',
+    detailTitle: 'Неизвестен източник',
     detailDescription: 'Заявката не идва от P4/P5 patient-layer flow.',
     badgeCls: 'bg-slate-100 text-slate-600 border border-slate-200',
     rowAccentCls: '',
