@@ -1,5 +1,44 @@
 # Zubite.bg — Changelog
 
+## 2026-02-15 — Patient Layer — Batch P3 (Match page frontend)
+
+### New patient-facing route
+- `/results/[leadId]/clinics` — `frontend/app/results/[leadId]/clinics/page.tsx` (NEW, 263 LOC).
+  - Fetches `GET /api/leads/{leadId}/recommended-clinics?limit=3` (P2 endpoint).
+  - States: loading skeleton (3 cards), error (404/410/429/generic), 0-match (uses `ClinicMatchEmptyState`), 1–3 clinic cards in responsive grid.
+  - **404** → "Не успяхме да намерим този резултат." + "Започни отново" CTA → `/quiz`.
+  - **410** → "Този резултат е изтекъл." + "Започни отново" CTA → `/quiz`.
+  - **429** → "Твърде много заявки. Опитайте отново след малко." + retry button.
+  - **Generic** → safe BG message + retry.
+  - Selection-rule banner echoing the product rule from backend response: "Може да разгледате до 3 клиники. Заявка за обаждане ще може да изпратите към 1 клиника."
+  - Trust note: "Zubite не поставя диагноза и не заменя преглед при лекар…"
+  - Assisted-choice panel ("Помогнете ми да избера") — non-submitting; opens preview modal with disabled CTA.
+
+### New components (`frontend/components/patient/`)
+- `ClinicRecommendationCard.tsx` (NEW, 138 LOC) — single clinic card. Whitelisted fields: name, city_name, treatments (BG labels from `TREATMENT_LABELS`), reason, response_expectation, partner_since_year. Primary CTA "Искам обаждане от тази клиника" **opens preview modal only** (`NextStepModal`) — disabled inner CTA, no backend POST.
+- `ClinicMatchEmptyState.tsx` (NEW, 38 LOC) — 0-match honest state with disabled "Помогнете ми да избера · Скоро" button.
+
+### Result page CTA wiring (`frontend/app/results/[leadId]/page.tsx`)
+- Added `"Покажи ми 3 подходящи клиники"` button → `/results/${leadId}/clinics`, with `data-testid="show-3-clinics-btn"`. Existing "Към началото" link preserved.
+
+### API helper (`frontend/lib/api.ts`, additive only)
+- Added typed interfaces `RecommendedClinic` + `RecommendedClinicsResponse`.
+- Added `getRecommendedClinics(leadId, limit=3)` helper.
+- **Side-fix**: `getLead` and `getRecommendedClinics` both use the absolute-URL pattern (`process.env.NEXT_PUBLIC_API_URL + '/api/...'`) to work around the shared axios baseURL config that drops the `/api` prefix when env contains a full domain in preview. This unblocks the result page itself (pre-existing bug). Other helpers (createLead, updateLeadContact) unchanged — not in P3 critical path.
+
+### P3 scope adherence
+- ❌ No backend changes.
+- ❌ No consultation_request created.
+- ❌ No emails / Resend / Twilio / ElevenLabs.
+- ❌ No new dependencies.
+- ❌ No fake ratings / reviews / availability / "best clinic" claims.
+- ❌ CTA buttons do NOT submit to backend in P3 — preview modals only with disabled inner CTAs marked "Ще бъде активирано в следващата стъпка".
+- ✅ TypeScript: zero new errors from P3 files.
+- ✅ Mobile 375×812: page-level overflow = 0.
+- ✅ Live smoke verified end-to-end: result page CTA → match page → 3 cards rendered.
+
+
+
 ## 2026-02-15 — Patient Layer — Batch P2 (Recommended-clinics endpoint)
 
 ### Backend

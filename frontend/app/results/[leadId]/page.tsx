@@ -96,14 +96,23 @@ export default function ResultsPage() {
               </div>
             )}
             
-            <Link
-              href="/"
-              className="btn-secondary px-8 py-4 rounded-full text-white font-medium inline-flex items-center gap-2"
-              data-testid="home-btn"
-            >
-              <Home className="w-5 h-5" />
-              Към началото
-            </Link>
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-center">
+              <Link
+                href={`/results/${leadId}/clinics`}
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-sky-500 hover:bg-sky-600 text-white font-medium transition-colors"
+                data-testid="show-3-clinics-btn"
+              >
+                Покажи ми 3 подходящи клиники
+              </Link>
+              <Link
+                href="/"
+                className="btn-secondary px-8 py-4 rounded-full text-white font-medium inline-flex items-center justify-center gap-2"
+                data-testid="home-btn"
+              >
+                <Home className="w-5 h-5" />
+                Към началото
+              </Link>
+            </div>
           </div>
         </div>
       </section>
