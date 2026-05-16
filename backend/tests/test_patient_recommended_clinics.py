@@ -246,6 +246,8 @@ ALLOWED_CLINIC_FIELDS = {
     "city_name",
     "city_slug",
     "treatments",
+    # Canonical going forward (Feb 2026 cleanup).
+    "treatments_supported",
     "reason",
     "response_expectation",
     "partner_since_year",

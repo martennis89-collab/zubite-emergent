@@ -350,26 +350,33 @@ function ProfileBody({
         <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 mb-3">
           Подходяща за
         </h2>
-        {clinic.treatments && clinic.treatments.length > 0 ? (
-          <ul className="flex flex-wrap gap-2">
-            {clinic.treatments.map((t) => (
-              <li
-                key={t}
-                className="inline-flex items-center px-3 py-1 rounded-full bg-sky-50 text-sky-700 text-xs"
-              >
-                {TREATMENT_LABELS[t] || t}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p
-            className="text-sm text-slate-600 leading-relaxed"
-            data-testid="profile-treatments-empty"
-          >
-            Информацията за конкретните направления ще бъде потвърдена при
-            разговор.
-          </p>
-        )}
+        {(() => {
+          // Prefer canonical `treatments_supported`; fall back to legacy
+          // `treatments` (Feb 2026 cleanup).
+          const list = (clinic.treatments_supported && clinic.treatments_supported.length > 0)
+            ? clinic.treatments_supported
+            : (clinic.treatments || [])
+          return list.length > 0 ? (
+            <ul className="flex flex-wrap gap-2">
+              {list.map((t) => (
+                <li
+                  key={t}
+                  className="inline-flex items-center px-3 py-1 rounded-full bg-sky-50 text-sky-700 text-xs"
+                >
+                  {TREATMENT_LABELS[t] || t}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p
+              className="text-sm text-slate-600 leading-relaxed"
+              data-testid="profile-treatments-empty"
+            >
+              Информацията за конкретните направления ще бъде потвърдена при
+              разговор.
+            </p>
+          )
+        })()}
         {clinic.partner_since_year && (
           <p className="mt-4 text-xs text-slate-500 inline-flex items-center gap-1.5">
             <Calendar className="w-3.5 h-3.5" />

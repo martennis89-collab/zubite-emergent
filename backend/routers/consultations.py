@@ -50,9 +50,36 @@ def _new_id() -> str:
 
 
 def _public_clinic_dict(c: Dict[str, Any]) -> Dict[str, Any]:
-    """Return a clinic doc without password_hash and without _id."""
+    """Return a clinic doc without password_hash and without _id.
+
+    Also surfaces the canonical normalized `treatments_supported` field
+    (Feb 2026 cleanup batch). The legacy `treatments_offered` key is
+    preserved on the returned doc for backwards-compatibility readers.
+    """
     out = {k: v for k, v in c.items() if k not in ("_id", "password_hash")}
+    # Canonical normalized treatment list, even when the stored doc only
+    # has the legacy `treatments_offered` field. Idempotent: if the doc
+    # already has `treatments_supported`, the helper just normalizes it.
+    out["treatments_supported"] = _canonical_treatments_for_doc(out)
     return out
+
+
+def _canonical_treatments_for_doc(clinic: Dict[str, Any]) -> List[str]:
+    """Local mirror of `routers.public._normalize_clinic_treatments` to
+    avoid a cross-router import. Same precedence: `treatments_supported`
+    wins; falls back to `treatments_offered`. Lowercased, trimmed,
+    deduped, stable-ordered."""
+    raw = clinic.get("treatments_supported") or []
+    if not (isinstance(raw, list) and any(isinstance(x, str) and x.strip() for x in raw)):
+        raw = clinic.get("treatments_offered") or []
+    seen: List[str] = []
+    for t in raw if isinstance(raw, list) else []:
+        if not isinstance(t, str):
+            continue
+        norm = t.strip().lower()
+        if norm and norm not in seen:
+            seen.append(norm)
+    return seen
 
 
 async def _log_event(
@@ -190,6 +217,8 @@ async def admin_list_clinics(user: AdminUser = Depends(get_current_user)):
         c["booked_count"] = await db.consultation_requests.count_documents(
             {"assigned_clinic_id": cid, "status": "booked"}
         )
+        # Surface canonical normalized treatments (Feb 2026 cleanup).
+        c["treatments_supported"] = _canonical_treatments_for_doc(c)
     return {"clinics": clinics}
 
 
@@ -208,6 +237,16 @@ async def admin_create_clinic(
     if existing:
         raise HTTPException(status_code=400, detail="Clinic with this email already exists")
 
+    # ── Treatment fields cleanup (Feb 2026) ────────────────────────────
+    # Canonical = `treatments_supported`. Accept either field on input
+    # (frontend may send the legacy `treatments_offered` while migrating);
+    # always write canonical, plus a temporary mirror to `treatments_offered`
+    # so any older read paths still see the value.
+    canonical_treatments = _canonical_treatments_for_doc({
+        "treatments_supported": getattr(data, "treatments_supported", None),
+        "treatments_offered": data.treatments_offered,
+    })
+
     # Auto-generate temporary password (admin can reset later via existing endpoint)
     import secrets as _secrets
     temp_password = _secrets.token_urlsafe(12)
@@ -221,7 +260,10 @@ async def admin_create_clinic(
         "address": data.address,
         "website": data.website,
         "contact_person": data.contact_person,
-        "treatments_offered": data.treatments_offered,
+        # Canonical going forward.
+        "treatments_supported": canonical_treatments,
+        # Legacy mirror — temporary backwards-compat bridge.
+        "treatments_offered": canonical_treatments,
         "clinic_status": data.clinic_status,
         "subscription_status": data.subscription_status,
         "monthly_plan": data.monthly_plan,
@@ -265,7 +307,7 @@ async def admin_get_clinic(
     attended = await db.consultation_requests.count_documents({"assigned_clinic_id": cid, "status": "attended"})
     no_show = await db.consultation_requests.count_documents({"assigned_clinic_id": cid, "status": "no_show"})
     return {
-        "clinic": clinic,
+        "clinic": _public_clinic_dict(clinic),
         "metrics": {
             "assigned": assigned, "booked": booked,
             "attended": attended, "no_show": no_show,
@@ -350,6 +392,19 @@ async def admin_update_clinic(
             if prev_profile.get("published_at"):
                 profile["published_at"] = prev_profile["published_at"]
 
+    # ── Treatment fields cleanup (Feb 2026) ────────────────────────────
+    # Whenever the admin patches either treatment field, normalize and
+    # write to BOTH so the canonical (`treatments_supported`) and the
+    # legacy mirror (`treatments_offered`) stay in sync.
+    if "treatments_supported" in update or "treatments_offered" in update:
+        merged = {
+            "treatments_supported": update.get("treatments_supported"),
+            "treatments_offered": update.get("treatments_offered"),
+        }
+        canonical = _canonical_treatments_for_doc(merged)
+        update["treatments_supported"] = canonical
+        update["treatments_offered"] = canonical
+
     update["updated_at"] = _now_iso()
     before = await db.clinics.find_one({"id": clinic_id}, {"_id": 0, "password_hash": 0})
     result = await db.clinics.update_one({"id": clinic_id}, {"$set": update})
@@ -399,7 +454,7 @@ async def admin_update_clinic(
                     severity="warning" if paused else "info",
                     request=request,
                 )
-    return {"clinic": clinic}
+    return {"clinic": _public_clinic_dict(clinic) if clinic else clinic}
 
 
 # ─── Admin: Consultation Requests ─────────────────────────

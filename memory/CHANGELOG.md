@@ -1,5 +1,215 @@
 # Zubite.bg — Changelog
 
+## 2026-05-16 — Technical Cleanup: Unify Clinic Treatment Fields
+
+Resolved the long-standing schema duality between `treatments_supported`
+and `treatments_offered` by establishing **`treatments_supported` as the
+canonical field** going forward. Read/write bridge is non-destructive:
+no migration, no data deletion, legacy clinics keep working.
+
+### Decision
+- **Canonical**: `treatments_supported` (clearer for matching + patient-
+  facing recommendation logic).
+- **Legacy mirror**: `treatments_offered` — kept on stored docs, written
+  by the backend on every admin save as a temporary backwards-compat
+  bridge. Frontend NO LONGER writes to it from new code.
+
+### Audit (before cleanup)
+| Where | Field used |
+|---|---|
+| `backend/schemas.py` Clinic | `treatments_supported` (legacy/routing) |
+| `backend/schemas.py` ClinicCreate / ClinicAdminUpdate | `treatments_offered` (admin/partner) |
+| `backend/routers/public.py` `_treatments_of()` | UNION of both |
+| `backend/routers/public.py` quiz-driven auto-assign query (line 187) | `treatments_supported` only — legacy clinics missed |
+| `backend/routers/public.py` recommended-clinics query | both fields fetched, union returned as `treatments` |
+| `backend/routers/consultations.py` admin create | wrote ONLY to `treatments_offered` |
+| `backend/routers/consultations.py` admin patch | wrote ONLY to `treatments_offered` |
+| `frontend/app/admin/clinics/page.tsx` | read+wrote `treatments_offered` |
+| `frontend/lib/api.ts RecommendedClinic` | exposed `treatments` |
+| `frontend/components/patient/ClinicRecommendationCard.tsx` | read `clinic.treatments` |
+| `frontend/app/results/[leadId]/clinics/[clinicId]/page.tsx` | read `clinic.treatments` |
+
+### Files changed
+- `backend/routers/public.py`:
+  - **New**: `_normalize_clinic_treatments(clinic)` — prefers
+    `treatments_supported`; falls back to `treatments_offered`;
+    lowercases, trims, deduplicates, drops empty/non-string entries,
+    preserves stable insertion order.
+  - `_treatments_of()` is now a thin alias for
+    `_normalize_clinic_treatments` (was UNION before).
+  - `_safe_clinic_payload()` now exposes BOTH `treatments` (legacy
+    alias for backwards-compat) AND `treatments_supported` (canonical).
+  - Quiz-driven auto-assign query (line 187) now matches on EITHER
+    `treatments_supported` OR `treatments_offered` so legacy clinics
+    still get auto-assigned during the cleanup window.
+- `backend/schemas.py`:
+  - `ClinicCreate`: added optional `treatments_supported` field.
+  - `ClinicAdminUpdate`: added optional `treatments_supported` field.
+- `backend/routers/consultations.py`:
+  - **New**: `_canonical_treatments_for_doc(clinic)` — local mirror of
+    the normalize helper (avoids cross-router import).
+  - `_public_clinic_dict()` now surfaces canonical
+    `treatments_supported` on every admin response.
+  - Admin **create** (`POST /api/admin/clinics`): accepts either
+    `treatments_supported` OR `treatments_offered`; canonicalizes;
+    writes BOTH fields with the same normalized list.
+  - Admin **patch** (`PATCH /api/admin/clinics/{id}`): when either
+    field is in the update body, normalizes and writes BOTH.
+  - Admin **list** (`GET /api/admin/clinics`): augments each clinic
+    with normalized `treatments_supported`.
+  - Admin **detail** (`GET /api/admin/clinics/{id}`): wraps response
+    through `_public_clinic_dict()` so canonical field is surfaced.
+- `frontend/lib/api.ts` — `RecommendedClinic` gets
+  `treatments_supported?: string[]` (canonical, optional).
+- `frontend/lib/consultationLabels.ts` — `TREATMENT_LABELS` now
+  matches the spec exactly:
+  - `aligners → Алайнери` (already correct)
+  - `braces → Брекети`, `implants → Импланти`, `whitening → Избелване`
+  - `general → Обща стоматология` (was `Обща`)
+  - `cosmetic → Естетична стоматология` (added)
+  - `cosmetic-dentistry → Естетична стоматология` (was `Естетика`)
+  - `orthodontics → Ортодонтия`
+  - `diagnostic_quiz / diagnostic_quiz_v1 / quiz → Диагностичен въпросник`
+- `frontend/app/admin/clinics/page.tsx`:
+  - `PartnerClinic` interface adds canonical `treatments_supported?`;
+    keeps `treatments_offered?` as read-only fallback.
+  - List column reads `treatments_supported || treatments_offered`.
+  - Create-clinic form input is now `treatments_supported` (state +
+    POST body); backend mirrors to legacy field automatically.
+- `frontend/components/patient/ClinicRecommendationCard.tsx` — reads
+  `clinic.treatments_supported || clinic.treatments`.
+- `frontend/app/results/[leadId]/clinics/[clinicId]/page.tsx` — same
+  fallback chain in the public clinic profile treatment section.
+- `backend/tests/test_clinic_treatment_fields_cleanup.py` — **new**,
+  18 tests, **18/18 PASS**.
+- `backend/tests/test_patient_recommended_clinics.py` — added
+  `treatments_supported` to `ALLOWED_CLINIC_FIELDS` allow-list (tests
+  `04_only_safe_clinic_fields_returned` and `25_no_unsafe_fields_leak_for_premium_clinic`).
+- `memory/CHANGELOG.md` / `memory/PRD.md` — appended entries.
+
+### Read precedence (canonical helper)
+```python
+def _normalize_clinic_treatments(clinic):
+    raw = clinic.get("treatments_supported") or []
+    if not (isinstance(raw, list) and any(isinstance(x, str) and x.strip() for x in raw)):
+        raw = clinic.get("treatments_offered") or []
+    # …lowercase, trim, dedupe, drop non-strings, preserve order…
+```
+
+### Write behaviour
+- **Frontend (admin)**: now sends only `treatments_supported`.
+- **Backend admin endpoints**: accept either field on input; always
+  write canonical to **both** keys (mirror to `treatments_offered`
+  is a temporary bridge). No new code path writes to
+  `treatments_offered` exclusively.
+- **No destructive migration**: existing legacy docs keep
+  `treatments_offered` populated; on first admin save they get the
+  canonical field too.
+
+### Public API contract
+- `GET /api/leads/{id}/recommended-clinics` clinic items expose:
+  - `treatments_supported: string[]` (canonical, normalized)
+  - `treatments: string[]` (legacy alias, same value, kept for
+    backwards-compat with any pre-cleanup cached frontend bundles)
+- `GET /api/admin/clinics` and `/api/admin/clinics/{id}` clinic dicts
+  expose normalized `treatments_supported`. Stored doc still has
+  `treatments_offered` for legacy reads.
+
+### Tests run
+- `pytest tests/test_clinic_treatment_fields_cleanup.py` →
+  **18/18 PASS** (5.67s):
+  1–7. Helper precedence/normalization (prefers supported, falls back
+  to offered, drops empty/whitespace, dedupes, lowercases, drops
+  non-strings, empty when both empty).
+  8. Recommended endpoint — supported-only clinic.
+  9. Recommended endpoint — legacy-only clinic surfaces canonical.
+  10. Recommended endpoint — clinic with both fields prefers supported
+  (legacy `braces` from offered is NOT in response).
+  11. Recommended endpoint — whitespace dedup.
+  12. Matching finds legacy-only clinic by `treatment_type`.
+  13. Admin create writes canonical + mirror.
+  14. Admin create accepts legacy `treatments_offered` body too.
+  15. Admin patch writes both fields.
+  16. Admin patch with legacy field still writes both.
+  17. Admin GET single clinic returns normalized canonical.
+  18. Admin GET list returns normalized canonical for every row.
+
+- Regression run on related suites (each in isolation):
+  - `test_patient_recommended_clinics.py` → **28/28 PASS**
+  - `test_admin_clinic_profile_editor.py` → **24/24 PASS**
+  - `test_patient_request_call.py` → **31/31 PASS**
+  - `test_patient_assisted_choice.py` → **28/28 PASS**
+  - `test_p4_p5_admin_notifications.py` → **11/11 PASS**
+  - `test_admin_request_assignment.py` → **16/16 PASS**
+  - `test_clinic_status_control.py` → **20/20 PASS**
+  - `test_clinic_request_context_visibility.py` → **11/11 PASS**
+  - `test_admin_patient_request_handling.py` → **12/12 PASS**
+  - `test_patient_review_signals.py` → **23/23 PASS**
+  - `test_strict_quiz_contact.py` → **13/13 PASS**
+  - `test_security_audit.py` → **25/25 PASS**
+  - `test_phase2_batch_a.py` → **24/24 PASS**
+  - **Total: 284/284 PASS** (this batch + regression).
+
+### TypeScript
+`npx tsc --noEmit` → zero new errors. The 6 pre-existing errors in
+unrelated files (`admin/blog/import` Set iteration,
+`admin/dashboard` line 561 boolean comparison, `lib/api.ts` index
+sig, `lib/articleTestRender`, `lib/attribution`) are unchanged.
+
+### Frontend verification (live preview)
+- Recommended-clinics endpoint for Sofia Premium Clinic returns
+  `treatments_supported: ['invisalign', 'implants', 'full_mouth']`
+  AND legacy `treatments` with the same list (curl-verified).
+- Admin clinics list still shows treatment column (now reads canonical
+  with legacy fallback).
+- Public Sofia Premium profile renders treatment focus tags via the
+  updated TREATMENT_LABELS map (`Invisalign`, `Импланти`, `Цяла уста`).
+
+### Treatment label verification
+| Code | Label |
+|---|---|
+| aligners | **Алайнери** (no `Алайнъри` typo anywhere) |
+| braces | Брекети |
+| implants | Импланти |
+| whitening | Избелване |
+| general | Обща стоматология |
+| cosmetic | Естетична стоматология |
+| orthodontics | Ортодонтия |
+| diagnostic_quiz / diagnostic_quiz_v1 / quiz | Диагностичен въпросник |
+
+Raw enum keys never leak in patient-facing UI: cards / profile /
+quiz-source attribution all resolve through `TREATMENT_LABELS[t] || t`.
+
+### No scope drift
+- ✅ Patient quiz logic: untouched.
+- ✅ Request-call modal / Assisted-choice modal: untouched.
+- ✅ Admin request assignment flow: untouched.
+- ✅ Clinic status control: untouched.
+- ✅ Auth / session / CSRF: untouched.
+- ✅ Analytics dashboard: untouched.
+- ✅ Article importer: untouched.
+- ✅ /za-kliniki: untouched.
+- ✅ Care Pass copy: untouched.
+- ✅ Resend / Twilio / ElevenLabs: not invoked.
+- ✅ `package.json` / dependencies: unchanged.
+
+### Unresolved risks
+- 🔴 Git secrets-leak remains BLOCKED — local-only, NO push / NO deploy.
+- 🟡 Legacy mirror in `treatments_offered` will keep being populated by
+  the backend until we remove the bridge in a future batch. Removing
+  the mirror should be done only AFTER:
+    1. Confirming no external admin tools / scripts read it directly.
+    2. A migration sweep that copies `treatments_offered` →
+       `treatments_supported` for any unmigrated docs and unsets the
+       legacy field. Out of scope of this non-destructive batch.
+- 🟢 The cleanup is safe to proceed alongside Auth E5 / Resend
+  sender-domain verification — both touch unrelated surfaces.
+
+### Safe to proceed?
+✅ Auth E5 (Session Governance) — independent surface, no overlap.
+✅ Resend sender-domain verification — DNS-only, no code change here.
+
+
 ## 2026-05-16 — Admin Header Consistency
 
 Standardized the admin chrome across every page under `/admin/*`. Single

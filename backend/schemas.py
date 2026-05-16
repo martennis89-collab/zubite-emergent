@@ -621,6 +621,10 @@ class ClinicCreate(BaseModel):
     website: Optional[str] = Field(default=None, max_length=500)
     contact_person: Optional[str] = Field(default=None, max_length=200)
     treatments_offered: List[str] = []
+    # Canonical going forward (Feb 2026 cleanup). When provided, takes
+    # precedence over `treatments_offered`; when only the legacy field
+    # is provided, the router copies its value here on insert.
+    treatments_supported: List[str] = []
     clinic_status: str = "evaluation_partner"
     subscription_status: str = "trial"
     monthly_plan: Optional[str] = Field(default=None, max_length=100)
@@ -714,6 +718,9 @@ class ClinicAdminUpdate(BaseModel):
     website: Optional[str] = Field(default=None, max_length=500)
     contact_person: Optional[str] = Field(default=None, max_length=200)
     treatments_offered: Optional[List[str]] = None
+    # Canonical going forward (Feb 2026 cleanup). Admin frontend may send
+    # either key; the router writes both to keep legacy readers working.
+    treatments_supported: Optional[List[str]] = None
     clinic_status: Optional[str] = None
     subscription_status: Optional[str] = None
     monthly_plan: Optional[str] = Field(default=None, max_length=100)

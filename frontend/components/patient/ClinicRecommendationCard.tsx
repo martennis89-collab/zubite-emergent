@@ -73,7 +73,13 @@ export function ClinicRecommendationCard({
   const lockedByAssisted = !!hasAssistedChoice && !hasAnySelection
 
   // BG label fallback: prefer the centralized treatment label map, else raw.
-  const treatmentBadges = clinic.treatments.slice(0, 3).map((t) => (
+  // Prefer canonical `treatments_supported` (Feb 2026 cleanup); fall back to
+  // legacy `treatments` for any pre-cleanup cached responses.
+  const treatmentList =
+    (clinic.treatments_supported && clinic.treatments_supported.length > 0
+      ? clinic.treatments_supported
+      : clinic.treatments) || []
+  const treatmentBadges = treatmentList.slice(0, 3).map((t) => (
     <span
       key={t}
       className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-700 text-xs"

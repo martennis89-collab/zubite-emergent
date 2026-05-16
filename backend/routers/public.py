@@ -184,10 +184,16 @@ async def create_lead(data: LeadCreate):
 
     assigned_clinic_id = None
     if band == "GREEN":
+        # Match clinics on either canonical `treatments_supported` or the
+        # legacy `treatments_offered` mirror. New writes populate both;
+        # legacy/unmigrated docs may have only one. (Feb 2026 cleanup.)
         clinic = await db.clinics.find_one({
             "city_slug": data.city_slug,
             "is_active": True,
-            "treatments_supported": data.treatment_type
+            "$or": [
+                {"treatments_supported": data.treatment_type},
+                {"treatments_offered": data.treatment_type},
+            ],
         }, {"_id": 0})
         if clinic:
             assigned_clinic_id = clinic.get("id")
@@ -532,19 +538,46 @@ def _placement_rank(clinic: dict) -> int:
     return 1_000_000
 
 
-def _treatments_of(clinic: dict) -> List[str]:
-    """Union of `treatments_supported` (legacy/routing schema) and
-    `treatments_offered` (admin/partner schema). De-duplicated, lowercased."""
-    a = clinic.get("treatments_supported") or []
-    b = clinic.get("treatments_offered") or []
+def _normalize_clinic_treatments(clinic: dict) -> List[str]:
+    """Canonical normalized treatment list for a clinic.
+
+    Precedence (per Feb 2026 cleanup batch):
+      1. `treatments_supported` (canonical going forward)
+      2. `treatments_offered`   (legacy admin/partner schema, fallback)
+
+    Returns lowercased, whitespace-trimmed, de-duplicated, stable-ordered
+    list. Empty/whitespace entries are dropped. Non-string entries are
+    silently dropped (defensive).
+
+    The canonical field exposed publicly is `treatments_supported`.
+    The mirror to `treatments_offered` is kept ONLY as a temporary
+    backwards-compatibility bridge for older admin reads / clinic-portal
+    consumers; it is NOT used as a primary source.
+    """
+    raw = clinic.get("treatments_supported") or []
+    if not (isinstance(raw, list) and any(isinstance(x, str) and x.strip() for x in raw)):
+        raw = clinic.get("treatments_offered") or []
     seen: List[str] = []
-    for t in list(a) + list(b):
+    for t in raw:
         if not isinstance(t, str):
             continue
         norm = t.strip().lower()
         if norm and norm not in seen:
             seen.append(norm)
     return seen
+
+
+def _treatments_of(clinic: dict) -> List[str]:
+    """Backwards-compatible alias for the cleanup-era helper.
+
+    Historically this returned the UNION of both legacy fields. Going
+    forward (Feb 2026) we PREFER `treatments_supported` and fall back
+    to `treatments_offered`. Existing call sites in matching/scoring/
+    response-building all keep working — the old union semantics were
+    used to defend against schema drift, but the new normalized
+    canonical write path makes the union unnecessary.
+    """
+    return _normalize_clinic_treatments(clinic)
 
 
 def _is_clinic_visible(clinic: dict) -> bool:
@@ -724,12 +757,17 @@ def _safe_clinic_payload(clinic: dict, lead_treatment: str, is_broad: bool) -> d
 
     tier = _resolve_partner_tier(clinic)
 
+    treatments_normalized = _normalize_clinic_treatments(clinic)
     payload = {
         "id": clinic.get("id"),
         "name": _clinic_name(clinic),
         "city_name": _city_name_for(slug, clinic.get("city_name")),
         "city_slug": slug,
-        "treatments": _treatments_of(clinic),
+        # Canonical field name for frontend consumers (Feb 2026 cleanup).
+        "treatments_supported": treatments_normalized,
+        # Legacy alias kept so existing card / profile components keep
+        # working while the frontend migrates to `treatments_supported`.
+        "treatments": treatments_normalized,
         "reason": _reason_for(clinic, lead_treatment, is_broad),
         # Honest, conservative wording. We do NOT promise an SLA.
         "response_expectation": (

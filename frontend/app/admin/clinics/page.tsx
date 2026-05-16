@@ -14,6 +14,10 @@ interface PartnerClinic {
   city: string
   email: string
   phone?: string
+  // Canonical (Feb 2026 cleanup). Backend always returns this.
+  treatments_supported?: string[]
+  // Legacy mirror — read-only fallback for any pre-cleanup cached
+  // responses still in flight. Do NOT write to this from new code.
   treatments_offered?: string[]
   clinic_status?: string
   subscription_status?: string
@@ -143,7 +147,12 @@ export default function AdminClinicsPage() {
                       </select>
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-600">
-                      {(c.treatments_offered && c.treatments_offered.length > 0) ? c.treatments_offered.join(', ') : '—'}
+                      {(() => {
+                        const t = (c.treatments_supported && c.treatments_supported.length > 0)
+                          ? c.treatments_supported
+                          : (c.treatments_offered || [])
+                        return t.length > 0 ? t.join(', ') : '—'
+                      })()}
                     </td>
                     <td className="px-4 py-3 text-right font-mono">{c.assigned_requests_count ?? 0}</td>
                     <td className="px-4 py-3 text-right font-mono text-emerald-700">{c.booked_count ?? 0}</td>
@@ -184,7 +193,7 @@ function CreateClinicModal({
 }) {
   const [form, setForm] = useState({
     clinic_name: '', city: 'Sofia', email: '', phone: '', address: '',
-    treatments_offered: '', clinic_status: 'evaluation_partner',
+    treatments_supported: '', clinic_status: 'evaluation_partner',
   })
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
@@ -193,9 +202,15 @@ function CreateClinicModal({
     e.preventDefault()
     setBusy(true); setErr(null)
     try {
+      const treatmentsList = form.treatments_supported
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+      // Send canonical field. Backend mirrors to legacy
+      // `treatments_offered` automatically for backwards compatibility.
       const body = {
         ...form,
-        treatments_offered: form.treatments_offered.split(',').map((s) => s.trim()).filter(Boolean),
+        treatments_supported: treatmentsList,
       }
       const r = await fetch(`${API_URL}/api/admin/clinics`, {
         method: 'POST',
@@ -239,10 +254,11 @@ function CreateClinicModal({
         <label className="block text-sm">
           <span className="text-slate-700">Treatments (comma-separated)</span>
           <input
-            value={form.treatments_offered}
-            onChange={(e) => setForm({ ...form, treatments_offered: e.target.value })}
+            value={form.treatments_supported}
+            onChange={(e) => setForm({ ...form, treatments_supported: e.target.value })}
             placeholder="aligners, braces, implants"
             className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2"
+            data-testid="create-clinic-treatments"
           />
         </label>
         <label className="block text-sm">

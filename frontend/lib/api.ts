@@ -57,6 +57,10 @@ export interface RecommendedClinic {
   city_name: string;
   city_slug: string;
   treatments: string[];
+  // Canonical going forward (Feb 2026 cleanup). When present, frontend
+  // consumers should prefer this over `treatments` (which is kept as a
+  // legacy alias for backwards compatibility).
+  treatments_supported?: string[];
   reason: string;
   response_expectation: string;
   partner_since_year: number | null;
