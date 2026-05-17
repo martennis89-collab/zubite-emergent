@@ -1,4 +1,149 @@
 # Zubite.bg — Changelog
+## 2026-02-17 — Site-Wide Visual System: Phase 1 (Header / Footer / Buttons / Design Tokens)
+
+Began propagating the homepage premium glass design system across
+the entire Zubite.bg site. Phase 1 chose a **high-leverage,
+low-risk strategy**: instead of rewriting 53+ pages individually,
+we rewrote the shared `Header`, `Footer`, and global `btn-primary`
+CSS class + added reusable CSS-utility design tokens. Every public
+page automatically inherits the new visual language for nav, footer
+and primary CTAs without per-page edits.
+
+### Files touched (4 files, zero new pages, zero deletes)
+- **`frontend/components/Header.tsx`** — fully rewritten. Now matches
+  the homepage floating pill nav:
+  - Fixed `top-3 sm:top-4 inset-x-3 sm:inset-x-6` centered pill
+    container.
+  - Two-state glass: `bg-white/20 backdrop-blur-2xl ring-white/35`
+    (top of page) → `bg-white/45 ring-white/55` (scrolled), both
+    with deep liquid-glass inset highlights (`inset 0 1px 0
+    rgba(255,255,255,0.95)` + bottom inset shadow) and a visible
+    inner top-edge gloss line.
+  - Logo updated from `sky-500` accent → `teal-600` to match the
+    new brand accent.
+  - Nav-link active state: `text-sky-500` → `text-teal-700
+    font-medium`.
+  - **NEW** Desktop "Провери случая" CTA pill (was missing
+    entirely) — diagonal navy gradient
+    `linear-gradient(135deg,#0f172a,#1e293b,#0f172a)` with inner
+    white-15% blur shine + `inset 0 1px 0 rgba(255,255,255,0.18)`
+    highlight, arrow icon with `translate-x-0.5` hover shift.
+  - Mobile menu drawer redesigned: glass border-t, calmer link
+    styling, full-width navy CTA at the bottom.
+  - Auto-closes on route change via `usePathname` effect.
+  - Preserves `data-testid`s (`logo`, `nav-*`, `mobile-menu`,
+    `nav-cta`).
+- **`frontend/components/Footer.tsx`** — fully rewritten to match
+  `HomeFooter`:
+  - Dark navy `bg-[#0E1A1A]` with thin teal-400/40 gradient top
+    edge + soft teal blur halo at the top.
+  - Restructured into 4 columns: Brand · Платформа · За клиники ·
+    Право, with `text-xs uppercase tracking-[0.18em]` section
+    labels.
+  - Brand column gets the proper Zubite.bg serif logo with teal
+    `.bg`, the new "Спокоен ориентир…" tagline, and a small
+    medical disclaimer.
+  - Social icons restyled to glass circles (`bg-white/5 ring-
+    white/10` → `bg-teal-500/15 ring-teal-400/30` on hover).
+  - **NEW** "Клиничен вход" link to `/clinic`, **NEW** "Бисквитки"
+    link to `/cookies`.
+  - Copyright row uses `border-white/10` divider with "Направено с
+    грижа в България" sub-tagline.
+  - `treatmentSlug` prop kept in the signature for backwards
+    compatibility (existing call-sites pass it).
+- **`frontend/app/globals.css`** — major rewrite of `.btn-primary`
+  and added new design-token utility classes:
+  - **`.btn-primary`** — was flat `bg-sky-500` → now the homepage
+    glossy teal gradient
+    `linear-gradient(135deg,#14b8a6,#0d9488,#0f766e)` with a `::before`
+    pseudo-element shine line, `0 18px 40px -12px rgba(13,148,136,0.55)`
+    soft teal drop shadow + inset white-20% top highlight. Hover
+    lifts `-2px` and deepens the shadow. **Automatically upgrades
+    every existing `<button class="btn-primary">` on every page.**
+  - **`.btn-secondary-glass`** — frosted-glass pill button reusable
+    across pages (`bg-white/35 backdrop-blur-2xl ring-white/60` +
+    inset highlight + inner shine line).
+  - **`.glass-card`** + **`.glass-card-hover`** — translucent card
+    utility (`bg-white/70 backdrop-blur-xl ring-white/80`) with a
+    matching `:hover` lift variant.
+  - **`.glass-panel`** — larger glass section container
+    (`bg-white/65 backdrop-blur-2xl ring-white/70`, rounded-3xl,
+    deep shadow).
+  - **`.glass-panel-dark`** — premium dark navy panel matching
+    the Care Pass aesthetic.
+  - **`.liquid-bg`** — soft teal/cyan radial gradient background
+    overlay via `::before` pseudo-element; content sits on top
+    via `> *` z-index lift.
+  - **`.trust-chip`** — single-line frosted trust pill.
+- **`frontend/app/layout.tsx`** — `<body>` background set to
+  `bg-[#FCFAF8] text-slate-900` matching the homepage warm-ivory
+  base. Pages with `bg-white` containers still render correctly
+  (they only paint their own region); pages that don't override
+  bg now inherit the warm ivory.
+
+### Result
+- **All 53+ public/marketing/blog/legal/static pages** automatically
+  receive:
+  - the new floating pill glass nav with proper logo + teal active
+    states + new "Провери случая" CTA,
+  - the new dark navy premium footer with the correct link hierarchy
+    + medical disclaimer + Bulgaria-tagline,
+  - any element using `class="btn-primary"` is now the glossy teal
+    gradient CTA with shine line + lift hover.
+- **Smoke-tested via screenshots** across:
+  - `/aligners-vs-braces` (hero + final CTA section + footer),
+  - `/orthodontics` (hero),
+  - `/blog` (journal hero),
+  - mobile `/aligners-vs-braces` at 390px (zero horizontal overflow:
+    `docW === viewW === 390`),
+  - mobile menu open state (premium drawer with new gradient CTA).
+- `npx tsc --noEmit -p .` → 0 new errors.
+- All `data-testid`s preserved; existing test selectors continue
+  to work.
+
+### What is intentionally NOT yet touched (Phase 2+)
+- **Per-page hero / body sections**: pages still have their original
+  layouts (gradient cards, comparison tables, content blocks). The
+  unified nav + footer + button system is the foundation; individual
+  page polish (glass info-cards, scroll reveal, treatment overview
+  panels) lands in Phase 2.
+- **Quiz flow** (`/quiz`, `/[city]/[treatment]/quiz`, treatment-
+  specific quizzes) — Phase 2 will replace its form chrome with the
+  premium glass card system + progress rail + animated transitions.
+- **Results / lead capture** (`/results/[leadId]/*`) — Phase 2 will
+  apply premium glass result panel + "Ориентир, не диагноза" badge
+  + Care Pass reminder block.
+- **Blog article body** (`/blog/[slug]`) — Phase 3 will polish the
+  reading shell (article hero card, FAQ glass accordion, inline
+  CTA blocks) without harming readability.
+- **Clinic dashboard** (`/clinic/dashboard/*`) — Phase 4 will apply
+  restrained brand polish (ivory bg, deep navy headings, teal
+  accents, glass/white hybrid panels) **with minimal motion**
+  per the brief.
+- **Admin dashboard** (`/admin/*`) — Phase 4 will tighten spacing,
+  colors and table styling **without adding liquid backgrounds or
+  Zubi** per the brief.
+- **`/za-kliniki`** (for-clinics page) — Phase 5 darker premium B2B
+  navy + glass dashboard mockups.
+
+### Brief compliance snapshot
+- ✅ Glass system is now shared via the global CSS tokens
+  (`.glass-card`, `.glass-panel`, `.glass-panel-dark`, `.liquid-bg`,
+  `.trust-chip`, `.btn-primary`, `.btn-secondary-glass`).
+- ✅ No route, no backend, no API, no data-model, no auth, no SEO,
+  no JSON-LD, no functionality changes.
+- ✅ Care Pass language untouched on this pass (still consistent
+  with the existing homepage copy).
+- ✅ Medical safety wording untouched.
+- ✅ No Zubi added to dashboards or non-patient-guidance routes.
+- ✅ Mobile responsiveness preserved across the audited pages.
+- ✅ Accessibility maintained: keyboard nav, `aria-label` on icon
+  buttons, semantic `<header>/<footer>` markup, mobile drawer
+  closes on route change.
+
+---
+
+
 ## 2026-02-17 — Zubi-Bubble Removal · Trust-Strip Marquee · Stronger Liquid Glass
 
 Three focused homepage refinements per user request. Pure visual

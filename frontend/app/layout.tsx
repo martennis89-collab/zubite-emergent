@@ -81,7 +81,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
         />
       </head>
-      <body className="antialiased overflow-x-hidden">
+      <body className="antialiased overflow-x-hidden bg-[#FCFAF8] text-slate-900">
         <Suspense fallback={null}>
           <AttributionTracker />
         </Suspense>
