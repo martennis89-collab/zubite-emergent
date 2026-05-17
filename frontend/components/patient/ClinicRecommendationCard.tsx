@@ -43,11 +43,11 @@ function PlacementBadge({
   // match Zubite's editorial palette (amber for premium, slate for featured).
   const styles =
     tier === 'premium'
-      ? 'bg-amber-50 text-amber-800 border-amber-100'
-      : 'bg-slate-50 text-slate-700 border-slate-200'
+      ? 'bg-amber-50/85 text-amber-800 ring-1 ring-amber-100'
+      : 'bg-slate-50/85 text-slate-700 ring-1 ring-slate-200'
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-medium tracking-wide ${styles}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium tracking-wide backdrop-blur-md ${styles}`}
       title={disclosure || undefined}
       data-testid={`clinic-card-placement-${tier}`}
     >
@@ -83,7 +83,7 @@ export function ClinicRecommendationCard({
   const treatmentBadges = treatmentList.slice(0, 3).map((t) => (
     <span
       key={t}
-      className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-700 text-xs"
+      className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-700 ring-1 ring-teal-100 text-xs"
     >
       {TREATMENT_LABELS[t] || t}
     </span>
@@ -95,15 +95,18 @@ export function ClinicRecommendationCard({
 
   return (
     <article
-      className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-7 flex flex-col h-full shadow-sm hover:shadow-md hover:border-sky-200 transition-all"
+      className="group relative rounded-2xl bg-white/70 backdrop-blur-xl ring-1 ring-white/80 p-6 sm:p-7 flex flex-col h-full shadow-[0_10px_36px_-22px_rgba(15,23,42,0.22),inset_0_1px_0_rgba(255,255,255,0.85)] hover:-translate-y-1 hover:bg-white/85 hover:shadow-[0_18px_50px_-22px_rgba(13,148,136,0.28)] hover:ring-teal-200/60 transition-all"
       data-testid={`clinic-card-${clinic.id}`}
       aria-label={`Препоръка ${position}: ${clinic.name}`}
     >
+      {/* Soft inner top gloss for liquid glass feel */}
+      <span aria-hidden className="pointer-events-none absolute inset-x-6 top-0.5 h-1/3 rounded-full bg-white/45 blur-md opacity-70" />
+
       {/* Header */}
-      <div className="flex items-start justify-between gap-3 mb-3">
+      <div className="relative flex items-start justify-between gap-3 mb-3">
         <div className="min-w-0">
-          <div className="w-10 h-10 rounded-lg bg-sky-50 grid place-items-center mb-3">
-            <Building2 className="w-5 h-5 text-sky-600" />
+          <div className="w-10 h-10 rounded-xl bg-teal-50/90 ring-1 ring-teal-100 grid place-items-center mb-3">
+            <Building2 className="w-5 h-5 text-teal-700" />
           </div>
 
           {/* Placement badge — rendered only when backend supplied a label. */}
@@ -171,7 +174,7 @@ export function ClinicRecommendationCard({
           Secondary → "Искам обаждане" opens the real RequestCallModal.
                       When the lead has already chosen a clinic, the
                       secondary button is disabled and labelled accordingly. */}
-      <div className="space-y-2">
+      <div className="relative space-y-2">
         <Link
           href={`/results/${leadId}/clinics/${clinic.id}`}
           onClick={() => {
@@ -183,17 +186,21 @@ export function ClinicRecommendationCard({
               rank_position: position,
             })
           }}
-          className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-sky-500 text-white text-sm font-medium rounded-full hover:bg-sky-600 transition-colors"
+          className="group/cta relative w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full text-white text-sm font-medium transition-all hover:-translate-y-0.5 shadow-[0_14px_30px_-12px_rgba(13,148,136,0.50),inset_0_1px_0_rgba(255,255,255,0.20)] overflow-hidden"
+          style={{ backgroundImage: 'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)' }}
           data-testid={`clinic-card-view-profile-${clinic.id}`}
           aria-label={`Виж профила на ${clinic.name}`}
         >
-          Виж профила
-          <ArrowRight className="w-4 h-4" aria-hidden="true" />
+          <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
+          <span className="relative inline-flex items-center gap-2">
+            Виж профила
+            <ArrowRight className="w-4 h-4 transition-transform group-hover/cta:translate-x-0.5" aria-hidden="true" />
+          </span>
         </Link>
 
         {isSelected ? (
           <div
-            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-emerald-50 border border-emerald-100 text-emerald-800 text-sm font-medium rounded-full"
+            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-emerald-50/85 backdrop-blur-md ring-1 ring-emerald-100 text-emerald-800 text-sm font-medium rounded-full"
             data-testid={`clinic-card-submitted-${clinic.id}`}
           >
             <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
@@ -212,7 +219,7 @@ export function ClinicRecommendationCard({
                 attempted_action: 'request_call',
               })
             }}
-            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-slate-100 text-slate-400 text-sm font-medium rounded-full cursor-not-allowed"
+            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-slate-100/80 text-slate-400 text-sm font-medium rounded-full cursor-not-allowed"
             data-testid={`clinic-card-locked-by-assisted-${clinic.id}`}
           >
             Вече поискахте помощ от Zubite
@@ -230,7 +237,7 @@ export function ClinicRecommendationCard({
                 attempted_action: 'request_call',
               })
             }}
-            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-slate-100 text-slate-400 text-sm font-medium rounded-full cursor-not-allowed"
+            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-slate-100/80 text-slate-400 text-sm font-medium rounded-full cursor-not-allowed"
             data-testid={`clinic-card-disabled-${clinic.id}`}
           >
             Вече избрахте клиника
@@ -248,7 +255,7 @@ export function ClinicRecommendationCard({
               })
               setModalOpen(true)
             }}
-            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-white border border-slate-200 text-slate-800 text-sm font-medium rounded-full hover:bg-slate-50 transition-colors"
+            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-white/65 backdrop-blur-xl ring-1 ring-white/80 text-slate-800 text-sm font-medium rounded-full hover:bg-white hover:-translate-y-0.5 transition-all shadow-[0_8px_24px_-14px_rgba(15,23,42,0.18)]"
             data-testid={`clinic-card-cta-${clinic.id}`}
           >
             Искам обаждане

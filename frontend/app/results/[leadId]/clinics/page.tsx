@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
 import axios from 'axios'
 import {
   AlertCircle, Compass, ArrowLeft, ShieldCheck, Sparkles,
@@ -20,6 +19,7 @@ import {
 import { ClinicRecommendationCard } from '@/components/patient/ClinicRecommendationCard'
 import { ClinicMatchEmptyState } from '@/components/patient/ClinicMatchEmptyState'
 import { AssistedChoiceModal } from '@/components/patient/AssistedChoiceModal'
+import { CarePassPanel } from '@/components/patient/CarePassPanel'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
 import { getStoredLeadContact } from '@/lib/leadContact'
 
@@ -106,15 +106,28 @@ export default function ClinicMatchPage() {
   }, [data, errKind, leadId])
 
   return (
-    <main className="min-h-screen bg-slate-50 overflow-x-hidden">
+    <main className="min-h-screen bg-[#FCFAF8] overflow-x-hidden relative" data-testid="clinic-match-page">
+      {/* Warm ivory backdrop + soft teal blobs (same language as homepage / results) */}
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(94,234,212,0.22) 0%, rgba(94,234,212,0) 60%),' +
+            'radial-gradient(ellipse 60% 50% at 90% 40%, rgba(165,243,252,0.30) 0%, rgba(165,243,252,0) 60%)',
+        }}
+      />
+      <div aria-hidden className="absolute -top-32 -left-32 w-[36rem] h-[36rem] rounded-full bg-teal-200/25 blur-3xl pointer-events-none" />
+      <div aria-hidden className="absolute -bottom-40 right-0 w-[40rem] h-[40rem] rounded-full bg-cyan-100/35 blur-3xl pointer-events-none" />
+
       <Header />
 
-      <section className="pt-24 pb-12 md:pt-28 md:pb-20">
+      <section className="relative pt-24 pb-12 md:pt-28 md:pb-20">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Back link */}
           <Link
             href={`/results/${leadId}`}
-            className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 mb-6 transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-teal-700 mb-6 transition-colors"
             data-testid="match-back-link"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -123,7 +136,7 @@ export default function ClinicMatchPage() {
 
           {/* Title block */}
           <div className="mb-10 max-w-3xl">
-            <p className="font-sans text-xs font-semibold tracking-[0.22em] uppercase text-sky-600 mb-3">
+            <p className="font-sans text-[11px] font-semibold tracking-[0.22em] uppercase text-teal-700 mb-3">
               Препоръчани клиники
             </p>
             <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl font-semibold text-slate-900 leading-tight">
@@ -147,15 +160,15 @@ export default function ClinicMatchPage() {
             <>
               {/* Selection-rule banner */}
               <div
-                className="bg-white border border-slate-200 rounded-xl px-4 py-3 mb-4 flex items-start gap-3 text-sm text-slate-600"
+                className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_8px_24px_-16px_rgba(15,23,42,0.18)] px-4 py-3.5 mb-4 flex items-start gap-3 text-sm text-slate-700"
                 data-testid="selection-rule-banner"
               >
-                <ShieldCheck className="w-4 h-4 text-sky-600 mt-0.5 flex-shrink-0" />
+                <ShieldCheck className="w-4 h-4 text-teal-600 mt-0.5 flex-shrink-0" />
                 <p className="leading-relaxed">
                   Може да разгледате до{' '}
-                  <strong>{data.selection_rule.can_view_clinics}</strong>{' '}
+                  <strong className="text-slate-900">{data.selection_rule.can_view_clinics}</strong>{' '}
                   клиники. Заявка за обаждане ще може да изпратите към{' '}
-                  <strong>{data.selection_rule.can_request_call_from_clinics}</strong>{' '}
+                  <strong className="text-slate-900">{data.selection_rule.can_request_call_from_clinics}</strong>{' '}
                   клиника. Ако се колебаете, използвайте „Помогнете ми да избера“.
                 </p>
               </div>
@@ -178,7 +191,7 @@ export default function ClinicMatchPage() {
                   has previously submitted a request. */}
               {selection?.has_selected_clinic && selection?.clinic && (
                 <div
-                  className="mb-6 rounded-2xl border border-emerald-100 bg-emerald-50 p-4 sm:p-5 flex items-start gap-3"
+                  className="mb-6 rounded-2xl ring-1 ring-emerald-200/70 bg-emerald-50/85 backdrop-blur-xl p-4 sm:p-5 flex items-start gap-3 shadow-[0_10px_30px_-18px_rgba(5,150,105,0.35)]"
                   data-testid="match-already-selected-banner"
                 >
                   <CheckCircle2 className="w-5 h-5 text-emerald-600 mt-0.5 flex-shrink-0" />
@@ -199,15 +212,15 @@ export default function ClinicMatchPage() {
                   selected-clinic banner. */}
               {selection?.has_requested_zubite_help && (
                 <div
-                  className="mb-6 rounded-2xl border border-sky-100 bg-sky-50 p-4 sm:p-5 flex items-start gap-3"
+                  className="mb-6 rounded-2xl ring-1 ring-teal-200/70 bg-teal-50/85 backdrop-blur-xl p-4 sm:p-5 flex items-start gap-3 shadow-[0_10px_30px_-18px_rgba(13,148,136,0.35)]"
                   data-testid="match-assisted-banner"
                 >
-                  <Sparkles className="w-5 h-5 text-sky-600 mt-0.5 flex-shrink-0" />
+                  <Sparkles className="w-5 h-5 text-teal-600 mt-0.5 flex-shrink-0" />
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-sky-900">
+                    <p className="text-sm font-medium text-teal-900">
                       Заявката е изпратена към Zubite.
                     </p>
-                    <p className="text-xs text-sky-800 mt-1 leading-relaxed">
+                    <p className="text-xs text-teal-800 mt-1 leading-relaxed">
                       Ще използваме информацията от оценката ви, за да ви
                       помогнем с по-ясна следваща стъпка.
                     </p>
@@ -215,41 +228,16 @@ export default function ClinicMatchPage() {
                 </div>
               )}
 
-              {/* Care Pass benefit strip — premium, subtle, never dominates
-                  the clinic cards. Renders above the grid so patients see
-                  the after-visit benefit before they pick a clinic. */}
-              <section
-                className="mb-6 overflow-hidden rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50/70 via-white to-white"
-                data-testid="care-pass-benefit-strip"
-              >
-                <div className="grid grid-cols-1 sm:grid-cols-[260px_minmax(0,1fr)] gap-4 sm:gap-6 p-4 sm:p-6 items-center">
-                  <div className="relative w-full aspect-[4/3] rounded-xl bg-white ring-1 ring-slate-200 overflow-hidden">
-                    <Image
-                      src="/care-pass.png"
-                      alt="Zubite Care Pass — карта с партньорски ползи"
-                      fill
-                      sizes="(max-width: 640px) 100vw, 260px"
-                      className="object-contain"
-                      priority={false}
-                    />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-700 mb-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5" />
-                      Zubite Care Pass
-                    </div>
-                    <p className="text-slate-700 text-sm leading-relaxed">
-                      Изберете клиника, посетете консултацията и получете
-                      Care Pass от клиниката — с партньорски ползи и
-                      предложения за орална грижа.
-                    </p>
-                    <p className="text-xs text-slate-500 leading-relaxed mt-2">
-                      Care Pass се предоставя след реално посетена
-                      консултация през Zubite.bg.
-                    </p>
-                  </div>
-                </div>
-              </section>
+              {/* Care Pass benefit strip — premium dark navy-teal panel
+                  matching the homepage. Renders above the grid so patients
+                  see the after-visit benefit before they pick a clinic. */}
+              <div className="mb-6" data-testid="care-pass-benefit-strip">
+                <CarePassPanel
+                  variant="compact"
+                  showLearnMore
+                  testid="care-pass-benefit-strip-panel"
+                />
+              </div>
 
               {/* Cards */}
               <div
@@ -277,11 +265,11 @@ export default function ClinicMatchPage() {
 
               {/* Assisted choice panel — non-submitting in P3 */}
               <section
-                className="mt-10 rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50 to-white p-6 sm:p-8 max-w-3xl mx-auto"
+                className="mt-10 rounded-3xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_18px_50px_-22px_rgba(15,23,42,0.20)] p-6 sm:p-8 max-w-3xl mx-auto"
                 data-testid="assisted-choice-panel"
               >
                 <div className="flex items-center gap-2 mb-3">
-                  <Sparkles className="w-4 h-4 text-sky-600" />
+                  <Sparkles className="w-4 h-4 text-teal-600" />
                   <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900">
                     Не сте сигурни коя клиника да изберете?
                   </h2>
@@ -292,7 +280,7 @@ export default function ClinicMatchPage() {
                 </p>
                 {selection?.has_requested_zubite_help ? (
                   <div
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-50 border border-emerald-100 text-emerald-800 text-sm font-medium rounded-full"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-50 ring-1 ring-emerald-100 text-emerald-800 text-sm font-medium rounded-full"
                     data-testid="assisted-choice-submitted"
                   >
                     <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
@@ -304,17 +292,13 @@ export default function ClinicMatchPage() {
                     disabled
                     aria-disabled="true"
                     onClick={() => {
-                      // The button is disabled in the UI; this onClick is
-                      // belt-and-suspenders. The native disabled attribute
-                      // already prevents firing, but keep this in case a
-                      // future refactor switches to aria-disabled only.
                       trackPatientEvent('matching_choice_blocked', {
                         lead_id: leadId,
                         reason: 'already_selected_clinic',
                         attempted_action: 'assisted_choice',
                       })
                     }}
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-slate-100 text-slate-400 text-sm font-medium rounded-full cursor-not-allowed"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-slate-100/80 text-slate-400 text-sm font-medium rounded-full cursor-not-allowed"
                     data-testid="assisted-choice-locked-by-clinic"
                   >
                     Вече избрахте клиника
@@ -329,10 +313,10 @@ export default function ClinicMatchPage() {
                       })
                       setAssistedModalOpen(true)
                     }}
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-800 text-sm font-medium rounded-full hover:bg-slate-50 transition-colors"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-white/70 backdrop-blur-xl ring-1 ring-white/80 text-slate-900 text-sm font-medium rounded-full hover:bg-white hover:-translate-y-0.5 transition-all shadow-[0_8px_24px_-12px_rgba(15,23,42,0.18)]"
                     data-testid="assisted-choice-btn"
                   >
-                    <Compass className="w-4 h-4" />
+                    <Compass className="w-4 h-4 text-teal-600" />
                     Помогнете ми да избера
                   </button>
                 )}
@@ -379,15 +363,15 @@ function CardSkeletons() {
       {[0, 1, 2].map((i) => (
         <div
           key={i}
-          className="bg-white border border-slate-200 rounded-2xl p-7 animate-pulse"
+          className="bg-white/65 backdrop-blur-xl ring-1 ring-white/70 rounded-2xl p-7 animate-pulse shadow-[0_8px_30px_-22px_rgba(15,23,42,0.18)]"
           data-testid={`match-skeleton-${i}`}
         >
-          <div className="w-10 h-10 rounded-lg bg-slate-100 mb-4" />
-          <div className="h-5 w-3/4 bg-slate-100 rounded mb-2" />
-          <div className="h-3 w-1/2 bg-slate-100 rounded mb-5" />
-          <div className="h-3 w-full bg-slate-100 rounded mb-1.5" />
-          <div className="h-3 w-5/6 bg-slate-100 rounded mb-6" />
-          <div className="h-10 w-full bg-slate-100 rounded-full" />
+          <div className="w-10 h-10 rounded-lg bg-slate-100/80 mb-4" />
+          <div className="h-5 w-3/4 bg-slate-100/80 rounded mb-2" />
+          <div className="h-3 w-1/2 bg-slate-100/80 rounded mb-5" />
+          <div className="h-3 w-full bg-slate-100/80 rounded mb-1.5" />
+          <div className="h-3 w-5/6 bg-slate-100/80 rounded mb-6" />
+          <div className="h-10 w-full bg-slate-100/80 rounded-full" />
         </div>
       ))}
     </div>
@@ -423,7 +407,7 @@ function ErrorPanel({
 
   return (
     <div
-      className="bg-white border border-slate-200 rounded-2xl p-8 max-w-2xl mx-auto"
+      className="rounded-3xl bg-white/70 backdrop-blur-xl ring-1 ring-white/80 shadow-[0_18px_50px_-22px_rgba(15,23,42,0.20)] p-8 max-w-2xl mx-auto"
       data-testid={`match-error-${kind}`}
     >
       <div className="flex items-start gap-3 mb-4">
@@ -439,25 +423,31 @@ function ErrorPanel({
         {showRestart ? (
           <Link
             href="/quiz"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-sky-500 text-white text-sm font-medium rounded-full hover:bg-sky-600 transition-colors"
+            className="group relative inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-white text-sm font-medium transition-all hover:-translate-y-0.5 shadow-[0_14px_30px_-12px_rgba(13,148,136,0.50),inset_0_1px_0_rgba(255,255,255,0.20)] overflow-hidden"
+            style={{ backgroundImage: 'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)' }}
             data-testid="match-error-restart"
           >
-            Започни отново
+            <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
+            <span className="relative">Започни отново</span>
           </Link>
         ) : (
           <button
             type="button"
             onClick={onRetry}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-sky-500 text-white text-sm font-medium rounded-full hover:bg-sky-600 transition-colors"
+            className="group relative inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-white text-sm font-medium transition-all hover:-translate-y-0.5 shadow-[0_14px_30px_-12px_rgba(13,148,136,0.50),inset_0_1px_0_rgba(255,255,255,0.20)] overflow-hidden"
+            style={{ backgroundImage: 'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)' }}
             data-testid="match-error-retry"
           >
-            <Loader2 className="w-4 h-4" />
-            Опитай отново
+            <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
+            <span className="relative inline-flex items-center gap-2">
+              <Loader2 className="w-4 h-4" />
+              Опитай отново
+            </span>
           </button>
         )}
         <Link
           href={`/results/${leadId}`}
-          className="inline-flex items-center gap-2 px-5 py-2.5 border border-slate-200 text-slate-700 text-sm font-medium rounded-full hover:bg-slate-50 transition-colors"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/65 backdrop-blur-xl ring-1 ring-white/80 text-slate-700 text-sm font-medium rounded-full hover:bg-white transition-all shadow-[0_8px_24px_-14px_rgba(15,23,42,0.18)]"
         >
           Към резултата
         </Link>

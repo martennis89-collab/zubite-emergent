@@ -3,11 +3,10 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import NextImage from 'next/image'
 import axios from 'axios'
 import {
   ArrowLeft, Building2, MapPin, ShieldCheck, Calendar,
-  Sparkle, AlertCircle, X, Compass, Loader2, PlayCircle,
+  Sparkle, AlertCircle, Compass, Loader2, PlayCircle,
   Stethoscope, Image as ImageIcon, FileText,
   BookOpenCheck, UserCircle2, Footprints, MessagesSquare,
   CheckCircle2,
@@ -25,6 +24,7 @@ import { TREATMENT_LABELS } from '@/lib/consultationLabels'
 import { RequestCallModal } from '@/components/patient/RequestCallModal'
 import { PublicReviewsSection } from '@/components/patient/PublicReviewsSection'
 import { AlignerBrandChips } from '@/components/patient/AlignerBrandChips'
+import { CarePassPanel } from '@/components/patient/CarePassPanel'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
 import { getStoredLeadContact } from '@/lib/leadContact'
 
@@ -143,14 +143,27 @@ export default function ClinicProfilePage() {
     tier === 'premium' ? 'max-w-6xl' : tier === 'featured' ? 'max-w-5xl' : 'max-w-5xl'
 
   return (
-    <main className="min-h-screen bg-slate-50 overflow-x-hidden">
+    <main className="min-h-screen bg-[#FCFAF8] overflow-x-hidden relative" data-testid="clinic-profile-page">
+      {/* Warm ivory backdrop + soft teal blobs */}
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(94,234,212,0.22) 0%, rgba(94,234,212,0) 60%),' +
+            'radial-gradient(ellipse 60% 50% at 90% 40%, rgba(165,243,252,0.30) 0%, rgba(165,243,252,0) 60%)',
+        }}
+      />
+      <div aria-hidden className="absolute -top-32 -left-32 w-[36rem] h-[36rem] rounded-full bg-teal-200/25 blur-3xl pointer-events-none" />
+      <div aria-hidden className="absolute -bottom-40 right-0 w-[40rem] h-[40rem] rounded-full bg-cyan-100/35 blur-3xl pointer-events-none" />
+
       <Header />
 
-      <section className="pt-24 pb-16 md:pt-28 md:pb-24">
+      <section className="relative pt-24 pb-16 md:pt-28 md:pb-24">
         <div className={`${containerCls} mx-auto px-4 sm:px-6 lg:px-8`}>
           <Link
             href={`/results/${leadId}/clinics`}
-            className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 mb-6 transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-teal-700 mb-6 transition-colors"
             data-testid="profile-back-link"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -256,7 +269,7 @@ function ProfileBody({
       {/* Already-selected banner — visible on every tier when applicable. */}
       {hasAnySelection && selection?.clinic && (
         <div
-          className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 sm:p-5 flex items-start gap-3"
+          className="rounded-2xl ring-1 ring-emerald-200/70 bg-emerald-50/85 backdrop-blur-xl shadow-[0_10px_30px_-18px_rgba(5,150,105,0.35)] p-4 sm:p-5 flex items-start gap-3"
           data-testid="profile-already-selected-banner"
         >
           <CheckCircle2 className="w-5 h-5 text-emerald-600 mt-0.5 flex-shrink-0" />
@@ -307,35 +320,13 @@ function ProfileBody({
       {/* R1 — "Подходяща ли е тази клиника за мен?" decision-support panel */}
       <ClinicFitPanel clinic={clinic} />
 
-      {/* Care Pass — premium card near the CTA area. Never larger
-          than the hero, never implies treatment discount. */}
-      <section
-        className="rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50/70 via-white to-white overflow-hidden"
-        data-testid="profile-care-pass-section"
-      >
-        <div className="grid grid-cols-1 sm:grid-cols-[240px_minmax(0,1fr)] gap-4 sm:gap-6 p-4 sm:p-6 items-center">
-          <div className="relative w-full aspect-[4/3] rounded-xl bg-white ring-1 ring-slate-200 overflow-hidden">
-            <NextImage
-              src="/care-pass.png"
-              alt="Zubite Care Pass — карта с партньорски ползи"
-              fill
-              sizes="(max-width: 640px) 100vw, 240px"
-              className="object-contain"
-            />
-          </div>
-          <div className="min-w-0">
-            <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-700 mb-1.5">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              Zubite Care Pass при посетена консултация
-            </div>
-            <p className="text-slate-700 text-sm leading-relaxed">
-              Ако заявите консултация през Zubite.bg и я посетите, клиниката
-              ще ви предостави Care Pass с партньорски ползи — например
-              отстъпки от марки за орална хигиена.
-            </p>
-          </div>
-        </div>
-      </section>
+      {/* Care Pass — premium dark panel matching the homepage.
+          Never larger than the hero, never implies treatment discount. */}
+      <CarePassPanel
+        variant="compact"
+        showLearnMore
+        testid="profile-care-pass-section"
+      />
 
       {/* ── Видео представяне (Premium only) ─────────────────
           Render real video URL if admin published one; otherwise use
@@ -344,7 +335,7 @@ function ProfileBody({
         clinic.clinic_profile?.clinic_video_url
           ? (
             <section
-              className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+              className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
               data-testid="profile-clinic-video-section"
             >
               <div className="text-xs uppercase tracking-wide text-slate-500 font-medium mb-3">
@@ -362,7 +353,7 @@ function ProfileBody({
 
       {/* ── Why this clinic appeared (all tiers) ───────────── */}
       <section
-        className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+        className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
         data-testid="profile-reason-section"
       >
         <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 mb-3">
@@ -377,7 +368,7 @@ function ProfileBody({
 
       {/* ── Подходяща за (all tiers) ───────────────────────── */}
       <section
-        className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+        className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
         data-testid="profile-treatments-section"
       >
         <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 mb-3">
@@ -394,7 +385,7 @@ function ProfileBody({
               {list.map((t) => (
                 <li
                   key={t}
-                  className="inline-flex items-center px-3 py-1 rounded-full bg-sky-50 text-sky-700 text-xs"
+              className="inline-flex items-center px-3 py-1 rounded-full bg-teal-50 text-teal-700 ring-1 ring-teal-100 text-xs"
                 >
                   {TREATMENT_LABELS[t] || t}
                 </li>
@@ -423,7 +414,7 @@ function ProfileBody({
         clinic.clinic_profile?.patient_intro || clinic.clinic_profile?.short_description
           ? (
             <section
-              className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+              className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
               data-testid="profile-about-section"
             >
               <h2 className="font-serif text-lg font-semibold text-slate-900 mb-3">За клиниката</h2>
@@ -444,7 +435,7 @@ function ProfileBody({
               testid="profile-about-section"
               tierLabel="featured"
               title="За клиниката"
-              icon={<FileText className="w-4 h-4 text-sky-600" />}
+              icon={<FileText className="w-4 h-4 text-teal-700" />}
               body="Клиниката все още не е добавила подробно описание към профила си."
             />
           )
@@ -456,7 +447,7 @@ function ProfileBody({
           testid="profile-featured-extra-section"
           tierLabel="featured"
           title="Допълнителна информация от клиниката"
-          icon={<Sparkle className="w-4 h-4 text-sky-600" />}
+          icon={<Sparkle className="w-4 h-4 text-teal-700" />}
           body="Тази секция е видима, защото клиниката е представен партньор в Zubite. Клиниката може да добави повече информация за пациентите."
         />
       )}
@@ -477,7 +468,7 @@ function ProfileBody({
           {/* Clinic story — new R1 section, premium only */}
           {clinic.clinic_profile?.clinic_story && (
             <section
-              className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+              className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
               data-testid="profile-clinic-story-section"
             >
               <h2 className="font-serif text-lg font-semibold text-slate-900 mb-3">
@@ -492,7 +483,7 @@ function ProfileBody({
           {/* Case library — real if any published+consent rows */}
           {clinic.clinic_profile?.case_library && clinic.clinic_profile.case_library.length > 0 ? (
             <section
-              className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+              className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
               data-testid="profile-case-library-section"
             >
               <h2 className="font-serif text-lg font-semibold text-slate-900 mb-2">
@@ -526,7 +517,7 @@ function ProfileBody({
           {/* Doctor spotlight — real if doctor name set */}
           {clinic.clinic_profile?.doctor_spotlight_name ? (
             <section
-              className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+              className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
               data-testid="profile-doctor-spotlight-section"
             >
               <h2 className="font-serif text-lg font-semibold text-slate-900 mb-3">
@@ -565,7 +556,7 @@ function ProfileBody({
           {/* Environment/equipment — real if set */}
           {clinic.clinic_profile?.environment_description ? (
             <section
-              className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+              className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
               data-testid="profile-environment-section"
             >
               <h2 className="font-serif text-lg font-semibold text-slate-900 mb-3">
@@ -580,7 +571,7 @@ function ProfileBody({
               testid="profile-environment-section"
               tierLabel="premium"
               title="Среда и оборудване"
-              icon={<Stethoscope className="w-4 h-4 text-sky-600" />}
+              icon={<Stethoscope className="w-4 h-4 text-teal-700" />}
               body="Тук клиниката ще може да представи средата, технологиите и удобствата за пациента."
             />
           )}
@@ -589,7 +580,7 @@ function ProfileBody({
               existing PatientJourneySection placeholder. */}
           {clinic.clinic_profile?.consultation_process ? (
             <section
-              className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+              className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
               data-testid="profile-consultation-process-section"
             >
               <h2 className="font-serif text-lg font-semibold text-slate-900 mb-3">
@@ -620,7 +611,7 @@ function ProfileBody({
           curate brand tags yet. */}
       {clinic.aligner_brands_supported && clinic.aligner_brands_supported.length > 0 && (
         <section
-          className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+          className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
           data-testid="profile-aligner-brands-section"
         >
           <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 mb-1">
@@ -645,7 +636,7 @@ function ProfileBody({
 
       {/* ── Bottom CTA (all tiers) ──────────────────────────── */}
       <section
-        className="rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50 to-white p-6 sm:p-8"
+        className="rounded-2xl bg-gradient-to-br from-teal-50/85 via-white/70 to-white/60 backdrop-blur-xl ring-1 ring-teal-100/70 shadow-[0_18px_50px_-22px_rgba(13,148,136,0.18)] p-6 sm:p-8"
         data-testid="profile-bottom-cta-row"
       >
         <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 mb-2">
@@ -664,10 +655,10 @@ function ProfileBody({
           />
           <Link
             href={`/results/${leadId}/clinics`}
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-800 text-sm font-medium rounded-full hover:bg-slate-50 transition-colors"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white/65 backdrop-blur-xl ring-1 ring-white/80 text-slate-800 text-sm font-medium rounded-full hover:bg-white hover:-translate-y-0.5 transition-all shadow-[0_8px_24px_-14px_rgba(15,23,42,0.18)]"
             data-testid="profile-bottom-view-others"
           >
-            <Compass className="w-4 h-4" aria-hidden="true" />
+            <Compass className="w-4 h-4 text-teal-700" aria-hidden="true" />
             Виж другите препоръки
           </Link>
         </div>
@@ -704,11 +695,11 @@ function CompactHero({
 }) {
   return (
     <header
-      className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8"
+      className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-8"
       data-testid="profile-header"
     >
-      <div className="w-12 h-12 rounded-lg bg-sky-50 grid place-items-center mb-4">
-        <Building2 className="w-6 h-6 text-sky-600" />
+      <div className="w-12 h-12 rounded-xl bg-teal-50/90 ring-1 ring-teal-100 grid place-items-center mb-4">
+        <Building2 className="w-6 h-6 text-teal-700" />
       </div>
 
       {showPlacement && (
@@ -772,14 +763,14 @@ function PremiumHero({
 }) {
   return (
     <header
-      className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 md:p-10"
+      className="rounded-3xl bg-white/70 backdrop-blur-xl ring-1 ring-white/75 shadow-[0_18px_50px_-22px_rgba(15,23,42,0.20)] p-6 sm:p-8 md:p-10"
       data-testid="profile-header"
     >
       <div className="grid lg:grid-cols-[1.1fr,1fr] gap-8 lg:gap-12 items-stretch">
         {/* Left column — copy + CTAs */}
         <div className="flex flex-col">
-          <div className="w-12 h-12 rounded-lg bg-sky-50 grid place-items-center mb-5">
-            <Building2 className="w-6 h-6 text-sky-600" />
+          <div className="w-12 h-12 rounded-xl bg-teal-50/90 ring-1 ring-teal-100 grid place-items-center mb-5">
+            <Building2 className="w-6 h-6 text-teal-700" />
           </div>
 
           {showPlacement && (
@@ -801,7 +792,7 @@ function PremiumHero({
             <MapPin className="w-4 h-4" />
             {clinic.city_name}
           </p>
-          <p className="mt-4 text-xs uppercase tracking-[0.18em] text-sky-600 font-semibold">
+          <p className="mt-4 text-xs uppercase tracking-[0.18em] text-teal-700 font-semibold">
             Профил на партньорска клиника в Zubite
           </p>
 
@@ -827,7 +818,7 @@ function PremiumHero({
             />
             <Link
               href={`/results/${leadId}/clinics`}
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-800 text-sm font-medium rounded-full hover:bg-slate-50 transition-colors"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white/65 backdrop-blur-xl ring-1 ring-white/80 text-slate-800 text-sm font-medium rounded-full hover:bg-white hover:-translate-y-0.5 transition-all shadow-[0_8px_24px_-14px_rgba(15,23,42,0.18)]"
               data-testid="profile-top-back"
             >
               Назад към препоръките
@@ -844,7 +835,7 @@ function PremiumHero({
             otherwise existing placeholder. */}
         {clinic.clinic_profile?.hero_image_url ? (
           <figure
-            className="relative rounded-2xl overflow-hidden bg-slate-50 border border-slate-200 min-h-[260px] lg:min-h-[420px]"
+            className="relative rounded-2xl overflow-hidden bg-slate-50 ring-1 ring-white/70 shadow-[0_18px_50px_-22px_rgba(15,23,42,0.20)] min-h-[260px] lg:min-h-[420px]"
             data-testid="profile-clinic-hero-image"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -867,14 +858,14 @@ function PremiumHero({
 function ClinicImagePlaceholder() {
   return (
     <figure
-      className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-sky-100 via-slate-50 to-white border border-slate-200 min-h-[260px] lg:min-h-[420px] flex flex-col items-center justify-center"
+      className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-teal-100/60 via-cyan-50/40 to-white ring-1 ring-white/70 min-h-[260px] lg:min-h-[420px] flex flex-col items-center justify-center"
       data-testid="profile-clinic-image-placeholder"
     >
-      <div className="w-14 h-14 rounded-full bg-white/80 backdrop-blur grid place-items-center mb-3 shadow-sm">
-        <ImageIcon className="w-6 h-6 text-sky-600" aria-hidden="true" />
+      <div className="w-14 h-14 rounded-full bg-white/85 backdrop-blur grid place-items-center mb-3 shadow-sm ring-1 ring-teal-100">
+        <ImageIcon className="w-6 h-6 text-teal-700" aria-hidden="true" />
       </div>
       <figcaption className="text-center px-6">
-        <p className="font-sans text-[11px] tracking-[0.18em] uppercase text-sky-700 font-semibold mb-1">
+        <p className="font-sans text-[11px] tracking-[0.18em] uppercase text-teal-700 font-semibold mb-1">
           Снимка на клиниката
         </p>
         <p className="text-xs text-slate-500 leading-relaxed max-w-[260px] mx-auto">
@@ -888,7 +879,7 @@ function ClinicImagePlaceholder() {
 function VideoIntroSection() {
   return (
     <section
-      className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8"
+      className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-8"
       data-testid="profile-video-section"
     >
       <div className="flex items-start justify-between gap-4 mb-5 flex-wrap">
@@ -966,12 +957,12 @@ function PlaceholderSection({
 }) {
   return (
     <section
-      className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+      className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
       data-testid={testid}
     >
       <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
         <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 inline-flex items-center gap-2">
-          <span className="w-7 h-7 rounded-md bg-sky-50 grid place-items-center">
+          <span className="w-7 h-7 rounded-md bg-teal-50 ring-1 ring-teal-100 grid place-items-center">
             {icon}
           </span>
           {title}
@@ -1013,13 +1004,13 @@ function CaseLibrarySection() {
   ]
   return (
     <section
-      className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+      className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
       data-testid="profile-case-library-section"
     >
       <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
         <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 inline-flex items-center gap-2">
-          <span className="w-7 h-7 rounded-md bg-sky-50 grid place-items-center">
-            <BookOpenCheck className="w-4 h-4 text-sky-600" aria-hidden="true" />
+          <span className="w-7 h-7 rounded-md bg-teal-50 ring-1 ring-teal-100 grid place-items-center">
+            <BookOpenCheck className="w-4 h-4 text-teal-700" aria-hidden="true" />
           </span>
           Библиотека със случаи
         </h2>
@@ -1059,13 +1050,13 @@ function CaseLibrarySection() {
 function DoctorSpotlightSection() {
   return (
     <section
-      className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+      className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
       data-testid="profile-doctor-spotlight-section"
     >
       <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
         <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 inline-flex items-center gap-2">
-          <span className="w-7 h-7 rounded-md bg-sky-50 grid place-items-center">
-            <UserCircle2 className="w-4 h-4 text-sky-600" aria-hidden="true" />
+          <span className="w-7 h-7 rounded-md bg-teal-50 ring-1 ring-teal-100 grid place-items-center">
+            <UserCircle2 className="w-4 h-4 text-teal-700" aria-hidden="true" />
           </span>
           Водещ лекар / екип
         </h2>
@@ -1106,13 +1097,13 @@ function PatientJourneySection() {
   ]
   return (
     <section
-      className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+      className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
       data-testid="profile-patient-journey-section"
     >
       <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
         <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 inline-flex items-center gap-2">
-          <span className="w-7 h-7 rounded-md bg-sky-50 grid place-items-center">
-            <Footprints className="w-4 h-4 text-sky-600" aria-hidden="true" />
+          <span className="w-7 h-7 rounded-md bg-teal-50 ring-1 ring-teal-100 grid place-items-center">
+            <Footprints className="w-4 h-4 text-teal-700" aria-hidden="true" />
           </span>
           Как протича първата стъпка
         </h2>
@@ -1133,7 +1124,7 @@ function PatientJourneySection() {
             key={label}
             className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 flex items-start gap-3"
           >
-            <span className="w-7 h-7 rounded-full bg-white border border-slate-200 text-xs font-semibold text-sky-700 grid place-items-center flex-shrink-0 tabular-nums">
+            <span className="w-7 h-7 rounded-full bg-white/85 ring-1 ring-teal-100 text-xs font-semibold text-teal-700 grid place-items-center flex-shrink-0 tabular-nums">
               {i + 1}
             </span>
             <span className="text-sm text-slate-700 leading-snug">{label}</span>
@@ -1147,13 +1138,13 @@ function PatientJourneySection() {
 function ZubiteFeedbackPlaceholderSection() {
   return (
     <section
-      className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+      className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
       data-testid="profile-zubite-feedback-section"
     >
       <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
         <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 inline-flex items-center gap-2">
-          <span className="w-7 h-7 rounded-md bg-sky-50 grid place-items-center">
-            <MessagesSquare className="w-4 h-4 text-sky-600" aria-hidden="true" />
+          <span className="w-7 h-7 rounded-md bg-teal-50 ring-1 ring-teal-100 grid place-items-center">
+            <MessagesSquare className="w-4 h-4 text-teal-700" aria-hidden="true" />
           </span>
           Обратна връзка от пациенти през Zubite
         </h2>
@@ -1234,20 +1225,20 @@ function TierLabel({ tier }: { tier: 'premium' | 'featured' }) {
 function ProfileSkeleton() {
   return (
     <div className="space-y-6 animate-pulse" data-testid="profile-skeleton">
-      <div className="rounded-2xl border border-slate-200 bg-white p-8">
-        <div className="w-12 h-12 rounded-lg bg-slate-100 mb-4" />
-        <div className="h-7 w-3/4 bg-slate-100 rounded mb-2" />
-        <div className="h-4 w-1/3 bg-slate-100 rounded mb-6" />
-        <div className="h-11 w-56 bg-slate-100 rounded-full" />
+      <div className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 p-8">
+        <div className="w-12 h-12 rounded-lg bg-slate-100/80 mb-4" />
+        <div className="h-7 w-3/4 bg-slate-100/80 rounded mb-2" />
+        <div className="h-4 w-1/3 bg-slate-100/80 rounded mb-6" />
+        <div className="h-11 w-56 bg-slate-100/80 rounded-full" />
       </div>
       {[0, 1, 2].map((i) => (
         <div
           key={i}
-          className="rounded-2xl border border-slate-200 bg-white p-6"
+          className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 p-6"
         >
-          <div className="h-5 w-1/2 bg-slate-100 rounded mb-3" />
-          <div className="h-3 w-full bg-slate-100 rounded mb-2" />
-          <div className="h-3 w-5/6 bg-slate-100 rounded" />
+          <div className="h-5 w-1/2 bg-slate-100/80 rounded mb-3" />
+          <div className="h-3 w-full bg-slate-100/80 rounded mb-2" />
+          <div className="h-3 w-5/6 bg-slate-100/80 rounded" />
         </div>
       ))}
     </div>
@@ -1288,7 +1279,7 @@ function ProfileErrorPanel({
 
   return (
     <div
-      className="bg-white border border-slate-200 rounded-2xl p-8"
+      className="rounded-3xl bg-white/70 backdrop-blur-xl ring-1 ring-white/80 shadow-[0_18px_50px_-22px_rgba(15,23,42,0.20)] p-8"
       data-testid={`profile-error-${kind}`}
     >
       <div className="flex items-start gap-3 mb-4">
@@ -1304,26 +1295,30 @@ function ProfileErrorPanel({
         {showRestart && (
           <Link
             href="/quiz"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-sky-500 text-white text-sm font-medium rounded-full hover:bg-sky-600 transition-colors"
+            className="group relative inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-white text-sm font-medium transition-all hover:-translate-y-0.5 shadow-[0_14px_30px_-12px_rgba(13,148,136,0.50),inset_0_1px_0_rgba(255,255,255,0.20)] overflow-hidden"
+            style={{ backgroundImage: 'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)' }}
             data-testid="profile-error-restart"
           >
-            Започни отново
+            <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
+            <span className="relative">Започни отново</span>
           </Link>
         )}
         {showBackToList && (
           <Link
             href={`/results/${leadId}/clinics`}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-sky-500 text-white text-sm font-medium rounded-full hover:bg-sky-600 transition-colors"
+            className="group relative inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-white text-sm font-medium transition-all hover:-translate-y-0.5 shadow-[0_14px_30px_-12px_rgba(13,148,136,0.50),inset_0_1px_0_rgba(255,255,255,0.20)] overflow-hidden"
+            style={{ backgroundImage: 'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)' }}
             data-testid="profile-error-back-to-list"
           >
-            Назад към препоръките
+            <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
+            <span className="relative">Назад към препоръките</span>
           </Link>
         )}
         {kind === 'rate_limited' && (
           <button
             type="button"
             onClick={onRetry}
-            className="inline-flex items-center gap-2 px-5 py-2.5 border border-slate-200 text-slate-700 text-sm font-medium rounded-full hover:bg-slate-50 transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/65 backdrop-blur-xl ring-1 ring-white/80 text-slate-700 text-sm font-medium rounded-full hover:bg-white transition-all shadow-[0_8px_24px_-14px_rgba(15,23,42,0.18)]"
             data-testid="profile-error-retry"
           >
             <Loader2 className="w-4 h-4" />
@@ -1364,7 +1359,7 @@ function RequestCallCta({
   if (isSelected) {
     return (
       <div
-        className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-emerald-50 border border-emerald-100 text-emerald-800 text-sm font-medium rounded-full"
+        className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-emerald-50/85 backdrop-blur-md ring-1 ring-emerald-100 text-emerald-800 text-sm font-medium rounded-full"
         data-testid={`${testid}-submitted`}
       >
         <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
@@ -1378,7 +1373,7 @@ function RequestCallCta({
         type="button"
         disabled
         aria-disabled="true"
-        className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-slate-100 text-slate-400 text-sm font-medium rounded-full cursor-not-allowed"
+        className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-slate-100/80 text-slate-400 text-sm font-medium rounded-full cursor-not-allowed"
         data-testid={`${testid}-disabled`}
       >
         Вече избрахте клиника
@@ -1389,10 +1384,12 @@ function RequestCallCta({
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-sky-500 text-white text-sm font-medium rounded-full hover:bg-sky-600 transition-colors"
+      className="group relative inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-white text-sm font-medium transition-all hover:-translate-y-0.5 shadow-[0_14px_30px_-12px_rgba(13,148,136,0.50),inset_0_1px_0_rgba(255,255,255,0.20)] overflow-hidden"
+      style={{ backgroundImage: 'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)' }}
       data-testid={testid}
     >
-      Искам обаждане от тази клиника
+      <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
+      <span className="relative">Искам обаждане от тази клиника</span>
     </button>
   )
 }
@@ -1425,8 +1422,8 @@ function ClinicDecisionSidebar({
       className="hidden lg:block lg:sticky lg:top-24 self-start"
       data-testid="profile-decision-sidebar"
     >
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-        <div className="px-5 pt-5 pb-4 border-b border-slate-100">
+      <div className="rounded-2xl bg-white/70 backdrop-blur-xl ring-1 ring-white/80 shadow-[0_14px_40px_-22px_rgba(15,23,42,0.22),inset_0_1px_0_rgba(255,255,255,0.85)] overflow-hidden">
+        <div className="px-5 pt-5 pb-4 border-b border-slate-200/40">
           {tier !== 'standard' && clinic.placement_label && (
             <div className="mb-2">
               <TierLabel tier={tier as 'premium' | 'featured'} />
@@ -1444,7 +1441,7 @@ function ClinicDecisionSidebar({
         </div>
 
         {treatmentList.length > 0 && (
-          <div className="px-5 py-4 border-b border-slate-100">
+          <div className="px-5 py-4 border-b border-slate-200/40">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-2">
               Подходяща за
             </p>
@@ -1452,7 +1449,7 @@ function ClinicDecisionSidebar({
               {treatmentList.slice(0, 5).map((t) => (
                 <li
                   key={t}
-                  className="inline-flex items-center px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 text-[11px]"
+                  className="inline-flex items-center px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 ring-1 ring-teal-100 text-[11px]"
                 >
                   {TREATMENT_LABELS[t] || t}
                 </li>
@@ -1478,12 +1475,18 @@ function ClinicDecisionSidebar({
           </Link>
         </div>
 
-        <div className="px-5 py-3 bg-sky-50/40 border-t border-sky-100">
-          <p className="text-[11px] text-slate-600 leading-relaxed inline-flex items-start gap-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-sky-600 flex-shrink-0 mt-0.5" />
+        <div className="relative px-5 py-3 overflow-hidden"
+          style={{
+            background:
+              'radial-gradient(ellipse 80% 100% at 100% 0%, rgba(20,184,166,0.28) 0%, transparent 70%),' +
+              'linear-gradient(135deg, #0E1A24 0%, #112832 100%)',
+          }}
+        >
+          <p className="text-[11px] text-slate-200 leading-relaxed inline-flex items-start gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-teal-300 flex-shrink-0 mt-0.5" />
             <span>
               При посетена консултация през Zubite.bg клиниката ще ви
-              предостави <strong className="text-slate-800">Zubite Care Pass</strong>.
+              предостави <strong className="text-teal-100">Zubite Care Pass</strong>.
             </span>
           </p>
         </div>
@@ -1505,7 +1508,7 @@ function ClinicFitPanel({ clinic }: { clinic: RecommendedClinic }) {
 
   return (
     <section
-      className="rounded-2xl border border-teal-100 bg-gradient-to-br from-teal-50/40 via-white to-white p-5 sm:p-6"
+      className="rounded-2xl bg-gradient-to-br from-teal-50/65 via-white/70 to-white/60 backdrop-blur-xl ring-1 ring-teal-100/70 shadow-[0_14px_40px_-22px_rgba(13,148,136,0.18)] p-5 sm:p-6"
       data-testid="profile-fit-panel"
     >
       <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 mb-1">
@@ -1556,7 +1559,7 @@ function ClinicFitPanel({ clinic }: { clinic: RecommendedClinic }) {
 function FitCard({ label, value, testid }: { label: string; value: string; testid: string }) {
   return (
     <div
-      className="rounded-xl border border-slate-100 bg-white p-3.5"
+      className="rounded-xl bg-white/65 backdrop-blur-md ring-1 ring-white/75 shadow-[0_6px_18px_-12px_rgba(15,23,42,0.18)] p-3.5"
       data-testid={testid}
     >
       <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
@@ -1585,7 +1588,7 @@ function PostRequestTimeline() {
   ]
   return (
     <section
-      className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+      className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
       data-testid="profile-post-request-timeline"
     >
       <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 mb-1">
@@ -1601,7 +1604,7 @@ function PostRequestTimeline() {
             className="flex gap-3 items-start"
             data-testid={`timeline-step-${i + 1}`}
           >
-            <span className="flex-shrink-0 w-7 h-7 rounded-full bg-sky-50 text-sky-700 font-semibold text-sm flex items-center justify-center ring-1 ring-sky-100">
+            <span className="flex-shrink-0 w-7 h-7 rounded-full bg-teal-50 text-teal-700 font-semibold text-sm flex items-center justify-center ring-1 ring-teal-100">
               {i + 1}
             </span>
             <div className="min-w-0">
@@ -1672,7 +1675,7 @@ function TrustSignalsSection({ clinic }: { clinic: RecommendedClinic }) {
 
   return (
     <section
-      className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+      className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
       data-testid="profile-trust-signals-section"
     >
       <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 mb-1">
@@ -1686,7 +1689,7 @@ function TrustSignalsSection({ clinic }: { clinic: RecommendedClinic }) {
           {items.map((it) => (
             <li
               key={it.key}
-              className="rounded-xl border border-slate-100 bg-slate-50/40 p-3.5"
+              className="rounded-xl bg-teal-50/55 backdrop-blur-md ring-1 ring-teal-100/70 p-3.5"
               data-testid={`trust-signal-${it.key}`}
             >
               <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
@@ -1742,7 +1745,7 @@ function ClinicFAQSection() {
 
   return (
     <section
-      className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"
+      className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
       data-testid="profile-faq-section"
     >
       <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 mb-4">
@@ -1799,7 +1802,12 @@ function MobileDecisionStrip({
 }) {
   return (
     <div
-      className="lg:hidden rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50 to-white p-4 sm:p-5"
+      className="lg:hidden rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-[0_14px_40px_-22px_rgba(15,23,42,0.40)] p-4 sm:p-5"
+      style={{
+        background:
+          'radial-gradient(ellipse 60% 60% at 100% 0%, rgba(20,184,166,0.30) 0%, transparent 60%),' +
+          'linear-gradient(135deg, #0E1A24 0%, #112832 100%)',
+      }}
       data-testid="profile-mobile-decision-strip"
     >
       <div className="flex flex-col gap-2.5">
@@ -1809,11 +1817,11 @@ function MobileDecisionStrip({
           onClick={onOpenModal}
           testid="profile-mobile-cta"
         />
-        <p className="text-[11px] text-slate-600 leading-relaxed inline-flex items-start gap-1.5">
-          <ShieldCheck className="w-3.5 h-3.5 text-sky-600 flex-shrink-0 mt-0.5" />
+        <p className="text-[11px] text-slate-200 leading-relaxed inline-flex items-start gap-1.5">
+          <ShieldCheck className="w-3.5 h-3.5 text-teal-300 flex-shrink-0 mt-0.5" />
           <span>
             При посетена консултация ще получите{' '}
-            <strong className="text-slate-800">Zubite Care Pass</strong>.
+            <strong className="text-teal-100">Zubite Care Pass</strong>.
           </span>
         </p>
       </div>
