@@ -118,24 +118,6 @@ const px = (factor: number): React.CSSProperties => ({
   willChange: 'transform',
 })
 
-// ─── Rotating Zubi tip — short tagline that cycles every ~5.5s ──
-const ZUBI_TIPS: string[] = [
-  'Помагам ти да разбереш дали имаш орален проблем — дори ако още не си сигурен.',
-  'След това те насочвам към верифицирани партньорски клиники.',
-  'Първо яснотата. После — изборът.',
-  'Не съм лекар — помагам ти да си подготвиш въпросите за преглед.',
-]
-function useRotatingTip(intervalMs: number = 5500): { tip: string; index: number } {
-  const [i, setI] = useState(0)
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    const id = setInterval(() => setI((v) => (v + 1) % ZUBI_TIPS.length), intervalMs)
-    return () => clearInterval(id)
-  }, [intervalMs])
-  return { tip: ZUBI_TIPS[i], index: i }
-}
-
 function Reveal({
   children, delay = 0, className = '',
 }: { children: React.ReactNode; delay?: number; className?: string }) {
@@ -173,12 +155,14 @@ function Nav() {
         className={
           'pointer-events-auto w-full max-w-5xl rounded-full transition-all duration-300 relative ' +
           (scrolled
-            ? 'bg-white/65 backdrop-blur-2xl ring-1 ring-white/70 shadow-[0_10px_40px_-12px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.85),inset_0_-1px_0_rgba(15,23,42,0.04)]'
-            : 'bg-white/35 backdrop-blur-xl ring-1 ring-white/45 shadow-[0_6px_24px_-12px_rgba(15,23,42,0.10),inset_0_1px_0_rgba(255,255,255,0.7)]')
+            ? 'bg-white/45 backdrop-blur-2xl ring-1 ring-white/55 shadow-[0_10px_40px_-12px_rgba(15,23,42,0.20),inset_0_1px_0_rgba(255,255,255,0.95),inset_0_-1px_0_rgba(15,23,42,0.05)]'
+            : 'bg-white/20 backdrop-blur-2xl ring-1 ring-white/35 shadow-[0_6px_24px_-12px_rgba(15,23,42,0.12),inset_0_1px_0_rgba(255,255,255,0.85),inset_0_-1px_0_rgba(15,23,42,0.03)]')
         }
       >
         {/* Liquid glass inner top highlight */}
-        <div aria-hidden className="absolute inset-x-6 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/60 to-transparent pointer-events-none opacity-70" />
+        <div aria-hidden className="absolute inset-x-6 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/70 to-transparent pointer-events-none opacity-80" />
+        {/* Subtle bottom inner shadow for refraction depth */}
+        <div aria-hidden className="absolute inset-x-6 bottom-0.5 h-px rounded-full bg-gradient-to-r from-transparent via-slate-900/8 to-transparent pointer-events-none" />
         <div className="px-4 sm:px-6 h-14 sm:h-15 flex items-center justify-between">
           <Link href="/" className="font-serif text-lg sm:text-xl font-semibold tracking-tight">
             <span className="text-slate-900">Zubite</span>
@@ -313,10 +297,10 @@ function Hero() {
               </Link>
               <Link
                 href="#how"
-                className="relative inline-flex items-center gap-1.5 rounded-full bg-white/55 backdrop-blur-xl text-slate-900 text-sm font-medium px-5 py-3 ring-1 ring-white/80 hover:bg-white/75 hover:-translate-y-0.5 transition-all shadow-[0_8px_24px_-12px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.85)] overflow-hidden"
+                className="relative inline-flex items-center gap-1.5 rounded-full bg-white/35 backdrop-blur-2xl text-slate-900 text-sm font-medium px-5 py-3 ring-1 ring-white/60 hover:bg-white/55 hover:-translate-y-0.5 transition-all shadow-[0_8px_24px_-12px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95),inset_0_-1px_0_rgba(15,23,42,0.04)] overflow-hidden"
                 data-testid="hero-secondary-cta"
               >
-                <span aria-hidden className="absolute inset-x-3 top-0.5 h-1/2 rounded-full bg-white/55 blur-sm pointer-events-none" />
+                <span aria-hidden className="absolute inset-x-3 top-0.5 h-1/2 rounded-full bg-white/65 blur-sm pointer-events-none" />
                 <span className="relative">Виж как работи</span>
               </Link>
             </div>
@@ -433,58 +417,10 @@ function HeroMockup() {
         <span className="text-[11px] text-slate-700 font-medium">Ориентир за цена</span>
       </div>
 
-      {/* Zubi guide — small mascot avatar + rotating chat bubble (desktop+tablet) */}
-      <ZubiHeroBubble />
-
       <style jsx global>{`
         @keyframes float {
           0%,100% { transform: translateY(0) }
           50%     { transform: translateY(-8px) }
-        }
-      `}</style>
-    </div>
-  )
-}
-
-// ─── Zubi hero bubble — small mascot avatar + rotating tip ───────
-function ZubiHeroBubble() {
-  const { tip, index } = useRotatingTip(5500)
-  return (
-    <div className="hidden sm:flex absolute -bottom-20 right-0 sm:right-2 z-20 items-end gap-2 pointer-events-none">
-      {/* Avatar — frosted glass circle with character render */}
-      <div className="relative shrink-0 pointer-events-auto">
-        <div aria-hidden className="absolute -inset-2 rounded-full bg-teal-400/25 blur-xl animate-[breatheGlow_7s_ease-in-out_infinite]" />
-        <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden ring-2 ring-white/80 shadow-[0_12px_30px_-12px_rgba(15,23,42,0.35)] bg-white/70 backdrop-blur-md animate-[floatSlow_8s_ease-in-out_infinite]">
-          <img
-            src={ZUBI_MASCOT}
-            alt="Zubi"
-            className="absolute inset-0 w-full h-full object-cover"
-            style={{ objectPosition: '55% 25%', transform: 'scale(1.35)' }}
-            loading="lazy"
-          />
-          {/* Inner highlight */}
-          <div aria-hidden className="absolute inset-0 rounded-full bg-gradient-to-b from-white/40 to-transparent pointer-events-none" />
-        </div>
-      </div>
-      {/* Chat bubble — rotating tip */}
-      <div
-        key={index}
-        className="pointer-events-auto relative max-w-[260px] sm:max-w-[280px] rounded-2xl rounded-bl-md bg-white/85 backdrop-blur-xl ring-1 ring-white/85 shadow-[0_18px_40px_-18px_rgba(15,23,42,0.30)] px-3.5 py-2.5 animate-[zubiTipIn_0.55s_ease-out_both]"
-      >
-        <div className="flex items-center gap-1.5">
-          <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-teal-500/15 text-teal-700 ring-1 ring-teal-300/60">
-            <Sparkles className="w-2.5 h-2.5" />
-          </span>
-          <p className="text-[10px] uppercase tracking-wider text-teal-700 font-semibold">Zubi говори</p>
-        </div>
-        <p className="mt-1 text-[12px] text-slate-800 leading-snug">{tip}</p>
-        {/* Inner highlight glass line */}
-        <div aria-hidden className="absolute inset-x-3 top-0.5 h-1/2 rounded-full bg-white/40 blur-md pointer-events-none" />
-      </div>
-      <style jsx>{`
-        @keyframes zubiTipIn {
-          0%   { opacity: 0; transform: translateY(6px) }
-          100% { opacity: 1; transform: translateY(0) }
         }
       `}</style>
     </div>
@@ -501,27 +437,46 @@ function TrustStrip() {
     'Care Pass след консултация',
     'Не заменя преглед',
   ]
+  // Duplicate the list so the loop is seamless: the second copy slides in
+  // as the first copy slides out. We translate the whole track by -50%
+  // (== one full copy width) over ~40s and loop infinitely.
   return (
     <section className="py-10 sm:py-12" data-testid="home-trust-strip">
       <div className="max-w-5xl mx-auto px-5 sm:px-8">
-        <div className="rounded-full bg-white/60 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_40px_-20px_rgba(15,23,42,0.18)] px-3 sm:px-5 py-3">
-          <div className="flex sm:flex-wrap items-center justify-start sm:justify-center gap-x-5 sm:gap-x-7 gap-y-2 overflow-x-auto no-scrollbar sm:overflow-visible">
-            {items.map((t, i) => (
-              <span
-                key={t}
-                className="shrink-0 inline-flex items-center gap-1.5 text-[10.5px] sm:text-[11px] uppercase tracking-[0.16em] text-slate-600 whitespace-nowrap"
-                data-testid={`trust-chip-${i}`}
-              >
-                <CheckCircle2 className="w-3 h-3 text-teal-500 shrink-0" />
-                {t}
-              </span>
-            ))}
+        <div className="relative rounded-full bg-white/45 backdrop-blur-2xl ring-1 ring-white/65 shadow-[0_10px_40px_-20px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.9)] px-3 sm:px-4 py-3 overflow-hidden">
+          {/* Inner top-edge gloss for liquid-glass refraction look */}
+          <div aria-hidden className="absolute inset-x-6 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/55 to-transparent pointer-events-none opacity-80" />
+          {/* Edge fade masks so chips dissolve at left/right edges */}
+          <div aria-hidden className="absolute inset-y-0 left-0 w-12 sm:w-16 z-10 bg-gradient-to-r from-white/70 to-transparent pointer-events-none" />
+          <div aria-hidden className="absolute inset-y-0 right-0 w-12 sm:w-16 z-10 bg-gradient-to-l from-white/70 to-transparent pointer-events-none" />
+          <div className="trust-track flex items-center gap-x-6 sm:gap-x-8 whitespace-nowrap will-change-transform">
+            {[0, 1].map((copy) =>
+              items.map((t, i) => (
+                <span
+                  key={`${copy}-${t}`}
+                  className="shrink-0 inline-flex items-center gap-1.5 text-[10.5px] sm:text-[11px] uppercase tracking-[0.16em] text-slate-600"
+                  {...(copy === 0 ? { 'data-testid': `trust-chip-${i}` } : { 'aria-hidden': true })}
+                >
+                  <CheckCircle2 className="w-3 h-3 text-teal-500 shrink-0" />
+                  {t}
+                </span>
+              )),
+            )}
           </div>
         </div>
       </div>
       <style jsx>{`
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes trustMarquee {
+          0%   { transform: translate3d(0, 0, 0) }
+          100% { transform: translate3d(-50%, 0, 0) }
+        }
+        .trust-track {
+          animation: trustMarquee 38s linear infinite;
+        }
+        .trust-track:hover { animation-play-state: paused }
+        @media (prefers-reduced-motion: reduce) {
+          .trust-track { animation: none !important; transform: none !important }
+        }
       `}</style>
     </section>
   )
@@ -1425,9 +1380,9 @@ function FinalCTA() {
               </Link>
               <Link
                 href="#how"
-                className="relative inline-flex items-center gap-1.5 rounded-full bg-white/60 backdrop-blur-xl text-slate-900 hover:bg-white/85 text-sm font-medium px-5 py-3 ring-1 ring-white/85 transition-all hover:-translate-y-0.5 shadow-[0_8px_24px_-12px_rgba(15,23,42,0.15),inset_0_1px_0_rgba(255,255,255,0.85)] overflow-hidden"
+                className="relative inline-flex items-center gap-1.5 rounded-full bg-white/35 backdrop-blur-2xl text-slate-900 hover:bg-white/55 text-sm font-medium px-5 py-3 ring-1 ring-white/60 transition-all hover:-translate-y-0.5 shadow-[0_8px_24px_-12px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95),inset_0_-1px_0_rgba(15,23,42,0.04)] overflow-hidden"
               >
-                <span aria-hidden className="absolute inset-x-3 top-0.5 h-1/2 rounded-full bg-white/55 blur-sm pointer-events-none" />
+                <span aria-hidden className="absolute inset-x-3 top-0.5 h-1/2 rounded-full bg-white/65 blur-sm pointer-events-none" />
                 <span className="relative">Виж как работи</span>
               </Link>
             </div>

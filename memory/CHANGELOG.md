@@ -1,4 +1,88 @@
 # Zubite.bg — Changelog
+## 2026-02-17 — Zubi-Bubble Removal · Trust-Strip Marquee · Stronger Liquid Glass
+
+Three focused homepage refinements per user request. Pure visual
+changes — zero copy, route, backend, dependency or data-testid
+changes.
+
+### 1) Removed "Zubi говори" Hero bubble entirely
+- Deleted the `ZubiHeroBubble` component, its mount inside
+  `HeroMockup`, the `useRotatingTip` hook, and the `ZUBI_TIPS`
+  array. The Hero now keeps only its two existing floating chips
+  ("Партньорски клиники" bottom-left, "Ориентир за цена" top-right)
+  + the main product card.
+- Zubi mascot remains in the dedicated **Zubi section** as the
+  main character moment — same premium glass environment with its
+  single static chat bubble. Nothing else about Zubi changed.
+
+### 2) Trust strip → infinite auto-scrolling marquee
+- All **6 trust items** now ride a single continuous track that
+  drifts right → left and seamlessly loops.
+- Implementation:
+  - Items are rendered twice in a `.trust-track` flex row so the
+    second copy slides in as the first copy slides out.
+  - CSS `@keyframes trustMarquee { 0%→0; 100%→translateX(-50%) }`
+    + `animation: trustMarquee 38s linear infinite` produces a
+    perfectly seamless loop (38s chosen for a calm, premium pace).
+  - `.trust-track:hover { animation-play-state: paused }` lets the
+    user freeze the rail and read at their own pace.
+  - **Edge fade masks**: a 12-16px gradient-to-transparent overlay
+    on both left and right sides dissolves chips at the edges so
+    nothing pops in/out hard — classic premium marquee polish.
+  - First copy keeps `data-testid="trust-chip-{0..5}"` for test
+    queries; second copy carries `aria-hidden="true"` so screen
+    readers don't read the items twice.
+- **Reduced-motion**: a local `@media (prefers-reduced-motion:
+  reduce)` block in the section's `<style jsx>` forces
+  `animation: none !important` on `.trust-track`, freezing the
+  rail at offset 0 so reduced-motion users see a static row.
+- Container itself upgraded with stronger liquid glass:
+  `bg-white/45 backdrop-blur-2xl ring-1 ring-white/65` + a layered
+  inset highlight (`inset 0 1px 0 rgba(255,255,255,0.9)`) + a
+  visible inner top-edge gloss line (`bg-gradient-to-b from-
+  white/55 to-transparent`). Now reads as a polished glass rail,
+  not a flat pill.
+
+### 3) Stronger semi-transparent liquid glass
+- **Sticky nav**:
+  - Top state (no scroll): `bg-white/35 backdrop-blur-xl` →
+    `bg-white/20 backdrop-blur-2xl` (more see-through, harder
+    blur).
+  - Scrolled state: `bg-white/65 backdrop-blur-2xl` →
+    `bg-white/45 backdrop-blur-2xl`.
+  - Inset top highlight strengthened from `rgba(255,255,255,0.85)`
+    → `rgba(255,255,255,0.95)`; inset bottom shadow line added at
+    `rgba(15,23,42,0.05)` for refraction depth.
+  - Inner top gloss line (`from-white/60` → `from-white/70`) and
+    a new subtle bottom inner gradient line provide the
+    "wet-glass" refraction edges classic to liquid-glass UI.
+- **Hero secondary CTA** ("Виж как работи"):
+  `bg-white/55 → bg-white/35`, `backdrop-blur-xl → backdrop-
+  blur-2xl`, inset highlight pushed to `rgba(255,255,255,0.95)`,
+  + new inset bottom shadow line + brighter `from-white/65` inner
+  shine line. Now reads as glassier and more product-control-like.
+- **Final-CTA secondary CTA** ("Виж как работи"): same liquid-
+  glass treatment for visual parity with the Hero secondary.
+- All other buttons (Hero primary teal gradient, Care Pass primary
+  white, Care Pass secondary translucent-white-on-navy, Nav CTA
+  navy gradient, Mobile sticky CTA) left untouched — they already
+  match the new system or have their own context-appropriate
+  liquid-glass treatment.
+
+### Tests
+- Desktop 1440×900 + mobile 390×844: marquee animation captured
+  in two frames 2.5s apart, confirming the right→left drift; no
+  horizontal overflow on mobile (`docW === viewW === 390`).
+- `npx tsc --noEmit -p .` → 0 new errors.
+- Hero verified clean — no Zubi avatar/bubble in any frame.
+
+### Files touched
+- `frontend/components/HomeContent.tsx` only.
+- No new files, no deletes, no package changes.
+
+---
+
+
 ## 2026-02-17 — Zubi Mascot (Asset D) + Rotating Hero Tip + Liquid-Glass Polish
 
 User delivered the Zubi mascot render (Asset D) — a calm, premium
