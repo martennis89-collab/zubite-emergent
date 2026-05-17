@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
@@ -50,6 +50,18 @@ function buildQuery(tab: TabKey, status: string, clinicId: string): string {
 }
 
 export default function AdminConsultationRequestsPage() {
+  // useSearchParams() must be wrapped in a Suspense boundary in Next.js 14
+  // App Router, otherwise the build's prerender step fails with the
+  // "missing-suspense-with-csr-bailout" error. The inner component owns
+  // the search-params hook.
+  return (
+    <Suspense fallback={null}>
+      <AdminConsultationRequestsInner />
+    </Suspense>
+  )
+}
+
+function AdminConsultationRequestsInner() {
   const searchParams = useSearchParams()
   const [requests, setRequests] = useState<ConsultationRequest[]>([])
   const [clinics, setClinics] = useState<Clinic[]>([])

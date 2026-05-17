@@ -1,5 +1,50 @@
 # Zubite.bg — Changelog
 
+## 2026-02-17 — Production Deploy Fix (Suspense boundary)
+
+Production deploy was failing with:
+```
+useSearchParams() should be wrapped in a suspense boundary at page
+"/admin/consultation-requests". Error occurred prerendering page
+"/admin/consultation-requests".
+```
+
+Next.js 14 App Router requires `useSearchParams()` consumers to be wrapped
+in a `<Suspense>` boundary (or the page to opt out of static prerender);
+otherwise the build's `Generating static pages` step fails with
+`missing-suspense-with-csr-bailout`.
+
+### Fix
+- **`app/admin/consultation-requests/page.tsx`** — split into two components:
+  - `AdminConsultationRequestsPage` (default export) — thin wrapper that
+    renders `<Suspense fallback={null}><AdminConsultationRequestsInner /></Suspense>`
+  - `AdminConsultationRequestsInner` — original body with the
+    `useSearchParams()` call. No behavior change; same fetches, same UI,
+    same testids.
+- **`frontend/tsconfig.json`** — added `compilerOptions.downlevelIteration: true`
+  so iterating `Set<string>` (used in `app/admin/blog/import/page.tsx`)
+  builds cleanly. The deploy pipeline was applying this same patch on every
+  build; making it permanent removes the pipeline dependency and lets local
+  `yarn build` succeed.
+
+### Verification
+- Local `yarn build` now passes end-to-end:
+  - `✓ Compiled successfully`
+  - `✓ Generating static pages (70/70)`
+  - Build completes in ~46s with 0 errors.
+- Preview services still healthy: backend/frontend/mongodb all RUNNING.
+- Preview routes: `/blog` → 200, `/za-kliniki` → 200.
+
+### Untouched
+- Did NOT permanently fix the other pre-existing TS bugs that the deploy
+  pipeline still auto-patches (`app/admin/dashboard/page.tsx` line 561
+  inverted condition; `lib/api.ts` AttributionPayload cast; `lib/attribution.ts`
+  PageType 'internal_content' union + broken cast). These are admin/clinic
+  scope per the user's "do not touch admin dashboard" constraint and the
+  pipeline handles them automatically.
+
+
+
 ## 2026-02-17 — Phase 5: /za-kliniki B2B Polish (final-CTA + hero H1 wrap)
 
 Light **polish pass** on the already-redesigned `/za-kliniki` premium
