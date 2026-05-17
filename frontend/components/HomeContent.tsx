@@ -23,6 +23,8 @@ import {
   ShieldCheck, Sparkles, Building2, Stethoscope, ChevronDown,
   CheckCircle2, ArrowRight, MoveRight, Heart, Smile, Activity,
   AlignLeft, MessageSquare, Clock, Star, BookOpen, Mail,
+  MapPin, SlidersHorizontal, Megaphone, MessagesSquare,
+  Wallet, HelpCircle, Gift,
 } from 'lucide-react'
 
 export interface HomeBlogPost {
@@ -93,36 +95,41 @@ function Nav() {
     return () => window.removeEventListener('scroll', on)
   }, [])
   return (
-    <header
-      className={
-        'fixed top-0 inset-x-0 z-50 transition-all ' +
-        (scrolled
-          ? 'backdrop-blur-xl bg-[#FCFAF8]/80 border-b border-slate-200/60 shadow-[0_1px_0_rgba(0,0,0,0.02)]'
-          : 'bg-transparent')
-      }
+    <div
+      className="fixed top-3 sm:top-4 inset-x-3 sm:inset-x-6 z-50 flex justify-center pointer-events-none"
       data-testid="home-nav"
     >
-      <div className="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
-        <Link href="/" className="font-serif text-xl font-semibold tracking-tight">
-          <span className="text-slate-900">Zubite</span>
-          <span className="text-teal-600">.bg</span>
-        </Link>
-        <nav className="hidden md:flex items-center gap-7 text-sm text-slate-600">
-          <Link href="#how" className="hover:text-slate-900 transition-colors">Как работи</Link>
-          <Link href="#treatments" className="hover:text-slate-900 transition-colors">Лечения</Link>
-          <Link href="#zubi" className="hover:text-slate-900 transition-colors">Zubi</Link>
-          <Link href="/blog" className="hover:text-slate-900 transition-colors">Журнал</Link>
-          <Link href="/za-kliniki" className="hover:text-slate-900 transition-colors">За клиники</Link>
-        </nav>
-        <Link
-          href={QUIZ_URL}
-          className="inline-flex items-center gap-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-medium px-4 py-2 transition-colors"
-          data-testid="nav-cta"
-        >
-          Провери случая <ArrowRight className="w-3.5 h-3.5" />
-        </Link>
-      </div>
-    </header>
+      <header
+        className={
+          'pointer-events-auto w-full max-w-5xl rounded-full transition-all duration-300 ' +
+          (scrolled
+            ? 'bg-white/70 backdrop-blur-2xl ring-1 ring-white/60 shadow-[0_10px_40px_-12px_rgba(15,23,42,0.18)]'
+            : 'bg-white/40 backdrop-blur-xl ring-1 ring-white/40 shadow-[0_6px_24px_-12px_rgba(15,23,42,0.10)]')
+        }
+      >
+        <div className="px-4 sm:px-6 h-14 sm:h-15 flex items-center justify-between">
+          <Link href="/" className="font-serif text-lg sm:text-xl font-semibold tracking-tight">
+            <span className="text-slate-900">Zubite</span>
+            <span className="text-teal-600">.bg</span>
+          </Link>
+          <nav className="hidden md:flex items-center gap-6 text-sm text-slate-600">
+            <Link href="#how"        className="hover:text-slate-900 transition-colors">Как работи</Link>
+            <Link href="#treatments" className="hover:text-slate-900 transition-colors">Лечения</Link>
+            <Link href="#zubi"       className="hover:text-slate-900 transition-colors">Zubi</Link>
+            <Link href="/blog"       className="hover:text-slate-900 transition-colors">Журнал</Link>
+            <Link href="/za-kliniki" className="hover:text-slate-900 transition-colors">За клиники</Link>
+          </nav>
+          <Link
+            href={QUIZ_URL}
+            className="group inline-flex items-center gap-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-medium px-3.5 sm:px-4 py-2 transition-all hover:-translate-y-0.5 shadow-[0_6px_20px_-8px_rgba(15,23,42,0.5)]"
+            data-testid="nav-cta"
+          >
+            Провери случая
+            <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+          </Link>
+        </div>
+      </header>
+    </div>
   )
 }
 
@@ -130,10 +137,21 @@ function Nav() {
 function Hero() {
   return (
     <section className="relative pt-32 pb-20 sm:pt-40 sm:pb-28 overflow-hidden" data-testid="home-hero">
+      {/* Soft warm-ivory base with radial teal glow */}
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse 80% 60% at 15% 20%, rgba(94,234,212,0.35) 0%, rgba(94,234,212,0) 60%),' +
+            'radial-gradient(ellipse 60% 50% at 85% 60%, rgba(165,243,252,0.45) 0%, rgba(165,243,252,0) 60%),' +
+            'linear-gradient(180deg, #FCFAF8 0%, #F4FAF9 100%)',
+        }}
+      />
       {/* warm grain texture (low opacity overlay) */}
       <div
         aria-hidden
-        className="absolute inset-0 opacity-[0.18] pointer-events-none"
+        className="absolute inset-0 opacity-[0.14] pointer-events-none mix-blend-overlay"
         style={{
           backgroundImage: `url(${HERO_BG})`,
           backgroundSize: 'cover',
@@ -141,8 +159,9 @@ function Hero() {
         }}
       />
       {/* soft turquoise glow blobs */}
-      <div aria-hidden className="absolute -top-32 -left-32 w-[36rem] h-[36rem] rounded-full bg-teal-200/40 blur-3xl pointer-events-none" />
-      <div aria-hidden className="absolute -bottom-40 right-0 w-[36rem] h-[36rem] rounded-full bg-cyan-100/50 blur-3xl pointer-events-none" />
+      <div aria-hidden className="absolute -top-32 -left-32 w-[36rem] h-[36rem] rounded-full bg-teal-200/30 blur-3xl pointer-events-none" />
+      <div aria-hidden className="absolute -bottom-40 right-0 w-[40rem] h-[40rem] rounded-full bg-cyan-100/40 blur-3xl pointer-events-none" />
+      <div aria-hidden className="absolute top-20 right-1/3 w-72 h-72 rounded-full bg-emerald-200/20 blur-3xl pointer-events-none" />
 
       <div className="relative max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[1.05fr_1fr] gap-12 items-center">
         <div>
@@ -169,22 +188,44 @@ function Hero() {
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <Link
                 href={QUIZ_URL}
-                className="inline-flex items-center gap-1.5 rounded-full bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium px-5 py-3 shadow-[0_10px_30px_-12px_rgba(20,184,166,0.5)] transition-all hover:-translate-y-0.5"
+                className="group relative inline-flex items-center gap-1.5 rounded-full text-white text-sm font-medium px-5 py-3 transition-all hover:-translate-y-0.5 shadow-[0_18px_40px_-12px_rgba(13,148,136,0.55)] overflow-hidden"
+                style={{ backgroundImage: 'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)' }}
                 data-testid="hero-primary-cta"
               >
-                Провери своя случай за 60 секунди
-                <ArrowRight className="w-4 h-4" />
+                <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
+                <span className="relative inline-flex items-center gap-1.5">
+                  Провери своя случай за 60 секунди
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                </span>
               </Link>
               <Link
                 href="#how"
-                className="inline-flex items-center gap-1.5 rounded-full bg-white hover:bg-slate-50 text-slate-900 text-sm font-medium px-5 py-3 ring-1 ring-slate-200 transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-full bg-white/60 backdrop-blur-md text-slate-900 text-sm font-medium px-5 py-3 ring-1 ring-white/70 hover:bg-white/80 hover:-translate-y-0.5 transition-all shadow-[0_8px_24px_-12px_rgba(15,23,42,0.15)]"
                 data-testid="hero-secondary-cta"
               >
                 Виж как работи
               </Link>
             </div>
           </Reveal>
-          <Reveal delay={280}>
+          <Reveal delay={260}>
+            <div className="mt-6 flex flex-wrap gap-2">
+              {[
+                'Без регистрация',
+                'Ориентир за цена и срок',
+                'Care Pass след консултация',
+                'Не заменя преглед',
+              ].map((c) => (
+                <span
+                  key={c}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-white/50 backdrop-blur-md ring-1 ring-white/70 text-[11px] text-slate-700 font-medium px-3 py-1.5 shadow-[0_4px_12px_-6px_rgba(15,23,42,0.1)]"
+                >
+                  <CheckCircle2 className="w-3 h-3 text-teal-500" />
+                  {c}
+                </span>
+              ))}
+            </div>
+          </Reveal>
+          <Reveal delay={320}>
             <p className="mt-5 text-[11px] text-slate-400 leading-snug max-w-md">
               Zubite.bg не поставя диагноза и не заменя преглед при
               стоматолог. Помага ти да се ориентираш преди следващата
@@ -205,6 +246,10 @@ function Hero() {
 function HeroMockup() {
   return (
     <div className="relative w-full max-w-md mx-auto" data-testid="home-hero-mockup">
+      {/* Deepest decorative card — rotated and offset */}
+      <div aria-hidden className="absolute inset-0 -translate-y-3 translate-x-4 rotate-[3.5deg] rounded-[2rem] bg-gradient-to-br from-teal-100/70 to-cyan-50/40 ring-1 ring-white/60 shadow-[0_30px_60px_-30px_rgba(15,23,42,0.18)]" />
+      {/* Mid translucent card — slight counter-rotate for layered depth */}
+      <div aria-hidden className="absolute inset-0 translate-y-2 -translate-x-3 -rotate-[2.5deg] rounded-[1.85rem] bg-white/55 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_20px_50px_-25px_rgba(15,23,42,0.18)]" />
       {/* Bottom subtle card */}
       <div className="absolute -inset-4 sm:-inset-6 rounded-[2rem] bg-gradient-to-br from-white/60 to-teal-50/60 backdrop-blur-xl ring-1 ring-white/60" />
       {/* Primary card */}
@@ -280,34 +325,51 @@ function TrustStrip() {
     'Не заменя преглед',
   ]
   return (
-    <section className="py-8 bg-white/60 backdrop-blur-sm border-y border-slate-100" data-testid="home-trust-strip">
-      <div className="max-w-6xl mx-auto px-5 sm:px-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
-        {items.map((t, i) => (
-          <span
-            key={t}
-            className="inline-flex items-center gap-2 text-[11px] sm:text-xs uppercase tracking-[0.16em] text-slate-500"
-            data-testid={`trust-chip-${i}`}
-          >
-            <CheckCircle2 className="w-3 h-3 text-teal-500" />
-            {t}
-          </span>
-        ))}
+    <section className="py-10 sm:py-12" data-testid="home-trust-strip">
+      <div className="max-w-5xl mx-auto px-5 sm:px-8">
+        <div className="rounded-full bg-white/60 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_40px_-20px_rgba(15,23,42,0.18)] px-3 sm:px-5 py-3">
+          <div className="flex sm:flex-wrap items-center justify-start sm:justify-center gap-x-5 sm:gap-x-7 gap-y-2 overflow-x-auto no-scrollbar sm:overflow-visible">
+            {items.map((t, i) => (
+              <span
+                key={t}
+                className="shrink-0 inline-flex items-center gap-1.5 text-[10.5px] sm:text-[11px] uppercase tracking-[0.16em] text-slate-600 whitespace-nowrap"
+                data-testid={`trust-chip-${i}`}
+              >
+                <CheckCircle2 className="w-3 h-3 text-teal-500 shrink-0" />
+                {t}
+              </span>
+            ))}
+          </div>
+        </div>
       </div>
+      <style jsx>{`
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
     </section>
   )
 }
 
 // ─── 4. Problem ──────────────────────────────────────────────────
 function Problem() {
-  const pains = [
-    { t: 'Реклами от всички страни', s: 'Всяка клиника обещава добър резултат. Но това не ти казва кой подход е подходящ за твоя случай.' },
-    { t: 'Противоречиви мнения',     s: 'Във форуми и групи хората споделят личен опит — полезно е, но не винаги важи за теб.' },
-    { t: 'Неясни цени',              s: 'Една и съща дума като „алайнери“ или „брекети“ може да означава различен план, срок и цена.' },
-    { t: 'Страх от грешен избор',    s: 'Лечението е дълго и скъпо. Нормално е да искаш повече яснота преди да продължиш.' },
+  const pains: Array<{ t: string; s: string; icon: React.ReactNode }> = [
+    { t: 'Реклами от всички страни', s: 'Всяка клиника обещава добър резултат. Но това не ти казва кой подход е подходящ за твоя случай.', icon: <Megaphone className="w-4 h-4" /> },
+    { t: 'Противоречиви мнения',     s: 'Във форуми и групи хората споделят личен опит — полезно е, но не винаги важи за теб.',           icon: <MessagesSquare className="w-4 h-4" /> },
+    { t: 'Неясни цени',              s: 'Една и съща дума като „алайнери“ или „брекети“ може да означава различен план, срок и цена.',     icon: <Wallet className="w-4 h-4" /> },
+    { t: 'Страх от грешен избор',    s: 'Лечението е дълго и скъпо. Нормално е да искаш повече яснота преди да продължиш.',                 icon: <HelpCircle className="w-4 h-4" /> },
   ]
   return (
-    <section className="relative py-20 sm:py-28 bg-teal-50/40" data-testid="home-problem">
-      <div className="max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[1fr_1.2fr] gap-12 items-start">
+    <section className="relative py-20 sm:py-28 overflow-hidden" data-testid="home-problem">
+      {/* Soft gradient blob backdrop */}
+      <div aria-hidden className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse 70% 50% at 30% 40%, rgba(94,234,212,0.18) 0%, rgba(94,234,212,0) 70%),' +
+            'linear-gradient(180deg, #F4FAF9 0%, #FCFAF8 100%)',
+        }}
+      />
+      <div aria-hidden className="absolute -top-20 right-0 w-[28rem] h-[28rem] rounded-full bg-cyan-200/25 blur-3xl pointer-events-none" />
+      <div className="relative max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[1fr_1.2fr] gap-12 items-start">
         <Reveal>
           <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Защо съществуваме</p>
           <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight">
@@ -323,8 +385,11 @@ function Problem() {
         <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
           {pains.map((p, i) => (
             <Reveal key={p.t} delay={i * 90}>
-              <div className="rounded-2xl bg-white ring-1 ring-slate-200/70 p-5 hover:-translate-y-1 hover:shadow-md transition-all">
-                <h3 className="font-serif text-lg font-semibold text-slate-900">{p.t}</h3>
+              <div className="group relative rounded-2xl bg-white/70 backdrop-blur-xl ring-1 ring-white/70 p-5 hover:-translate-y-1 hover:bg-white/85 transition-all shadow-[0_6px_30px_-18px_rgba(15,23,42,0.18)] hover:shadow-[0_14px_40px_-18px_rgba(15,23,42,0.22)]">
+                <div className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-teal-50/80 text-teal-700 ring-1 ring-teal-100">
+                  {p.icon}
+                </div>
+                <h3 className="mt-4 font-serif text-lg font-semibold text-slate-900">{p.t}</h3>
                 <p className="mt-1.5 text-sm text-slate-600 leading-relaxed">{p.s}</p>
               </div>
             </Reveal>
@@ -337,15 +402,63 @@ function Problem() {
 
 // ─── 5. How it works ─────────────────────────────────────────────
 function HowItWorks() {
-  const steps = [
-    { n: '01', t: 'Отговори',           s: 'Отговаряш на кратки въпроси за симптоми, цели, възраст, град и предпочитания.' },
-    { n: '02', t: 'Получи ориентир',    s: 'Виждаш разбираемо обобщение какъв тип случай може да описваш и кои фактори имат значение.' },
-    { n: '03', t: 'Сравни възможности', s: 'Разбираш кои подходи обикновено се обсъждат — например алайнери, брекети, импланти или друг тип оценка.' },
-    { n: '04', t: 'Посети и получи Care Pass', s: 'Ако заявиш насочване и посетиш консултация в партньорска клиника, клиниката ще ти предостави Zubite Care Pass с отстъпки за продукти за орална хигиена.' },
+  const steps: Array<{ n: string; t: string; s: string; mini: React.ReactNode; accent?: boolean }> = [
+    {
+      n: '01', t: 'Отговори',
+      s: 'Отговаряш на кратки въпроси за симптоми, цели, възраст, град и предпочитания.',
+      mini: (
+        <div className="mt-4 rounded-xl bg-slate-50/70 ring-1 ring-slate-200/60 p-3 space-y-1.5">
+          {['Възраст: 27', 'Град: София', 'Цел: естетика'].map((r) => (
+            <div key={r} className="flex items-center gap-1.5 text-[10.5px] text-slate-600">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-teal-500" />{r}
+            </div>
+          ))}
+        </div>
+      ),
+    },
+    {
+      n: '02', t: 'Получи ориентир',
+      s: 'Виждаш разбираемо обобщение какъв тип случай може да описваш и кои фактори имат значение.',
+      mini: (
+        <div className="mt-4 rounded-xl bg-slate-50/70 ring-1 ring-slate-200/60 p-3">
+          <p className="text-[10px] uppercase tracking-wider text-slate-400">Ориентир</p>
+          <p className="mt-0.5 font-serif text-[12px] text-slate-800 leading-snug">Възможно леко струпване на долни зъби</p>
+        </div>
+      ),
+    },
+    {
+      n: '03', t: 'Сравни възможности',
+      s: 'Разбираш кои подходи обикновено се обсъждат — например алайнери, брекети, импланти или друг тип оценка.',
+      mini: (
+        <div className="mt-4 rounded-xl bg-slate-50/70 ring-1 ring-slate-200/60 p-3 space-y-1.5">
+          {['Прозрачни алайнери', 'Естетични брекети'].map((r) => (
+            <div key={r} className="flex items-center justify-between text-[10.5px] text-slate-600">
+              <span>{r}</span>
+              <ArrowRight className="w-3 h-3 text-teal-500" />
+            </div>
+          ))}
+        </div>
+      ),
+    },
+    {
+      n: '04', t: 'Посети и получи Care Pass',
+      s: 'Ако заявиш насочване и посетиш консултация в партньорска клиника, клиниката ще ти предостави Zubite Care Pass с отстъпки за продукти за орална хигиена.',
+      accent: true,
+      mini: (
+        <div className="mt-4 rounded-xl bg-gradient-to-br from-teal-500/15 to-emerald-300/10 ring-1 ring-teal-300/40 p-3">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] uppercase tracking-wider text-teal-700 font-semibold">Care Pass</p>
+            <Gift className="w-3.5 h-3.5 text-teal-600" />
+          </div>
+          <p className="mt-1 text-[11px] text-slate-700 leading-snug">Отстъпки за орална хигиена</p>
+        </div>
+      ),
+    },
   ]
   return (
-    <section id="how" className="py-20 sm:py-28" data-testid="home-how">
-      <div className="max-w-6xl mx-auto px-5 sm:px-8">
+    <section id="how" className="relative py-20 sm:py-28 overflow-hidden" data-testid="home-how">
+      <div aria-hidden className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-gradient-to-r from-transparent via-teal-200/70 to-transparent hidden lg:block" />
+      <div className="relative max-w-6xl mx-auto px-5 sm:px-8">
         <Reveal>
           <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Как работи</p>
           <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight max-w-3xl">
@@ -355,12 +468,22 @@ function HowItWorks() {
         <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
           {steps.map((s, i) => (
             <Reveal key={s.n} delay={i * 100}>
-              <div className="relative rounded-2xl bg-white ring-1 ring-slate-200/70 p-6 h-full hover:-translate-y-1 hover:shadow-lg transition-all">
-                <span className="font-serif text-3xl text-teal-600/30 font-bold">{s.n}</span>
-                <h3 className="mt-2 font-serif text-xl font-semibold text-slate-900">{s.t}</h3>
+              <div
+                className={
+                  'relative rounded-2xl backdrop-blur-xl p-6 h-full transition-all hover:-translate-y-1 ' +
+                  (s.accent
+                    ? 'bg-gradient-to-br from-teal-50/90 to-white/80 ring-1 ring-teal-300/50 shadow-[0_18px_40px_-22px_rgba(13,148,136,0.4)] hover:shadow-[0_22px_50px_-20px_rgba(13,148,136,0.45)]'
+                    : 'bg-white/70 ring-1 ring-white/80 shadow-[0_8px_30px_-20px_rgba(15,23,42,0.18)] hover:bg-white/85 hover:shadow-[0_16px_44px_-22px_rgba(15,23,42,0.22)]')
+                }
+              >
+                <span className={'font-serif text-3xl font-bold ' + (s.accent ? 'text-teal-500/70' : 'text-teal-600/30')}>
+                  {s.n}
+                </span>
+                <h3 className="mt-2 font-serif text-xl font-semibold text-slate-900 leading-tight">{s.t}</h3>
                 <p className="mt-2 text-sm text-slate-600 leading-relaxed">{s.s}</p>
+                {s.mini}
                 {i < steps.length - 1 && (
-                  <MoveRight aria-hidden className="hidden lg:block absolute top-1/2 -right-3 -translate-y-1/2 w-4 h-4 text-teal-300" />
+                  <MoveRight aria-hidden className="hidden lg:block absolute top-12 -right-3 w-4 h-4 text-teal-300" />
                 )}
               </div>
             </Reveal>
@@ -373,18 +496,25 @@ function HowItWorks() {
 
 // ─── 6. Treatment categories ─────────────────────────────────────
 function TreatmentCategories() {
-  const cats: Array<{ t: string; s: string; href: string; icon: React.ReactNode }> = [
-    { t: 'Ортодонтия',              s: 'Криви зъби, захапка, струпване, разстояния и нужда от ортодонтска оценка.', href: '/blog?category=orthodontics', icon: <Smile className="w-4 h-4" /> },
-    { t: 'Алайнери vs брекети',     s: 'Разбери каква е разликата, кога кой вариант има смисъл и какво зависи от случая.', href: '/blog/aligners-vs-braces', icon: <AlignLeft className="w-4 h-4" /> },
-    { t: 'Импланти',                s: 'Липсващ зъб, стари мостове, подвижни протези или нужда от план за възстановяване.', href: '/blog?category=implants', icon: <Stethoscope className="w-4 h-4" /> },
+  const cats: Array<{ t: string; s: string; href: string; icon: React.ReactNode; featured?: boolean }> = [
+    { t: 'Ортодонтия',              s: 'Криви зъби, захапка, струпване, разстояния и нужда от ортодонтска оценка.',          href: '/blog?category=orthodontics', icon: <Smile className="w-4 h-4" />,       featured: true },
+    { t: 'Алайнери vs брекети',     s: 'Разбери каква е разликата, кога кой вариант има смисъл и какво зависи от случая.',    href: '/blog/aligners-vs-braces',    icon: <AlignLeft className="w-4 h-4" />,   featured: true },
+    { t: 'Импланти',                s: 'Липсващ зъб, стари мостове, подвижни протези или нужда от план за възстановяване.',  href: '/blog?category=implants',     icon: <Stethoscope className="w-4 h-4" /> },
     { t: 'Естетична стоматология',  s: 'Фасети, бондинг, избелване и усмивка — но с правилна подготовка и реалистични очаквания.', href: '/blog?category=cosmetic', icon: <Sparkles className="w-4 h-4" /> },
-    { t: 'TMJ / челюстни стави',    s: 'Щракане, пукане, болка в челюстта, скърцане със зъби или сутрешно напрежение.', href: '/blog?category=tmj',      icon: <Activity className="w-4 h-4" /> },
-    { t: 'Сънна апнея и дишане',    s: 'Симптоми, свързани със сън, дишане през устата, захапка и челюстна позиция.', href: '/blog?category=sleep',    icon: <Heart className="w-4 h-4" /> },
-    { t: 'Детска ортодонтия',       s: 'Кога детето има нужда от ранна оценка и кои признаци не е добре да се игнорират.', href: '/blog?category=pediatric',icon: <Smile className="w-4 h-4" /> },
+    { t: 'TMJ / челюстни стави',    s: 'Щракане, пукане, болка в челюстта, скърцане със зъби или сутрешно напрежение.',       href: '/blog?category=tmj',          icon: <Activity className="w-4 h-4" /> },
+    { t: 'Сънна апнея и дишане',    s: 'Симптоми, свързани със сън, дишане през устата, захапка и челюстна позиция.',          href: '/blog?category=sleep',        icon: <Heart className="w-4 h-4" /> },
+    { t: 'Детска ортодонтия',       s: 'Кога детето има нужда от ранна оценка и кои признаци не е добре да се игнорират.',     href: '/blog?category=pediatric',    icon: <Smile className="w-4 h-4" /> },
   ]
   return (
-    <section id="treatments" className="py-20 sm:py-28 bg-[#FCFAF8]" data-testid="home-treatments">
-      <div className="max-w-6xl mx-auto px-5 sm:px-8">
+    <section id="treatments" className="relative py-20 sm:py-28 overflow-hidden" data-testid="home-treatments">
+      <div aria-hidden className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse 60% 40% at 80% 30%, rgba(165,243,252,0.25) 0%, transparent 70%),' +
+            'linear-gradient(180deg, #FCFAF8 0%, #F7FBFA 100%)',
+        }}
+      />
+      <div className="relative max-w-6xl mx-auto px-5 sm:px-8">
         <Reveal>
           <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Категории</p>
           <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight max-w-3xl">
@@ -396,17 +526,29 @@ function TreatmentCategories() {
             <Reveal key={c.t} delay={i * 60}>
               <Link
                 href={c.href}
-                className="group block rounded-2xl bg-white ring-1 ring-slate-200/70 p-5 sm:p-6 hover:-translate-y-1 hover:shadow-md transition-all h-full"
+                className={
+                  'group relative block rounded-2xl backdrop-blur-xl p-5 sm:p-6 h-full transition-all overflow-hidden hover:-translate-y-1 ' +
+                  (c.featured
+                    ? 'bg-gradient-to-br from-white/90 to-teal-50/70 ring-1 ring-teal-200/60 shadow-[0_14px_44px_-22px_rgba(13,148,136,0.35)] hover:shadow-[0_22px_56px_-22px_rgba(13,148,136,0.45)]'
+                    : 'bg-white/70 ring-1 ring-white/80 shadow-[0_8px_30px_-20px_rgba(15,23,42,0.18)] hover:bg-white/85 hover:shadow-[0_16px_44px_-22px_rgba(15,23,42,0.22)]')
+                }
                 data-testid={`treatment-card-${i}`}
               >
-                <div className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-teal-50 text-teal-700 ring-1 ring-teal-100">
+                {/* Subtle gradient sweep on hover */}
+                <div aria-hidden className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{ background: 'radial-gradient(circle at 90% 0%, rgba(20,184,166,0.10) 0%, transparent 60%)' }}
+                />
+                <div className={
+                  'relative inline-flex items-center justify-center w-10 h-10 rounded-xl ring-1 ' +
+                  (c.featured ? 'bg-teal-500/10 text-teal-700 ring-teal-200/70' : 'bg-teal-50/80 text-teal-700 ring-teal-100/80')
+                }>
                   {c.icon}
                 </div>
-                <h3 className="mt-4 font-serif text-lg sm:text-xl font-semibold text-slate-900 group-hover:text-teal-700 transition-colors">
+                <h3 className="relative mt-4 font-serif text-lg sm:text-xl font-semibold text-slate-900 group-hover:text-teal-700 transition-colors">
                   {c.t}
                 </h3>
-                <p className="mt-1.5 text-sm text-slate-600">{c.s}</p>
-                <span className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-teal-600 group-hover:gap-2 transition-all">
+                <p className="relative mt-1.5 text-sm text-slate-600 leading-relaxed">{c.s}</p>
+                <span className="relative mt-4 inline-flex items-center gap-1 text-xs font-medium text-teal-600 group-hover:gap-2 transition-all">
                   Виж насоки <ArrowRight className="w-3 h-3" />
                 </span>
               </Link>
@@ -450,8 +592,10 @@ function DecisionPreview() {
         </Reveal>
         <Reveal delay={120}>
           <div className="relative">
+            {/* Deepest stacked card for depth */}
+            <div aria-hidden className="absolute inset-0 translate-y-3 translate-x-3 rotate-[2deg] rounded-[2rem] bg-gradient-to-br from-teal-100/60 to-cyan-50/40 ring-1 ring-white/60" />
             <div className="absolute -inset-3 rounded-[2rem] bg-gradient-to-br from-teal-50 to-white ring-1 ring-teal-100/70" />
-            <div className="relative rounded-[1.75rem] bg-white ring-1 ring-slate-100 shadow-xl p-6 sm:p-7">
+            <div className="relative rounded-[1.75rem] bg-white/90 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_24px_60px_-22px_rgba(15,23,42,0.22)] p-6 sm:p-7">
               <div className="flex items-center justify-between">
                 <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">Твоят случай</p>
                 <span className="inline-flex items-center gap-1 text-[11px] text-teal-700 bg-teal-50 ring-1 ring-teal-100 rounded-full px-2 py-0.5">
@@ -462,11 +606,11 @@ function DecisionPreview() {
                 Възможно леко до умерено <br />струпване на долни зъби
               </h3>
               <div className="mt-5 grid grid-cols-2 gap-3">
-                <div className="rounded-xl bg-slate-50 p-3">
+                <div className="rounded-xl bg-slate-50/80 ring-1 ring-slate-200/40 p-3">
                   <p className="text-[10px] uppercase tracking-wider text-slate-500">Ориентировъчен срок</p>
                   <p className="mt-1 font-serif text-lg text-slate-900">9–14 месеца</p>
                 </div>
-                <div className="rounded-xl bg-slate-50 p-3">
+                <div className="rounded-xl bg-slate-50/80 ring-1 ring-slate-200/40 p-3">
                   <p className="text-[10px] uppercase tracking-wider text-slate-500">Ценови диапазон</p>
                   <p className="mt-1 font-serif text-lg text-slate-900">~2 500 – 4 200 лв.</p>
                 </div>
@@ -482,6 +626,16 @@ function DecisionPreview() {
                 <span className="text-xs font-medium text-teal-700">Виж клиники →</span>
               </div>
             </div>
+            {/* Floating secondary glass chip — top */}
+            <div className="absolute -top-4 -left-3 sm:-left-6 rounded-2xl bg-white/70 backdrop-blur-xl ring-1 ring-white/80 px-3 py-2 flex items-center gap-2 shadow-[0_12px_30px_-14px_rgba(15,23,42,0.22)] animate-[float_6.5s_ease-in-out_infinite]">
+              <HelpCircle className="w-3.5 h-3.5 text-teal-500" />
+              <span className="text-[11px] text-slate-700 font-medium">Въпроси за преглед</span>
+            </div>
+            {/* Floating secondary glass chip — bottom */}
+            <div className="absolute -bottom-4 right-2 sm:-right-4 rounded-2xl bg-white/70 backdrop-blur-xl ring-1 ring-white/80 px-3 py-2 flex items-center gap-2 shadow-[0_12px_30px_-14px_rgba(15,23,42,0.22)] animate-[float_7.5s_ease-in-out_infinite_reverse]">
+              <CheckCircle2 className="w-3.5 h-3.5 text-teal-500" />
+              <span className="text-[11px] text-slate-700 font-medium">Продължаваш само ако решиш</span>
+            </div>
           </div>
         </Reveal>
       </div>
@@ -492,11 +646,21 @@ function DecisionPreview() {
 // ─── 8. Zubi guidance ────────────────────────────────────────────
 function ZubiSection() {
   return (
-    <section id="zubi" className="py-20 sm:py-28 bg-[#FCFAF8]" data-testid="home-zubi">
-      <div className="max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[1fr_1fr] gap-12 items-center">
+    <section id="zubi" className="relative py-20 sm:py-28 overflow-hidden" data-testid="home-zubi">
+      <div aria-hidden className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse 60% 60% at 30% 50%, rgba(167,243,208,0.20) 0%, transparent 70%),' +
+            'linear-gradient(180deg, #FCFAF8 0%, #F4FAF9 100%)',
+        }}
+      />
+      <div className="relative max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[1fr_1fr] gap-12 items-center">
         <Reveal delay={80}>
           <div className="relative w-full max-w-sm mx-auto">
-            <div className="absolute -inset-8 rounded-full bg-gradient-to-br from-teal-100/60 to-cyan-50/60 blur-2xl" />
+            {/* Frosted glow halo */}
+            <div aria-hidden className="absolute -inset-10 rounded-full bg-gradient-to-br from-teal-200/40 to-cyan-100/30 blur-3xl" />
+            {/* Glass container behind orb */}
+            <div aria-hidden className="absolute -inset-4 rounded-full bg-white/40 backdrop-blur-xl ring-1 ring-white/60" />
             <Image
               src={ZUBI_ORB}
               alt="Zubi — спокоен AI ориентир"
@@ -505,6 +669,18 @@ function ZubiSection() {
               priority={false}
               unoptimized
             />
+            {/* Chat bubble */}
+            <div className="absolute -bottom-2 -right-4 sm:-right-10 max-w-[230px] rounded-2xl rounded-br-md bg-white/85 backdrop-blur-xl ring-1 ring-white/80 shadow-[0_18px_40px_-18px_rgba(15,23,42,0.25)] p-3.5 animate-[float_8s_ease-in-out_infinite]">
+              <div className="flex items-center gap-1.5">
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-teal-500/15 text-teal-700 ring-1 ring-teal-300/60">
+                  <Sparkles className="w-3 h-3" />
+                </span>
+                <p className="text-[10px] uppercase tracking-wider text-teal-700 font-semibold">Zubi</p>
+              </div>
+              <p className="mt-2 text-[12px] text-slate-800 leading-snug">
+                Искаш ли да разбереш какви въпроси да зададеш на ортодонт?
+              </p>
+            </div>
             <style jsx>{`
               @keyframes zubiOrb {
                 0%, 100% { transform: translateY(0) scale(1) }
@@ -536,34 +712,95 @@ function ZubiSection() {
 // ─── 9. Clinic matching ──────────────────────────────────────────
 function MatchingExplain() {
   return (
-    <section className="py-20 sm:py-28" data-testid="home-matching">
-      <div className="max-w-6xl mx-auto px-5 sm:px-8">
+    <section className="relative py-20 sm:py-28 overflow-hidden" data-testid="home-matching">
+      <div aria-hidden className="absolute -top-32 left-1/3 w-[28rem] h-[28rem] rounded-full bg-teal-100/30 blur-3xl pointer-events-none" />
+      <div className="relative max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[1.1fr_1fr] gap-12 items-center">
         <Reveal>
           <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Насочване, а не каталог</p>
-          <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight max-w-3xl">
+          <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight">
             Насочване към клиники според това, което си описал.
           </h2>
-          <p className="mt-4 text-slate-600 text-base sm:text-lg leading-relaxed max-w-2xl">
+          <p className="mt-4 text-slate-600 text-base sm:text-lg leading-relaxed max-w-xl">
             Zubite.bg не е случаен каталог. Използваме отговорите ти,
             града, типа проблем и предпочитанията ти, за да предложим
             по-релевантна следваща стъпка.
           </p>
+          <div className="mt-8 grid sm:grid-cols-2 gap-3">
+            {[
+              { t: 'По случай, не по реклама', s: 'Насочването се базира на описания проблем, категория лечение, град и предпочитания.' },
+              { t: 'Ясни критерии',            s: 'Виждаш защо дадена клиника може да е релевантна и какъв тип случаи обслужва.' },
+              { t: 'Без задължение',           s: 'Клиниката се свързва с теб само след като заявиш насочване.' },
+            ].map((it, i) => (
+              <Reveal key={it.t} delay={i * 100}>
+                <div className="rounded-2xl bg-white/70 backdrop-blur-xl ring-1 ring-white/80 p-5 h-full shadow-[0_8px_28px_-18px_rgba(15,23,42,0.18)]">
+                  <Stethoscope className="w-5 h-5 text-teal-600" />
+                  <h3 className="mt-3 font-serif text-lg font-semibold text-slate-900">{it.t}</h3>
+                  <p className="mt-2 text-sm text-slate-600 leading-relaxed">{it.s}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
         </Reveal>
-        <div className="mt-10 grid md:grid-cols-3 gap-4 sm:gap-5">
-          {[
-            { t: 'По случай, не по реклама', s: 'Насочването се базира на описания проблем, категория лечение, град и предпочитания.' },
-            { t: 'Ясни критерии',            s: 'Виждаш защо дадена клиника може да е релевантна и какъв тип случаи обслужва.' },
-            { t: 'Без задължение',           s: 'Клиниката се свързва с теб само след като заявиш насочване.' },
-          ].map((it, i) => (
-            <Reveal key={it.t} delay={i * 100}>
-              <div className="rounded-2xl bg-white ring-1 ring-slate-200/70 p-6 h-full">
-                <Stethoscope className="w-5 h-5 text-teal-600" />
-                <h3 className="mt-3 font-serif text-xl font-semibold text-slate-900">{it.t}</h3>
-                <p className="mt-2 text-sm text-slate-600 leading-relaxed">{it.s}</p>
+        {/* Matching app mockup */}
+        <Reveal delay={120}>
+          <div className="relative w-full max-w-md mx-auto">
+            <div aria-hidden className="absolute -inset-3 rounded-[2rem] bg-gradient-to-br from-teal-50 to-white ring-1 ring-teal-100/70" />
+            <div aria-hidden className="absolute inset-0 translate-y-3 -translate-x-3 -rotate-[2deg] rounded-[1.85rem] bg-white/55 backdrop-blur-xl ring-1 ring-white/70" />
+            <div className="relative rounded-[1.75rem] bg-white/90 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_24px_60px_-22px_rgba(15,23,42,0.22)] p-5 sm:p-6">
+              {/* Criteria block */}
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Критерии за насочване</p>
+                <SlidersHorizontal className="w-3.5 h-3.5 text-teal-500" />
               </div>
-            </Reveal>
-          ))}
-        </div>
+              <div className="mt-3 space-y-2">
+                {[
+                  { icon: <MapPin className="w-3.5 h-3.5 text-teal-600" />,         label: 'Град',          value: 'София' },
+                  { icon: <Stethoscope className="w-3.5 h-3.5 text-teal-600" />,    label: 'Категория',     value: 'Ортодонтия' },
+                  { icon: <Sparkles className="w-3.5 h-3.5 text-teal-600" />,       label: 'Предпочитание', value: 'дискретно лечение' },
+                ].map((row) => (
+                  <div key={row.label} className="flex items-center justify-between rounded-xl bg-slate-50/80 ring-1 ring-slate-200/40 px-3 py-2">
+                    <div className="flex items-center gap-1.5">
+                      {row.icon}
+                      <span className="text-[10.5px] uppercase tracking-wider text-slate-500">{row.label}</span>
+                    </div>
+                    <span className="text-[12px] text-slate-800 font-medium">{row.value}</span>
+                  </div>
+                ))}
+              </div>
+              {/* Clinic cards */}
+              <p className="mt-5 text-[10px] uppercase tracking-[0.16em] text-slate-400">Релевантни клиники</p>
+              <div className="mt-2 space-y-2">
+                {[
+                  { name: 'Клиника A', tags: ['Алайнери', 'Възрастни'] },
+                  { name: 'Клиника Б', tags: ['Ортодонтия', 'Естетични брекети'] },
+                  { name: 'Клиника В', tags: ['Алайнери', 'Дискретно'] },
+                ].map((c) => (
+                  <div key={c.name} className="rounded-xl bg-white/80 ring-1 ring-slate-200/50 p-3 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-teal-50 text-teal-700 ring-1 ring-teal-100 shrink-0">
+                        <Building2 className="w-3.5 h-3.5" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-[12px] text-slate-900 font-medium truncate">{c.name}</p>
+                        <div className="mt-0.5 flex flex-wrap gap-1">
+                          {c.tags.map((t) => (
+                            <span key={t} className="inline-flex items-center text-[9px] uppercase tracking-wider text-teal-700 bg-teal-50 ring-1 ring-teal-100 rounded-full px-1.5 py-0.5">
+                              {t}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <ArrowRight className="w-3.5 h-3.5 text-teal-500 shrink-0" />
+                  </div>
+                ))}
+              </div>
+              <p className="mt-4 text-[10px] text-slate-400 leading-snug">
+                Примерни клиники, не реални имена. Реалните насочвания зависят от твоите отговори.
+              </p>
+            </div>
+          </div>
+        </Reveal>
       </div>
     </section>
   )
@@ -593,13 +830,15 @@ function PatientQuestions() {
             <Reveal key={item.q} delay={i * 60}>
               <Link
                 href="/blog"
-                className="block rounded-2xl bg-white ring-1 ring-slate-200/70 p-5 hover:-translate-y-0.5 hover:shadow-md transition-all h-full"
+                className="group block rounded-2xl bg-white/70 backdrop-blur-xl ring-1 ring-white/80 p-5 hover:-translate-y-1 hover:bg-white/90 hover:ring-teal-200/70 transition-all shadow-[0_6px_24px_-16px_rgba(15,23,42,0.18)] hover:shadow-[0_14px_38px_-18px_rgba(13,148,136,0.30)] h-full"
                 data-testid={`question-card-${i}`}
               >
-                <MessageSquare className="w-4 h-4 text-teal-500" />
-                <p className="mt-3 font-serif text-base sm:text-lg text-slate-900 leading-snug">{item.q}</p>
+                <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-teal-50/80 text-teal-700 ring-1 ring-teal-100 group-hover:bg-teal-100 transition-colors">
+                  <MessageSquare className="w-4 h-4" />
+                </span>
+                <p className="mt-3 font-serif text-base sm:text-lg text-slate-900 leading-snug group-hover:text-teal-700 transition-colors">{item.q}</p>
                 <p className="mt-2 text-xs text-slate-500 leading-relaxed">{item.s}</p>
-                <p className="mt-3 text-xs font-medium text-teal-600">Прочети обяснението →</p>
+                <p className="mt-3 text-xs font-medium text-teal-600 group-hover:gap-2 inline-flex items-center gap-1 transition-all">Прочети обяснението <ArrowRight className="w-3 h-3" /></p>
               </Link>
             </Reveal>
           ))}
@@ -650,23 +889,26 @@ function RecentArticles({ posts }: { posts: HomeBlogPost[] }) {
             <Reveal key={p.id} delay={i * 90}>
               <Link
                 href={`/blog/${p.slug}`}
-                className="group block rounded-2xl bg-white ring-1 ring-slate-200/70 overflow-hidden hover:-translate-y-1 hover:shadow-lg transition-all h-full"
+                className="group block rounded-2xl bg-white/80 backdrop-blur-xl ring-1 ring-white/80 overflow-hidden hover:-translate-y-1 hover:bg-white hover:ring-teal-200/60 transition-all shadow-[0_8px_30px_-20px_rgba(15,23,42,0.18)] hover:shadow-[0_18px_44px_-22px_rgba(13,148,136,0.25)] h-full"
                 data-testid={`recent-article-${i}`}
               >
                 <div className="aspect-[16/9] bg-gradient-to-br from-teal-50 to-slate-50 relative overflow-hidden">
-                  {p.featured_image ? (
+                  {/* Persistent fallback below image */}
+                  <div aria-hidden className="absolute inset-0 flex items-center justify-center">
+                    <BookOpen className="w-10 h-10 text-teal-200" />
+                  </div>
+                  {p.featured_image && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={p.featured_image}
                       alt={p.title}
-                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
                       loading="lazy"
+                      onError={(e) => { e.currentTarget.style.display = 'none' }}
                     />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <BookOpen className="w-10 h-10 text-teal-200" />
-                    </div>
                   )}
+                  {/* Subtle gradient overlay on hover */}
+                  <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-slate-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
                 <div className="p-5 sm:p-6">
                   <div className="flex items-center gap-2 text-[11px] text-slate-500">
@@ -704,24 +946,42 @@ function RecentArticles({ posts }: { posts: HomeBlogPost[] }) {
 // ─── 11. Care Pass teaser ────────────────────────────────────────
 function CarePassTeaser() {
   return (
-    <section className="py-20 sm:py-28" data-testid="home-care-pass">
-      <div className="max-w-5xl mx-auto px-5 sm:px-8">
+    <section className="relative py-20 sm:py-28 overflow-hidden" data-testid="home-care-pass">
+      {/* Soft section backdrop */}
+      <div aria-hidden className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse 60% 50% at 80% 50%, rgba(94,234,212,0.18) 0%, transparent 70%),' +
+            'linear-gradient(180deg, #FCFAF8 0%, #F4FAF9 100%)',
+        }}
+      />
+      <div className="relative max-w-6xl mx-auto px-5 sm:px-8">
         <Reveal>
-          <div className="relative rounded-[2rem] bg-gradient-to-br from-slate-900 to-slate-800 text-white overflow-hidden ring-1 ring-slate-800">
-            <div aria-hidden className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-teal-500/20 blur-3xl" />
-            <div className="relative p-8 sm:p-12 grid md:grid-cols-[1.4fr_1fr] gap-8 items-center">
+          <div className="relative rounded-[2rem] overflow-hidden ring-1 ring-white/10 shadow-[0_30px_80px_-30px_rgba(15,23,42,0.5)]"
+            style={{
+              background:
+                'radial-gradient(ellipse 70% 60% at 100% 0%, rgba(20,184,166,0.35) 0%, transparent 60%),' +
+                'radial-gradient(ellipse 60% 60% at 0% 100%, rgba(94,234,212,0.20) 0%, transparent 60%),' +
+                'linear-gradient(135deg, #0E1A24 0%, #112832 100%)',
+            }}
+          >
+            <div aria-hidden className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-teal-500/15 blur-3xl" />
+            <div aria-hidden className="absolute -bottom-32 -left-20 w-96 h-96 rounded-full bg-cyan-400/10 blur-3xl" />
+            <div className="relative p-8 sm:p-12 lg:p-14 grid lg:grid-cols-[1.3fr_1fr] gap-10 items-center">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.2em] text-teal-300/80 font-semibold">Zubite Care Pass</p>
-                <h2 className="mt-3 font-serif text-3xl sm:text-4xl font-semibold leading-tight">
-                  Посети консултацията и получи <br />Care Pass от клиниката.
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-400/10 ring-1 ring-teal-300/30 text-teal-200 text-[11px] font-medium px-3 py-1 uppercase tracking-[0.18em]">
+                  <Gift className="w-3 h-3" /> Zubite Care Pass
+                </span>
+                <h2 className="mt-4 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-white leading-tight">
+                  Посети консултацията и получи <br className="hidden sm:block" />Care Pass от клиниката.
                 </h2>
-                <p className="mt-4 text-slate-300 text-sm sm:text-base leading-relaxed max-w-md">
+                <p className="mt-4 text-slate-300 text-sm sm:text-base leading-relaxed max-w-xl">
                   Когато заявиш насочване чрез Zubite.bg и посетиш
                   консултацията в партньорска клиника, клиниката ще ти
                   предостави Zubite Care Pass — карта с отстъпки за
                   продукти за орална хигиена.
                 </p>
-                <p className="mt-3 text-slate-400 text-sm sm:text-base leading-relaxed max-w-md">
+                <p className="mt-3 text-slate-400 text-sm sm:text-base leading-relaxed max-w-xl">
                   Така получаваш не само по-ясна следваща стъпка, а и
                   реална допълнителна стойност за ежедневната грижа за
                   зъбите.
@@ -729,39 +989,82 @@ function CarePassTeaser() {
                 <div className="mt-6 flex flex-wrap items-center gap-3">
                   <Link
                     href={QUIZ_URL}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-white text-slate-900 hover:bg-slate-100 text-sm font-medium px-5 py-3 transition-colors"
+                    className="group inline-flex items-center gap-1.5 rounded-full bg-white text-slate-900 hover:bg-slate-100 text-sm font-medium px-5 py-3 transition-all hover:-translate-y-0.5 shadow-[0_10px_30px_-10px_rgba(255,255,255,0.35)]"
                     data-testid="care-pass-cta"
                   >
                     Провери своя случай
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                   </Link>
                   <Link
                     href="/care-pass"
-                    className="inline-flex items-center gap-1.5 rounded-full bg-transparent text-white hover:bg-white/10 text-sm font-medium px-5 py-3 ring-1 ring-white/20 transition-colors"
+                    className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-md text-white hover:bg-white/15 text-sm font-medium px-5 py-3 ring-1 ring-white/25 transition-colors"
                     data-testid="care-pass-secondary-cta"
                   >
                     Как работи Care Pass
                   </Link>
                 </div>
-                <p className="mt-5 text-[11px] text-slate-500 leading-snug max-w-md">
+                {/* Benefit chips */}
+                <div className="mt-7 flex flex-wrap gap-2">
+                  {[
+                    'След проведена консултация',
+                    'От клиниката',
+                    'Орална хигиена',
+                    'Не е отстъпка от лечение',
+                  ].map((c) => (
+                    <span
+                      key={c}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-white/8 backdrop-blur-md ring-1 ring-white/15 text-[11px] text-slate-200 font-medium px-3 py-1.5"
+                      style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+                    >
+                      <CheckCircle2 className="w-3 h-3 text-teal-300" />
+                      {c}
+                    </span>
+                  ))}
+                </div>
+                <p className="mt-6 text-[11px] text-slate-500 leading-snug max-w-xl">
                   Care Pass се предоставя от клиниката след проведена
                   консултация чрез Zubite.bg. Отстъпките са за партньорски
                   продукти за орална хигиена и не представляват отстъпка от
                   лечение.
                 </p>
               </div>
+              {/* Glossy Care Pass card mockup */}
               <div className="relative">
-                <div className="aspect-[5/3] rounded-2xl bg-gradient-to-br from-white/10 to-teal-300/10 ring-1 ring-white/10 backdrop-blur-md p-5 flex flex-col justify-between">
-                  <div className="flex items-center justify-between">
-                    <p className="font-serif text-lg">Zubite Care Pass</p>
-                    <span className="text-[10px] uppercase tracking-widest text-teal-200">Партньорска</span>
+                {/* Stacked depth card behind */}
+                <div aria-hidden className="absolute inset-0 translate-y-3 translate-x-3 rotate-[3deg] rounded-[1.5rem] bg-white/5 ring-1 ring-white/10 backdrop-blur-md" />
+                <div className="relative rounded-[1.5rem] overflow-hidden ring-1 ring-white/25 shadow-[0_30px_60px_-20px_rgba(0,0,0,0.5)]"
+                  style={{
+                    background:
+                      'radial-gradient(ellipse 80% 60% at 0% 0%, rgba(94,234,212,0.55) 0%, transparent 60%),' +
+                      'radial-gradient(ellipse 80% 60% at 100% 100%, rgba(255,255,255,0.10) 0%, transparent 60%),' +
+                      'linear-gradient(135deg, #0F4F58 0%, #0E2B36 100%)',
+                  }}
+                >
+                  {/* Glossy top highlight */}
+                  <div aria-hidden className="absolute inset-x-3 top-2 h-1/2 rounded-full bg-white/20 blur-2xl pointer-events-none" />
+                  {/* Inner content */}
+                  <div className="relative aspect-[5/3] p-6 sm:p-7 flex flex-col justify-between">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="font-serif text-xl sm:text-2xl text-white tracking-tight">Zubite</p>
+                        <p className="font-serif text-base text-teal-200 -mt-0.5 tracking-tight">Care Pass</p>
+                      </div>
+                      <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md ring-1 ring-white/25">
+                        <Gift className="w-5 h-5 text-teal-200" />
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-teal-200/80 font-semibold">Включва</p>
+                      <p className="mt-1 font-serif text-base sm:text-lg text-white leading-snug">
+                        Отстъпки за продукти <br className="hidden sm:block" />за орална хигиена
+                      </p>
+                      <p className="mt-2 text-[10.5px] text-slate-300/90">
+                        Получаваш го от клиниката след консултация
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wider">Включва</p>
-                    <p className="font-serif text-sm sm:text-base leading-snug mt-0.5">
-                      Отстъпки за продукти <br />за орална хигиена
-                    </p>
-                  </div>
+                  {/* Glossy bottom shine line */}
+                  <div aria-hidden className="absolute inset-x-6 bottom-2 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
                 </div>
               </div>
             </div>
@@ -784,15 +1087,22 @@ function FAQ() {
     { q: 'Какво включва Care Pass?',         a: 'Care Pass съдържа отстъпки за партньорски продукти за орална хигиена — например продукти за ежедневна грижа за зъбите и венците. Той не е отстъпка от лечение и не заменя препоръка от стоматолог.' },
   ]
   return (
-    <section className="py-20 sm:py-28 bg-[#FCFAF8]" data-testid="home-faq">
-      <div className="max-w-3xl mx-auto px-5 sm:px-8">
+    <section className="relative py-20 sm:py-28 overflow-hidden" data-testid="home-faq">
+      <div aria-hidden className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse 50% 40% at 50% 0%, rgba(94,234,212,0.15) 0%, transparent 70%),' +
+            'linear-gradient(180deg, #FCFAF8 0%, #F4FAF9 100%)',
+        }}
+      />
+      <div className="relative max-w-3xl mx-auto px-5 sm:px-8">
         <Reveal>
           <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold text-center">Често задавани въпроси</p>
           <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight text-center">
             Кратки отговори.
           </h2>
         </Reveal>
-        <div className="mt-10 space-y-2">
+        <div className="mt-10 rounded-3xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_12px_50px_-20px_rgba(15,23,42,0.18)] px-5 sm:px-7 py-2">
           {items.map((it, i) => <FAQItem key={it.q} q={it.q} a={it.a} idx={i} />)}
         </div>
       </div>
@@ -803,7 +1113,7 @@ function FAQ() {
 function FAQItem({ q, a, idx }: { q: string; a: string; idx: number }) {
   const [open, setOpen] = useState(idx === 0)
   return (
-    <div className="border-b border-slate-200" data-testid={`faq-item-${idx}`}>
+    <div className="border-b border-slate-200/60 last:border-b-0" data-testid={`faq-item-${idx}`}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -812,7 +1122,7 @@ function FAQItem({ q, a, idx }: { q: string; a: string; idx: number }) {
         <span className="font-serif text-base sm:text-lg text-slate-900">{q}</span>
         <ChevronDown
           className={
-            'w-4 h-4 text-slate-400 transition-transform ' +
+            'w-4 h-4 text-slate-400 transition-transform shrink-0 ' +
             (open ? 'rotate-180 text-teal-600' : '')
           }
         />
@@ -835,38 +1145,58 @@ function FinalCTA() {
     <section className="py-24 sm:py-32 relative overflow-hidden" data-testid="home-final-cta">
       <div aria-hidden className="absolute inset-0 bg-gradient-to-br from-teal-50 to-white" />
       <div aria-hidden className="absolute -top-40 left-1/2 -translate-x-1/2 w-[40rem] h-[40rem] rounded-full bg-teal-200/30 blur-3xl" />
-      <div className="relative max-w-3xl mx-auto px-5 sm:px-8 text-center">
+      <div aria-hidden className="absolute bottom-10 left-10 w-72 h-72 rounded-full bg-cyan-100/40 blur-3xl" />
+      <div aria-hidden className="absolute top-10 right-10 w-64 h-64 rounded-full bg-emerald-100/40 blur-3xl" />
+
+      <div className="relative max-w-4xl mx-auto px-5 sm:px-8">
         <Reveal>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/80 ring-1 ring-teal-100 text-teal-700 text-[11px] font-medium px-3 py-1">
-            <Clock className="w-3 h-3" /> ~60 секунди
-          </span>
-          <h2 className="mt-5 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight">
-            Първо яснота. <br />После — подходяща следваща стъпка.
-          </h2>
-          <p className="mt-4 text-slate-600 text-base sm:text-lg leading-relaxed">
-            Отговори на няколко въпроса и виж какъв ориентир можеш да
-            получиш — без регистрация, без натиск и без задължение.
-          </p>
-          <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              href={QUIZ_URL}
-              className="inline-flex items-center gap-1.5 rounded-full bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium px-5 py-3 shadow-[0_10px_30px_-12px_rgba(20,184,166,0.5)] transition-all hover:-translate-y-0.5"
-              data-testid="final-primary-cta"
-            >
-              Провери своя случай за 60 секунди
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-            <Link
-              href="#how"
-              className="inline-flex items-center gap-1.5 rounded-full bg-white text-slate-900 hover:bg-slate-50 text-sm font-medium px-5 py-3 ring-1 ring-slate-200 transition-colors"
-            >
-              Виж как работи
-            </Link>
+          <div className="relative rounded-[2rem] bg-white/55 backdrop-blur-2xl ring-1 ring-white/70 shadow-[0_20px_60px_-20px_rgba(15,23,42,0.18)] px-6 sm:px-12 py-12 sm:py-16 text-center">
+            {/* Floating background chips */}
+            <div aria-hidden className="hidden sm:block absolute -top-3 left-6 rounded-full bg-white/70 backdrop-blur-md ring-1 ring-white/80 px-3 py-1.5 text-[11px] text-slate-700 font-medium shadow-[0_8px_24px_-12px_rgba(15,23,42,0.18)]">
+              <span className="inline-flex items-center gap-1.5"><Sparkles className="w-3 h-3 text-teal-500" /> ~60 секунди</span>
+            </div>
+            <div aria-hidden className="hidden sm:block absolute -top-4 right-10 rounded-full bg-white/70 backdrop-blur-md ring-1 ring-white/80 px-3 py-1.5 text-[11px] text-slate-700 font-medium shadow-[0_8px_24px_-12px_rgba(15,23,42,0.18)]">
+              <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3 text-teal-500" /> Без регистрация</span>
+            </div>
+            <div aria-hidden className="hidden md:block absolute -bottom-3 right-16 rounded-full bg-white/70 backdrop-blur-md ring-1 ring-white/80 px-3 py-1.5 text-[11px] text-slate-700 font-medium shadow-[0_8px_24px_-12px_rgba(15,23,42,0.18)]">
+              <span className="inline-flex items-center gap-1.5"><Gift className="w-3 h-3 text-teal-500" /> Care Pass</span>
+            </div>
+
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/80 ring-1 ring-teal-100 text-teal-700 text-[11px] font-medium px-3 py-1">
+              <Clock className="w-3 h-3" /> ~60 секунди
+            </span>
+            <h2 className="mt-5 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight">
+              Първо яснота. <br />После — подходяща следваща стъпка.
+            </h2>
+            <p className="mt-4 text-slate-600 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
+              Отговори на няколко въпроса и виж какъв ориентир можеш да
+              получиш — без регистрация, без натиск и без задължение.
+            </p>
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href={QUIZ_URL}
+                className="group relative inline-flex items-center gap-1.5 rounded-full text-white text-sm font-medium px-5 py-3 transition-all hover:-translate-y-0.5 shadow-[0_18px_40px_-12px_rgba(13,148,136,0.55)] overflow-hidden"
+                style={{ backgroundImage: 'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)' }}
+                data-testid="final-primary-cta"
+              >
+                <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
+                <span className="relative inline-flex items-center gap-1.5">
+                  Провери своя случай за 60 секунди
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                </span>
+              </Link>
+              <Link
+                href="#how"
+                className="inline-flex items-center gap-1.5 rounded-full bg-white/70 backdrop-blur-md text-slate-900 hover:bg-white/90 text-sm font-medium px-5 py-3 ring-1 ring-white/80 transition-all hover:-translate-y-0.5"
+              >
+                Виж как работи
+              </Link>
+            </div>
+            <p className="mt-7 text-[11px] text-slate-400 leading-snug max-w-lg mx-auto">
+              Zubite.bg не поставя диагноза и не заменя професионален
+              стоматологичен преглед.
+            </p>
           </div>
-          <p className="mt-7 text-[11px] text-slate-400 leading-snug max-w-lg mx-auto">
-            Zubite.bg не поставя диагноза и не заменя професионален
-            стоматологичен преглед.
-          </p>
         </Reveal>
       </div>
     </section>
@@ -879,10 +1209,14 @@ function MobileStickyCTA() {
     <div className="md:hidden fixed bottom-3 inset-x-3 z-40" data-testid="home-mobile-sticky-cta">
       <Link
         href={QUIZ_URL}
-        className="flex items-center justify-center gap-1.5 w-full rounded-full bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium px-5 py-3 shadow-[0_10px_30px_-10px_rgba(20,184,166,0.6)]"
+        className="group relative flex items-center justify-center gap-1.5 w-full rounded-full text-white text-sm font-medium px-5 py-3 shadow-[0_18px_40px_-12px_rgba(13,148,136,0.55)] overflow-hidden"
+        style={{ backgroundImage: 'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)' }}
       >
-        Провери случая за 60 секунди
-        <ArrowRight className="w-4 h-4" />
+        <span aria-hidden className="absolute inset-x-3 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
+        <span className="relative inline-flex items-center gap-1.5">
+          Провери случая за 60 секунди
+          <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+        </span>
       </Link>
     </div>
   )
@@ -891,8 +1225,11 @@ function MobileStickyCTA() {
 // ─── 14. Premium minimal footer ──────────────────────────────────
 function HomeFooter() {
   return (
-    <footer className="bg-[#0E1A1A] text-slate-300 pt-16 pb-10" data-testid="home-footer">
-      <div className="max-w-6xl mx-auto px-5 sm:px-8">
+    <footer className="relative bg-[#0E1A1A] text-slate-300 pt-16 pb-10 overflow-hidden" data-testid="home-footer">
+      {/* Subtle glassy top border */}
+      <div aria-hidden className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-teal-400/40 to-transparent" />
+      <div aria-hidden className="absolute -top-32 left-1/4 w-96 h-96 rounded-full bg-teal-500/8 blur-3xl pointer-events-none" />
+      <div className="relative max-w-6xl mx-auto px-5 sm:px-8">
         <div className="grid md:grid-cols-[1.5fr_1fr_1fr_1fr] gap-10 md:gap-8">
           <div>
             <Link href="/" className="inline-flex items-baseline">

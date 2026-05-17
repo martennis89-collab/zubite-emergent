@@ -1,4 +1,163 @@
 # Zubite.bg — Changelog
+## 2026-02-17 — Wave.co-Inspired Glassmorphism Visual Polish
+
+Heavy visual polish pass over `frontend/components/HomeContent.tsx`.
+Goal: take the homepage from "premium SaaS landing" to
+"Wave.co / Linear / Stripe / Family-app-tier polished product
+landing". **Pure visual/UX work — zero copy rewrites, zero route
+changes, zero backend changes, zero new pages, zero new packages.**
+All `data-testid`s and CTA `href`s preserved.
+
+### Glassmorphism system applied across 15 sections
+- **Floating pill nav** — fixed top inset with `bg-white/40 → /70`
+  backdrop-blur-2xl, soft ring + scroll-aware shadow. Replaces the
+  previous full-width glass bar.
+- **Hero**
+  - Premium radial-gradient backdrop (teal at 15/20, cyan at 85/60)
+    on top of warm-ivory base, plus three soft turquoise/cyan/emerald
+    blur blobs for layered light leaks.
+  - Glossy primary CTA: linear `#14b8a6 → #0d9488 → #0f766e` gradient
+    with inset white-25% blur "shine" line for the wet-glass effect.
+  - Frosted glass secondary CTA (`bg-white/60 backdrop-blur-md`).
+  - **NEW** 4 hero glass chips ("Без регистрация / Ориентир за цена и
+    срок / Care Pass след консултация / Не заменя преглед").
+  - Hero mockup gains 2 extra stacked depth cards (rotated 3.5° and
+    counter-rotated −2.5°) behind the primary card → strong layered
+    Wave-style product depth. Floating chips "Партньорски клиники" +
+    "Ориентир за цена" soften the corner accents.
+- **Trust strip** — converted to a glass pill rail
+  (`rounded-full bg-white/60 backdrop-blur-xl ring-1 ring-white/70`)
+  with mobile horizontal-scroll and desktop wrap. 6 trust items.
+- **Problem** — radial gradient backdrop + glass cards
+  (`bg-white/70 backdrop-blur-xl ring-1 ring-white/70`), each gains a
+  Lucide icon (Megaphone / MessagesSquare / Wallet / HelpCircle) in a
+  rounded teal-50 icon container, hover lift + soft shadow growth.
+- **How It Works** — connected glass card track:
+  - Horizontal teal-200 gradient connector line behind the row
+    (`hidden lg:block`).
+  - Each step now carries a **mini UI mock** inside the card
+    (questionnaire rows / orientation card / comparison rows /
+    Care Pass voucher).
+  - **Step 04 (Care Pass)** rendered with a distinct teal-tinted
+    gradient background + teal ring + larger teal numeral, making it
+    visually prominent — reinforces the Care Pass promise.
+- **Treatment categories** — glass cards with subtle radial
+  hover-sweep; **first two cards** ("Ортодонтия" + "Алайнери vs
+  брекети") rendered with featured teal-tinted gradient bg + teal
+  ring + larger drop shadow.
+- **Decision preview** — main product card now glassy
+  (`bg-white/90 backdrop-blur-xl`), gains a third stacked depth card
+  rotated 2°, and **two new floating glass chips** orbit the mockup:
+  "Въпроси за преглед" (top-left) + "Продължаваш само ако решиш"
+  (bottom-right). Closest section to a Wave-style product demo.
+- **Zubi** — frosted glow halo + glass container around the orb,
+  **NEW chat bubble** ("Zubi · Искаш ли да разбереш какви въпроси да
+  зададеш на ортодонт?") with sparkles avatar dot + float animation.
+- **Clinic matching** — completely re-laid out 2-col with **NEW
+  app-like matching mockup** on the right:
+  - "Критерии за насочване" panel with 3 criteria rows
+    (Град · София / Категория · Ортодонтия / Предпочитание ·
+    дискретно лечение) each in a glass row with a Lucide icon.
+  - "Релевантни клиники" panel showing 3 anonymized glass cards
+    (Клиника А / Б / В) with treatment tags (Алайнери, Възрастни,
+    Ортодонтия, Естетични брекети, Дискретно).
+  - Disclaimer text: "Примерни клиники, не реални имена."
+  - Brief explicitly required no real names, no paid-ranking
+    implication, no "best clinic" copy → all satisfied.
+- **Patient questions** — translucent cards with rounded icon
+  circles, hover teal-ring + larger drop shadow, "Прочети
+  обяснението" link gains arrow + group-hover gap animation.
+- **Recent Articles (Journal)** — glass-hybrid cards with persistent
+  fallback `BookOpen` icon under the image; `onError` now hides only
+  the broken `<img>` while keeping the gradient placeholder visible
+  (fixes the brief's "no broken images" requirement). Hover gains a
+  subtle bottom-up overlay + 4% scale on the cover image.
+- **Care Pass section — full premium centerpiece rewrite**:
+  - Deep navy-teal gradient panel
+    (`linear-gradient(135deg, #0E1A24 → #112832)`) with radial teal
+    glow at top-right and cyan glow at bottom-left.
+  - **NEW glossy Care Pass card mockup** on the right: stacked
+    depth card behind, radial teal-94 highlight + white-10% bottom
+    highlight, top white-20% blur "shine" line, "Zubite / Care Pass"
+    serif wordmark, gift-icon glass tile, "Включва: Отстъпки за
+    продукти за орална хигиена", "Получаваш го от клиниката след
+    консултация", and a thin gradient shine line at the bottom
+    edge. Tangible, healthcare-tech feel — NOT bank/insurance/
+    rewards/gambling card aesthetic.
+  - **NEW 4 benefit chips** below the body copy ("След проведена
+    консултация / От клиниката / Орална хигиена / Не е отстъпка от
+    лечение") rendered as white-6% glass chips with teal-300 check
+    icons.
+  - Dual CTAs preserved (glossy white primary + frosted secondary).
+- **FAQ** — wrapped in a glass container
+  (`bg-white/65 backdrop-blur-xl ring-1 ring-white/70`) with soft
+  `slate-200/60` dividers; existing accordion expand/collapse motion
+  preserved.
+- **Final CTA** — frosted gradient panel (`bg-white/55
+  backdrop-blur-2xl`) with **3 floating background chips** ("~60
+  секунди" / "Без регистрация" / "Care Pass") perched on the edges
+  (hidden on smallest screens), plus the same glossy gradient primary
+  CTA used in the Hero. Three radial blur blobs in the background.
+- **Mobile sticky CTA** — same glossy gradient + inset shine line.
+- **Footer** — same dark navy, gains a thin top
+  `bg-gradient-to-r from-transparent via-teal-400/40 to-transparent`
+  glass edge + a single soft teal blur blob behind the top.
+
+### Motion language (unchanged philosophy, expanded usage)
+- Re-uses the existing IntersectionObserver `Reveal` helper.
+- CSS `float` keyframe powers Hero mockup, Hero floating chips,
+  Decision floating chips, Zubi chat bubble — all gentle 6–8s
+  ease-in-out Y-axis loops.
+- All hovers: `-translate-y-0.5/-1` lift + soft shadow growth +
+  group arrow `translate-x-0.5`. No bounces, no parallax chaos.
+
+### Accessibility & responsiveness
+- Mobile horizontal-overflow check on `/` at 390×844 returns
+  `{ docW: 390, viewW: 390, overflow: false }` ✅.
+- Trust strip on small screens uses horizontal-scroll + hidden
+  scrollbar; clears tap targets.
+- All glass surfaces tested for legibility against new gradient
+  backdrops — text stays `slate-700/800/900` on `white/55+ glass`,
+  `slate-200/300/400` on dark Care Pass + Footer panels.
+- All buttons remain keyboard-focusable; `aria-hidden` on every
+  decorative blob/halo/depth card.
+
+### Technical
+- 6 new Lucide icons imported (MapPin, SlidersHorizontal,
+  Megaphone, MessagesSquare, Wallet, HelpCircle, Gift); zero other
+  dependencies added.
+- File grew from ~960 → ~1310 LOC, all within one `HomeContent.tsx`
+  per prior architectural decision. No splits this batch.
+- TypeScript: `npx tsc --noEmit` → 0 new errors in HomeContent.tsx /
+  page.tsx (only pre-existing unrelated errors in admin files).
+
+### Screenshots captured (per acceptance criteria)
+Desktop 1440×900: Hero · Trust strip · How-it-works · Decision
+preview · Zubi · Clinic matching · Care Pass · Final CTA.
+Mobile 390×844: Hero (top) · Hero (mockup scrolled) · Care Pass.
+All renders pass the brief.
+
+### Brief compliance check
+- ✅ Heavy glassmorphism system, premium gradients, layered depth.
+- ✅ Glossy CTA + frosted secondary buttons (Wave-style).
+- ✅ App-like product mockups in Hero, Decision, Matching.
+- ✅ Step 04 Care Pass visually emphasized.
+- ✅ Care Pass: glossy tangible card + 4 benefit chips + correct
+   guarantee copy "Посети консултацията и получи Care Pass от
+   клиниката".
+- ✅ Zubi: glass guide container + chat bubble; no white coat,
+   no mascot, no dental tools.
+- ✅ Clinic matching: only example names "А/Б/В", explicit
+   disclaimer, no paid-ranking copy.
+- ✅ No diagnostic UI (no percentages, no "best clinic", no
+   medical certainty).
+- ✅ No purple gradients, no neon, no harsh borders, no pure black.
+- ✅ Mobile remains excellent: no horizontal overflow, glass cards
+   stay readable, hero mockup doesn't overpower headline.
+
+---
+
+
 ## 2026-02-17 — Homepage Copy Refinement (Patient-Safe, Care Pass Clarified)
 
 Pure copy/messaging pass over `frontend/components/HomeContent.tsx` —
