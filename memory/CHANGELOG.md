@@ -1,4 +1,106 @@
 # Zubite.bg — Changelog
+## 2026-02-17 — Premium Wave.co-inspired Homepage Redesign
+
+Complete rewrite of the public landing page (`/`) per the calm,
+premium "Organic & Earthy / Soft-Tech Healthcare" blueprint in
+`/app/design_guidelines.json`. Replaces the previous
+`AnimatedHomeSections` stack with a single composed `HomeContent`
+component that delivers all 14 sections in the design system:
+warm-ivory backgrounds, soft turquoise accents, Playfair Display
+serif headlines, Inter body, gentle floating mockups, no neon, no
+mascot, no stock dental photography.
+
+### Files changed
+- **NEW** `frontend/components/HomeContent.tsx` (~930 LOC, single file)
+  containing 14 named sections: `Nav`, `MobileStickyCTA`, `Hero`,
+  `HeroMockup`, `TrustStrip`, `Problem`, `HowItWorks`,
+  `TreatmentCategories`, `DecisionPreview`, `ZubiSection`,
+  `MatchingExplain`, `PatientQuestions`, `RecentArticles`,
+  `CarePassTeaser`, `FAQ` + `FAQItem`, `FinalCTA`, `HomeFooter`.
+  All interactive elements have `data-testid` attributes for QA.
+- **REWRITTEN** `frontend/app/page.tsx` — now a thin server
+  component that fetches `getRecentPosts()` via SSR
+  (`/api/blog/posts?limit=3`, revalidate 300s) and renders
+  `<HomeContent recentPosts={...} />` inside `<main>` with the
+  same SEO `Metadata` export + WebSite/Organization JSON-LD scripts.
+- **UPDATED** `frontend/tailwind.config.js` — `fontFamily.serif` now
+  maps to `['Playfair Display','Georgia','serif']` so the
+  `font-serif` utility used across HomeContent reliably produces
+  Playfair Display. `fontFamily.sans` aligned to Inter explicitly.
+- *Intentionally retained*: `frontend/components/AnimatedHomeSections.tsx`
+  remains in the repo — no deletions per handoff guidance.
+
+### Sections (per design_guidelines.json)
+1. Sticky glass nav with scroll-aware backdrop blur.
+2. Hero — split layout: serif headline + dual CTAs (left) +
+   floating product mockup card with match-percentage bars and two
+   floating side-chips (right). Uses `hero_background_texture`
+   asset as a 0.18-opacity overlay; two soft turquoise blur blobs
+   anchor the corners. CSS `float` keyframe drives subtle levitation.
+3. Trust strip — 5 uppercase chips (Без регистрация, Без задължение,
+   …) on a low-contrast white/60 + backdrop-blur surface.
+4. Problem — `bg-teal-50/40`, large serif headline, 4-card pain grid.
+5. How it works — 4 numbered step cards with chevron connectors.
+6. Treatment categories — 7-card responsive grid linking to blog.
+7. Decision preview — side-by-side product mockup mimicking the
+   actual results screen (case headline, срок, ценови диапазон,
+   подходящи подходи, насочване preview).
+8. Zubi guidance — uses `zubi_ai_abstract` orb image with a
+   continuous breathing scale animation; explicitly framed as
+   "не лекар, не игра".
+9. Clinic matching explanation — 3 reassurance cards.
+10. Patient questions — 6-card grid pointing to /blog.
+11. **NEW** Recent Articles (SSR) — 3 cards rendered from
+    `/api/blog/posts?limit=3`; renders `null` if no posts.
+12. Care Pass teaser — dark premium card with soft teal glow,
+    "Care Pass (скоро)" badge, membership-card mock.
+13. FAQ — 5 accordion items, soft dividers, serif questions,
+    smooth height transition with `grid-rows-[1fr]` trick.
+14. Final CTA — centered teal gradient, "~60 секунди" badge,
+    repeated quiz CTA + medical disclaimer.
+15. **NEW** `HomeFooter` — dark slate footer with 4-column
+    nav (Platform / За клиники / Право / Brand), copyright +
+    "Направено с грижа в България".
+16. **MobileStickyCTA** — fixed-bottom pill CTA visible only on
+    `<md` to drive conversions, exactly per design spec.
+
+### Visual & motion system
+- `Reveal` helper (single IntersectionObserver per element,
+  threshold 0.12, rootMargin `-10%` bottom) staggers entrance
+  fades via `style.transitionDelay` rather than CSS hacks —
+  works without framer-motion, zero new deps.
+- Lucide-react icons only; no emoji.
+- Pill-shaped CTAs with `-translate-y-0.5` hover lift and soft
+  teal-tinted drop shadows (`shadow-[0_10px_30px_-12px_rgba(20,184,166,0.5)]`).
+- All max-widths capped at `max-w-6xl` / `max-w-3xl` for FAQ &
+  Final CTA, per the "generous max-width" guideline.
+
+### SEO preserved
+- Page-level `Metadata` retained (title, description, keywords, OG,
+  Twitter, canonical, robots).
+- Both WebSite and Organization JSON-LD scripts retained in
+  `page.tsx`.
+
+### Test status
+- `testing_agent_v3_fork` iteration_40 → **100% pass**, zero bugs,
+  zero action items. All 14 sections verified across 1920/768/375
+  viewports, all CTA routes verified, FAQ toggle verified, mobile
+  sticky-CTA visibility rules verified, no horizontal overflow,
+  SEO metadata + JSON-LD intact.
+
+### Notes
+- `RESEND_API_KEY` and `EMERGENT_LLM_KEY` remain empty in local
+  `.env` (intentional after the secret rotation). This does not
+  affect the homepage which is purely static + a single SSR blog
+  fetch.
+- Old `AnimatedHomeSections.tsx` retained per handoff. Can be
+  deleted in a follow-up cleanup once stakeholders sign off.
+- Optional refactor (deferred per testing-agent review):
+  split HomeContent.tsx into `/components/home/*.tsx` files.
+
+---
+
+
 
 ## 2026-05-16 — Clinic Profile Engagement Upgrade R1
 
