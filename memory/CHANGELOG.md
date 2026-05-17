@@ -1,4 +1,129 @@
 # Zubite.bg — Changelog
+## 2026-02-17 — Homepage Copy Refinement (Patient-Safe, Care Pass Clarified)
+
+Pure copy/messaging pass over `frontend/components/HomeContent.tsx` —
+no layout changes, no new routes, no functional changes. The
+previous redesign was visually premium but some wording was vague,
+too SaaS-generic, or carried diagnostic confidence the platform must
+not project. This batch makes every public-facing string clearer,
+patient-friendlier, and medically safer, and introduces the
+Care Pass guarantee with the correct framing.
+
+### What changed (15 sections updated)
+1. **Hero** — subheading rewritten to spell out what the user
+   actually gets after clicking ("кратки въпроси → разбираем ориентир
+   → възможни посоки → ориентировъчни цени → следваща стъпка");
+   disclaimer rephrased to "не поставя диагноза и не заменя преглед".
+2. **Hero result card** — *removed* the percentage-style match bars
+   (95% / 78% / 65%) that read like diagnosis output. Replaced with
+   a calm "Посоки за обсъждане:" list of three text rows with short
+   reasoning. Card eyebrow now "Примерен ориентир след въпросника",
+   badge "Ориентировъчен случай", footer "Следваща стъпка:
+   консултация с ортодонт", CTA "Виж подходящи клиники". Floating
+   chips softened to "Партньорски клиники" + "Ориентир за цена".
+3. **Trust strip** — now 6 chips including the new
+   "Care Pass след консултация" item.
+4. **Problem section** — subheading + all four pain-card titles &
+   bodies rewritten to specific, less-abstract Bulgarian.
+5. **How it works** — new heading "Как стигаш от объркване до ясна
+   следваща стъпка"; step 04 redesigned around Care Pass:
+   *"Посети и получи Care Pass — клиниката ще ти предостави Zubite
+   Care Pass с отстъпки за продукти за орална хигиена"*.
+6. **Treatment categories** — every card description rewritten to be
+   concrete (symptoms / scope / when relevant). CTA label changed
+   from "Научи повече" → "Виж насоки".
+7. **Decision preview** — heading "Виж какъв ориентир получаваш
+   преди преглед", new bullet list (4 items including "Продължаваш
+   само ако решиш"), button "Започни краткия въпросник". **Mockup
+   card fixed**: "Лек до умерен скрипт на долна челюст" was unnatural
+   BG — replaced with "Възможно леко до умерено струпване на долни
+   зъби". Labels "Срок" → "Ориентировъчен срок", "Подходящи подходи"
+   → "Възможни подходи за обсъждане". Added third option
+   "Ортодонтска консултация за потвърждение". Verification badge
+   "Прегледано" → "Примерен ориентир, не диагноза".
+8. **Zubi section** — replaced awkward "не лекар, не игра" with
+   "Zubi помага да разбереш информацията — без да поставя диагноза"
+   + clearer body + explicit medical disclaimer.
+9. **Clinic matching** — new heading "Насочване към клиники според
+   това, което си описал", new subheading explaining the inputs
+   (отговори / град / тип проблем / предпочитания). 3 reassurance
+   cards retitled: "По случай, не по реклама" / "Ясни критерии" /
+   "Без задължение". Removed risky phrasing "точно с твоя случай".
+10. **Patient questions** — new heading "Въпросите, които повечето
+    пациенти си задават преди лечение"; every card now has a short
+    description under the question; CTA replaced "Към статия в
+    журнала →" with "Прочети обяснението →".
+11. **Recent Articles** — new heading "Кратки обяснения за решения,
+    които не трябва да взимаш на сляпо" + supporting subheading.
+12. **Care Pass section — full rewrite**:
+    - Eyebrow "Care Pass (скоро)" → "Zubite Care Pass" (no
+      "coming-soon" qualifier).
+    - Heading "Посети консултацията и получи Care Pass от клиниката".
+    - Body explains the guarantee: *"Когато заявиш насочване чрез
+      Zubite.bg и посетиш консултацията в партньорска клиника,
+      клиниката ще ти предостави Zubite Care Pass — карта с
+      отстъпки за продукти за орална хигиена."*
+    - Removed all subscription / family / early-access /
+      personal-calendar / treatment-tracking / predictable-prices
+      copy (these features are not implemented; brief explicitly
+      forbade implying them).
+    - Primary CTA "Запази място в early access" → "Провери своя
+      случай" (routes to /quiz, not /care-pass).
+    - **NEW** secondary CTA "Как работи Care Pass" → /care-pass.
+    - **NEW** small disclaimer note: *"Care Pass се предоставя от
+      клиниката след проведена консултация чрез Zubite.bg.
+      Отстъпките са за партньорски продукти за орална хигиена и
+      не представляват отстъпка от лечение."*
+    - Card mock on the right changed from "Член от Февруари 2026"
+      (subscription vibe) to "Включва: Отстъпки за продукти за
+      орална хигиена" with badge "Партньорска" (replaces "Premium").
+13. **FAQ** — all 5 existing answers rewritten in calmer,
+    less-promotional Bulgarian. **Two new items added**:
+    *"Как получавам Zubite Care Pass?"* and *"Какво включва
+    Care Pass?"* — both reinforce that the Pass is given by the
+    clinic after the consultation and contains discounts for oral
+    hygiene products, not treatment discounts. FAQ array now has 7
+    items (5 → 7).
+14. **Final CTA** — heading "Първо яснота. После — подходяща
+    следваща стъпка." + new subheading + simpler disclaimer
+    aligned with the rest of the page.
+15. **Footer** — tagline unchanged (already matched the brief).
+
+### Page metadata (page.tsx)
+- `description`, OG `description`, Twitter `description` updated to
+  mirror the new hero subheading. Title and structure unchanged.
+
+### Verified copy hygiene
+Hard grep for forbidden phrases in `HomeContent.tsx` and `page.tsx`
+returns **0 matches** for: `съгласувано`, `не игра`, `точно с твоя`,
+`60-секунден преглед`, `най-добрата клиника`, `за цялото семейство`,
+`early access`, `персонален календар`, `проследяване на лечение`,
+`предвидими цени`.
+
+"Care Pass" is mentioned **12 times** across the page (trust strip,
+How-it-works step 04, dedicated section + secondary CTA + disclaimer,
+two FAQ entries) — guarantee is unmistakable.
+
+### Tests
+Self-test screenshots across Hero, Problem, How-it-works, Treatments,
+Decision preview, Zubi, Care Pass, FAQ on 1440×900 desktop — all
+sections render cleanly, no layout regression, no broken anchors,
+no new TS errors. Previous functional test (iteration_40, 100%
+pass) covers layout/CTA routing/responsiveness/SEO — none of those
+contracts changed.
+
+### Scope discipline
+- Zero new files. Zero deleted files.
+- Zero new dependencies.
+- Zero backend changes.
+- Zero changes to quiz, blog, admin, attribution, lead capture,
+  clinic dashboard, reviews, or any non-homepage route.
+- Legacy `AnimatedHomeSections.tsx` still intentionally retained
+  per prior user decision.
+
+---
+
+
 ## 2026-02-17 — Premium Wave.co-inspired Homepage Redesign
 
 Complete rewrite of the public landing page (`/`) per the calm,

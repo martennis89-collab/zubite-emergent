@@ -160,9 +160,9 @@ function Hero() {
           </Reveal>
           <Reveal delay={160}>
             <p className="mt-5 text-slate-600 text-base sm:text-lg leading-relaxed max-w-xl">
-              Zubite.bg ти помага да разбереш своя стоматологичен случай и
-              те насочва към подходяща клиника — спокойно, без натиск, на
-              разбираем език.
+              Отговори на няколко кратки въпроса и получи разбираем
+              ориентир за твоя случай — възможни посоки за лечение,
+              ориентировъчни цени и следваща стъпка към подходяща клиника.
             </p>
           </Reveal>
           <Reveal delay={220}>
@@ -186,8 +186,9 @@ function Hero() {
           </Reveal>
           <Reveal delay={280}>
             <p className="mt-5 text-[11px] text-slate-400 leading-snug max-w-md">
-              Zubite.bg не поставя диагнози и не замества професионален
-              стоматологичен преглед.
+              Zubite.bg не поставя диагноза и не заменя преглед при
+              стоматолог. Помага ти да се ориентираш преди следващата
+              стъпка.
             </p>
           </Reveal>
         </div>
@@ -210,53 +211,52 @@ function HeroMockup() {
       <div className="relative rounded-[1.75rem] bg-white shadow-[0_30px_60px_-20px_rgba(15,23,42,0.12)] ring-1 ring-slate-100 p-6 sm:p-7 animate-[float_6s_ease-in-out_infinite]">
         <div className="flex items-center gap-2 text-[11px] text-slate-500">
           <span className="inline-block w-2 h-2 rounded-full bg-teal-500" />
-          Резултат от 60-секунден преглед
+          Примерен ориентир след въпросника
         </div>
         <h3 className="mt-4 font-serif text-2xl text-slate-900 leading-tight">
-          Леко изместване <br />на горните резци
+          Възможно леко разместване <br />на предни зъби
         </h3>
         <div className="mt-4 flex items-center gap-3">
           <div className="inline-flex items-center gap-1 rounded-full bg-amber-50 text-amber-700 ring-1 ring-amber-100 text-[11px] px-2.5 py-1">
-            <Star className="w-3 h-3 fill-current" /> Лек случай
+            <Star className="w-3 h-3 fill-current" /> Ориентировъчен случай
           </div>
-          <span className="text-[11px] text-slate-500">~6-9 месеца алайнери</span>
         </div>
-        <div className="mt-5 space-y-2.5 text-sm">
+        <p className="mt-5 text-[11px] uppercase tracking-[0.14em] text-slate-400 font-semibold">
+          Посоки за обсъждане:
+        </p>
+        <div className="mt-2.5 space-y-3 text-sm">
           {[
-            { label: 'Алайнери (Invisalign/Spark)', match: 95 },
-            { label: 'Естетични брекети', match: 78 },
-            { label: 'Метални брекети',       match: 65 },
+            { label: 'Прозрачни алайнери', sub: 'Подходящи при някои леки до умерени случаи, ако има добра дисциплина.' },
+            { label: 'Естетични брекети',  sub: 'Вариант при нужда от по-постоянен контрол.' },
+            { label: 'Метални брекети',    sub: 'Често по-достъпна опция, особено при по-сложни движения.' },
           ].map((row) => (
-            <div key={row.label}>
-              <div className="flex items-center justify-between text-[12px] text-slate-700">
-                <span>{row.label}</span>
-                <span className="font-medium text-teal-700">{row.match}%</span>
-              </div>
-              <div className="mt-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-teal-400 to-teal-600"
-                  style={{ width: `${row.match}%` }}
-                />
+            <div key={row.label} className="flex items-start gap-2.5">
+              <span aria-hidden className="mt-1.5 inline-block w-1.5 h-1.5 rounded-full bg-teal-500 shrink-0" />
+              <div>
+                <p className="text-[13px] font-medium text-slate-800 leading-snug">{row.label}</p>
+                <p className="mt-0.5 text-[11.5px] text-slate-500 leading-snug">{row.sub}</p>
               </div>
             </div>
           ))}
         </div>
-        <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
-          <p className="text-[11px] text-slate-500">3 подходящи клиники в София</p>
-          <span className="inline-flex items-center gap-1 text-teal-700 text-xs font-medium">
-            Виж насочване <ArrowRight className="w-3 h-3" />
+        <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
+          <p className="text-[11px] text-slate-500 leading-snug">
+            Следваща стъпка: <br />консултация с ортодонт
+          </p>
+          <span className="inline-flex items-center gap-1 text-teal-700 text-xs font-medium whitespace-nowrap">
+            Виж подходящи клиники <ArrowRight className="w-3 h-3" />
           </span>
         </div>
       </div>
       {/* Floating chip — clinic suggestion */}
       <div className="absolute -bottom-6 -left-4 sm:-left-8 rounded-2xl bg-white shadow-lg ring-1 ring-slate-100 px-3 py-2 flex items-center gap-2 animate-[float_7s_ease-in-out_infinite_reverse]">
         <Building2 className="w-4 h-4 text-teal-500" />
-        <span className="text-[11px] text-slate-700 font-medium">OrthoBG · 4.8 ★</span>
+        <span className="text-[11px] text-slate-700 font-medium">Партньорски клиники</span>
       </div>
       {/* Floating chip — price */}
       <div className="absolute -top-5 right-0 rounded-2xl bg-white shadow-lg ring-1 ring-slate-100 px-3 py-2 flex items-center gap-2 animate-[float_5.5s_ease-in-out_infinite]">
         <Activity className="w-4 h-4 text-teal-500" />
-        <span className="text-[11px] text-slate-700 font-medium">от ~2400 лв.</span>
+        <span className="text-[11px] text-slate-700 font-medium">Ориентир за цена</span>
       </div>
 
       <style jsx global>{`
@@ -274,8 +274,9 @@ function TrustStrip() {
   const items = [
     'Без регистрация',
     'Без задължение',
-    'Ориентировъчни цени',
-    'Подходящи клиники',
+    'Ориентир за цена и срок',
+    'Насочване според случая',
+    'Care Pass след консултация',
     'Не заменя преглед',
   ]
   return (
@@ -299,10 +300,10 @@ function TrustStrip() {
 // ─── 4. Problem ──────────────────────────────────────────────────
 function Problem() {
   const pains = [
-    { t: 'Реклами навсякъде', s: 'Всяка клиника обещава най-доброто. Това не помага при избор.' },
-    { t: 'Противоречиви мнения', s: 'Във форуми и социални мрежи всеки споделя свой случай — но не и твоя.' },
-    { t: 'Неясни цени', s: 'Едни казват „от 1500 лв.“, други — „от 4000 лв.“ за привидно същото нещо.' },
-    { t: 'Страх от грешен избор', s: 'Лечението е дълго. Колебанието удължава всичко.' },
+    { t: 'Реклами от всички страни', s: 'Всяка клиника обещава добър резултат. Но това не ти казва кой подход е подходящ за твоя случай.' },
+    { t: 'Противоречиви мнения',     s: 'Във форуми и групи хората споделят личен опит — полезно е, но не винаги важи за теб.' },
+    { t: 'Неясни цени',              s: 'Една и съща дума като „алайнери“ или „брекети“ може да означава различен план, срок и цена.' },
+    { t: 'Страх от грешен избор',    s: 'Лечението е дълго и скъпо. Нормално е да искаш повече яснота преди да продължиш.' },
   ]
   return (
     <section className="relative py-20 sm:py-28 bg-teal-50/40" data-testid="home-problem">
@@ -314,8 +315,9 @@ function Problem() {
             Яснота — почти никаква.
           </h2>
           <p className="mt-4 text-slate-600 text-base sm:text-lg max-w-md leading-relaxed">
-            Преди да избереш клиника, имаш нужда да разбереш собствения си
-            случай. Zubite.bg започва оттам — спокойно, без натиск.
+            Преди да избереш клиника, трябва да разбереш какъв може да е
+            проблемът, какви варианти обикновено се обсъждат и кои въпроси
+            да зададеш на преглед.
           </p>
         </Reveal>
         <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
@@ -336,10 +338,10 @@ function Problem() {
 // ─── 5. How it works ─────────────────────────────────────────────
 function HowItWorks() {
   const steps = [
-    { n: '01', t: 'Отговори', s: 'Кратки въпроси за около 60 секунди — без регистрация.' },
-    { n: '02', t: 'Разбери', s: 'Получаваш ясно описание на твоя случай и възможните пътища.' },
-    { n: '03', t: 'Сравни', s: 'Ориентировъчни цени и продължителност на лечението.' },
-    { n: '04', t: 'Заяви насочване', s: 'Подходящи клиники само ако ти решиш да продължиш.' },
+    { n: '01', t: 'Отговори',           s: 'Отговаряш на кратки въпроси за симптоми, цели, възраст, град и предпочитания.' },
+    { n: '02', t: 'Получи ориентир',    s: 'Виждаш разбираемо обобщение какъв тип случай може да описваш и кои фактори имат значение.' },
+    { n: '03', t: 'Сравни възможности', s: 'Разбираш кои подходи обикновено се обсъждат — например алайнери, брекети, импланти или друг тип оценка.' },
+    { n: '04', t: 'Посети и получи Care Pass', s: 'Ако заявиш насочване и посетиш консултация в партньорска клиника, клиниката ще ти предостави Zubite Care Pass с отстъпки за продукти за орална хигиена.' },
   ]
   return (
     <section id="how" className="py-20 sm:py-28" data-testid="home-how">
@@ -347,7 +349,7 @@ function HowItWorks() {
         <Reveal>
           <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Как работи</p>
           <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight max-w-3xl">
-            Четири стъпки, за да стигнеш от объркване до решение.
+            Как стигаш от объркване до ясна следваща стъпка.
           </h2>
         </Reveal>
         <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
@@ -372,13 +374,13 @@ function HowItWorks() {
 // ─── 6. Treatment categories ─────────────────────────────────────
 function TreatmentCategories() {
   const cats: Array<{ t: string; s: string; href: string; icon: React.ReactNode }> = [
-    { t: 'Ортодонтия',              s: 'Изправяне на захапка и зъби', href: '/blog?category=orthodontics', icon: <Smile className="w-4 h-4" /> },
-    { t: 'Алайнери vs брекети',     s: 'Кой подход е по-подходящ за теб', href: '/blog/aligners-vs-braces', icon: <AlignLeft className="w-4 h-4" /> },
-    { t: 'Импланти',                s: 'Замяна на липсващ зъб',       href: '/blog?category=implants', icon: <Stethoscope className="w-4 h-4" /> },
-    { t: 'Естетична стоматология',  s: 'Избелване, фасети, корекции', href: '/blog?category=cosmetic', icon: <Sparkles className="w-4 h-4" /> },
-    { t: 'TMJ / челюстни стави',    s: 'Болка, щракане, скърцане',     href: '/blog?category=tmj',      icon: <Activity className="w-4 h-4" /> },
-    { t: 'Сънна апнея',             s: 'Дентална страна на дишането',  href: '/blog?category=sleep',    icon: <Heart className="w-4 h-4" /> },
-    { t: 'Детска ортодонтия',       s: 'Ранна интервенция и развитие', href: '/blog?category=pediatric',icon: <Smile className="w-4 h-4" /> },
+    { t: 'Ортодонтия',              s: 'Криви зъби, захапка, струпване, разстояния и нужда от ортодонтска оценка.', href: '/blog?category=orthodontics', icon: <Smile className="w-4 h-4" /> },
+    { t: 'Алайнери vs брекети',     s: 'Разбери каква е разликата, кога кой вариант има смисъл и какво зависи от случая.', href: '/blog/aligners-vs-braces', icon: <AlignLeft className="w-4 h-4" /> },
+    { t: 'Импланти',                s: 'Липсващ зъб, стари мостове, подвижни протези или нужда от план за възстановяване.', href: '/blog?category=implants', icon: <Stethoscope className="w-4 h-4" /> },
+    { t: 'Естетична стоматология',  s: 'Фасети, бондинг, избелване и усмивка — но с правилна подготовка и реалистични очаквания.', href: '/blog?category=cosmetic', icon: <Sparkles className="w-4 h-4" /> },
+    { t: 'TMJ / челюстни стави',    s: 'Щракане, пукане, болка в челюстта, скърцане със зъби или сутрешно напрежение.', href: '/blog?category=tmj',      icon: <Activity className="w-4 h-4" /> },
+    { t: 'Сънна апнея и дишане',    s: 'Симптоми, свързани със сън, дишане през устата, захапка и челюстна позиция.', href: '/blog?category=sleep',    icon: <Heart className="w-4 h-4" /> },
+    { t: 'Детска ортодонтия',       s: 'Кога детето има нужда от ранна оценка и кои признаци не е добре да се игнорират.', href: '/blog?category=pediatric',icon: <Smile className="w-4 h-4" /> },
   ]
   return (
     <section id="treatments" className="py-20 sm:py-28 bg-[#FCFAF8]" data-testid="home-treatments">
@@ -405,7 +407,7 @@ function TreatmentCategories() {
                 </h3>
                 <p className="mt-1.5 text-sm text-slate-600">{c.s}</p>
                 <span className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-teal-600 group-hover:gap-2 transition-all">
-                  Научи повече <ArrowRight className="w-3 h-3" />
+                  Виж насоки <ArrowRight className="w-3 h-3" />
                 </span>
               </Link>
             </Reveal>
@@ -422,25 +424,27 @@ function DecisionPreview() {
     <section className="py-20 sm:py-28 relative overflow-hidden" data-testid="home-decision-preview">
       <div className="max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[1fr_1.1fr] gap-12 items-center">
         <Reveal>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Преглед на решение</p>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Преглед на ориентир</p>
           <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight">
-            Виж как изглежда твоят случай — преди да влезеш в кабинет.
+            Виж какъв ориентир получаваш преди преглед.
           </h2>
           <p className="mt-4 text-slate-600 text-base sm:text-lg leading-relaxed max-w-md">
-            Описание на твоето състояние, възможните подходи и в кои клиники
-            биха могли да помогнат — всичко на едно място.
+            След въпросника получаваш кратко обобщение: какво си описал,
+            кои посоки може да имат смисъл и какви въпроси да зададеш на
+            специалист.
           </p>
           <ul className="mt-6 space-y-2 text-sm text-slate-700">
-            <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-teal-500 mt-0.5" /> Прост език, без жаргон</li>
-            <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-teal-500 mt-0.5" /> Подреден по релевантност, не по реклама</li>
-            <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-teal-500 mt-0.5" /> Никакво обвързване — продължаваш само ако искаш</li>
+            <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-teal-500 mt-0.5" /> Разбираем език, без жаргон</li>
+            <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-teal-500 mt-0.5" /> Ориентировъчни срокове и ценови диапазони</li>
+            <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-teal-500 mt-0.5" /> Възможни подходи според отговорите ти</li>
+            <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-teal-500 mt-0.5" /> Продължаваш само ако решиш</li>
           </ul>
           <Link
             href={QUIZ_URL}
             className="mt-7 inline-flex items-center gap-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium px-5 py-3 transition-colors"
             data-testid="decision-cta"
           >
-            Започни кратък преглед
+            Започни краткия въпросник
             <ArrowRight className="w-4 h-4" />
           </Link>
         </Reveal>
@@ -451,29 +455,30 @@ function DecisionPreview() {
               <div className="flex items-center justify-between">
                 <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">Твоят случай</p>
                 <span className="inline-flex items-center gap-1 text-[11px] text-teal-700 bg-teal-50 ring-1 ring-teal-100 rounded-full px-2 py-0.5">
-                  <ShieldCheck className="w-3 h-3" /> Прегледано
+                  <ShieldCheck className="w-3 h-3" /> Примерен ориентир, не диагноза
                 </span>
               </div>
               <h3 className="mt-3 font-serif text-2xl sm:text-3xl text-slate-900 leading-snug">
-                Лек до умерен скрипт <br />на долна челюст
+                Възможно леко до умерено <br />струпване на долни зъби
               </h3>
               <div className="mt-5 grid grid-cols-2 gap-3">
                 <div className="rounded-xl bg-slate-50 p-3">
-                  <p className="text-[10px] uppercase tracking-wider text-slate-500">Срок</p>
-                  <p className="mt-1 font-serif text-lg text-slate-900">9-14 месеца</p>
+                  <p className="text-[10px] uppercase tracking-wider text-slate-500">Ориентировъчен срок</p>
+                  <p className="mt-1 font-serif text-lg text-slate-900">9–14 месеца</p>
                 </div>
                 <div className="rounded-xl bg-slate-50 p-3">
                   <p className="text-[10px] uppercase tracking-wider text-slate-500">Ценови диапазон</p>
-                  <p className="mt-1 font-serif text-lg text-slate-900">~2 500 - 4 200 лв.</p>
+                  <p className="mt-1 font-serif text-lg text-slate-900">~2 500 – 4 200 лв.</p>
                 </div>
               </div>
               <div className="mt-5 space-y-2 text-sm text-slate-700">
-                <p className="font-medium text-slate-900">Подходящи подходи:</p>
-                <p className="text-slate-600">· Прозрачни алайнери (предпочитан)</p>
-                <p className="text-slate-600">· Естетични керамични брекети</p>
+                <p className="font-medium text-slate-900">Възможни подходи за обсъждане:</p>
+                <p className="text-slate-600">· Прозрачни алайнери</p>
+                <p className="text-slate-600">· Естетични брекети</p>
+                <p className="text-slate-600">· Ортодонтска консултация за потвърждение</p>
               </div>
               <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
-                <p className="text-[11px] text-slate-500">5 насочвания · София, Пловдив</p>
+                <p className="text-[11px] text-slate-500">Насочване към партньорска клиника по избор</p>
                 <span className="text-xs font-medium text-teal-700">Виж клиники →</span>
               </div>
             </div>
@@ -511,16 +516,16 @@ function ZubiSection() {
         <Reveal>
           <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Запознай се със Zubi</p>
           <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight">
-            Спокоен AI ориентир — <br />не лекар, не игра.
+            Zubi помага да разбереш <br />информацията — без да поставя диагноза.
           </h2>
           <p className="mt-4 text-slate-600 text-base sm:text-lg leading-relaxed max-w-md">
-            Zubi е дискретен помощник, който превежда денталната тема на
-            твой език. Без диагнози, без обещания, без давление — само
-            яснота преди следващата стъпка.
+            Zubi е дигиталният помощник на Zubite.bg. Той превежда сложните
+            дентални теми на разбираем език, показва възможни следващи
+            стъпки и ти помага да зададеш по-добри въпроси на преглед.
           </p>
           <p className="mt-5 text-[11px] text-slate-400 leading-snug max-w-md">
-            Zubi не замества преглед при лекар и не дава медицински съвет.
-            Информацията е ориентировъчна.
+            Zubi не е лекар и не дава медицински съвет. Окончателната
+            оценка се прави от стоматолог или ортодонт.
           </p>
         </Reveal>
       </div>
@@ -536,14 +541,19 @@ function MatchingExplain() {
         <Reveal>
           <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Насочване, а не каталог</p>
           <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight max-w-3xl">
-            Свързваме те с клиники, които работят точно с твоя случай.
+            Насочване към клиники според това, което си описал.
           </h2>
+          <p className="mt-4 text-slate-600 text-base sm:text-lg leading-relaxed max-w-2xl">
+            Zubite.bg не е случаен каталог. Използваме отговорите ти,
+            града, типа проблем и предпочитанията ти, за да предложим
+            по-релевантна следваща стъпка.
+          </p>
         </Reveal>
         <div className="mt-10 grid md:grid-cols-3 gap-4 sm:gap-5">
           {[
-            { t: 'Подбор по случай', s: 'Тип лечение, тежест, локация и предпочитания — само това.' },
-            { t: 'Прозрачни критерии', s: 'Виждаш защо клиниката е препоръчана и какво я отличава.' },
-            { t: 'Без обвързване', s: 'Питаш само ако решиш. Клиниката се свързва с теб, не обратното.' },
+            { t: 'По случай, не по реклама', s: 'Насочването се базира на описания проблем, категория лечение, град и предпочитания.' },
+            { t: 'Ясни критерии',            s: 'Виждаш защо дадена клиника може да е релевантна и какъв тип случаи обслужва.' },
+            { t: 'Без задължение',           s: 'Клиниката се свързва с теб само след като заявиш насочване.' },
           ].map((it, i) => (
             <Reveal key={it.t} delay={i * 100}>
               <div className="rounded-2xl bg-white ring-1 ring-slate-200/70 p-6 h-full">
@@ -561,34 +571,35 @@ function MatchingExplain() {
 
 // ─── 10. Patient questions ───────────────────────────────────────
 function PatientQuestions() {
-  const qs = [
-    'Какво всъщност означава „малък/среден/тежък“ случай?',
-    'Защо цените се различават толкова много?',
-    'Боли ли поставянето на брекети или алайнери?',
-    'Имам ли време при моя график?',
-    'Какво е разликата между естетични и метални брекети?',
-    'Какво се случва, ако спра по средата?',
+  const qs: Array<{ q: string; s: string }> = [
+    { q: 'Какво означава „лек“, „среден“ или „тежък“ случай?',     s: 'Кога описанието е ориентир и кога е нужна реална оценка.' },
+    { q: 'Защо цените се различават толкова много?',                s: 'Какво влияе на цената: система, сложност, срок, лекар и брой посещения.' },
+    { q: 'Боли ли поставянето на брекети или алайнери?',            s: 'Какво е нормално в началото и кога дискомфортът не трябва да се игнорира.' },
+    { q: 'Имам ли време за лечение при моя график?',                s: 'Как различните подходи се вписват в работа, училище, пътуване и ежедневие.' },
+    { q: 'Каква е разликата между естетични и метални брекети?',    s: 'Видимост, цена, комфорт, хигиена и контрол на движенията.' },
+    { q: 'Какво се случва, ако спра по средата?',                    s: 'Защо прекъсването на лечение може да върне прогреса назад и какво да обсъдиш с лекар.' },
   ]
   return (
     <section className="py-20 sm:py-28 bg-[#FCFAF8]" data-testid="home-questions">
       <div className="max-w-6xl mx-auto px-5 sm:px-8">
         <Reveal>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Често зададени въпроси на пациенти</p>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Често задавани от пациенти</p>
           <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight max-w-3xl">
-            Питаш ли се същото, което и другите?
+            Въпросите, които повечето пациенти си задават преди лечение.
           </h2>
         </Reveal>
         <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          {qs.map((q, i) => (
-            <Reveal key={q} delay={i * 60}>
+          {qs.map((item, i) => (
+            <Reveal key={item.q} delay={i * 60}>
               <Link
                 href="/blog"
-                className="block rounded-2xl bg-white ring-1 ring-slate-200/70 p-5 hover:-translate-y-0.5 hover:shadow-md transition-all"
+                className="block rounded-2xl bg-white ring-1 ring-slate-200/70 p-5 hover:-translate-y-0.5 hover:shadow-md transition-all h-full"
                 data-testid={`question-card-${i}`}
               >
                 <MessageSquare className="w-4 h-4 text-teal-500" />
-                <p className="mt-3 font-serif text-base sm:text-lg text-slate-900 leading-snug">{q}</p>
-                <p className="mt-2 text-xs text-slate-500">Към статия в журнала →</p>
+                <p className="mt-3 font-serif text-base sm:text-lg text-slate-900 leading-snug">{item.q}</p>
+                <p className="mt-2 text-xs text-slate-500 leading-relaxed">{item.s}</p>
+                <p className="mt-3 text-xs font-medium text-teal-600">Прочети обяснението →</p>
               </Link>
             </Reveal>
           ))}
@@ -618,8 +629,12 @@ function RecentArticles({ posts }: { posts: HomeBlogPost[] }) {
             <div>
               <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Журнал</p>
               <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight max-w-2xl">
-                Скорошни статии за информирани решения.
+                Кратки обяснения за решения, които не трябва да взимаш на сляпо.
               </h2>
+              <p className="mt-4 text-slate-600 text-base sm:text-lg leading-relaxed max-w-2xl">
+                Практични статии за симптоми, лечения, цени и въпроси,
+                които да зададеш преди консултация.
+              </p>
             </div>
             <Link
               href="/blog"
@@ -696,32 +711,56 @@ function CarePassTeaser() {
             <div aria-hidden className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-teal-500/20 blur-3xl" />
             <div className="relative p-8 sm:p-12 grid md:grid-cols-[1.4fr_1fr] gap-8 items-center">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.2em] text-teal-300/80 font-semibold">Care Pass (скоро)</p>
+                <p className="text-[11px] uppercase tracking-[0.2em] text-teal-300/80 font-semibold">Zubite Care Pass</p>
                 <h2 className="mt-3 font-serif text-3xl sm:text-4xl font-semibold leading-tight">
-                  По-спокойна грижа за зъбите. <br />За цялото семейство.
+                  Посети консултацията и получи <br />Care Pass от клиниката.
                 </h2>
                 <p className="mt-4 text-slate-300 text-sm sm:text-base leading-relaxed max-w-md">
-                  Достъп до партньорски клиники с предвидими цени,
-                  персонален календар и проследяване на лечението.
+                  Когато заявиш насочване чрез Zubite.bg и посетиш
+                  консултацията в партньорска клиника, клиниката ще ти
+                  предостави Zubite Care Pass — карта с отстъпки за
+                  продукти за орална хигиена.
                 </p>
-                <Link
-                  href="/care-pass"
-                  className="mt-6 inline-flex items-center gap-1.5 rounded-full bg-white text-slate-900 hover:bg-slate-100 text-sm font-medium px-5 py-3 transition-colors"
-                  data-testid="care-pass-cta"
-                >
-                  Запази място в early access
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
+                <p className="mt-3 text-slate-400 text-sm sm:text-base leading-relaxed max-w-md">
+                  Така получаваш не само по-ясна следваща стъпка, а и
+                  реална допълнителна стойност за ежедневната грижа за
+                  зъбите.
+                </p>
+                <div className="mt-6 flex flex-wrap items-center gap-3">
+                  <Link
+                    href={QUIZ_URL}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-white text-slate-900 hover:bg-slate-100 text-sm font-medium px-5 py-3 transition-colors"
+                    data-testid="care-pass-cta"
+                  >
+                    Провери своя случай
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                  <Link
+                    href="/care-pass"
+                    className="inline-flex items-center gap-1.5 rounded-full bg-transparent text-white hover:bg-white/10 text-sm font-medium px-5 py-3 ring-1 ring-white/20 transition-colors"
+                    data-testid="care-pass-secondary-cta"
+                  >
+                    Как работи Care Pass
+                  </Link>
+                </div>
+                <p className="mt-5 text-[11px] text-slate-500 leading-snug max-w-md">
+                  Care Pass се предоставя от клиниката след проведена
+                  консултация чрез Zubite.bg. Отстъпките са за партньорски
+                  продукти за орална хигиена и не представляват отстъпка от
+                  лечение.
+                </p>
               </div>
               <div className="relative">
                 <div className="aspect-[5/3] rounded-2xl bg-gradient-to-br from-white/10 to-teal-300/10 ring-1 ring-white/10 backdrop-blur-md p-5 flex flex-col justify-between">
                   <div className="flex items-center justify-between">
                     <p className="font-serif text-lg">Zubite Care Pass</p>
-                    <span className="text-[10px] uppercase tracking-widest text-teal-200">Premium</span>
+                    <span className="text-[10px] uppercase tracking-widest text-teal-200">Партньорска</span>
                   </div>
                   <div>
-                    <p className="text-[10px] text-slate-400">Член от</p>
-                    <p className="font-serif text-base">Февруари 2026</p>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wider">Включва</p>
+                    <p className="font-serif text-sm sm:text-base leading-snug mt-0.5">
+                      Отстъпки за продукти <br />за орална хигиена
+                    </p>
                   </div>
                 </div>
               </div>
@@ -736,11 +775,13 @@ function CarePassTeaser() {
 // ─── 12. FAQ ─────────────────────────────────────────────────────
 function FAQ() {
   const items = [
-    { q: 'Zubite.bg клиника ли е?', a: 'Не. Zubite.bg е независима платформа, която ти помага да разбереш своя случай и да намериш подходяща клиника. Лечението се извършва в избраната от теб клиника.' },
-    { q: 'Платформата ли поставя диагноза?', a: 'Не. Zubite.bg не поставя диагнози. Дава ориентировъчна информация и не замества професионален стоматологичен преглед.' },
-    { q: 'Колко струва използването?', a: 'Безплатно за пациенти. Не изискваме регистрация, за да минеш през 60-секундния преглед.' },
-    { q: 'Как избирате клиники?', a: 'По релевантност към твоя случай — тип лечение, локация, опит на специалиста и обратна връзка от пациенти. Не по платена реклама.' },
-    { q: 'Какво се случва с моите данни?', a: 'Споделяме информация с клиника само ако ти изрично заявиш насочване. Данните се обработват съгласно българското и европейско законодателство.' },
+    { q: 'Zubite.bg клиника ли е?',          a: 'Не. Zubite.bg е независима платформа за ориентация и насочване. Помагаме ти да разбереш какъв тип проблем описваш, какви следващи стъпки може да имат смисъл и към какъв тип клиника да се насочиш.' },
+    { q: 'Платформата ли поставя диагноза?', a: 'Не. Въпросникът дава ориентировъчна информация според твоите отговори. Диагноза, план за лечение и точна цена могат да бъдат потвърдени само след преглед от стоматолог или ортодонт.' },
+    { q: 'Колко струва използването?',       a: 'Попълването на въпросника е безплатно. Ако решиш да продължиш към клиника, ще видиш каква е следващата стъпка и дали има цена за консултация според конкретната клиника.' },
+    { q: 'Как избирате клиники?',            a: 'Гледаме категория лечение, град, описан случай, налични услуги и релевантност. Целта е да не получиш случаен списък, а по-подходяща посока според това, което си описал.' },
+    { q: 'Какво се случва с моите данни?',   a: 'Използваме данните ти, за да подготвим обобщение и, ако поискаш, да те насочим към клиника. Не изпращаме данни към клиника без твое действие за продължаване.' },
+    { q: 'Как получавам Zubite Care Pass?',  a: 'След като заявиш насочване чрез Zubite.bg и посетиш консултация в партньорска клиника, клиниката ще ти предостави Zubite Care Pass.' },
+    { q: 'Какво включва Care Pass?',         a: 'Care Pass съдържа отстъпки за партньорски продукти за орална хигиена — например продукти за ежедневна грижа за зъбите и венците. Той не е отстъпка от лечение и не заменя препоръка от стоматолог.' },
   ]
   return (
     <section className="py-20 sm:py-28 bg-[#FCFAF8]" data-testid="home-faq">
@@ -800,11 +841,11 @@ function FinalCTA() {
             <Clock className="w-3 h-3" /> ~60 секунди
           </span>
           <h2 className="mt-5 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight">
-            Първо яснота. <br />После — подходящата клиника.
+            Първо яснота. <br />После — подходяща следваща стъпка.
           </h2>
           <p className="mt-4 text-slate-600 text-base sm:text-lg leading-relaxed">
-            Кратък преглед, разбираемо описание на случая и съгласувано
-            насочване — без обвързване.
+            Отговори на няколко въпроса и виж какъв ориентир можеш да
+            получиш — без регистрация, без натиск и без задължение.
           </p>
           <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
             <Link
@@ -823,9 +864,8 @@ function FinalCTA() {
             </Link>
           </div>
           <p className="mt-7 text-[11px] text-slate-400 leading-snug max-w-lg mx-auto">
-            Zubite.bg не поставя диагнози и не замества професионален
-            стоматологичен преглед. Платформата предоставя ориентировъчна
-            информация и насочване към подходящи клиники в България.
+            Zubite.bg не поставя диагноза и не заменя професионален
+            стоматологичен преглед.
           </p>
         </Reveal>
       </div>
