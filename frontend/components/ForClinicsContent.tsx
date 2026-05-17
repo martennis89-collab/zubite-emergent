@@ -56,7 +56,7 @@ function HeroSection() {
             <BadgeCheck className="w-3 h-3" />
             Партньорска програма
           </span>
-          <h1 className="mt-5 font-serif font-semibold tracking-tight text-white text-[2.5rem] sm:text-5xl lg:text-[3.5rem] leading-[1.05]">
+          <h1 className="mt-5 font-serif font-semibold tracking-tight text-white text-[2.25rem] sm:text-[2.75rem] lg:text-[3rem] leading-[1.08] text-balance">
             Получавайте по-подготвени пациенти,{' '}
             <span className="text-teal-300">не просто още запитвания</span>.
           </h1>
@@ -718,6 +718,67 @@ function WhoItIsForSection() {
 }
 
 /* ════════════════════════════════════════════════════════════
+   10. FINAL CTA — dedicated section per spec (dual CTA: apply + contact)
+   ════════════════════════════════════════════════════════════ */
+function FinalCtaSection() {
+  return (
+    <section
+      className="relative py-20 sm:py-24 bg-[#FCFAF8] overflow-hidden"
+      data-testid="clinics-final-cta"
+    >
+      <div className="relative max-w-5xl mx-auto px-5 sm:px-8">
+        <div
+          className="relative rounded-3xl overflow-hidden ring-1 ring-white/10 shadow-[0_30px_80px_-30px_rgba(15,23,42,0.55)] p-8 sm:p-12 md:p-16 text-center"
+          style={{
+            background:
+              'radial-gradient(ellipse 60% 60% at 50% 0%, rgba(20,184,166,0.22) 0%, transparent 60%),' +
+              'radial-gradient(ellipse 50% 50% at 0% 100%, rgba(94,234,212,0.10) 0%, transparent 65%),' +
+              'linear-gradient(135deg, #0B1620 0%, #0E1A24 50%, #112832 100%)',
+          }}
+        >
+          <div aria-hidden className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-teal-300/30 to-transparent" />
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.08] ring-1 ring-white/15 text-teal-200 text-[10px] font-semibold px-3 py-1 uppercase tracking-[0.2em]">
+            <BadgeCheck className="w-3 h-3" />
+            По-добър входящ канал
+          </span>
+          <h2 className="mt-5 font-serif text-[2rem] sm:text-4xl lg:text-[2.75rem] font-semibold text-white leading-[1.08] text-balance max-w-3xl mx-auto">
+            Ако искате по-подготвени пациенти, започнете от{' '}
+            <span className="text-teal-300">по-добър входящ канал</span>.
+          </h2>
+          <p className="mt-5 text-slate-300 text-base sm:text-lg leading-relaxed max-w-xl mx-auto">
+            Подайте кратка форма или се свържете директно с екипа на Zubite.bg.
+          </p>
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              href="#application"
+              className="group relative inline-flex items-center justify-center gap-1.5 rounded-full text-slate-900 text-sm font-medium px-6 py-3.5 transition-all hover:-translate-y-0.5 shadow-[0_18px_40px_-12px_rgba(94,234,212,0.45)] overflow-hidden w-full sm:w-auto"
+              style={{ backgroundImage: 'linear-gradient(135deg,#5eead4 0%,#2dd4bf 60%,#14b8a6 100%)' }}
+              data-testid="final-apply-btn"
+            >
+              <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/40 blur-sm pointer-events-none" />
+              <span className="relative inline-flex items-center gap-1.5">
+                Кандидатствай като партньорска клиника
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+              </span>
+            </Link>
+            <Link
+              href="/contact"
+              className="inline-flex items-center justify-center gap-1.5 rounded-full bg-white/[0.08] backdrop-blur-xl text-white text-sm font-medium px-6 py-3.5 ring-1 ring-white/15 hover:bg-white/[0.14] hover:-translate-y-0.5 transition-all w-full sm:w-auto"
+              data-testid="final-contact-btn"
+            >
+              Свържи се с екипа
+            </Link>
+          </div>
+          <p className="mt-7 text-[11px] text-slate-500 leading-snug max-w-lg mx-auto">
+            Без гарантиран обем · Без гарантирани класации · Подбрана партньорска мрежа.
+          </p>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ════════════════════════════════════════════════════════════
    APPLICATION FORM — submit logic preserved verbatim
    ════════════════════════════════════════════════════════════ */
 const inputClass =
@@ -858,12 +919,11 @@ function ApplicationSection() {
               <p className="font-sans text-xs font-semibold tracking-[0.25em] uppercase text-teal-300 mb-3">
                 Кандидатстване
               </p>
-              <h2 className="font-serif text-[2rem] sm:text-4xl font-semibold text-white leading-[1.08] mb-4">
-                Ако искате по-подготвени пациенти, започнете от{' '}
-                <span className="text-teal-300">по-добър входящ канал</span>.
+              <h2 className="font-serif text-[1.75rem] sm:text-[2.25rem] font-semibold text-white leading-[1.1] mb-4">
+                Подайте кратка форма за партньорство
               </h2>
               <p className="text-slate-300 text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
-                Подайте кратка форма. Ще прегледаме съответствието с партньорската мрежа и ще се свържем с вас.
+                Ще прегледаме съответствието с партньорската мрежа и ще се свържем с вас в рамките на 48 часа.
               </p>
             </div>
 
@@ -1098,6 +1158,7 @@ export function ForClinicsContent() {
       <WhoItIsForSection />
       <DashboardPreviewSection />
       <FaqSection />
+      <FinalCtaSection />
       <ApplicationSection />
       <ClinicsFooter />
     </main>

@@ -1,5 +1,67 @@
 # Zubite.bg — Changelog
 
+## 2026-02-17 — Phase 5: /za-kliniki B2B Polish (final-CTA + hero H1 wrap)
+
+Light **polish pass** on the already-redesigned `/za-kliniki` premium
+B2B SaaS partner-acquisition page. The page was already 95% aligned
+with the latest user spec (deep navy hero with the exact "Получавайте
+по-подготвени пациенти, не просто още запитвания" headline; 4 trust
+chips; problem section; "Какво прави Zubite различно?" with `<details>`
+hover-reveal; partner-panel dashboard mockup with anonymised demo lead
+rows; 4-step how-it-works; "По-добрата заявка..."; "Не сме отворен
+каталог"; Care Pass for clinics; 6-FAQ; 13-field application form
+preserving the verbatim `POST /api/clinic-applications` payload).
+
+### Changes
+1. **Hero H1 wrap polish** — `text-[2.5rem] sm:text-5xl lg:text-[3.5rem]`
+   was wrapping "не" awkwardly at lg. Reduced to `text-[2.25rem]
+   sm:text-[2.75rem] lg:text-[3rem]` + added `text-balance` so the
+   serif headline now breaks naturally between "пациенти," and "не
+   просто още запитвания".
+2. **NEW `FinalCtaSection`** (testid `clinics-final-cta`) — inserted
+   between FAQ and ApplicationSection. Matches spec section 10
+   verbatim: deep navy panel + glass eyebrow chip ("По-добър входящ
+   канал") + serif H2 "Ако искате по-подготвени пациенти, започнете
+   от **по-добър входящ канал**." + short subhead + **dual CTA**
+   (primary glossy-teal "Кандидатствай като партньорска клиника"
+   scrolls to `#application`; secondary frosted-glass "Свържи се с
+   екипа" → `/contact`) + governance footnote "Без гарантиран обем ·
+   Без гарантирани класации · Подбрана партньорска мрежа.". New
+   data-testids: `clinics-final-cta`, `final-apply-btn`,
+   `final-contact-btn`.
+3. **ApplicationSection heading simplified** — was duplicating the
+   spec's Final CTA headline; now just `Подайте кратка форма за
+   партньорство` + 48h response promise. Form body, fields, payload,
+   submit handler, success state — all preserved verbatim.
+
+### Untouched (per user constraint)
+- ApplicationSection state, payload shape, `POST /api/clinic-applications`
+- Admin dashboard, clinic dashboard, backend, auth, database
+- Lead capture, attribution, quiz logic, results logic
+- Any unrelated routes
+- SEO metadata / JSON-LD
+- All existing data-testids preserved (`clinics-hero`, `clinics-problem`,
+  `clinics-differentiation`, `clinics-context`, `clinics-how-it-works`,
+  `clinics-value-stack`, `clinics-neutral-layer`, `clinics-founding`,
+  `clinics-who-for`, `clinics-dashboard-preview`, `clinics-application`,
+  `clinics-faq`, `clinics-logo`, form inputs, hero/footer apply buttons)
+
+### Tests
+- TypeScript: `npx tsc --noEmit --skipLibCheck` → 0 new errors on
+  `ForClinicsContent.tsx`.
+- Self-test (screenshots + DOM probes):
+  - Desktop 1440 — 0px horizontal overflow; H1 wraps naturally.
+  - Mobile 375 — 0px horizontal overflow at top AND at the Final CTA.
+  - Tablet 768 — 0px horizontal overflow.
+  - `clinics-final-cta`, `final-apply-btn`, `final-contact-btn` all
+    found in DOM (count = 1 each).
+  - FAQ accordion: `faq-item-0` opens on click (verified `el.open = true`).
+
+### Files changed
+- `frontend/components/ForClinicsContent.tsx` (+62/−6 lines)
+
+
+
 ## 2026-02-17 — Phase 3: Blog + Static Pages Visual Polish (Wave.co glass)
 
 Migrated all **patient-facing static & informational pages** to the
