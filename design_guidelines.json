@@ -1,84 +1,183 @@
 {
-  "theme": "Dark/Light Hybrid (Premium B2B)",
-  "archetype": "Archetype 4 (Swiss/Authority) + Archetype 5 (Jewel & Luxury)",
-  "typography": {
-    "heading_font": "Playfair Display",
-    "body_font": "Inter",
-    "rules": [
-      "Headings must use Playfair Display for a premium, authoritative feel.",
-      "Body text must use Inter for maximum readability.",
-      "Use tracking-tight on all headings above text-3xl.",
-      "Use uppercase with tracking-[0.2em] for overlines and labels.",
-      "Do not center-align paragraphs; left-align dense content."
+  "theme_and_archetype": {
+    "theme": "Light",
+    "archetype": "Organic & Earthy (Modified for Premium Soft-Tech Healthcare)",
+    "vibe": "Calm, premium, trustworthy, clear, non-fear-based, decision engine"
+  },
+  "color_tokens": {
+    "css_vars": {
+      "--background": "252 30% 98%",
+      "--foreground": "165 20% 15%",
+      "--primary": "173 57% 39%",
+      "--primary-foreground": "0 0% 100%",
+      "--secondary": "173 30% 90%",
+      "--secondary-foreground": "165 30% 20%",
+      "--accent": "180 20% 95%",
+      "--accent-foreground": "165 20% 15%",
+      "--muted": "60 10% 95%",
+      "--muted-foreground": "165 10% 40%",
+      "--card": "0 0% 100%",
+      "--card-foreground": "165 20% 15%",
+      "--border": "165 10% 90%",
+      "--glass-bg": "252 30% 98% / 0.8"
+    },
+    "descriptions": {
+      "Warm Ivory": "Main background (#FCFAF8 or close). Gives the clinical space a warm, hospitable feel.",
+      "Soft Turquoise / Blue-Green": "Primary CTA and active states (#2A9D8F). Calming healthcare trust tone.",
+      "Deep Slate/Charcoal": "Text color (#1E2925). Softer than pure black for a premium look.",
+      "Sky Blue-Green": "Accent and secondary surfaces. Used in Care Pass teaser."
+    }
+  },
+  "typography_pairing": {
+    "headline": {
+      "family": "Playfair Display, Cormorant Garamond, or similar premium Serif",
+      "usage": "H1, H2, H3 - To match the Care Pass aesthetic and provide a trustworthy, authoritative but elegant medical tone",
+      "weight": "font-medium to font-semibold",
+      "tracking": "tracking-tight"
+    },
+    "body": {
+      "family": "Manrope, Inter, or similar clean Geometric/Humanist Sans",
+      "usage": "Paragraphs, CTAs, UI text, metadata",
+      "weight": "font-normal",
+      "tracking": "tracking-normal"
+    }
+  },
+  "section_by_section_treatment": [
+    {
+      "name": "1. Premium Sticky Navigation",
+      "visuals": "Crystal glassmorphism (backdrop-blur-xl with light ivory tint). Clean layout: Logo on left, subtle nav links center, 'Провери своя случай' CTA button on right.",
+      "motion": "Slide down on scroll up, slight shadow increase when scrolled."
+    },
+    {
+      "name": "2. Hero Section",
+      "visuals": "Spacious split layout (or bento-hero). Left: Large serif headline, sans-serif subheadline, dual CTAs. Right: Floating product UI cards (mockup of the quiz/results) casting soft ambient shadows. Use the `hero_background_texture` image as a very subtle, low-opacity background overlay.",
+      "motion": "Staggered fade-up for text. Floating, gentle levitation animation (Y-axis translate) for the UI cards to feel 'soft-tech'."
+    },
+    {
+      "name": "3. Trust Strip",
+      "visuals": "Horizontal, muted flex-wrap or slow marquee bar. Minimalist icons (lucide-react) paired with text. Minimal contrast, text-sm, uppercase/tracking-wide.",
+      "items": ["Без регистрация", "Без задължение", "Ориентировъчни цени", "Подходящи клиники", "Не заменя преглед"]
+    },
+    {
+      "name": "4. Problem Section",
+      "visuals": "Full-width section with a soft turquoise/blue-green muted background (--secondary or --accent). Focuses on patient confusion. Use large, elegant typography. Clean layout with plenty of negative space.",
+      "motion": "Fade-in on scroll."
+    },
+    {
+      "name": "5. How it Works (4 Steps)",
+      "visuals": "4 connected steps or cards using a horizontal track or grid. 'Отговори → Разбери → Сравни → Заяви насочване'. High emphasis on clarity. Use numeric indicators with soft circles.",
+      "motion": "Sequential reveal of steps."
+    },
+    {
+      "name": "6. Treatment Category Cards",
+      "visuals": "A clean grid (e.g., 3x2 or 4x2 bento layout) of rounded cards with soft shadows. White background on cards against ivory section background.",
+      "categories": ["Ортодонтия", "Алайнери vs брекети", "Импланти", "Естетична стоматология", "TMJ / челюстни стави", "Сънна апнея", "Детска ортодонтия"]
+    },
+    {
+      "name": "7. Interactive Decision Preview UI",
+      "visuals": "A centralized, large mockup card mimicking the actual app result screen. Clean, data-rich but visually calm. Use subtle glassmorphism if overlapping backgrounds.",
+      "motion": "Parallax scroll effect."
+    },
+    {
+      "name": "8. Zubi Guidance Section",
+      "visuals": "Introduce the AI-native guide. Use the `zubi_ai_abstract` image (holographic/orb). NO face, NO childish mascot. Calm, intelligent narrative.",
+      "motion": "Slow, continuous rotation or breathing scale animation on the holographic orb."
+    },
+    {
+      "name": "9. Clinic Matching Explanation",
+      "visuals": "Text-heavy but highly scannable section explaining the guided matching vs random directory. Use abstract UI connectors or line-art icons."
+    },
+    {
+      "name": "10. Patient Questions / Education Cards",
+      "visuals": "Carousel or grid of simple, rounded cards addressing common doubts."
+    },
+    {
+      "name": "11. Optional Care Pass Teaser",
+      "visuals": "Match existing premium ivory/sky palette. Looks like an exclusive membership card or premium invite.",
+      "motion": "Subtle metallic/shine sweep effect on hover."
+    },
+    {
+      "name": "12. FAQ",
+      "visuals": "Clean Shadcn accordion. No borders, just soft dividers. Serif typography for questions.",
+      "motion": "Smooth expansion."
+    },
+    {
+      "name": "13. Final CTA & Footer",
+      "visuals": "Centered, high-impact section. Repeated CTA buttons. Calm background. Medical disclaimer in muted small text at the bottom."
+    }
+  ],
+  "component_inventory": [
+    "TrustChip",
+    "StepCard",
+    "TreatmentCard",
+    "ZubiAvatar (Abstract, image-based or CSS orb)",
+    "QuizResultMockup",
+    "FAQItem",
+    "CareTeaser",
+    "FloatingBlob",
+    "GrainOverlay"
+  ],
+  "motion_language": {
+    "philosophy": "Smooth, calm, deliberate. No rapid snapping. High-end 'momentum' feel.",
+    "hover_states": "-translate-y-1 with expanded soft shadow. Text color shift to primary.",
+    "scroll_triggers": "Framer motion (or Tailwind group-fade) staggered entrances for grids.",
+    "floating_ui": "Infinite Y-axis float (animation-duration: 6s, ease-in-out) for hero mockups."
+  },
+  "responsive_breakpoints": {
+    "mobile": "Mobile-first. Hero mockups scale down to static cards or hide completely to prioritize the CTA. Sticky CTA fixed at bottom of screen on mobile.",
+    "tablet": "Grid shifts to 2 columns.",
+    "desktop": "Generous max-width (e.g., max-w-6xl). Mockups overlap sections to create depth."
+  },
+  "anti_patterns": [
+    "NO cyberpunk, neon, or harsh borders.",
+    "NO childish mascots (Zubi is an abstract/calm guide).",
+    "NO generic dental stock photos (smiling people pointing at teeth).",
+    "NO purple gradients. Stick to ivory/turquoise.",
+    "NO aggressive 'Book Now' language. Use 'request guidance' variations.",
+    "NO center-everything disease. Use asymmetric bento grids and left-aligned text for readability.",
+    "NO pure black/white combinations. Tint greys and whites with warmth."
+  ],
+  "image_urls": [
+    {
+      "slug": "hero_background_texture",
+      "url": "https://static.prod-images.emergentagent.com/jobs/25b55d94-1ed6-49c7-af05-4dd6f19863cf/images/ee418e7567bbb08fdf27e9d9873be33914cd827a79e42b9833f9728687f9addb.png",
+      "category": "background",
+      "description": "Subtle organic grain texture, warm ivory background with very soft, diffuse turquoise. Use as a low-opacity overlay or background in the Hero and Problem sections."
+    },
+    {
+      "slug": "zubi_ai_abstract",
+      "url": "https://static.prod-images.emergentagent.com/jobs/25b55d94-1ed6-49c7-af05-4dd6f19863cf/images/863b3f96aa77cea80d56a54ca8cd6f203e1b195d375d00facc84712d20a413cd.png",
+      "category": "avatar/illustration",
+      "description": "Calm, premium abstract 3D shape/orb. Use in the 'Zubi Guidance' section to represent the AI guide without using a face/mascot."
+    }
+  ],
+  "sample_copy_variants": {
+    "hero_headline": [
+      "Първо яснота. После избор.",
+      "Разбери какво ти има, преди да седнеш на стола."
     ],
-    "classes": {
-      "h1": "font-serif text-4xl sm:text-5xl lg:text-6xl font-medium tracking-tight",
-      "h2": "font-serif text-2xl sm:text-3xl lg:text-4xl font-normal tracking-tight",
-      "h3": "font-serif text-xl sm:text-2xl font-normal",
-      "body": "font-sans text-base leading-relaxed text-slate-600 dark:text-slate-300",
-      "overline": "font-sans text-xs font-semibold tracking-[0.2em] uppercase text-sky-600"
-    }
-  },
-  "colors": {
-    "primary": "bg-sky-500 hover:bg-sky-600 text-white",
-    "surface_dark": "bg-slate-950 text-white",
-    "surface_light": "bg-slate-50 text-slate-900",
-    "surface_white": "bg-white text-slate-900",
-    "glass_dark": "bg-slate-900/60 backdrop-blur-xl border border-white/10 text-white",
-    "border_light": "border-slate-200"
-  },
-  "layout_and_spacing": {
-    "section_padding": "py-24 md:py-32",
-    "container": "max-w-7xl mx-auto px-6 md:px-12",
-    "border_radius": "rounded-2xl for cards, rounded-full for primary buttons"
-  },
-  "components": {
-    "Hero": {
-      "style": "surface_dark",
-      "layout": "Grid 1x2 (Text left, Image right). Or large background with max 50% opacity overlay.",
-      "instructions": "Use 'premium_clinic_hero' image. Headline: 'Ексклузивно партньорство за водещи ортодонтски клиники'. Subhead: 'Получавайте квалифицирани, предварително консултирани пациенти. Без маркетингов шум, само реални резултати.' CTA Button ('Кандидатствайте') with data-testid='hero-apply-btn'."
-    },
-    "HowItWorks": {
-      "style": "surface_light",
-      "layout": "3-column CSS Grid. 'Control Room' tight spacing.",
-      "instructions": "Cards with no border, shadow-sm, bg-white. Titles: 1. Предварителна селекция, 2. Образование, 3. Директна връзка. Use Lucide icons in sky-500."
-    },
-    "Differentiators": {
-      "style": "surface_dark",
-      "layout": "Bento Grid (Tetris Mode) - span combinations of col-span-4 and col-span-8.",
-      "instructions": "Use glass_dark styling for cards. Integrate 'dental_abstract_macro' image into one large card. Highlight: No agency fees, High patient intent, Premium network."
-    },
-    "Requirements": {
-      "style": "surface_white",
-      "layout": "2-column split. Left: sticky overline + heading. Right: strict checklist.",
-      "instructions": "Use 'requirements_professional' image softly blended or in a rounded-2xl container. Checklist items with 'CheckCircle2' icon."
-    },
-    "CTA": {
-      "style": "surface_dark with parallax background",
-      "layout": "Centered",
-      "instructions": "Use 'glass_tech_background' with heavy dark overlay. Heading: 'Готови ли сте да надградите практиката си?'. Primary button with data-testid='footer-apply-btn'."
-    },
-    "TrustPositioning": {
-      "style": "surface_light",
-      "layout": "Centered, narrow max-w-3xl",
-      "instructions": "Italicized Playfair Display text: 'Изграждаме мост между информираните пациенти и специалистите, които заслужават тяхното доверие.'"
-    }
-  },
-  "media_urls": {
-    "premium_clinic_hero": "https://static.prod-images.emergentagent.com/jobs/25b55d94-1ed6-49c7-af05-4dd6f19863cf/images/c044576ee418cf96511f2f72dded7b9f2ebc0435096c7b2488cba562a6b989f8.png",
-    "dental_abstract_macro": "https://static.prod-images.emergentagent.com/jobs/25b55d94-1ed6-49c7-af05-4dd6f19863cf/images/386ec0205916716c2cf25e98607cad8935c5afea4b6518cb73e4cf72a22738f7.png",
-    "glass_tech_background": "https://static.prod-images.emergentagent.com/jobs/25b55d94-1ed6-49c7-af05-4dd6f19863cf/images/2298694c4c9cbbf07d3a89bf22a454c37b902fe002b36762f137545ab69e27f0.png",
-    "requirements_professional": "https://images.pexels.com/photos/4687335/pexels-photo-4687335.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+    "hero_subheadline": [
+      "Zubite.bg ти помага да разбереш своя стоматологичен проблем и те насочва към правилния специалист — без объркване.",
+      "Вашият личен навигатор в денталното здраве. Получете яснота за състоянието си и намерете най-подходящата клиника."
+    ],
+    "primary_cta": [
+      "Провери своя случай за 60 секунди",
+      "Заяви безплатно насочване"
+    ],
+    "secondary_cta": [
+      "Виж как работи"
+    ],
+    "medical_disclaimer": [
+      "Zubite.bg не поставя диагнози и не замества професионален стоматологичен преглед. Платформата предоставя само ориентировъчна информация."
+    ]
   },
   "instructions_to_main_agent": [
-    "You are building a premium B2B 'For Clinics' landing page in Next.js (App Router, .js files).",
-    "Configure tailwind.config.js to map font-serif to Playfair Display and font-sans to Inter.",
-    "Do NOT use typical SaaS marketing templates. Aim for a 'Law Firm' or 'Luxury Private Clinic' aesthetic.",
-    "Implement a 'Dark/Light Hybrid' section sequence: Hero (Dark bg-slate-950) -> How It Works (Light bg-slate-50) -> Differentiators (Dark bg-slate-950) -> Requirements (Light bg-white) -> CTA (Dark bg-slate-950).",
-    "Buttons: rounded-full, bg-sky-500, hover:bg-sky-600. MUST include data-testid attributes (e.g., data-testid='hero-apply-btn').",
-    "Card styling: Dark mode cards use glassmorphism (bg-slate-900/60 backdrop-blur-xl border border-white/10). Light mode cards use simple bg-white with subtle shadow and border-slate-200.",
-    "Copy MUST be in Bulgarian exactly as requested.",
-    "DO NOT use placeholder images. Use ONLY the media_urls provided in this JSON.",
-    "Ensure section paddings are extremely generous (py-24 or py-32)."
+    "DO NOT ADD UNNECESSARY DEPENDENCIES. Use Tailwind and Shadcn UI (already present in Next.js app).",
+    "Replace the content of /app/frontend/app/page.tsx or create a new layout, but DO NOT break existing routes (/quiz, /blog, /admin, etc.).",
+    "Construct the Hero section with a heavy emphasis on HTML/CSS 'Mockup Cards' floating on the right to simulate the product UI, avoiding generic images.",
+    "Implement the Serif headline + Sans-serif body typography pairing globally on the homepage.",
+    "Ensure all interactive elements have data-testid attributes.",
+    "Implement a mobile sticky CTA that remains visible on small screens to drive conversions.",
+    "Always rely on the generated media URLs provided in this file; NO placeholders."
   ]
 }
