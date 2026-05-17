@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, Suspense } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
-import { CheckCircle, ArrowRight, MapPin, Shield, Sparkles } from 'lucide-react'
+import { CheckCircle, ArrowRight, MapPin, Shield, ShieldCheck, Sparkles } from 'lucide-react'
 import { trackPageView } from '@/components/MetaPixel'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
 
@@ -109,9 +109,16 @@ function SuccessContent() {
         className={`relative rounded-2xl ring-1 ${bandCfg.border.replace('border-', 'ring-')} ${bandCfg.bg} backdrop-blur-md p-5 sm:p-6 mb-6 shadow-[0_12px_40px_-20px_rgba(15,23,42,0.15)]`}
         data-testid="success-result-card"
       >
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
           <span className={`w-2 h-2 rounded-full ${bandCfg.dot}`} />
           <span className={`text-sm font-semibold ${bandCfg.color}`}>{bandCfg.label}</span>
+          <span
+            className="inline-flex items-center gap-1 rounded-full bg-teal-50 ring-1 ring-teal-100 text-teal-700 text-[10px] uppercase tracking-[0.16em] font-semibold px-2 py-0.5"
+            data-testid="success-safety-chip"
+            title="Ориентир, не диагноза"
+          >
+            <ShieldCheck className="w-3 h-3" /> Ориентир, не диагноза
+          </span>
           {city && (
             <span className="text-xs text-slate-400 ml-auto flex items-center gap-1">
               <MapPin className="w-3 h-3" />
