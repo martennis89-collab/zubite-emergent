@@ -22,8 +22,18 @@ import Image from 'next/image'
 import {
   ShieldCheck, Sparkles, Building2, Stethoscope, ChevronDown,
   CheckCircle2, ArrowRight, MoveRight, Heart, Smile, Activity,
-  AlignLeft, MessageSquare, Clock, Star,
+  AlignLeft, MessageSquare, Clock, Star, BookOpen, Mail,
 } from 'lucide-react'
+
+export interface HomeBlogPost {
+  id: string
+  title: string
+  slug: string
+  excerpt: string
+  category: string
+  featured_image: string | null
+  published_at: string
+}
 
 const HERO_BG =
   'https://static.prod-images.emergentagent.com/jobs/25b55d94-1ed6-49c7-af05-4dd6f19863cf/images/ee418e7567bbb08fdf27e9d9873be33914cd827a79e42b9833f9728687f9addb.png'
@@ -588,6 +598,94 @@ function PatientQuestions() {
   )
 }
 
+// ─── 10.5 Recent articles (SSR-fetched blog posts) ───────────────
+function RecentArticles({ posts }: { posts: HomeBlogPost[] }) {
+  if (!posts || posts.length === 0) return null
+  const fmtDate = (iso: string) => {
+    try {
+      return new Date(iso).toLocaleDateString('bg-BG', {
+        day: 'numeric', month: 'long', year: 'numeric',
+      })
+    } catch {
+      return ''
+    }
+  }
+  return (
+    <section className="py-20 sm:py-28" data-testid="home-recent-articles">
+      <div className="max-w-6xl mx-auto px-5 sm:px-8">
+        <Reveal>
+          <div className="flex items-end justify-between gap-6 flex-wrap">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Журнал</p>
+              <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight max-w-2xl">
+                Скорошни статии за информирани решения.
+              </h2>
+            </div>
+            <Link
+              href="/blog"
+              className="hidden sm:inline-flex items-center gap-1.5 text-sm text-teal-700 hover:text-teal-800 font-medium"
+              data-testid="recent-articles-view-all"
+            >
+              Виж всички статии <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </Reveal>
+        <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+          {posts.slice(0, 3).map((p, i) => (
+            <Reveal key={p.id} delay={i * 90}>
+              <Link
+                href={`/blog/${p.slug}`}
+                className="group block rounded-2xl bg-white ring-1 ring-slate-200/70 overflow-hidden hover:-translate-y-1 hover:shadow-lg transition-all h-full"
+                data-testid={`recent-article-${i}`}
+              >
+                <div className="aspect-[16/9] bg-gradient-to-br from-teal-50 to-slate-50 relative overflow-hidden">
+                  {p.featured_image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={p.featured_image}
+                      alt={p.title}
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <BookOpen className="w-10 h-10 text-teal-200" />
+                    </div>
+                  )}
+                </div>
+                <div className="p-5 sm:p-6">
+                  <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                    <span className="inline-flex items-center rounded-full bg-teal-50 text-teal-700 ring-1 ring-teal-100 px-2 py-0.5 uppercase tracking-wider">
+                      {p.category}
+                    </span>
+                    <span>·</span>
+                    <span>{fmtDate(p.published_at)}</span>
+                  </div>
+                  <h3 className="mt-3 font-serif text-lg sm:text-xl font-semibold text-slate-900 leading-snug group-hover:text-teal-700 transition-colors">
+                    {p.title}
+                  </h3>
+                  <p className="mt-2 text-sm text-slate-600 leading-relaxed line-clamp-3">{p.excerpt}</p>
+                  <span className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-teal-600 group-hover:gap-2 transition-all">
+                    Прочети <ArrowRight className="w-3 h-3" />
+                  </span>
+                </div>
+              </Link>
+            </Reveal>
+          ))}
+        </div>
+        <div className="mt-8 sm:hidden text-center">
+          <Link
+            href="/blog"
+            className="inline-flex items-center gap-1.5 text-sm text-teal-700 hover:text-teal-800 font-medium"
+          >
+            Виж всички статии <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 // ─── 11. Care Pass teaser ────────────────────────────────────────
 function CarePassTeaser() {
   return (
@@ -750,8 +848,66 @@ function MobileStickyCTA() {
   )
 }
 
+// ─── 14. Premium minimal footer ──────────────────────────────────
+function HomeFooter() {
+  return (
+    <footer className="bg-[#0E1A1A] text-slate-300 pt-16 pb-10" data-testid="home-footer">
+      <div className="max-w-6xl mx-auto px-5 sm:px-8">
+        <div className="grid md:grid-cols-[1.5fr_1fr_1fr_1fr] gap-10 md:gap-8">
+          <div>
+            <Link href="/" className="inline-flex items-baseline">
+              <span className="font-serif text-2xl font-semibold text-white">Zubite</span>
+              <span className="font-serif text-2xl font-semibold text-teal-400">.bg</span>
+            </Link>
+            <p className="mt-4 text-sm text-slate-400 leading-relaxed max-w-xs">
+              Спокоен ориентир в денталното здраве. Първо яснота, после избор.
+            </p>
+            <p className="mt-5 text-[11px] text-slate-500 leading-snug max-w-xs">
+              Не поставяме диагнози. Не заменяме професионален преглед.
+              Информацията е ориентировъчна.
+            </p>
+          </div>
+
+          <div>
+            <p className="text-xs uppercase tracking-[0.18em] text-slate-500 font-semibold">Платформа</p>
+            <ul className="mt-4 space-y-2.5 text-sm">
+              <li><Link href="/quiz" className="hover:text-teal-400 transition-colors">Провери случая</Link></li>
+              <li><Link href="#how" className="hover:text-teal-400 transition-colors">Как работи</Link></li>
+              <li><Link href="#treatments" className="hover:text-teal-400 transition-colors">Лечения</Link></li>
+              <li><Link href="/blog" className="hover:text-teal-400 transition-colors">Журнал</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <p className="text-xs uppercase tracking-[0.18em] text-slate-500 font-semibold">За клиники</p>
+            <ul className="mt-4 space-y-2.5 text-sm">
+              <li><Link href="/za-kliniki" className="hover:text-teal-400 transition-colors">Стани партньор</Link></li>
+              <li><Link href="/clinic/login" className="hover:text-teal-400 transition-colors">Клиничен вход</Link></li>
+              <li><Link href="/care-pass" className="hover:text-teal-400 transition-colors">Care Pass</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <p className="text-xs uppercase tracking-[0.18em] text-slate-500 font-semibold">Право</p>
+            <ul className="mt-4 space-y-2.5 text-sm">
+              <li><Link href="/privacy" className="hover:text-teal-400 transition-colors">Поверителност</Link></li>
+              <li><Link href="/terms" className="hover:text-teal-400 transition-colors">Условия</Link></li>
+              <li><Link href="/contact" className="inline-flex items-center gap-1.5 hover:text-teal-400 transition-colors"><Mail className="w-3.5 h-3.5" /> Контакти</Link></li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="mt-12 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-[11px] text-slate-500">
+          <p>© {new Date().getFullYear()} Zubite.bg · Всички права запазени.</p>
+          <p>Направено с грижа в България.</p>
+        </div>
+      </div>
+    </footer>
+  )
+}
+
 // ─── Public exports ──────────────────────────────────────────────
-export function HomeContent() {
+export function HomeContent({ recentPosts = [] }: { recentPosts?: HomeBlogPost[] }) {
   return (
     <>
       <Nav />
@@ -765,9 +921,11 @@ export function HomeContent() {
       <ZubiSection />
       <MatchingExplain />
       <PatientQuestions />
+      <RecentArticles posts={recentPosts} />
       <CarePassTeaser />
       <FAQ />
       <FinalCTA />
+      <HomeFooter />
     </>
   )
 }
