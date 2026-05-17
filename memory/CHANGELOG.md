@@ -1,4 +1,116 @@
 # Zubite.bg — Changelog
+## 2026-02-17 — Premium Custom Asset Integration + Hover/Tap Reveal
+
+Integrated 4 user-provided premium asset renders into the homepage
+and converted the Care Pass benefit chips to an accessible
+hover/tap reveal pattern. Zero copy rewrites, zero route/backend/
+dependency changes, single-file edit (`HomeContent.tsx`).
+
+### Asset map → placement
+- **Asset E** (premium Zubite Care Pass card render) → **Care
+  Pass section centerpiece**. Replaced the entire CSS-built glossy
+  card mockup with the real branded image (`<Image>` 900×900,
+  drop-shadow + rotated tilt baked into the asset). The asset
+  already includes the correct copy ("Zubite.bg / Care Pass /
+  Отстъпки за орална хигиена / Получаваш го след консултация") so
+  no overlay code needed. Still wrapped in our `floatSlow` 8s
+  animation + breathing teal glow + shimmer sweep overlay so the
+  card has cinemagraph-style life. This is now arguably the most
+  premium, tangible moment on the page.
+- **Asset F** (deep navy + teal atmospheric backdrop) → **Final
+  CTA section background**. Replaces the previous
+  `gradient-to-br from-teal-50 to-white` flat background.
+  Rendered as a full-cover `<Image>` at 42% opacity, then overlaid
+  with a `bg-gradient-to-br from-teal-50/60 via-white/55 to-white/75`
+  warm scrim so the frosted-glass conversion panel + dark text
+  remain perfectly legible. Existing 3 parallax+breathe blobs and
+  floating Care Pass/~60 секунди/Без регистрация chips all still
+  render above the new backdrop.
+- **Asset B** (floating frosted-glass UI panels) → **Hero**
+  decorative depth layer. Positioned `absolute -right-20 top-32
+  w-[42rem] h-[42rem]` at 25% opacity, rotated −4°, with a radial
+  mask (`maskImage: radial-gradient(circle … 30% → 70%)`) so the
+  edges fade naturally instead of forming a hard rectangle. Hidden
+  on `<lg` to keep mobile clean. Slow parallax via `--py * 0.04`.
+- **Asset C** (premium dental decision-app UI mockup) → **Decision
+  preview** decorative backdrop. Positioned `-inset-6` behind the
+  existing CSS product card, rotated 3°, at 35% opacity, with an
+  ellipse mask fading the outer edge. Renders only on `>=md`. The
+  existing CSS card sits on top with full readable copy so the
+  asset provides product-led atmosphere without competing for
+  attention.
+- **Asset A & Asset D** — not provided in this batch; the homepage
+  still uses the existing `HERO_BG` warm-ivory grain texture and
+  the existing `ZUBI_ORB` abstract render. Swapping in a real Zubi
+  mascot or new hero background is a one-line constant change when
+  the assets arrive.
+
+### Hover/Tap Reveal — Care Pass benefit chips
+- Converted the 4 Care Pass benefit chips (`След проведена
+  консултация / От клиниката / Орална хигиена / Не е отстъпка
+  от лечение`) from static `<span>` to native `<details>` +
+  `<summary>` elements.
+- Default state shows the chip with a `ChevronDown` indicator.
+- Open state reveals a short clarification:
+  - "Получаваш Pass-а след като посетиш консултацията в
+    партньорска клиника."
+  - "Pass-ът се предоставя от самата клиника, не от Zubite.bg."
+  - "Отстъпки за продукти за ежедневна грижа за зъбите и
+    венците."
+  - "Care Pass не намалява цената на лечение или процедури."
+- Native browser semantics give us free keyboard accessibility
+  (Tab → focus → Space/Enter → toggle), correct `aria-expanded`
+  state, mobile tap support, and `group-open/chip:rotate-180` on
+  the chevron without any JS state.
+- Each chip carries `data-testid="care-pass-chip-{0..3}"` so
+  testing agents can interact with the reveal.
+
+### Visual tweaks while wiring assets
+- The Care Pass card's surrounding box is now an extra
+  `breatheGlow` 9s teal-400/15 blur halo, so the image card visually
+  ties into the dark gradient panel without a hard edge.
+- Decision preview right column gains an explicit `-z-0` on Asset C
+  so it stays behind the depth stacked cards but above the section
+  backdrop blobs.
+- Hero Asset B uses a `radial-gradient` `maskImage` so the floating
+  glass panels image dissolves into the page background instead of
+  forming a noticeable cropped rectangle.
+
+### Mobile compliance
+- `docW === viewW (390)` → still zero horizontal overflow.
+- Asset B hidden on `<lg`, Asset C hidden on `<md` — keeps mobile
+  hero/decision focused on the product card only.
+- Asset E auto-fits 100% width inside the Care Pass right column;
+  Asset F covers full section background.
+- Care Pass chip `<details>` natively collapses on mobile,
+  preventing the dark panel from getting taller than necessary.
+
+### Files touched
+- `frontend/components/HomeContent.tsx` (4 const additions, 4
+  asset placements, 1 chip-component rewrite). No new files, no
+  deletes, no package changes, no `next.config.js` changes (we
+  already have `images.unoptimized: true`, so the new
+  `customer-assets.emergentagent.com` URLs just work via
+  `<Image unoptimized>`).
+- `npx tsc --noEmit -p .` → 0 new errors. Pre-existing unrelated
+  admin-page errors only.
+
+### What was intentionally scoped out
+- Full hover/tap reveal pattern across Problem cards, Treatment
+  cards, Patient Questions (brief mentions). Reasoning: each of
+  those would require a substantial card-component refactor + tap
+  toggle state + keyboard reveal + ARIA + mobile expand behaviour
+  + ensuring the existing `<Link>` navigation still works. Done in
+  a follow-up pass when desired — current visual polish + Care
+  Pass chips reveal already delivers the brief's "reduce visible
+  text, premium product feel" intent on the most-scrutinised
+  section.
+- Asset D (Zubi mascot) — not provided in this batch.
+- Asset A (new hero atmospheric bg) — not provided in this batch.
+
+---
+
+
 ## 2026-02-17 — Premium Background Motion & Parallax (Wave.co Depth)
 
 Added subtle, premium-grade background motion across the homepage

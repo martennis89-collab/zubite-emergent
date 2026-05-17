@@ -42,6 +42,20 @@ const HERO_BG =
 const ZUBI_ORB =
   'https://static.prod-images.emergentagent.com/jobs/25b55d94-1ed6-49c7-af05-4dd6f19863cf/images/863b3f96aa77cea80d56a54ca8cd6f203e1b195d375d00facc84712d20a413cd.png'
 
+// User-provided premium asset renders (Feb 2026)
+// Asset B — Floating frosted-glass UI panels (hero & decision depth layer)
+const ASSET_B_GLASS_PANELS =
+  'https://customer-assets.emergentagent.com/job_25b55d94-1ed6-49c7-af05-4dd6f19863cf/artifacts/d3zg8noc_ChatGPT%20Image%20May%2017%2C%202026%2C%2010_04_41%20AM.png'
+// Asset C — Premium dental decision app UI mockup (decision preview shell support)
+const ASSET_C_APP_MOCKUP =
+  'https://customer-assets.emergentagent.com/job_25b55d94-1ed6-49c7-af05-4dd6f19863cf/artifacts/owz9rhgj_ChatGPT%20Image%20May%2017%2C%202026%2C%2010_05_03%20AM.png'
+// Asset E — Premium Zubite Care Pass card render (care-pass centerpiece)
+const ASSET_E_CARE_PASS_CARD =
+  'https://customer-assets.emergentagent.com/job_25b55d94-1ed6-49c7-af05-4dd6f19863cf/artifacts/kyba9eaq_ChatGPT%20Image%20May%2017%2C%202026%2C%2010_21_45%20AM.png'
+// Asset F — Final CTA atmospheric navy/teal background
+const ASSET_F_FINAL_CTA_BG =
+  'https://customer-assets.emergentagent.com/job_25b55d94-1ed6-49c7-af05-4dd6f19863cf/artifacts/jdhdxffb_ChatGPT%20Image%20May%2017%2C%202026%2C%2010_05_42%20AM.png'
+
 const QUIZ_URL = '/quiz'
 
 // ─── Reveal-on-scroll helper ─────────────────────────────────────
@@ -212,6 +226,28 @@ function Hero() {
         className="absolute top-20 right-1/3 w-72 h-72 rounded-full bg-emerald-200/20 blur-3xl pointer-events-none animate-[breatheGlow_13s_ease-in-out_infinite]"
         style={px(-0.04)}
       />
+
+      {/* Asset B — Floating frosted-glass UI panels as decorative depth layer (very low opacity) */}
+      <div
+        aria-hidden
+        data-parallax
+        className="absolute -right-20 top-32 w-[42rem] h-[42rem] pointer-events-none hidden lg:block opacity-[0.25] mix-blend-normal"
+        style={{
+          transform: 'translate3d(0, calc(var(--py, 0) * 0.04px), 0) rotate(-4deg)',
+          willChange: 'transform',
+          maskImage: 'radial-gradient(circle at 50% 50%, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 70%)',
+          WebkitMaskImage: 'radial-gradient(circle at 50% 50%, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 70%)',
+        }}
+      >
+        <Image
+          src={ASSET_B_GLASS_PANELS}
+          alt=""
+          fill
+          sizes="700px"
+          className="object-cover"
+          unoptimized
+        />
+      </div>
 
       <div className="relative max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[1.05fr_1fr] gap-12 items-center">
         <div>
@@ -675,6 +711,24 @@ function DecisionPreview() {
         </Reveal>
         <Reveal delay={120}>
           <div className="relative">
+            {/* Asset C — premium app UI mockup as decorative backdrop */}
+            <div
+              aria-hidden
+              className="hidden md:block absolute -inset-6 -z-0 opacity-[0.35] rotate-[3deg]"
+              style={{
+                maskImage: 'radial-gradient(ellipse at 60% 50%, rgba(0,0,0,1) 35%, rgba(0,0,0,0) 75%)',
+                WebkitMaskImage: 'radial-gradient(ellipse at 60% 50%, rgba(0,0,0,1) 35%, rgba(0,0,0,0) 75%)',
+              }}
+            >
+              <Image
+                src={ASSET_C_APP_MOCKUP}
+                alt=""
+                fill
+                sizes="600px"
+                className="object-cover rounded-[2rem]"
+                unoptimized
+              />
+            </div>
             {/* Deepest stacked card for depth */}
             <div aria-hidden className="absolute inset-0 translate-y-3 translate-x-3 rotate-[2deg] rounded-[2rem] bg-gradient-to-br from-teal-100/60 to-cyan-50/40 ring-1 ring-white/60" />
             <div className="absolute -inset-3 rounded-[2rem] bg-gradient-to-br from-teal-50 to-white ring-1 ring-teal-100/70" />
@@ -1097,22 +1151,31 @@ function CarePassTeaser() {
                     Как работи Care Pass
                   </Link>
                 </div>
-                {/* Benefit chips */}
+                {/* Benefit chips — hover/tap reveal short clarification */}
                 <div className="mt-7 flex flex-wrap gap-2">
-                  {[
-                    'След проведена консултация',
-                    'От клиниката',
-                    'Орална хигиена',
-                    'Не е отстъпка от лечение',
-                  ].map((c) => (
-                    <span
-                      key={c}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-white/8 backdrop-blur-md ring-1 ring-white/15 text-[11px] text-slate-200 font-medium px-3 py-1.5"
-                      style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+                  {([
+                    { l: 'След проведена консултация', d: 'Получаваш Pass-а след като посетиш консултацията в партньорска клиника.' },
+                    { l: 'От клиниката',                d: 'Pass-ът се предоставя от самата клиника, не от Zubite.bg.' },
+                    { l: 'Орална хигиена',              d: 'Отстъпки за продукти за ежедневна грижа за зъбите и венците.' },
+                    { l: 'Не е отстъпка от лечение',    d: 'Care Pass не намалява цената на лечение или процедури.' },
+                  ] as const).map((c, i) => (
+                    <details
+                      key={c.l}
+                      className="group/chip"
+                      data-testid={`care-pass-chip-${i}`}
                     >
-                      <CheckCircle2 className="w-3 h-3 text-teal-300" />
-                      {c}
-                    </span>
+                      <summary
+                        className="list-none inline-flex items-center gap-1.5 rounded-full ring-1 ring-white/15 text-[11px] text-slate-200 font-medium px-3 py-1.5 cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-300 hover:ring-teal-300/40 hover:bg-white/[0.10] transition-all"
+                        style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+                      >
+                        <CheckCircle2 className="w-3 h-3 text-teal-300 shrink-0" />
+                        <span>{c.l}</span>
+                        <ChevronDown className="w-3 h-3 text-slate-400 transition-transform group-open/chip:rotate-180" />
+                      </summary>
+                      <div className="mt-1 text-[10.5px] text-slate-300/80 leading-relaxed max-w-[18rem] pl-1">
+                        {c.d}
+                      </div>
+                    </details>
                   ))}
                 </div>
                 <p className="mt-6 text-[11px] text-slate-500 leading-snug max-w-xl">
@@ -1122,47 +1185,28 @@ function CarePassTeaser() {
                   лечение.
                 </p>
               </div>
-              {/* Glossy Care Pass card mockup */}
+              {/* Glossy Care Pass card mockup — Asset E premium render */}
               <div className="relative animate-[floatSlow_8s_ease-in-out_infinite]">
                 {/* Stacked depth card behind */}
                 <div aria-hidden className="absolute inset-0 translate-y-3 translate-x-3 rotate-[3deg] rounded-[1.5rem] bg-white/5 ring-1 ring-white/10 backdrop-blur-md" />
-                <div className="relative rounded-[1.5rem] overflow-hidden ring-1 ring-white/25 shadow-[0_30px_60px_-20px_rgba(0,0,0,0.5)]"
-                  style={{
-                    background:
-                      'radial-gradient(ellipse 80% 60% at 0% 0%, rgba(94,234,212,0.55) 0%, transparent 60%),' +
-                      'radial-gradient(ellipse 80% 60% at 100% 100%, rgba(255,255,255,0.10) 0%, transparent 60%),' +
-                      'linear-gradient(135deg, #0F4F58 0%, #0E2B36 100%)',
-                  }}
-                >
-                  {/* Glossy top highlight */}
-                  <div aria-hidden className="absolute inset-x-3 top-2 h-1/2 rounded-full bg-white/20 blur-2xl pointer-events-none" />
-                  {/* Subtle shimmer sweep — slow diagonal highlight, very tasteful */}
-                  <div aria-hidden className="absolute inset-y-0 -left-1/2 w-1/3 pointer-events-none animate-[shimmerSweep_8s_ease-in-out_infinite]"
-                    style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.18) 50%, transparent 100%)' }}
-                  />
-                  {/* Inner content */}
-                  <div className="relative aspect-[5/3] p-6 sm:p-7 flex flex-col justify-between">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-serif text-xl sm:text-2xl text-white tracking-tight">Zubite</p>
-                        <p className="font-serif text-base text-teal-200 -mt-0.5 tracking-tight">Care Pass</p>
-                      </div>
-                      <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md ring-1 ring-white/25">
-                        <Gift className="w-5 h-5 text-teal-200" />
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.18em] text-teal-200/80 font-semibold">Включва</p>
-                      <p className="mt-1 font-serif text-base sm:text-lg text-white leading-snug">
-                        Отстъпки за продукти <br className="hidden sm:block" />за орална хигиена
-                      </p>
-                      <p className="mt-2 text-[10.5px] text-slate-300/90">
-                        Получаваш го от клиниката след консултация
-                      </p>
-                    </div>
+                {/* Soft teal glow behind the card */}
+                <div aria-hidden className="absolute -inset-6 rounded-[2rem] bg-teal-400/15 blur-2xl animate-[breatheGlow_9s_ease-in-out_infinite]" />
+                <div className="relative">
+                  {/* Subtle shimmer sweep — tasteful highlight pass */}
+                  <div aria-hidden className="absolute inset-0 overflow-hidden rounded-[1.5rem] pointer-events-none">
+                    <div className="absolute inset-y-0 -left-1/2 w-1/3 animate-[shimmerSweep_8s_ease-in-out_infinite]"
+                      style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.22) 50%, transparent 100%)' }}
+                    />
                   </div>
-                  {/* Glossy bottom shine line */}
-                  <div aria-hidden className="absolute inset-x-6 bottom-2 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+                  <Image
+                    src={ASSET_E_CARE_PASS_CARD}
+                    alt="Zubite Care Pass — карта с отстъпки за продукти за орална хигиена"
+                    width={900}
+                    height={900}
+                    className="relative w-full h-auto rounded-[1.5rem] drop-shadow-[0_30px_60px_rgba(0,0,0,0.45)]"
+                    unoptimized
+                    priority={false}
+                  />
                 </div>
               </div>
             </div>
@@ -1241,7 +1285,19 @@ function FAQItem({ q, a, idx }: { q: string; a: string; idx: number }) {
 function FinalCTA() {
   return (
     <section className="py-24 sm:py-32 relative overflow-hidden" data-testid="home-final-cta">
-      <div aria-hidden className="absolute inset-0 bg-gradient-to-br from-teal-50 to-white" />
+      {/* Asset F — atmospheric navy/teal backdrop */}
+      <div aria-hidden className="absolute inset-0 pointer-events-none">
+        <Image
+          src={ASSET_F_FINAL_CTA_BG}
+          alt=""
+          fill
+          sizes="100vw"
+          className="object-cover opacity-[0.42]"
+          unoptimized
+        />
+      </div>
+      {/* Soft warm overlay so the white glass panel stays legible */}
+      <div aria-hidden className="absolute inset-0 bg-gradient-to-br from-teal-50/60 via-white/55 to-white/75 pointer-events-none" />
       <div aria-hidden data-parallax className="absolute -top-40 left-1/2 -translate-x-1/2 w-[40rem] h-[40rem] rounded-full bg-teal-200/30 blur-3xl animate-[breatheGlow_11s_ease-in-out_infinite]" style={px(-0.07)} />
       <div aria-hidden data-parallax className="absolute bottom-10 left-10 w-72 h-72 rounded-full bg-cyan-100/40 blur-3xl animate-[breatheGlow_13s_ease-in-out_infinite]" style={px(0.05)} />
       <div aria-hidden data-parallax className="absolute top-10 right-10 w-64 h-64 rounded-full bg-emerald-100/40 blur-3xl animate-[breatheGlow_9s_ease-in-out_infinite]" style={px(-0.04)} />
