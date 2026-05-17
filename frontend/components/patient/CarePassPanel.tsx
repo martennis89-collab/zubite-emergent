@@ -83,7 +83,7 @@ function FullVariant({ testid, className, showLearnMore }: FullProps) {
             <Gift className="w-3 h-3" aria-hidden="true" /> Zubite Care Pass
           </span>
           <h3 className="mt-4 font-serif text-2xl sm:text-3xl text-white leading-tight">
-            След консултацията получаваш карта с отстъпки за орална хигиена.
+            След консултацията получаваш карта с отстъпки за продукти за орална хигиена.
           </h3>
           <p className="mt-3 text-sm text-slate-300 leading-relaxed max-w-md">
             Care Pass се предоставя от партньорската клиника, след като посетиш
@@ -179,7 +179,7 @@ function CompactVariant({ testid, className, showLearnMore }: CompactProps) {
             <Gift className="w-3 h-3" aria-hidden="true" /> Zubite Care Pass
           </span>
           <p className="mt-2.5 font-serif text-base sm:text-lg text-white leading-snug">
-            Отстъпки за орална хигиена след посетена консултация.
+            Отстъпки за продукти за орална хигиена след посетена консултация.
           </p>
           <p className="mt-1.5 text-[12px] text-slate-300/90 leading-relaxed">
             Картата се предоставя от партньорската клиника. Не е отстъпка от лечение.

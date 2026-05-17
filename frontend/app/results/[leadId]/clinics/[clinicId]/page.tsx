@@ -477,7 +477,7 @@ function ProfileTabs({
             {/* Featured-only placeholder (kept for parity, compact). */}
             {isFeatured && !clinic.clinic_profile?.patient_intro && !clinic.clinic_profile?.short_description && (
               <PlaceholderSection
-                testid="profile-featured-extra-section"
+                testid="profile-featured-extra-placeholder"
                 tierLabel="featured"
                 title="Допълнителна информация от клиниката"
                 icon={<Sparkle className="w-4 h-4 text-teal-700" />}
