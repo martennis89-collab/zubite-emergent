@@ -1,4 +1,106 @@
 # Zubite.bg — Changelog
+## 2026-02-17 — Zubi Mascot (Asset D) + Rotating Hero Tip + Liquid-Glass Polish
+
+User delivered the Zubi mascot render (Asset D) — a calm, premium
+3D guide character with a futuristic teal-accented healthcare-tech
+suit, a glowing smile graphic on the chest, and a confident
+thumbs-up gesture in a Clarity-Hub backdrop scene. Wired the
+mascot in two places, added a rotating "Zubi говори" tip bubble in
+the Hero with the exact messaging the user requested, and pushed
+extra liquid-glass refraction polish onto the navigation and
+button system.
+
+### Asset D placement
+- **`ZUBI_MASCOT`** constant added.
+- **Zubi section (main character moment)**: replaced the abstract
+  orb (`ZUBI_ORB`) with the mascot rendered inside a premium
+  rectangular glass environment:
+  - `rounded-[2rem]` glass container with radial-teal gradient,
+    `bg-white/55 backdrop-blur-xl ring-1 ring-white/70` + soft
+    drop shadow.
+  - Top glossy highlight (`bg-white/45 blur-2xl`) and a soft
+    bottom-up vignette so the chat bubble stays legible.
+  - Mascot rendered via `<img>` with `object-position: 55% 28%`
+    and `scale(1.18)` to focus on the upper-body / face. Slow
+    `floatSlow` 10s breathing motion.
+  - Outer `breatheGlow 8s` halo wrapping the whole frame.
+- **Hero (supporting presence)**: small 56–64px circular Zubi
+  avatar (`<ZubiHeroBubble />`) positioned `-bottom-20 right-0` of
+  the product mockup column. Frosted teal halo + inset white
+  highlight ring + `floatSlow 8s`. The avatar uses
+  `object-position: 55% 25%; scale(1.35)` to crop tight to Zubi's
+  face. Avatar does not overlap the "Партньорски клиники"
+  floating chip after the −20 bottom offset adjustment.
+- **Mobile**: hero Zubi avatar+bubble explicitly `hidden sm:flex`
+  — mobile hero stays focused on copy + CTAs + result card; full
+  Zubi moment is reserved for the dedicated Zubi section which
+  works perfectly at 390px.
+
+### Rotating "Zubi говори" tip bubble (Hero)
+- New `useRotatingTip(intervalMs = 5500)` hook with a fade-in
+  re-mount per tip via React `key` (no extra state).
+- Honors `prefers-reduced-motion: reduce` — interval is never
+  registered when the user opted out, so the first tip stays
+  static.
+- **4 rotating tips** (every 5.5s) with the messaging the user
+  explicitly requested:
+  1. "Помагам ти да разбереш дали имаш орален проблем — дори ако
+     още не си сигурен."
+  2. "След това те насочвам към верифицирани партньорски клиники."
+  3. "Първо яснотата. После — изборът."
+  4. "Не съм лекар — помагам ти да си подготвиш въпросите за
+     преглед."
+- Bubble styled as premium frosted-glass chip
+  (`bg-white/85 backdrop-blur-xl ring-1 ring-white/85` + inset
+  highlight) with a teal "ZUBI ГОВОРИ" eyebrow + sparkles avatar
+  dot. Each tip slides up with a 0.55s ease-out animation.
+- Zubi section chat bubble copy was also updated to a single
+  longer sentence reflecting the new messaging:
+  *"Помагам ти да разбереш дали имаш орален проблем — и след това
+  те насочвам към верифицирана партньорска клиника."*
+
+### Liquid-glass refraction polish
+- **Nav (sticky pill)**: stronger glass language. Two-layer inset
+  highlights via `box-shadow: inset 0 1px 0 rgba(255,255,255,0.85),
+  inset 0 -1px 0 rgba(15,23,42,0.04)`, plus a separate
+  `absolute inset-x-6 top-0.5 h-1/2 rounded-full bg-gradient-to-b
+  from-white/60 to-transparent opacity-70` overlay that renders a
+  visible inner top-edge gloss line — classic liquid-glass
+  refraction edge.
+- **Nav CTA button**: switched from flat `bg-slate-900` to a
+  diagonal `linear-gradient(135deg,#0f172a,#1e293b,#0f172a)`
+  with an inner white-15% blur "shine" line and an
+  `inset 0 1px 0 rgba(255,255,255,0.18)` highlight — feels like a
+  polished glass product control instead of a flat dark button.
+- **Hero secondary CTA** + **Final CTA secondary** (both "Виж как
+  работи"): upgraded to a stronger frosted glass —
+  `bg-white/55-60 backdrop-blur-xl ring-1 ring-white/80-85` with
+  the inset-1px white-85% highlight + an inner blurred white-55%
+  shine line on the top half. Now reads as Wave-style glass.
+- **Care Pass secondary CTA** ("Как работи Care Pass"): same
+  liquid-glass refraction language adapted to the dark navy
+  panel context — `bg-white/15 backdrop-blur-xl ring-white/30`
+  with inset top-30% white highlight + inner white-25% shine
+  line.
+- All buttons preserve keyboard accessibility & hover lift.
+
+### Testing
+- Desktop 1440×900 + mobile 390×844 verified via screenshots.
+  Tip rotation confirmed in Playwright: bubble text changes from
+  "Помагам ти да разбереш…" → "Първо яснотата. После — изборът."
+  after ~6s pause (random tip on rotation tick).
+- `docW === viewW (390)` — zero horizontal overflow.
+- `npx tsc --noEmit -p .` → 0 new errors. Pre-existing unrelated
+  admin-page errors only.
+
+### Files touched
+- `frontend/components/HomeContent.tsx` only.
+- No new files, no deletes, no package changes, no `next.config.js`
+  edits.
+
+---
+
+
 ## 2026-02-17 — Premium Custom Asset Integration + Hover/Tap Reveal
 
 Integrated 4 user-provided premium asset renders into the homepage

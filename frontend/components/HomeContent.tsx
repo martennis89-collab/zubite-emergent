@@ -55,6 +55,9 @@ const ASSET_E_CARE_PASS_CARD =
 // Asset F — Final CTA atmospheric navy/teal background
 const ASSET_F_FINAL_CTA_BG =
   'https://customer-assets.emergentagent.com/job_25b55d94-1ed6-49c7-af05-4dd6f19863cf/artifacts/jdhdxffb_ChatGPT%20Image%20May%2017%2C%202026%2C%2010_05_42%20AM.png'
+// Asset D — Zubi mascot render (futuristic healthcare-tech guide character)
+const ZUBI_MASCOT =
+  'https://customer-assets.emergentagent.com/job_25b55d94-1ed6-49c7-af05-4dd6f19863cf/artifacts/f0ehcf9d_ChatGPT%20Image%20May%2012%2C%202026%2C%2008_57_55%20AM.png'
 
 const QUIZ_URL = '/quiz'
 
@@ -115,6 +118,24 @@ const px = (factor: number): React.CSSProperties => ({
   willChange: 'transform',
 })
 
+// ─── Rotating Zubi tip — short tagline that cycles every ~5.5s ──
+const ZUBI_TIPS: string[] = [
+  'Помагам ти да разбереш дали имаш орален проблем — дори ако още не си сигурен.',
+  'След това те насочвам към верифицирани партньорски клиники.',
+  'Първо яснотата. После — изборът.',
+  'Не съм лекар — помагам ти да си подготвиш въпросите за преглед.',
+]
+function useRotatingTip(intervalMs: number = 5500): { tip: string; index: number } {
+  const [i, setI] = useState(0)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const id = setInterval(() => setI((v) => (v + 1) % ZUBI_TIPS.length), intervalMs)
+    return () => clearInterval(id)
+  }, [intervalMs])
+  return { tip: ZUBI_TIPS[i], index: i }
+}
+
 function Reveal({
   children, delay = 0, className = '',
 }: { children: React.ReactNode; delay?: number; className?: string }) {
@@ -150,12 +171,14 @@ function Nav() {
     >
       <header
         className={
-          'pointer-events-auto w-full max-w-5xl rounded-full transition-all duration-300 ' +
+          'pointer-events-auto w-full max-w-5xl rounded-full transition-all duration-300 relative ' +
           (scrolled
-            ? 'bg-white/70 backdrop-blur-2xl ring-1 ring-white/60 shadow-[0_10px_40px_-12px_rgba(15,23,42,0.18)]'
-            : 'bg-white/40 backdrop-blur-xl ring-1 ring-white/40 shadow-[0_6px_24px_-12px_rgba(15,23,42,0.10)]')
+            ? 'bg-white/65 backdrop-blur-2xl ring-1 ring-white/70 shadow-[0_10px_40px_-12px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.85),inset_0_-1px_0_rgba(15,23,42,0.04)]'
+            : 'bg-white/35 backdrop-blur-xl ring-1 ring-white/45 shadow-[0_6px_24px_-12px_rgba(15,23,42,0.10),inset_0_1px_0_rgba(255,255,255,0.7)]')
         }
       >
+        {/* Liquid glass inner top highlight */}
+        <div aria-hidden className="absolute inset-x-6 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/60 to-transparent pointer-events-none opacity-70" />
         <div className="px-4 sm:px-6 h-14 sm:h-15 flex items-center justify-between">
           <Link href="/" className="font-serif text-lg sm:text-xl font-semibold tracking-tight">
             <span className="text-slate-900">Zubite</span>
@@ -170,11 +193,15 @@ function Nav() {
           </nav>
           <Link
             href={QUIZ_URL}
-            className="group inline-flex items-center gap-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-medium px-3.5 sm:px-4 py-2 transition-all hover:-translate-y-0.5 shadow-[0_6px_20px_-8px_rgba(15,23,42,0.5)]"
+            className="group relative inline-flex items-center gap-1.5 rounded-full text-white text-xs sm:text-sm font-medium px-3.5 sm:px-4 py-2 transition-all hover:-translate-y-0.5 shadow-[0_6px_20px_-8px_rgba(15,23,42,0.5),inset_0_1px_0_rgba(255,255,255,0.18)] overflow-hidden"
+            style={{ backgroundImage: 'linear-gradient(135deg,#0f172a 0%,#1e293b 60%,#0f172a 100%)' }}
             data-testid="nav-cta"
           >
-            Провери случая
-            <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+            <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/15 blur-sm pointer-events-none" />
+            <span className="relative inline-flex items-center gap-1.5">
+              Провери случая
+              <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+            </span>
           </Link>
         </div>
       </header>
@@ -286,10 +313,11 @@ function Hero() {
               </Link>
               <Link
                 href="#how"
-                className="inline-flex items-center gap-1.5 rounded-full bg-white/60 backdrop-blur-md text-slate-900 text-sm font-medium px-5 py-3 ring-1 ring-white/70 hover:bg-white/80 hover:-translate-y-0.5 transition-all shadow-[0_8px_24px_-12px_rgba(15,23,42,0.15)]"
+                className="relative inline-flex items-center gap-1.5 rounded-full bg-white/55 backdrop-blur-xl text-slate-900 text-sm font-medium px-5 py-3 ring-1 ring-white/80 hover:bg-white/75 hover:-translate-y-0.5 transition-all shadow-[0_8px_24px_-12px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.85)] overflow-hidden"
                 data-testid="hero-secondary-cta"
               >
-                Виж как работи
+                <span aria-hidden className="absolute inset-x-3 top-0.5 h-1/2 rounded-full bg-white/55 blur-sm pointer-events-none" />
+                <span className="relative">Виж как работи</span>
               </Link>
             </div>
           </Reveal>
@@ -405,10 +433,58 @@ function HeroMockup() {
         <span className="text-[11px] text-slate-700 font-medium">Ориентир за цена</span>
       </div>
 
+      {/* Zubi guide — small mascot avatar + rotating chat bubble (desktop+tablet) */}
+      <ZubiHeroBubble />
+
       <style jsx global>{`
         @keyframes float {
           0%,100% { transform: translateY(0) }
           50%     { transform: translateY(-8px) }
+        }
+      `}</style>
+    </div>
+  )
+}
+
+// ─── Zubi hero bubble — small mascot avatar + rotating tip ───────
+function ZubiHeroBubble() {
+  const { tip, index } = useRotatingTip(5500)
+  return (
+    <div className="hidden sm:flex absolute -bottom-20 right-0 sm:right-2 z-20 items-end gap-2 pointer-events-none">
+      {/* Avatar — frosted glass circle with character render */}
+      <div className="relative shrink-0 pointer-events-auto">
+        <div aria-hidden className="absolute -inset-2 rounded-full bg-teal-400/25 blur-xl animate-[breatheGlow_7s_ease-in-out_infinite]" />
+        <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden ring-2 ring-white/80 shadow-[0_12px_30px_-12px_rgba(15,23,42,0.35)] bg-white/70 backdrop-blur-md animate-[floatSlow_8s_ease-in-out_infinite]">
+          <img
+            src={ZUBI_MASCOT}
+            alt="Zubi"
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ objectPosition: '55% 25%', transform: 'scale(1.35)' }}
+            loading="lazy"
+          />
+          {/* Inner highlight */}
+          <div aria-hidden className="absolute inset-0 rounded-full bg-gradient-to-b from-white/40 to-transparent pointer-events-none" />
+        </div>
+      </div>
+      {/* Chat bubble — rotating tip */}
+      <div
+        key={index}
+        className="pointer-events-auto relative max-w-[260px] sm:max-w-[280px] rounded-2xl rounded-bl-md bg-white/85 backdrop-blur-xl ring-1 ring-white/85 shadow-[0_18px_40px_-18px_rgba(15,23,42,0.30)] px-3.5 py-2.5 animate-[zubiTipIn_0.55s_ease-out_both]"
+      >
+        <div className="flex items-center gap-1.5">
+          <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-teal-500/15 text-teal-700 ring-1 ring-teal-300/60">
+            <Sparkles className="w-2.5 h-2.5" />
+          </span>
+          <p className="text-[10px] uppercase tracking-wider text-teal-700 font-semibold">Zubi говори</p>
+        </div>
+        <p className="mt-1 text-[12px] text-slate-800 leading-snug">{tip}</p>
+        {/* Inner highlight glass line */}
+        <div aria-hidden className="absolute inset-x-3 top-0.5 h-1/2 rounded-full bg-white/40 blur-md pointer-events-none" />
+      </div>
+      <style jsx>{`
+        @keyframes zubiTipIn {
+          0%   { opacity: 0; transform: translateY(6px) }
+          100% { opacity: 1; transform: translateY(0) }
         }
       `}</style>
     </div>
@@ -799,21 +875,33 @@ function ZubiSection() {
       />
       <div className="relative max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[1fr_1fr] gap-12 items-center">
         <Reveal delay={80}>
-          <div className="relative w-full max-w-sm mx-auto">
+          <div className="relative w-full max-w-md mx-auto">
             {/* Frosted glow halo — slow breathing */}
-            <div aria-hidden className="absolute -inset-10 rounded-full bg-gradient-to-br from-teal-200/40 to-cyan-100/30 blur-3xl animate-[breatheGlow_8s_ease-in-out_infinite]" />
-            {/* Glass container behind orb */}
-            <div aria-hidden className="absolute -inset-4 rounded-full bg-white/40 backdrop-blur-xl ring-1 ring-white/60" />
-            <Image
-              src={ZUBI_ORB}
-              alt="Zubi — спокоен AI ориентир"
-              width={520} height={520}
-              className="relative rounded-full mix-blend-normal animate-[zubiOrb_10s_ease-in-out_infinite]"
-              priority={false}
-              unoptimized
-            />
-            {/* Chat bubble */}
-            <div className="absolute -bottom-2 -right-4 sm:-right-10 max-w-[230px] rounded-2xl rounded-br-md bg-white/85 backdrop-blur-xl ring-1 ring-white/80 shadow-[0_18px_40px_-18px_rgba(15,23,42,0.25)] p-3.5 animate-[float_8s_ease-in-out_infinite]">
+            <div aria-hidden className="absolute -inset-10 rounded-[2.5rem] bg-gradient-to-br from-teal-200/45 to-cyan-100/30 blur-3xl animate-[breatheGlow_8s_ease-in-out_infinite]" />
+            {/* Glass environment container */}
+            <div className="relative rounded-[2rem] overflow-hidden ring-1 ring-white/70 bg-white/55 backdrop-blur-xl shadow-[0_30px_60px_-25px_rgba(15,23,42,0.25)]"
+              style={{
+                background:
+                  'radial-gradient(ellipse 60% 50% at 30% 20%, rgba(94,234,212,0.20) 0%, transparent 60%),' +
+                  'linear-gradient(180deg, rgba(255,255,255,0.65) 0%, rgba(244,250,249,0.65) 100%)',
+              }}
+            >
+              {/* Top glossy highlight */}
+              <div aria-hidden className="absolute inset-x-3 top-2 h-1/3 rounded-full bg-white/45 blur-2xl pointer-events-none" />
+              <div className="relative aspect-[4/5] overflow-hidden">
+                <img
+                  src={ZUBI_MASCOT}
+                  alt="Zubi — спокоен AI ориентир за дентално здраве"
+                  className="absolute inset-0 w-full h-full object-cover animate-[floatSlow_10s_ease-in-out_infinite]"
+                  style={{ objectPosition: '55% 28%', transform: 'scale(1.18)' }}
+                  loading="lazy"
+                />
+                {/* Soft vignette at the bottom for legibility of the chat bubble */}
+                <div aria-hidden className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-white/70 to-transparent pointer-events-none" />
+              </div>
+            </div>
+            {/* Glass chat bubble */}
+            <div className="absolute -bottom-3 -right-2 sm:-right-6 max-w-[260px] rounded-2xl rounded-br-md bg-white/90 backdrop-blur-xl ring-1 ring-white/85 shadow-[0_18px_40px_-18px_rgba(15,23,42,0.30)] p-3.5 animate-[float_8s_ease-in-out_infinite]">
               <div className="flex items-center gap-1.5">
                 <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-teal-500/15 text-teal-700 ring-1 ring-teal-300/60">
                   <Sparkles className="w-3 h-3" />
@@ -821,15 +909,10 @@ function ZubiSection() {
                 <p className="text-[10px] uppercase tracking-wider text-teal-700 font-semibold">Zubi</p>
               </div>
               <p className="mt-2 text-[12px] text-slate-800 leading-snug">
-                Искаш ли да разбереш какви въпроси да зададеш на ортодонт?
+                Помагам ти да разбереш дали имаш орален проблем — и след това те насочвам към верифицирана партньорска клиника.
               </p>
+              <div aria-hidden className="absolute inset-x-3 top-0.5 h-1/2 rounded-full bg-white/45 blur-md pointer-events-none" />
             </div>
-            <style jsx>{`
-              @keyframes zubiOrb {
-                0%, 100% { transform: translateY(0) scale(1) }
-                50%      { transform: translateY(-6px) scale(1.02) }
-              }
-            `}</style>
           </div>
         </Reveal>
         <Reveal>
@@ -1145,10 +1228,11 @@ function CarePassTeaser() {
                   </Link>
                   <Link
                     href="/care-pass"
-                    className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-md text-white hover:bg-white/15 text-sm font-medium px-5 py-3 ring-1 ring-white/25 transition-colors"
+                    className="relative inline-flex items-center gap-1.5 rounded-full bg-white/15 backdrop-blur-xl text-white hover:bg-white/25 text-sm font-medium px-5 py-3 ring-1 ring-white/30 transition-all hover:-translate-y-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.30),0_8px_24px_-12px_rgba(0,0,0,0.45)] overflow-hidden"
                     data-testid="care-pass-secondary-cta"
                   >
-                    Как работи Care Pass
+                    <span aria-hidden className="absolute inset-x-3 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
+                    <span className="relative">Как работи Care Pass</span>
                   </Link>
                 </div>
                 {/* Benefit chips — hover/tap reveal short clarification */}
@@ -1341,9 +1425,10 @@ function FinalCTA() {
               </Link>
               <Link
                 href="#how"
-                className="inline-flex items-center gap-1.5 rounded-full bg-white/70 backdrop-blur-md text-slate-900 hover:bg-white/90 text-sm font-medium px-5 py-3 ring-1 ring-white/80 transition-all hover:-translate-y-0.5"
+                className="relative inline-flex items-center gap-1.5 rounded-full bg-white/60 backdrop-blur-xl text-slate-900 hover:bg-white/85 text-sm font-medium px-5 py-3 ring-1 ring-white/85 transition-all hover:-translate-y-0.5 shadow-[0_8px_24px_-12px_rgba(15,23,42,0.15),inset_0_1px_0_rgba(255,255,255,0.85)] overflow-hidden"
               >
-                Виж как работи
+                <span aria-hidden className="absolute inset-x-3 top-0.5 h-1/2 rounded-full bg-white/55 blur-sm pointer-events-none" />
+                <span className="relative">Виж как работи</span>
               </Link>
             </div>
             <p className="mt-7 text-[11px] text-slate-400 leading-snug max-w-lg mx-auto">
