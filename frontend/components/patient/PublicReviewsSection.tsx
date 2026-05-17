@@ -138,7 +138,7 @@ function ReviewCard({ r }: { r: PublicReview }) {
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="self-start text-xs font-medium text-sky-600 hover:text-sky-700"
+          className="self-start text-xs font-medium text-teal-700 hover:text-teal-800"
           data-testid={`public-review-toggle-${r.id}`}
         >
           {expanded ? 'Скрий' : 'Покажи още'}
@@ -146,7 +146,7 @@ function ReviewCard({ r }: { r: PublicReview }) {
       )}
 
       <p className="inline-flex items-center gap-1 text-[11px] text-slate-400 pt-1 border-t border-slate-100">
-        <ShieldCheck className="w-3 h-3 text-sky-500" />
+        <ShieldCheck className="w-3 h-3 text-teal-600" />
         Прегледано от Zubite
       </p>
     </article>
@@ -242,7 +242,7 @@ export function PublicReviewsSection({ clinicId, reviewUrl }: Props) {
         </div>
         {summary && summary.average_rating !== null && summary.rated_count > 0 && (
           <div
-            className="inline-flex items-center gap-2 rounded-full bg-sky-50 ring-1 ring-sky-100 px-3 py-1.5"
+            className="inline-flex items-center gap-2 rounded-full bg-teal-50 ring-1 ring-teal-100 px-3 py-1.5"
             data-testid="profile-reviews-summary"
           >
             <StarRow rating={Math.round(summary.average_rating)} />
@@ -292,7 +292,7 @@ export function PublicReviewsSection({ clinicId, reviewUrl }: Props) {
               onClick={() =>
                 window.open(resolvedReviewUrl, '_blank', 'noopener,noreferrer')
               }
-              className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 text-sky-700 hover:bg-sky-50 px-3 py-1.5 text-xs font-medium"
+              className="inline-flex items-center gap-1.5 rounded-full ring-1 ring-teal-200 text-teal-700 hover:bg-teal-50 px-3 py-1.5 text-xs font-medium transition-colors"
               data-testid="profile-reviews-leave-cta"
             >
               <ExternalLink className="w-3 h-3" />

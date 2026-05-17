@@ -136,6 +136,7 @@ function FullVariant({ testid, className, showLearnMore }: FullProps) {
             height={720}
             className="relative w-full h-auto drop-shadow-[0_30px_60px_rgba(0,0,0,0.45)]"
             unoptimized
+            priority
           />
         </div>
       </div>

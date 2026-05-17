@@ -1485,8 +1485,9 @@ function ClinicDecisionSidebar({
           <p className="text-[11px] text-slate-200 leading-relaxed inline-flex items-start gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5 text-teal-300 flex-shrink-0 mt-0.5" />
             <span>
-              При посетена консултация през Zubite.bg клиниката ще ви
-              предостави <strong className="text-teal-100">Zubite Care Pass</strong>.
+              След посетена консултация през Zubite.bg клиниката ще ви
+              предостави <strong className="text-teal-100">Zubite Care Pass</strong>{' '}
+              — отстъпки за продукти за орална хигиена.
             </span>
           </p>
         </div>
@@ -1821,7 +1822,8 @@ function MobileDecisionStrip({
           <ShieldCheck className="w-3.5 h-3.5 text-teal-300 flex-shrink-0 mt-0.5" />
           <span>
             При посетена консултация ще получите{' '}
-            <strong className="text-teal-100">Zubite Care Pass</strong>.
+            <strong className="text-teal-100">Zubite Care Pass</strong>{' '}
+            — отстъпки за продукти за орална хигиена.
           </span>
         </p>
       </div>
