@@ -150,7 +150,7 @@ export default function CityTreatmentQuizPage() {
   if (!isClient) {
     return (
       <main className="min-h-screen bg-white flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-sky-500 animate-spin" />
+        <Loader2 className="w-8 h-8 text-teal-500 animate-spin" />
       </main>
     )
   }
@@ -285,7 +285,7 @@ export default function CityTreatmentQuizPage() {
                 </div>
                 <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                   <div 
-                    className="h-full bg-gradient-to-r from-sky-500 to-sky-400 progress-animated"
+                    className="h-full bg-gradient-to-r from-teal-500 to-teal-400 progress-animated"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
@@ -303,8 +303,8 @@ export default function CityTreatmentQuizPage() {
                       onClick={() => handleAnswer(option.value)}
                       className={`quiz-option w-full text-left p-4 rounded-xl border-2 transition-all duration-200 ${
                         answers[currentQ.id] === option.value
-                          ? 'bg-sky-50 border-sky-500 text-slate-900'
-                          : 'bg-white border-slate-200 text-slate-700 hover:border-sky-300'
+                          ? 'bg-teal-50 border-teal-500 text-slate-900'
+                          : 'bg-white border-slate-200 text-slate-700 hover:border-teal-300'
                       }`}
                       data-testid={`option-${option.value}`}
                     >
@@ -360,7 +360,7 @@ export default function CityTreatmentQuizPage() {
               })()}
               
               <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
-                <Phone className="w-12 h-12 text-sky-500 mx-auto mb-4" />
+                <Phone className="w-12 h-12 text-teal-500 mx-auto mb-4" />
                 <h3 className="font-serif text-xl font-semibold text-slate-900 mb-2">
                   Искате ли да ви се обадим?
                 </h3>
@@ -396,7 +396,7 @@ export default function CityTreatmentQuizPage() {
                     type="text"
                     value={contactData.name}
                     onChange={e => setContactData(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors"
+                    className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
                     placeholder="Вашето име"
                     data-testid="input-name"
                   />
@@ -408,7 +408,7 @@ export default function CityTreatmentQuizPage() {
                     type="tel"
                     value={contactData.phone}
                     onChange={e => setContactData(prev => ({ ...prev, phone: e.target.value }))}
-                    className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors"
+                    className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
                     placeholder="+359 888 123 456"
                     data-testid="input-phone"
                   />
@@ -420,7 +420,7 @@ export default function CityTreatmentQuizPage() {
                     type="email"
                     value={contactData.email}
                     onChange={e => setContactData(prev => ({ ...prev, email: e.target.value }))}
-                    className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors"
+                    className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
                     placeholder="email@example.com"
                     data-testid="input-email"
                   />
@@ -432,12 +432,12 @@ export default function CityTreatmentQuizPage() {
                     id="consent"
                     checked={contactData.consent}
                     onChange={e => setContactData(prev => ({ ...prev, consent: e.target.checked }))}
-                    className="mt-1 w-4 h-4 rounded border-slate-300 text-sky-500 focus:ring-sky-500"
+                    className="mt-1 w-4 h-4 rounded border-slate-300 text-teal-500 focus:ring-teal-500"
                     data-testid="input-consent"
                   />
                   <label htmlFor="consent" className="text-sm text-slate-600">
                     Съгласен/а съм с{' '}
-                    <Link href="/privacy" className="text-sky-500 hover:underline">Политиката за поверителност</Link>
+                    <Link href="/privacy" className="text-teal-500 hover:underline">Политиката за поверителност</Link>
                     {' '}и обработката на личните ми данни.
                   </label>
                 </div>

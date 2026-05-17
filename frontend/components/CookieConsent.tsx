@@ -107,8 +107,8 @@ export function CookieConsent() {
           {/* Header */}
           <div className="p-6 pb-4">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-sky-100 flex items-center justify-center flex-shrink-0">
-                <Cookie className="w-6 h-6 text-sky-600" />
+              <div className="w-12 h-12 rounded-xl bg-teal-100 flex items-center justify-center flex-shrink-0">
+                <Cookie className="w-6 h-6 text-teal-600" />
               </div>
               <div className="flex-1">
                 <h2 className="font-serif text-xl font-semibold text-slate-900 mb-2">
@@ -152,7 +152,7 @@ export function CookieConsent() {
                   <p className="text-xs text-slate-500">Необходими за работата на сайта. Не могат да се изключат.</p>
                 </div>
                 <div className="ml-4">
-                  <div className="w-12 h-6 bg-sky-500 rounded-full opacity-50 cursor-not-allowed flex items-center justify-end px-1">
+                  <div className="w-12 h-6 bg-teal-500 rounded-full opacity-50 cursor-not-allowed flex items-center justify-end px-1">
                     <div className="w-4 h-4 bg-white rounded-full shadow" />
                   </div>
                 </div>
@@ -168,7 +168,7 @@ export function CookieConsent() {
                   <button
                     onClick={() => setPreferences(p => ({ ...p, analytics: !p.analytics }))}
                     className={`w-12 h-6 rounded-full transition-colors flex items-center px-1 ${
-                      preferences.analytics ? 'bg-sky-500 justify-end' : 'bg-slate-300 justify-start'
+                      preferences.analytics ? 'bg-teal-500 justify-end' : 'bg-slate-300 justify-start'
                     }`}
                   >
                     <div className="w-4 h-4 bg-white rounded-full shadow" />
@@ -186,7 +186,7 @@ export function CookieConsent() {
                   <button
                     onClick={() => setPreferences(p => ({ ...p, marketing: !p.marketing }))}
                     className={`w-12 h-6 rounded-full transition-colors flex items-center px-1 ${
-                      preferences.marketing ? 'bg-sky-500 justify-end' : 'bg-slate-300 justify-start'
+                      preferences.marketing ? 'bg-teal-500 justify-end' : 'bg-slate-300 justify-start'
                     }`}
                   >
                     <div className="w-4 h-4 bg-white rounded-full shadow" />
@@ -216,7 +216,7 @@ export function CookieConsent() {
             
             <button
               onClick={acceptAll}
-              className="flex-1 sm:flex-none px-8 py-3 bg-sky-500 text-white font-medium rounded-xl hover:bg-sky-600 transition-colors text-sm shadow-lg shadow-sky-500/25"
+              className="flex-1 sm:flex-none px-8 py-3 bg-teal-500 text-white font-medium rounded-xl hover:bg-teal-600 transition-colors text-sm shadow-lg shadow-teal-500/25"
             >
               Приеми всички
             </button>

@@ -264,7 +264,7 @@ export function TestRenderModal({ open, onClose, parsed, rawMd, zipBlobs }: Prop
             {/* CTA preview */}
             {parsed.cta && (parsed.cta.title || parsed.cta.text) && (
               <div
-                className="bg-sky-50 border border-sky-100 rounded-2xl p-6 my-8 text-center"
+                className="bg-teal-50 border border-teal-100 rounded-2xl p-6 my-8 text-center"
                 data-testid="test-render-cta"
               >
                 {parsed.cta.title && (
@@ -274,7 +274,7 @@ export function TestRenderModal({ open, onClose, parsed, rawMd, zipBlobs }: Prop
                 )}
                 {parsed.cta.text && <p className="text-slate-600 mb-4">{parsed.cta.text}</p>}
                 {parsed.cta.button && (
-                  <span className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-full bg-sky-500 text-white font-medium">
+                  <span className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-full bg-teal-500 text-white font-medium">
                     {parsed.cta.button}
                     <ArrowRight className="w-4 h-4" />
                   </span>
@@ -313,7 +313,7 @@ export function TestRenderModal({ open, onClose, parsed, rawMd, zipBlobs }: Prop
                 <ul className="text-sm space-y-1">
                   {parsed.internalLinks.map((l, i) => (
                     <li key={i}>
-                      <span className="text-sky-600 underline">{l.label}</span>
+                      <span className="text-teal-600 underline">{l.label}</span>
                       <span className="text-slate-400 font-mono text-xs"> ({l.url})</span>
                     </li>
                   ))}

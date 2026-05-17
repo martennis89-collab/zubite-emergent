@@ -88,7 +88,7 @@ export default function CrookedTeethPage() {
       {/* Hero */}
       <section className="pt-28 pb-16 md:pt-36 md:pb-20 bg-gradient-to-b from-white to-slate-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          <p className="text-sky-500 font-medium text-sm tracking-wide uppercase mb-4">
+          <p className="text-teal-500 font-medium text-sm tracking-wide uppercase mb-4">
             Пълен гид
           </p>
           <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight mb-6">
@@ -187,7 +187,7 @@ export default function CrookedTeethPage() {
                     <Clock className="w-4 h-4" />
                     {treatment.duration}
                   </div>
-                  <div className="text-sky-600 font-medium">{treatment.price}</div>
+                  <div className="text-teal-600 font-medium">{treatment.price}</div>
                 </div>
                 
                 <div className="space-y-2 mb-4">
@@ -199,8 +199,8 @@ export default function CrookedTeethPage() {
                   ))}
                 </div>
                 
-                <div className="bg-sky-50 rounded-lg p-3">
-                  <span className="text-sm text-sky-700">
+                <div className="bg-teal-50 rounded-lg p-3">
+                  <span className="text-sm text-teal-700">
                     <strong>Най-подходящ за:</strong> {treatment.best_for}
                   </span>
                 </div>
@@ -213,8 +213,8 @@ export default function CrookedTeethPage() {
       {/* Comparison hint */}
       <section className="py-16 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <div className="bg-sky-50 rounded-2xl border border-sky-200 p-8 text-center">
-            <Smile className="w-12 h-12 text-sky-500 mx-auto mb-4" />
+          <div className="bg-teal-50 rounded-2xl border border-teal-200 p-8 text-center">
+            <Smile className="w-12 h-12 text-teal-500 mx-auto mb-4" />
             <h2 className="font-serif text-xl font-semibold text-slate-900 mb-3">
               Не сте сигурни кой метод е подходящ за вас?
             </h2>
@@ -223,7 +223,7 @@ export default function CrookedTeethPage() {
             </p>
             <Link
               href="/aligners-vs-braces"
-              className="text-sky-600 font-medium hover:text-sky-700 inline-flex items-center gap-2"
+              className="text-teal-600 font-medium hover:text-teal-700 inline-flex items-center gap-2"
             >
               Алайнери vs Брекети - Пълно сравнение
               <ArrowRight className="w-4 h-4" />
@@ -245,16 +245,16 @@ export default function CrookedTeethPage() {
       {/* CTA */}
       <section className="py-16 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
-          <div className="bg-gradient-to-br from-sky-500 to-sky-600 rounded-3xl p-8 md:p-12 text-center text-white">
+          <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-3xl p-8 md:p-12 text-center text-white">
             <h2 className="font-serif text-2xl md:text-3xl font-semibold mb-4">
               Готови ли сте да изправите зъбите си?
             </h2>
-            <p className="text-sky-100 mb-8 max-w-lg mx-auto">
+            <p className="text-teal-100 mb-8 max-w-lg mx-auto">
               Направете безплатна оценка и разберете кой метод е най-подходящ за вашия случай.
             </p>
             <Link 
               href="/orthodontics/quiz"
-              className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full bg-white text-sky-600 font-medium hover:bg-sky-50"
+              className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full bg-white text-teal-600 font-medium hover:bg-teal-50"
             >
               Безплатна оценка
               <ArrowRight className="w-5 h-5" />
@@ -270,15 +270,15 @@ export default function CrookedTeethPage() {
             Свързани статии
           </h2>
           <div className="grid md:grid-cols-3 gap-4">
-            <Link href="/aligners-vs-braces" className="bg-white rounded-xl border border-slate-200 p-5 hover:border-sky-300 transition-colors">
+            <Link href="/aligners-vs-braces" className="bg-white rounded-xl border border-slate-200 p-5 hover:border-teal-300 transition-colors">
               <h3 className="font-medium text-slate-900 mb-2">Алайнери vs Брекети</h3>
               <p className="text-sm text-slate-500">Подробно сравнение на методите</p>
             </Link>
-            <Link href="/invisalign-price" className="bg-white rounded-xl border border-slate-200 p-5 hover:border-sky-300 transition-colors">
+            <Link href="/invisalign-price" className="bg-white rounded-xl border border-slate-200 p-5 hover:border-teal-300 transition-colors">
               <h3 className="font-medium text-slate-900 mb-2">Invisalign цена</h3>
               <p className="text-sm text-slate-500">Актуални цени в България</p>
             </Link>
-            <Link href="/orthodontics" className="bg-white rounded-xl border border-slate-200 p-5 hover:border-sky-300 transition-colors">
+            <Link href="/orthodontics" className="bg-white rounded-xl border border-slate-200 p-5 hover:border-teal-300 transition-colors">
               <h3 className="font-medium text-slate-900 mb-2">Ортодонтия</h3>
               <p className="text-sm text-slate-500">Всичко за изправяне на зъби</p>
             </Link>

@@ -47,7 +47,7 @@ export function ArticleBreadcrumbs({
               {it.href && !isLast ? (
                 <Link
                   href={it.href}
-                  className="hover:text-sky-600 transition-colors"
+                  className="hover:text-teal-600 transition-colors"
                   data-testid={`breadcrumb-${i}`}
                 >
                   {it.label}

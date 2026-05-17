@@ -312,7 +312,7 @@ function FormBody({
             type="button"
             onClick={onEdit}
             disabled={submitting}
-            className="mt-3 text-xs font-medium text-sky-600 hover:text-sky-700 underline-offset-2 hover:underline disabled:opacity-40"
+            className="mt-3 text-xs font-medium text-teal-600 hover:text-teal-700 underline-offset-2 hover:underline disabled:opacity-40"
             data-testid="request-call-edit-contact-btn"
           >
             Промени данните
@@ -331,7 +331,7 @@ function FormBody({
             onChange={(e) => setPhone(e.target.value)}
             placeholder="+359 ..."
             disabled={submitting}
-            className="w-full px-4 py-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300 disabled:opacity-60"
+            className="w-full px-4 py-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-200 focus:border-teal-300 disabled:opacity-60"
             data-testid="request-call-phone-input"
           />
           {phone.length > 0 && !phoneOk && (
@@ -351,7 +351,7 @@ function FormBody({
           checked={consent}
           onChange={(e) => setConsent(e.target.checked)}
           disabled={submitting}
-          className="mt-0.5 w-4 h-4 rounded border-slate-300 text-sky-500 focus:ring-sky-200"
+          className="mt-0.5 w-4 h-4 rounded border-slate-300 text-teal-500 focus:ring-teal-200"
           data-testid="request-call-consent-checkbox"
         />
         <span className="text-sm text-slate-700 leading-snug">
@@ -372,10 +372,10 @@ function FormBody({
       {/* Care Pass — subtle note before submit. Visible inside the modal
           so the patient sees the after-visit benefit at decision time. */}
       <div
-        className="mt-4 rounded-lg border border-sky-100 bg-sky-50/60 p-3 flex items-start gap-2.5 text-xs text-slate-700"
+        className="mt-4 rounded-lg border border-teal-100 bg-teal-50/60 p-3 flex items-start gap-2.5 text-xs text-slate-700"
         data-testid="request-call-care-pass-note"
       >
-        <ShieldCheck className="w-4 h-4 mt-0.5 flex-shrink-0 text-sky-600" />
+        <ShieldCheck className="w-4 h-4 mt-0.5 flex-shrink-0 text-teal-600" />
         <span className="leading-relaxed">
           След посещение на консултацията ще получите{' '}
           <span className="font-semibold text-slate-900">Zubite Care Pass</span>{' '}
@@ -397,7 +397,7 @@ function FormBody({
           type="button"
           onClick={onSubmit}
           disabled={!canSubmit}
-          className="px-5 py-2.5 bg-sky-500 text-white text-sm font-medium rounded-full hover:bg-sky-600 transition-colors disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed"
+          className="px-5 py-2.5 bg-teal-500 text-white text-sm font-medium rounded-full hover:bg-teal-600 transition-colors disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed"
           data-testid="request-call-submit"
         >
           {submitting ? 'Изпращане…' : 'Изпрати заявка'}
@@ -432,10 +432,10 @@ function SuccessBody({
       </div>
 
       <div
-        className="rounded-lg bg-sky-50/70 border border-sky-100 p-3 mb-4 flex items-start gap-2.5"
+        className="rounded-lg bg-teal-50/70 border border-teal-100 p-3 mb-4 flex items-start gap-2.5"
         data-testid="request-call-success-care-pass"
       >
-        <ShieldCheck className="w-4 h-4 mt-0.5 flex-shrink-0 text-sky-600" />
+        <ShieldCheck className="w-4 h-4 mt-0.5 flex-shrink-0 text-teal-600" />
         <p className="text-xs text-slate-700 leading-relaxed">
           След като посетите консултацията, попитайте клиниката за вашия{' '}
           <span className="font-semibold text-slate-900">Zubite Care Pass</span>.

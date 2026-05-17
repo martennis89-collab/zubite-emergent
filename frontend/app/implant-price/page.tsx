@@ -70,7 +70,7 @@ export default function ImplantPricePage() {
       {/* Hero */}
       <section className="pt-28 pb-16 md:pt-36 md:pb-20 bg-gradient-to-b from-white to-slate-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          <p className="text-sky-500 font-medium text-sm tracking-wide uppercase mb-4">
+          <p className="text-teal-500 font-medium text-sm tracking-wide uppercase mb-4">
             Актуализирано 2025
           </p>
           <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight mb-6">
@@ -81,9 +81,9 @@ export default function ImplantPricePage() {
             и намерете най-добрата оферта.
           </p>
           
-          <div className="bg-sky-50 rounded-2xl border border-sky-200 p-6 inline-block">
-            <p className="text-sm text-sky-600 mb-1">Цени от</p>
-            <p className="text-4xl font-bold text-sky-700">800 - 20,000 лв</p>
+          <div className="bg-teal-50 rounded-2xl border border-teal-200 p-6 inline-block">
+            <p className="text-sm text-teal-600 mb-1">Цени от</p>
+            <p className="text-4xl font-bold text-teal-700">800 - 20,000 лв</p>
             <p className="text-sm text-slate-500 mt-2">От единичен имплант до пълна челюст</p>
           </div>
         </div>
@@ -101,19 +101,19 @@ export default function ImplantPricePage() {
               <div 
                 key={index} 
                 className={`rounded-xl border-2 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 ${
-                  item.premium ? 'border-sky-300 bg-sky-50' : 'border-slate-200 bg-white'
+                  item.premium ? 'border-teal-300 bg-teal-50' : 'border-slate-200 bg-white'
                 }`}
               >
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="font-medium text-slate-900">{item.brand}</h3>
                     {item.premium && (
-                      <span className="text-xs bg-sky-500 text-white px-2 py-0.5 rounded-full">Премиум</span>
+                      <span className="text-xs bg-teal-500 text-white px-2 py-0.5 rounded-full">Премиум</span>
                     )}
                   </div>
                   <p className="text-sm text-slate-500">{item.note}</p>
                 </div>
-                <div className="text-xl font-bold text-sky-600">{item.price}</div>
+                <div className="text-xl font-bold text-teal-600">{item.price}</div>
               </div>
             ))}
           </div>
@@ -136,17 +136,17 @@ export default function ImplantPricePage() {
               <div 
                 key={index} 
                 className={`rounded-2xl border-2 p-6 ${
-                  solution.popular ? 'border-sky-500 bg-sky-50' : 'border-slate-200 bg-white'
+                  solution.popular ? 'border-teal-500 bg-teal-50' : 'border-slate-200 bg-white'
                 }`}
               >
                 {solution.popular && (
-                  <div className="bg-sky-500 text-white text-xs font-medium px-3 py-1 rounded-full inline-block mb-3">
+                  <div className="bg-teal-500 text-white text-xs font-medium px-3 py-1 rounded-full inline-block mb-3">
                     Най-популярен
                   </div>
                 )}
                 <h3 className="font-medium text-lg text-slate-900 mb-1">{solution.name}</h3>
                 <p className="text-slate-500 text-sm mb-4">{solution.description}</p>
-                <div className="text-2xl font-bold text-sky-600">{solution.price}</div>
+                <div className="text-2xl font-bold text-teal-600">{solution.price}</div>
               </div>
             ))}
           </div>
@@ -209,19 +209,19 @@ export default function ImplantPricePage() {
               <Link 
                 key={index}
                 href={`/${city.slug}/implants`}
-                className="block bg-white rounded-xl border border-slate-200 p-6 hover:border-sky-300 transition-colors"
+                className="block bg-white rounded-xl border border-slate-200 p-6 hover:border-teal-300 transition-colors"
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center">
-                      <MapPin className="w-5 h-5 text-sky-600" />
+                    <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center">
+                      <MapPin className="w-5 h-5 text-teal-600" />
                     </div>
                     <div>
                       <h3 className="font-medium text-slate-900">{city.city}</h3>
                       <p className="text-sm text-slate-500">{city.note}</p>
                     </div>
                   </div>
-                  <div className="text-xl font-bold text-sky-600">{city.range}</div>
+                  <div className="text-xl font-bold text-teal-600">{city.range}</div>
                 </div>
               </Link>
             ))}
@@ -238,17 +238,17 @@ export default function ImplantPricePage() {
           
           <div className="grid md:grid-cols-3 gap-6">
             <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
-              <Shield className="w-8 h-8 text-sky-500 mb-4" />
+              <Shield className="w-8 h-8 text-teal-500 mb-4" />
               <h3 className="font-medium text-slate-900 mb-2">Марка на импланта</h3>
               <p className="text-sm text-slate-500">Премиум марките (Straumann, Nobel) са 2-3 пъти по-скъпи от бюджетните.</p>
             </div>
             <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
-              <Award className="w-8 h-8 text-sky-500 mb-4" />
+              <Award className="w-8 h-8 text-teal-500 mb-4" />
               <h3 className="font-medium text-slate-900 mb-2">Опит на хирурга</h3>
               <p className="text-sm text-slate-500">По-опитните специалисти и реномирани клиники имат по-високи цени.</p>
             </div>
             <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
-              <Clock className="w-8 h-8 text-sky-500 mb-4" />
+              <Clock className="w-8 h-8 text-teal-500 mb-4" />
               <h3 className="font-medium text-slate-900 mb-2">Сложност на случая</h3>
               <p className="text-sm text-slate-500">Нужда от костна аугментация или синус лифт увеличава цената.</p>
             </div>
@@ -269,16 +269,16 @@ export default function ImplantPricePage() {
       {/* CTA */}
       <section className="py-16 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
-          <div className="bg-gradient-to-br from-sky-500 to-sky-600 rounded-3xl p-8 md:p-12 text-center text-white">
+          <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-3xl p-8 md:p-12 text-center text-white">
             <h2 className="font-serif text-2xl md:text-3xl font-semibold mb-4">
               Получете персонализирана оферта
             </h2>
-            <p className="text-sky-100 mb-8 max-w-lg mx-auto">
+            <p className="text-teal-100 mb-8 max-w-lg mx-auto">
               Направете безплатна оценка и разберете каква е точната цена за вашия случай.
             </p>
             <Link 
               href="/implants/quiz"
-              className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full bg-white text-sky-600 font-medium hover:bg-sky-50"
+              className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full bg-white text-teal-600 font-medium hover:bg-teal-50"
             >
               Безплатна оценка
               <ArrowRight className="w-5 h-5" />

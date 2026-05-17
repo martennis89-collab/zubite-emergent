@@ -145,7 +145,7 @@ export default async function SymptomDetailPage({ params }: PageProps) {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <Link 
             href="/symptoms"
-            className="inline-flex items-center gap-2 text-sky-400 hover:text-sky-300 transition-colors mb-8"
+            className="inline-flex items-center gap-2 text-teal-400 hover:text-teal-300 transition-colors mb-8"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Всички симптоми</span>

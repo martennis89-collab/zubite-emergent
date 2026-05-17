@@ -172,8 +172,8 @@ export default function OrthodonticsPage() {
           </Link>
           
           <div className="text-center">
-            <div className="w-20 h-20 rounded-2xl bg-sky-100 flex items-center justify-center mx-auto mb-6 icon-hover">
-              <Smile className="w-10 h-10 text-sky-600" />
+            <div className="w-20 h-20 rounded-2xl bg-teal-100 flex items-center justify-center mx-auto mb-6 icon-hover">
+              <Smile className="w-10 h-10 text-teal-600" />
             </div>
             
             <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-slate-900 mb-4">
@@ -210,7 +210,7 @@ export default function OrthodonticsPage() {
                 className="text-center animate-fade-in-up" 
                 style={{ animationDelay: `${index * 150}ms` }}
               >
-                <div className="icon-hover w-12 h-12 rounded-full bg-sky-500 text-white flex items-center justify-center text-xl font-bold mx-auto mb-4">
+                <div className="icon-hover w-12 h-12 rounded-full bg-teal-500 text-white flex items-center justify-center text-xl font-bold mx-auto mb-4">
                   {item.step}
                 </div>
                 <h3 className="font-medium text-slate-900 mb-2">{item.title}</h3>
@@ -246,8 +246,8 @@ export default function OrthodonticsPage() {
             {/* Aligners Card */}
             <div className="bg-white rounded-2xl border border-slate-200 p-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center">
-                  <Eye className="w-5 h-5 text-sky-600" />
+                <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center">
+                  <Eye className="w-5 h-5 text-teal-600" />
                 </div>
                 <h3 className="font-serif text-lg font-semibold text-slate-900">
                   {ALIGNERS_VS_BRACES.aligners.title}
@@ -320,7 +320,7 @@ export default function OrthodonticsPage() {
             <p className="text-slate-500 mb-4">Не сте сигурни кой метод е за вас?</p>
             <Link
               href="/quiz"
-              className="text-sky-600 font-medium hover:text-sky-700 inline-flex items-center gap-2"
+              className="text-teal-600 font-medium hover:text-teal-700 inline-flex items-center gap-2"
             >
               Провери на кой етап си
               <ArrowRight className="w-4 h-4" />
@@ -359,7 +359,7 @@ export default function OrthodonticsPage() {
                   
                   <div className="pt-4 border-t border-slate-200">
                     <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Цена</p>
-                    <p className="font-semibold text-sky-600">{brand.priceRange}</p>
+                    <p className="font-semibold text-teal-600">{brand.priceRange}</p>
                     <p className="text-xs text-slate-400">{brand.priceBGN}</p>
                   </div>
                 </div>
@@ -386,15 +386,15 @@ export default function OrthodonticsPage() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Aligners Price */}
-            <div className="bg-gradient-to-br from-sky-500 to-sky-600 rounded-2xl p-6 text-white">
+            <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl p-6 text-white">
               <div className="flex items-center gap-3 mb-4">
-                <Eye className="w-6 h-6 text-sky-200" />
+                <Eye className="w-6 h-6 text-teal-200" />
                 <h3 className="font-medium text-lg">Алайнери</h3>
               </div>
               <div className="text-3xl font-bold mb-1">
                 €{alignersPrice.minEUR.toLocaleString('bg-BG')} – €{alignersPrice.maxEUR.toLocaleString('bg-BG')}
               </div>
-              <div className="text-sky-200 text-sm">
+              <div className="text-teal-200 text-sm">
                 (≈ {alignersPrice.minBGN.toLocaleString('bg-BG')} – {alignersPrice.maxBGN.toLocaleString('bg-BG')} лв.)
               </div>
             </div>
@@ -435,7 +435,7 @@ export default function OrthodonticsPage() {
               <div key={index} className="bg-slate-50 rounded-2xl border border-slate-200 p-6">
                 <h3 className="font-medium text-lg text-slate-900 mb-2">{problem.title}</h3>
                 <p className="text-slate-600 text-sm mb-3">{problem.description}</p>
-                <div className="flex items-center gap-2 text-sm text-sky-600">
+                <div className="flex items-center gap-2 text-sm text-teal-600">
                   <CheckCircle className="w-4 h-4" />
                   <span>{problem.treatable}</span>
                 </div>
@@ -449,8 +449,8 @@ export default function OrthodonticsPage() {
       <section className="py-16 bg-slate-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <div className="flex flex-col md:flex-row gap-8 items-start">
-            <div className="w-16 h-16 rounded-2xl bg-sky-100 flex items-center justify-center flex-shrink-0">
-              <Baby className="w-8 h-8 text-sky-600" />
+            <div className="w-16 h-16 rounded-2xl bg-teal-100 flex items-center justify-center flex-shrink-0">
+              <Baby className="w-8 h-8 text-teal-600" />
             </div>
             
             <div className="flex-1">
@@ -465,27 +465,27 @@ export default function OrthodonticsPage() {
               <div className="bg-white rounded-xl border border-slate-200 p-4">
                 <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <li className="flex items-start gap-2 text-sm text-slate-600">
-                    <CheckCircle className="w-4 h-4 text-sky-500 flex-shrink-0 mt-0.5" />
+                    <CheckCircle className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5" />
                     <span>Дишане през устата</span>
                   </li>
                   <li className="flex items-start gap-2 text-sm text-slate-600">
-                    <CheckCircle className="w-4 h-4 text-sky-500 flex-shrink-0 mt-0.5" />
+                    <CheckCircle className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5" />
                     <span>Струпани или криви зъби</span>
                   </li>
                   <li className="flex items-start gap-2 text-sm text-slate-600">
-                    <CheckCircle className="w-4 h-4 text-sky-500 flex-shrink-0 mt-0.5" />
+                    <CheckCircle className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5" />
                     <span>Проблеми със захапката</span>
                   </li>
                   <li className="flex items-start gap-2 text-sm text-slate-600">
-                    <CheckCircle className="w-4 h-4 text-sky-500 flex-shrink-0 mt-0.5" />
+                    <CheckCircle className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5" />
                     <span>Затруднения при дъвчене</span>
                   </li>
                   <li className="flex items-start gap-2 text-sm text-slate-600">
-                    <CheckCircle className="w-4 h-4 text-sky-500 flex-shrink-0 mt-0.5" />
+                    <CheckCircle className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5" />
                     <span>Рано или късно падане на млечни зъби</span>
                   </li>
                   <li className="flex items-start gap-2 text-sm text-slate-600">
-                    <CheckCircle className="w-4 h-4 text-sky-500 flex-shrink-0 mt-0.5" />
+                    <CheckCircle className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5" />
                     <span>Смучене на палец след 5г.</span>
                   </li>
                 </ul>
@@ -498,7 +498,7 @@ export default function OrthodonticsPage() {
       {/* 8. DECISION Section */}
       <section className="py-16 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <div className="bg-gradient-to-br from-sky-500 to-sky-600 rounded-3xl p-8 md:p-10 text-white text-center">
+          <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-3xl p-8 md:p-10 text-white text-center">
             <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center mx-auto mb-6">
               <ClipboardList className="w-8 h-8 text-white" />
             </div>
@@ -510,21 +510,21 @@ export default function OrthodonticsPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-8 text-left">
               <div className="bg-white/10 rounded-xl p-4">
                 <h3 className="font-medium mb-2">Подходящо лечение</h3>
-                <p className="text-sky-100 text-sm">Дали алайнери или брекети са по-подходящи за вашия случай.</p>
+                <p className="text-teal-100 text-sm">Дали алайнери или брекети са по-подходящи за вашия случай.</p>
               </div>
               <div className="bg-white/10 rounded-xl p-4">
                 <h3 className="font-medium mb-2">Сложност на случая</h3>
-                <p className="text-sky-100 text-sm">Обща оценка на сложността и очаквана продължителност.</p>
+                <p className="text-teal-100 text-sm">Обща оценка на сложността и очаквана продължителност.</p>
               </div>
               <div className="bg-white/10 rounded-xl p-4">
                 <h3 className="font-medium mb-2">Ориентировъчна цена</h3>
-                <p className="text-sky-100 text-sm">Какво да очаквате като бюджет за лечението.</p>
+                <p className="text-teal-100 text-sm">Какво да очаквате като бюджет за лечението.</p>
               </div>
             </div>
             
             <Link
               href="/quiz"
-              className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-10 rounded-full bg-white text-sky-600 font-medium hover:bg-sky-50"
+              className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-10 rounded-full bg-white text-teal-600 font-medium hover:bg-teal-50"
               data-testid="decision-cta-quiz"
             >
               Провери на кой етап си
@@ -548,7 +548,7 @@ export default function OrthodonticsPage() {
       {/* FINAL CTA Section */}
       <section className="py-16 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
-          <Smile className="w-16 h-16 text-sky-500 mx-auto mb-6" />
+          <Smile className="w-16 h-16 text-teal-500 mx-auto mb-6" />
           <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-4">
             Не знаеш откъде да започнеш?
           </h2>

@@ -114,8 +114,8 @@ export default function AlignersComparisonPage() {
             {/* Aligners Card */}
             <div className="bg-white rounded-2xl border border-slate-200 p-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center">
-                  <Eye className="w-5 h-5 text-sky-600" />
+                <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center">
+                  <Eye className="w-5 h-5 text-teal-600" />
                 </div>
                 <h3 className="font-serif text-lg font-semibold text-slate-900">
                   {ALIGNERS_VS_BRACES.aligners.title}
@@ -251,7 +251,7 @@ export default function AlignersComparisonPage() {
                   
                   <div className="pt-4 border-t border-slate-200">
                     <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Цена</p>
-                    <p className="font-semibold text-sky-600">{brand.priceRange}</p>
+                    <p className="font-semibold text-teal-600">{brand.priceRange}</p>
                     <p className="text-xs text-slate-400">{brand.priceBGN}</p>
                   </div>
                 </div>
@@ -292,30 +292,30 @@ export default function AlignersComparisonPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Link
               href="/orthodontics"
-              className="bg-slate-50 rounded-xl border border-slate-200 p-4 hover:border-sky-300 transition-colors flex items-center gap-3"
+              className="bg-slate-50 rounded-xl border border-slate-200 p-4 hover:border-teal-300 transition-colors flex items-center gap-3"
             >
-              <ArrowRight className="w-4 h-4 text-sky-500" />
+              <ArrowRight className="w-4 h-4 text-teal-500" />
               <span className="text-slate-700">Ортодонтия — основна страница</span>
             </Link>
             <Link
               href="/aligners-vs-braces"
-              className="bg-slate-50 rounded-xl border border-slate-200 p-4 hover:border-sky-300 transition-colors flex items-center gap-3"
+              className="bg-slate-50 rounded-xl border border-slate-200 p-4 hover:border-teal-300 transition-colors flex items-center gap-3"
             >
-              <ArrowRight className="w-4 h-4 text-sky-500" />
+              <ArrowRight className="w-4 h-4 text-teal-500" />
               <span className="text-slate-700">Алайнери vs Брекети — подробно</span>
             </Link>
             <Link
               href="/invisalign-price"
-              className="bg-slate-50 rounded-xl border border-slate-200 p-4 hover:border-sky-300 transition-colors flex items-center gap-3"
+              className="bg-slate-50 rounded-xl border border-slate-200 p-4 hover:border-teal-300 transition-colors flex items-center gap-3"
             >
-              <ArrowRight className="w-4 h-4 text-sky-500" />
+              <ArrowRight className="w-4 h-4 text-teal-500" />
               <span className="text-slate-700">Invisalign цена в България</span>
             </Link>
             <Link
               href="/crooked-teeth"
-              className="bg-slate-50 rounded-xl border border-slate-200 p-4 hover:border-sky-300 transition-colors flex items-center gap-3"
+              className="bg-slate-50 rounded-xl border border-slate-200 p-4 hover:border-teal-300 transition-colors flex items-center gap-3"
             >
-              <ArrowRight className="w-4 h-4 text-sky-500" />
+              <ArrowRight className="w-4 h-4 text-teal-500" />
               <span className="text-slate-700">Криви зъби — симптоми и лечение</span>
             </Link>
           </div>
@@ -325,16 +325,16 @@ export default function AlignersComparisonPage() {
       {/* CTA */}
       <section className="py-16 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
-          <div className="bg-gradient-to-br from-sky-500 to-sky-600 rounded-3xl p-8 md:p-12 text-center text-white">
+          <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-3xl p-8 md:p-12 text-center text-white">
             <h2 className="font-serif text-2xl md:text-3xl font-semibold mb-4">
               Не сте сигурни коя система е за вас?
             </h2>
-            <p className="text-sky-100 mb-8 max-w-lg mx-auto">
+            <p className="text-teal-100 mb-8 max-w-lg mx-auto">
               Преминете нашата кратка оценка и получете препоръка за подходящо лечение.
             </p>
             <Link 
               href="/orthodontics/quiz"
-              className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-10 rounded-full bg-white text-sky-600 font-medium hover:bg-sky-50"
+              className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-10 rounded-full bg-white text-teal-600 font-medium hover:bg-teal-50"
               data-testid="cta-quiz"
             >
               Направете оценка

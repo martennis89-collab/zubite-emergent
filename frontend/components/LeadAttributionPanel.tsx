@@ -67,7 +67,7 @@ const SOURCE_TYPE_COLORS: Record<string, string> = {
   organic_social: 'bg-pink-100 text-pink-700',
   referral: 'bg-amber-100 text-amber-700',
   direct: 'bg-slate-100 text-slate-700',
-  blog: 'bg-sky-100 text-sky-700',
+  blog: 'bg-teal-100 text-teal-700',
   internal_content: 'bg-indigo-100 text-indigo-700',
   unknown: 'bg-slate-100 text-slate-500',
 }
@@ -124,7 +124,7 @@ export function LeadAttributionPanel({ lead }: { lead: LeadAttribution }) {
       {/* Source type summary */}
       <div className="bg-white rounded-2xl border border-slate-200 p-5">
         <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-          <Megaphone className="w-4 h-4 text-sky-500" />
+          <Megaphone className="w-4 h-4 text-teal-500" />
           Източник
         </h3>
         <div className="grid grid-cols-2 gap-4">
@@ -139,7 +139,7 @@ export function LeadAttributionPanel({ lead }: { lead: LeadAttribution }) {
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           {lead.blog_assisted_conversion && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-sky-50 text-sky-700 border border-sky-100">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-teal-50 text-teal-700 border border-teal-100">
               <FileText className="w-3 h-3" /> Blog-assisted
             </span>
           )}
@@ -214,7 +214,7 @@ export function LeadAttributionPanel({ lead }: { lead: LeadAttribution }) {
       {lead.content_path_before_conversion && lead.content_path_before_conversion.length > 0 && (
         <div className="bg-white rounded-2xl border border-slate-200 p-5">
           <h4 className="font-semibold text-slate-900 mb-3 text-sm flex items-center gap-2">
-            <Globe className="w-4 h-4 text-sky-500" />
+            <Globe className="w-4 h-4 text-teal-500" />
             Content path преди конверсия ({lead.content_path_before_conversion.length})
           </h4>
           <ol className="space-y-2">

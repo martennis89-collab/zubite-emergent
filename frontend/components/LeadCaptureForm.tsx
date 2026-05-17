@@ -99,8 +99,8 @@ export function LeadCaptureForm({ treatmentType, source = 'treatment_page', vari
     <form onSubmit={handleSubmit} className={`space-y-4 ${variant === 'compact' ? '' : 'bg-white rounded-2xl border border-slate-200 p-6'}`}>
       {variant === 'default' && (
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center">
-            <Phone className="w-5 h-5 text-sky-600" />
+          <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center">
+            <Phone className="w-5 h-5 text-teal-600" />
           </div>
           <div>
             <h3 className="font-medium text-slate-900">Заявете обаждане</h3>
@@ -115,7 +115,7 @@ export function LeadCaptureForm({ treatmentType, source = 'treatment_page', vari
           type="text"
           value={formData.name}
           onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-          className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors"
+          className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
           placeholder="Вашето име"
           data-testid="lead-form-name"
         />
@@ -127,7 +127,7 @@ export function LeadCaptureForm({ treatmentType, source = 'treatment_page', vari
           type="tel"
           value={formData.phone}
           onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-          className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors"
+          className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
           placeholder="+359 888 123 456"
           required
           data-testid="lead-form-phone"
@@ -139,7 +139,7 @@ export function LeadCaptureForm({ treatmentType, source = 'treatment_page', vari
         <select
           value={formData.city}
           onChange={e => setFormData(prev => ({ ...prev, city: e.target.value }))}
-          className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors"
+          className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
           data-testid="lead-form-city"
         >
           <option value="">Изберете град</option>
@@ -154,7 +154,7 @@ export function LeadCaptureForm({ treatmentType, source = 'treatment_page', vari
         <textarea
           value={formData.problem}
           onChange={e => setFormData(prev => ({ ...prev, problem: e.target.value }))}
-          className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors resize-none"
+          className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors resize-none"
           placeholder="Опишете накратко вашата ситуация..."
           rows={3}
           data-testid="lead-form-problem"
@@ -167,12 +167,12 @@ export function LeadCaptureForm({ treatmentType, source = 'treatment_page', vari
           id="lead-consent"
           checked={formData.consent}
           onChange={e => setFormData(prev => ({ ...prev, consent: e.target.checked }))}
-          className="mt-1 w-4 h-4 rounded border-slate-300 text-sky-500 focus:ring-sky-500"
+          className="mt-1 w-4 h-4 rounded border-slate-300 text-teal-500 focus:ring-teal-500"
           data-testid="lead-form-consent"
         />
         <label htmlFor="lead-consent" className="text-sm text-slate-600">
           Съгласен/а съм с{' '}
-          <Link href="/privacy" className="text-sky-500 hover:underline">Политиката за поверителност</Link>
+          <Link href="/privacy" className="text-teal-500 hover:underline">Политиката за поверителност</Link>
           {' '}и обработката на личните ми данни. *
         </label>
       </div>

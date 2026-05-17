@@ -132,7 +132,7 @@ export default function AlignersVsBracesPage() {
       {/* Hero */}
       <section className="pt-28 pb-16 md:pt-36 md:pb-20 bg-gradient-to-b from-white to-slate-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          <p className="text-sky-500 font-medium text-sm tracking-wide uppercase mb-4">
+          <p className="text-teal-500 font-medium text-sm tracking-wide uppercase mb-4">
             Сравнение 2025
           </p>
           <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight mb-6">
@@ -157,7 +157,7 @@ export default function AlignersVsBracesPage() {
       {/* Quick Summary */}
       <section className="py-12 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <div className="bg-sky-50 rounded-2xl border border-sky-200 p-8">
+          <div className="bg-teal-50 rounded-2xl border border-teal-200 p-8">
             <h2 className="font-serif text-xl font-semibold text-slate-900 mb-4">
               Кратко резюме
             </h2>
@@ -181,16 +181,16 @@ export default function AlignersVsBracesPage() {
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
             <div className="grid grid-cols-3 bg-slate-50 border-b border-slate-200">
               <div className="p-4 font-medium text-slate-500">Критерий</div>
-              <div className="p-4 font-medium text-sky-600 text-center">Алайнери</div>
+              <div className="p-4 font-medium text-teal-600 text-center">Алайнери</div>
               <div className="p-4 font-medium text-slate-700 text-center">Брекети</div>
             </div>
             
             {COMPARISON_DATA.map((item, index) => (
               <div key={index} className="grid grid-cols-3 border-b border-slate-100 last:border-0">
                 <div className="p-4 font-medium text-slate-900">{item.feature}</div>
-                <div className={`p-4 text-center ${item.winner === 'aligners' ? 'bg-sky-50 text-sky-700' : 'text-slate-600'}`}>
+                <div className={`p-4 text-center ${item.winner === 'aligners' ? 'bg-teal-50 text-teal-700' : 'text-slate-600'}`}>
                   <div className="flex items-center justify-center gap-2">
-                    {item.winner === 'aligners' && <CheckCircle className="w-4 h-4 text-sky-500" />}
+                    {item.winner === 'aligners' && <CheckCircle className="w-4 h-4 text-teal-500" />}
                     <span className="text-sm">{item.aligners}</span>
                   </div>
                 </div>
@@ -216,9 +216,9 @@ export default function AlignersVsBracesPage() {
           <div className="grid md:grid-cols-2 gap-8">
             {/* Aligners */}
             <div>
-              <h3 className="font-medium text-lg text-sky-600 mb-4 flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-sky-100 flex items-center justify-center">
-                  <Eye className="w-4 h-4 text-sky-600" />
+              <h3 className="font-medium text-lg text-teal-600 mb-4 flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center">
+                  <Eye className="w-4 h-4 text-teal-600" />
                 </div>
                 Прозрачни алайнери
               </h3>
@@ -294,7 +294,7 @@ export default function AlignersVsBracesPage() {
           
           <div className="grid md:grid-cols-2 gap-6">
             <div className="bg-white rounded-2xl border border-slate-200 p-6">
-              <h3 className="font-medium text-lg text-sky-600 mb-4">Прозрачни алайнери</h3>
+              <h3 className="font-medium text-lg text-teal-600 mb-4">Прозрачни алайнери</h3>
               <div className="space-y-3">
                 <div className="flex justify-between py-2 border-b border-slate-100">
                   <span className="text-slate-600">Invisalign Full</span>
@@ -349,17 +349,17 @@ export default function AlignersVsBracesPage() {
       {/* CTA */}
       <section className="py-16 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
-          <div className="bg-gradient-to-br from-sky-500 to-sky-600 rounded-3xl p-8 md:p-12 text-center text-white">
+          <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-3xl p-8 md:p-12 text-center text-white">
             <h2 className="font-serif text-2xl md:text-3xl font-semibold mb-4">
               Не сте сигурни кое е по-добре за вас?
             </h2>
-            <p className="text-sky-100 mb-8 max-w-lg mx-auto">
+            <p className="text-teal-100 mb-8 max-w-lg mx-auto">
               Преминете нашата безплатна оценка и ще ви помогнем да определите кой метод е идеален за вашия случай.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link 
                 href="/orthodontics/quiz"
-                className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full bg-white text-sky-600 font-medium hover:bg-sky-50"
+                className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full bg-white text-teal-600 font-medium hover:bg-teal-50"
               >
                 Направи безплатна оценка
                 <ArrowRight className="w-5 h-5" />
@@ -376,15 +376,15 @@ export default function AlignersVsBracesPage() {
             Свързани статии
           </h2>
           <div className="grid md:grid-cols-3 gap-4">
-            <Link href="/what-is-invisalign" className="bg-white rounded-xl border border-slate-200 p-5 hover:border-sky-300 transition-colors">
+            <Link href="/what-is-invisalign" className="bg-white rounded-xl border border-slate-200 p-5 hover:border-teal-300 transition-colors">
               <h3 className="font-medium text-slate-900 mb-2">Какво е Invisalign?</h3>
               <p className="text-sm text-slate-500">Пълен гид за прозрачните алайнери</p>
             </Link>
-            <Link href="/invisalign-price" className="bg-white rounded-xl border border-slate-200 p-5 hover:border-sky-300 transition-colors">
+            <Link href="/invisalign-price" className="bg-white rounded-xl border border-slate-200 p-5 hover:border-teal-300 transition-colors">
               <h3 className="font-medium text-slate-900 mb-2">Invisalign цена</h3>
               <p className="text-sm text-slate-500">Актуални цени в България 2025</p>
             </Link>
-            <Link href="/orthodontics" className="bg-white rounded-xl border border-slate-200 p-5 hover:border-sky-300 transition-colors">
+            <Link href="/orthodontics" className="bg-white rounded-xl border border-slate-200 p-5 hover:border-teal-300 transition-colors">
               <h3 className="font-medium text-slate-900 mb-2">Ортодонтия</h3>
               <p className="text-sm text-slate-500">Всичко за изправяне на зъби</p>
             </Link>

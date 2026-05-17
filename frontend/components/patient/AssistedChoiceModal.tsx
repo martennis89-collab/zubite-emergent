@@ -145,8 +145,8 @@ export function AssistedChoiceModal({
       >
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="min-w-0 flex items-start gap-2.5">
-            <span className="w-9 h-9 rounded-lg bg-sky-50 grid place-items-center flex-shrink-0 mt-0.5">
-              <Sparkles className="w-4 h-4 text-sky-600" />
+            <span className="w-9 h-9 rounded-lg bg-teal-50 grid place-items-center flex-shrink-0 mt-0.5">
+              <Sparkles className="w-4 h-4 text-teal-600" />
             </span>
             <div>
               <h3
@@ -245,10 +245,10 @@ function FormBody({
       </p>
 
       <div
-        className="mb-5 rounded-lg border border-sky-100 bg-sky-50/60 p-3 flex items-start gap-2.5"
+        className="mb-5 rounded-lg border border-teal-100 bg-teal-50/60 p-3 flex items-start gap-2.5"
         data-testid="assisted-choice-care-pass-note"
       >
-        <ShieldCheck className="w-4 h-4 mt-0.5 flex-shrink-0 text-sky-600" />
+        <ShieldCheck className="w-4 h-4 mt-0.5 flex-shrink-0 text-teal-600" />
         <p className="text-xs text-slate-700 leading-relaxed">
           Ако след помощ от Zubite заявите и посетите консултация през
           платформата, клиниката ще ви предостави{' '}
@@ -288,7 +288,7 @@ function FormBody({
             type="button"
             onClick={onEdit}
             disabled={submitting}
-            className="mt-3 text-xs font-medium text-sky-600 hover:text-sky-700 underline-offset-2 hover:underline disabled:opacity-40"
+            className="mt-3 text-xs font-medium text-teal-600 hover:text-teal-700 underline-offset-2 hover:underline disabled:opacity-40"
             data-testid="assisted-choice-edit-contact-btn"
           >
             Промени данните
@@ -307,7 +307,7 @@ function FormBody({
             onChange={(e) => setPhone(e.target.value)}
             placeholder="+359 ..."
             disabled={submitting}
-            className="w-full px-4 py-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300 disabled:opacity-60"
+            className="w-full px-4 py-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-200 focus:border-teal-300 disabled:opacity-60"
             data-testid="assisted-choice-phone-input"
           />
           {phone.length > 0 && !phoneOk && (
@@ -328,7 +328,7 @@ function FormBody({
         maxLength={1000}
         placeholder="Може да добавите какво ви притеснява или какво е важно за вас."
         disabled={submitting}
-        className="w-full px-4 py-3 border border-slate-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300 disabled:opacity-60"
+        className="w-full px-4 py-3 border border-slate-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-teal-200 focus:border-teal-300 disabled:opacity-60"
         data-testid="assisted-choice-message-input"
       />
       <p className="text-[10px] text-slate-400 mt-1 text-right tabular-nums">
@@ -344,7 +344,7 @@ function FormBody({
           checked={consent}
           onChange={(e) => setConsent(e.target.checked)}
           disabled={submitting}
-          className="mt-0.5 w-4 h-4 rounded border-slate-300 text-sky-500 focus:ring-sky-200"
+          className="mt-0.5 w-4 h-4 rounded border-slate-300 text-teal-500 focus:ring-teal-200"
           data-testid="assisted-choice-consent-checkbox"
         />
         <span className="text-sm text-slate-700 leading-snug">
@@ -376,7 +376,7 @@ function FormBody({
           type="button"
           onClick={onSubmit}
           disabled={!canSubmit}
-          className="px-5 py-2.5 bg-sky-500 text-white text-sm font-medium rounded-full hover:bg-sky-600 transition-colors disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed"
+          className="px-5 py-2.5 bg-teal-500 text-white text-sm font-medium rounded-full hover:bg-teal-600 transition-colors disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed"
           data-testid="assisted-choice-submit"
         >
           {submitting ? 'Изпращане…' : 'Изпрати към Zubite'}
@@ -405,10 +405,10 @@ function SuccessBody({ onClose }: { onClose: () => void }) {
       </div>
 
       <div
-        className="rounded-lg bg-sky-50/70 border border-sky-100 p-3 mb-4 flex items-start gap-2.5"
+        className="rounded-lg bg-teal-50/70 border border-teal-100 p-3 mb-4 flex items-start gap-2.5"
         data-testid="assisted-choice-success-care-pass"
       >
-        <ShieldCheck className="w-4 h-4 mt-0.5 flex-shrink-0 text-sky-600" />
+        <ShieldCheck className="w-4 h-4 mt-0.5 flex-shrink-0 text-teal-600" />
         <p className="text-xs text-slate-700 leading-relaxed">
           Следващата стъпка е да уточним подходящия път.{' '}
           <span className="font-semibold text-slate-900">Zubite Care Pass</span>{' '}

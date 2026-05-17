@@ -58,7 +58,7 @@ export function AlignerBrandChips({ chips, layout = 'profile' }: Props) {
             : `Работи с ${chip.label}`
           const className = verified
             ? 'bg-emerald-50 text-emerald-800 ring-emerald-100'
-            : 'bg-sky-50 text-sky-800 ring-sky-100'
+            : 'bg-teal-50 text-teal-800 ring-teal-100'
           return (
             <li
               key={chip.brand + (verified ? '-v' : '')}

@@ -223,8 +223,8 @@ export default function SleepAirwayPage() {
           </Link>
           
           <div className="text-center">
-            <div className="w-20 h-20 rounded-2xl bg-sky-100 flex items-center justify-center mx-auto mb-6 icon-hover">
-              <Moon className="w-10 h-10 text-sky-600" />
+            <div className="w-20 h-20 rounded-2xl bg-teal-100 flex items-center justify-center mx-auto mb-6 icon-hover">
+              <Moon className="w-10 h-10 text-teal-600" />
             </div>
             
             <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-slate-900 mb-4">
@@ -250,8 +250,8 @@ export default function SleepAirwayPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {TRUST_CARDS.map((card, index) => (
                 <div key={index} className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center flex-shrink-0">
-                    <card.icon className="w-5 h-5 text-sky-600" />
+                  <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0">
+                    <card.icon className="w-5 h-5 text-teal-600" />
                   </div>
                   <span className="text-sm text-slate-700 text-left">{card.title}</span>
                 </div>
@@ -275,7 +275,7 @@ export default function SleepAirwayPage() {
                 className="text-center animate-fade-in-up" 
                 style={{ animationDelay: `${index * 150}ms` }}
               >
-                <div className="icon-hover w-12 h-12 rounded-full bg-sky-500 text-white flex items-center justify-center text-xl font-bold mx-auto mb-4">
+                <div className="icon-hover w-12 h-12 rounded-full bg-teal-500 text-white flex items-center justify-center text-xl font-bold mx-auto mb-4">
                   {item.step}
                 </div>
                 <h3 className="font-medium text-slate-900 mb-2">{item.title}</h3>
@@ -299,8 +299,8 @@ export default function SleepAirwayPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {SLEEP_SYMPTOMS.map((symptom, index) => (
               <div key={index} className="bg-white rounded-xl border border-slate-200 p-4 flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center flex-shrink-0">
-                  <symptom.icon className="w-5 h-5 text-sky-600" />
+                <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0">
+                  <symptom.icon className="w-5 h-5 text-teal-600" />
                 </div>
                 <div>
                   <h3 className="font-medium text-slate-900 mb-1">{symptom.title}</h3>
@@ -323,13 +323,13 @@ export default function SleepAirwayPage() {
             {TREATMENT_OPTIONS.map((item, index) => (
               <div key={index} className="bg-slate-50 rounded-2xl border border-slate-200 p-6">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-xl bg-sky-100 flex items-center justify-center flex-shrink-0">
-                    <item.icon className="w-6 h-6 text-sky-600" />
+                  <div className="w-12 h-12 rounded-xl bg-teal-100 flex items-center justify-center flex-shrink-0">
+                    <item.icon className="w-6 h-6 text-teal-600" />
                   </div>
                   <h3 className="font-serif text-lg font-semibold text-slate-900">{item.title}</h3>
                 </div>
                 <p className="text-slate-600 mb-3">{item.description}</p>
-                <div className="flex items-center gap-2 text-sm text-sky-600">
+                <div className="flex items-center gap-2 text-sm text-teal-600">
                   <CheckCircle className="w-4 h-4" />
                   <span>{item.suitable}</span>
                 </div>
@@ -438,15 +438,15 @@ export default function SleepAirwayPage() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {SLEEP_PRICES.map((price, index) => (
-              <div key={index} className="bg-gradient-to-br from-sky-500 to-sky-600 rounded-2xl p-6 text-white">
-                <h3 className="font-medium text-lg mb-3 text-sky-100">
+              <div key={index} className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl p-6 text-white">
+                <h3 className="font-medium text-lg mb-3 text-teal-100">
                   {price.title}
-                  {price.note && <span className="text-sky-200 text-sm ml-1">{price.note}</span>}
+                  {price.note && <span className="text-teal-200 text-sm ml-1">{price.note}</span>}
                 </h3>
                 <div className="text-2xl font-bold mb-1">
                   €{price.eurMin.toLocaleString('bg-BG')} – €{price.eurMax.toLocaleString('bg-BG')}
                 </div>
-                <div className="text-sky-200 text-sm">
+                <div className="text-teal-200 text-sm">
                   (≈ {price.bgnMin.toLocaleString('bg-BG')} – {price.bgnMax.toLocaleString('bg-BG')} лв.)
                 </div>
               </div>
@@ -470,7 +470,7 @@ export default function SleepAirwayPage() {
             <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {SUITABLE_FOR.map((item, index) => (
                 <li key={index} className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-sky-500 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="w-5 h-5 text-teal-500 flex-shrink-0 mt-0.5" />
                   <span className="text-slate-700">{item}</span>
                 </li>
               ))}
@@ -496,17 +496,17 @@ export default function SleepAirwayPage() {
       {/* SECTION 10 — FINAL CTA */}
       <section className="py-16 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
-          <div className="bg-gradient-to-br from-sky-500 to-sky-600 rounded-3xl p-8 md:p-12 text-center text-white">
+          <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-3xl p-8 md:p-12 text-center text-white">
             <Moon className="w-12 h-12 mx-auto mb-4 opacity-90" />
             <h2 className="font-serif text-2xl md:text-3xl font-semibold mb-4">
               Подобрете качеството на съня си
             </h2>
-            <p className="text-sky-100 mb-8 max-w-lg mx-auto">
+            <p className="text-teal-100 mb-8 max-w-lg mx-auto">
               Преминете през нашата кратка оценка, за да разберете дали оралните апарати са подходящи за вас.
             </p>
             <Link 
               href="/sleep-airway/quiz"
-              className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-10 rounded-full bg-white text-sky-600 font-medium hover:bg-sky-50"
+              className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-10 rounded-full bg-white text-teal-600 font-medium hover:bg-teal-50"
               data-testid="start-quiz-cta"
             >
               Направи бърза оценка

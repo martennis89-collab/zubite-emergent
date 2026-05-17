@@ -14,7 +14,7 @@ export function ClinicMatchEmptyState({ message, testid = 'match-empty-state' }:
       className="bg-white border border-slate-200 rounded-2xl p-8 sm:p-10 text-center max-w-2xl mx-auto"
       data-testid={testid}
     >
-      <div className="mx-auto w-14 h-14 rounded-full bg-sky-50 text-sky-600 grid place-items-center mb-5">
+      <div className="mx-auto w-14 h-14 rounded-full bg-teal-50 text-teal-600 grid place-items-center mb-5">
         <Compass className="w-6 h-6" />
       </div>
       <h2 className="font-serif text-xl sm:text-2xl font-semibold text-slate-900 mb-3">

@@ -70,7 +70,7 @@ export function ClinicShell({ children }: { children: React.ReactNode }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/clinic/dashboard" className="font-serif text-xl font-semibold text-slate-900">
-              Zubite<span className="text-sky-500">.bg</span>
+              Zubite<span className="text-teal-500">.bg</span>
             </Link>
             <span className="text-slate-300 hidden sm:inline">|</span>
             <span className="text-slate-600 font-medium hidden sm:inline">Клинично табло</span>
@@ -111,7 +111,7 @@ export function ClinicShell({ children }: { children: React.ReactNode }) {
                   data-testid={`clinic-nav-${item.label.toLowerCase()}`}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                     active
-                      ? 'bg-sky-500 text-white'
+                      ? 'bg-teal-500 text-white'
                       : 'text-slate-600 hover:bg-slate-50'
                   }`}
                 >

@@ -49,11 +49,11 @@ export function ReviewPoster({
       {/* Decorative gradient blobs */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-32 -right-32 w-[60%] aspect-square rounded-full bg-gradient-to-br from-sky-200/60 via-sky-100/50 to-transparent blur-3xl"
+        className="pointer-events-none absolute -top-32 -right-32 w-[60%] aspect-square rounded-full bg-gradient-to-br from-teal-200/60 via-teal-100/50 to-transparent blur-3xl"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute -bottom-40 -left-32 w-[55%] aspect-square rounded-full bg-gradient-to-tr from-cyan-100/50 via-sky-50/40 to-transparent blur-3xl"
+        className="pointer-events-none absolute -bottom-40 -left-32 w-[55%] aspect-square rounded-full bg-gradient-to-tr from-cyan-100/50 via-teal-50/40 to-transparent blur-3xl"
       />
 
       {/* Dot pattern bottom-right */}
@@ -87,11 +87,11 @@ export function ReviewPoster({
             data-testid="review-poster-brand"
           >
             <span className="text-slate-900">Zubite</span>
-            <span className="text-sky-500">.bg</span>
+            <span className="text-teal-500">.bg</span>
           </div>
           <span
             className={
-              'inline-flex items-center gap-1.5 rounded-full bg-white/80 ring-1 ring-sky-100 text-sky-700 font-medium ' +
+              'inline-flex items-center gap-1.5 rounded-full bg-white/80 ring-1 ring-teal-100 text-teal-700 font-medium ' +
               (isPreview ? 'text-[10px] px-2.5 py-1' : 'text-xs px-3 py-1.5')
             }
           >
@@ -104,7 +104,7 @@ export function ReviewPoster({
         <div className={isPreview ? 'mt-6' : 'mt-10'}>
           <p
             className={
-              'uppercase tracking-[0.18em] text-sky-600/80 font-semibold ' +
+              'uppercase tracking-[0.18em] text-teal-600/80 font-semibold ' +
               (isPreview ? 'text-[9px]' : 'text-[11px]')
             }
           >
@@ -117,7 +117,7 @@ export function ReviewPoster({
             }
             data-testid="review-poster-headline"
           >
-            Споделете <span className="text-sky-500">мнение</span>
+            Споделете <span className="text-teal-500">мнение</span>
             <br />
             за вашето посещение
           </h1>
@@ -190,17 +190,17 @@ export function ReviewPoster({
           data-testid="review-poster-trust"
         >
           <span className="inline-flex items-center gap-1.5">
-            <ShieldCheck className={(isPreview ? 'w-3 h-3 ' : 'w-4 h-4 ') + 'text-sky-500'} />
+            <ShieldCheck className={(isPreview ? 'w-3 h-3 ' : 'w-4 h-4 ') + 'text-teal-500'} />
             Около 60 секунди
           </span>
-          <span className="inline-block w-1 h-1 rounded-full bg-sky-300" aria-hidden />
+          <span className="inline-block w-1 h-1 rounded-full bg-teal-300" aria-hidden />
           <span className="inline-flex items-center gap-1.5">
-            <Sparkles className={(isPreview ? 'w-3 h-3 ' : 'w-4 h-4 ') + 'text-sky-500'} />
+            <Sparkles className={(isPreview ? 'w-3 h-3 ' : 'w-4 h-4 ') + 'text-teal-500'} />
             Без регистрация
           </span>
-          <span className="inline-block w-1 h-1 rounded-full bg-sky-300" aria-hidden />
+          <span className="inline-block w-1 h-1 rounded-full bg-teal-300" aria-hidden />
           <span className="inline-flex items-center gap-1.5">
-            <Eye className={(isPreview ? 'w-3 h-3 ' : 'w-4 h-4 ') + 'text-sky-500'} />
+            <Eye className={(isPreview ? 'w-3 h-3 ' : 'w-4 h-4 ') + 'text-teal-500'} />
             Преглежда се преди публикуване
           </span>
         </div>
@@ -208,7 +208,7 @@ export function ReviewPoster({
         {/* Footer */}
         <div
           className={
-            'pt-4 border-t border-sky-100/70 text-center ' +
+            'pt-4 border-t border-teal-100/70 text-center ' +
             (isPreview ? 'mt-4' : 'mt-8')
           }
         >

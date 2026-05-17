@@ -113,7 +113,7 @@ export default async function CityTreatmentPage({ params }: PageProps) {
           </Link>
           
           <div className="text-center mb-10">
-            <div className="inline-flex items-center gap-2 text-sky-500 mb-4">
+            <div className="inline-flex items-center gap-2 text-teal-500 mb-4">
               <MapPin className="w-5 h-5" />
               <span className="font-medium">{cityData.name}</span>
             </div>
@@ -167,7 +167,7 @@ export default async function CityTreatmentPage({ params }: PageProps) {
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {whenToSeek.map((item, idx) => (
                   <li key={idx} className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-sky-500 flex-shrink-0 mt-0.5" />
+                    <CheckCircle className="w-5 h-5 text-teal-500 flex-shrink-0 mt-0.5" />
                     <span className="text-slate-600">{item}</span>
                   </li>
                 ))}
@@ -186,14 +186,14 @@ export default async function CityTreatmentPage({ params }: PageProps) {
             </h2>
             <div className="space-y-4">
               {prices.map((price, idx) => (
-                <div key={idx} className="bg-gradient-to-br from-sky-500 to-sky-600 rounded-2xl p-6 text-white">
+                <div key={idx} className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl p-6 text-white">
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
-                      <p className="text-sky-100 text-sm mb-1">{price.note}</p>
+                      <p className="text-teal-100 text-sm mb-1">{price.note}</p>
                       <div className="text-2xl md:text-3xl font-bold">
                         €{price.minEUR.toLocaleString('bg-BG')} – €{price.maxEUR.toLocaleString('bg-BG')}
                       </div>
-                      <div className="text-sky-200 text-sm mt-1">
+                      <div className="text-teal-200 text-sm mt-1">
                         (≈ {price.minBGN.toLocaleString('bg-BG')} – {price.maxBGN.toLocaleString('bg-BG')} лв.)
                       </div>
                     </div>
@@ -225,8 +225,8 @@ export default async function CityTreatmentPage({ params }: PageProps) {
             {/* How we select */}
             <div className="bg-white rounded-2xl border border-slate-200 p-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center">
-                  <ClipboardCheck className="w-5 h-5 text-sky-600" />
+                <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center">
+                  <ClipboardCheck className="w-5 h-5 text-teal-600" />
                 </div>
                 <h3 className="font-serif text-lg font-semibold text-slate-900">
                   {HOW_WE_SELECT_CLINICS.title}
@@ -238,7 +238,7 @@ export default async function CityTreatmentPage({ params }: PageProps) {
               <ul className="space-y-2">
                 {HOW_WE_SELECT_CLINICS.criteria.map((item, idx) => (
                   <li key={idx} className="flex items-start gap-2 text-sm text-slate-600">
-                    <CheckCircle className="w-4 h-4 text-sky-500 flex-shrink-0 mt-0.5" />
+                    <CheckCircle className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5" />
                     <span>{item}</span>
                   </li>
                 ))}
@@ -289,32 +289,32 @@ export default async function CityTreatmentPage({ params }: PageProps) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Link
               href={`/${treatment}`}
-              className="bg-white rounded-xl border border-slate-200 p-4 hover:border-sky-300 transition-colors flex items-center gap-3"
+              className="bg-white rounded-xl border border-slate-200 p-4 hover:border-teal-300 transition-colors flex items-center gap-3"
             >
-              <ArrowRight className="w-4 h-4 text-sky-500" />
+              <ArrowRight className="w-4 h-4 text-teal-500" />
               <span className="text-slate-700">{treatmentData.name} — основна страница</span>
             </Link>
             {treatment === 'orthodontics' && (
               <>
                 <Link
                   href="/aligners-comparison"
-                  className="bg-white rounded-xl border border-slate-200 p-4 hover:border-sky-300 transition-colors flex items-center gap-3"
+                  className="bg-white rounded-xl border border-slate-200 p-4 hover:border-teal-300 transition-colors flex items-center gap-3"
                 >
-                  <ArrowRight className="w-4 h-4 text-sky-500" />
+                  <ArrowRight className="w-4 h-4 text-teal-500" />
                   <span className="text-slate-700">Сравнение на марки алайнери</span>
                 </Link>
                 <Link
                   href="/aligners-vs-braces"
-                  className="bg-white rounded-xl border border-slate-200 p-4 hover:border-sky-300 transition-colors flex items-center gap-3"
+                  className="bg-white rounded-xl border border-slate-200 p-4 hover:border-teal-300 transition-colors flex items-center gap-3"
                 >
-                  <ArrowRight className="w-4 h-4 text-sky-500" />
+                  <ArrowRight className="w-4 h-4 text-teal-500" />
                   <span className="text-slate-700">Алайнери vs Брекети — сравнение</span>
                 </Link>
                 <Link
                   href="/crooked-teeth"
-                  className="bg-white rounded-xl border border-slate-200 p-4 hover:border-sky-300 transition-colors flex items-center gap-3"
+                  className="bg-white rounded-xl border border-slate-200 p-4 hover:border-teal-300 transition-colors flex items-center gap-3"
                 >
-                  <ArrowRight className="w-4 h-4 text-sky-500" />
+                  <ArrowRight className="w-4 h-4 text-teal-500" />
                   <span className="text-slate-700">Криви зъби — симптоми и лечение</span>
                 </Link>
               </>
@@ -322,9 +322,9 @@ export default async function CityTreatmentPage({ params }: PageProps) {
             {treatment === 'implants' && (
               <Link
                 href="/implant-price"
-                className="bg-white rounded-xl border border-slate-200 p-4 hover:border-sky-300 transition-colors flex items-center gap-3"
+                className="bg-white rounded-xl border border-slate-200 p-4 hover:border-teal-300 transition-colors flex items-center gap-3"
               >
-                <ArrowRight className="w-4 h-4 text-sky-500" />
+                <ArrowRight className="w-4 h-4 text-teal-500" />
                 <span className="text-slate-700">Цени на зъбни импланти в България</span>
               </Link>
             )}
@@ -343,10 +343,10 @@ export default async function CityTreatmentPage({ params }: PageProps) {
               <Link
                 key={otherCity.slug}
                 href={`/${otherCity.slug}/${treatment}`}
-                className="city-card group bg-slate-50 hover:bg-sky-50 border border-slate-200 hover:border-sky-300 rounded-2xl p-6 text-center"
+                className="city-card group bg-slate-50 hover:bg-teal-50 border border-slate-200 hover:border-teal-300 rounded-2xl p-6 text-center"
               >
-                <div className="city-icon w-12 h-12 rounded-full bg-sky-100 flex items-center justify-center mx-auto mb-3">
-                  <MapPin className="w-5 h-5 text-sky-600" />
+                <div className="city-icon w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center mx-auto mb-3">
+                  <MapPin className="w-5 h-5 text-teal-600" />
                 </div>
                 <h3 className="font-medium text-slate-900">{otherCity.name}</h3>
                 <p className="text-sm text-slate-500 mt-1">{treatmentData.name} в {otherCity.name}</p>
@@ -359,17 +359,17 @@ export default async function CityTreatmentPage({ params }: PageProps) {
       {/* CTA */}
       <section className="py-16 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
-          <div className="bg-gradient-to-br from-sky-500 to-sky-600 rounded-3xl p-8 md:p-12 text-center text-white">
+          <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-3xl p-8 md:p-12 text-center text-white">
             <Award className="w-12 h-12 mx-auto mb-4 opacity-90" />
             <h2 className="font-serif text-2xl md:text-3xl font-semibold mb-4">
               Готови ли сте да започнете?
             </h2>
-            <p className="text-sky-100 mb-8 max-w-lg mx-auto">
+            <p className="text-teal-100 mb-8 max-w-lg mx-auto">
               Преминете нашата кратка оценка и получете препоръка за подходящи опции в {cityData.name}.
             </p>
             <Link 
               href={`/${treatment}/quiz`}
-              className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-10 rounded-full bg-white text-sky-600 font-medium hover:bg-sky-50"
+              className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-10 rounded-full bg-white text-teal-600 font-medium hover:bg-teal-50"
               data-testid="cta-quiz"
             >
               Направете оценка

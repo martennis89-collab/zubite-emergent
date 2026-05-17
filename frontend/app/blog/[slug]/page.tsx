@@ -136,9 +136,13 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
   const showFaqSection = post.faq && post.faq.length > 0 && !bodyHasFaqHeading
 
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-[#FCFAF8] text-slate-900 overflow-x-hidden" data-testid="blog-post-page">
       <Header />
       <BlogViewTracker postSlug={params.slug} postTitle={post.title} />
+
+      {/* Decorative orbs */}
+      <div aria-hidden className="absolute top-20 -left-32 w-[30rem] h-[30rem] rounded-full bg-teal-200/25 blur-3xl pointer-events-none" />
+      <div aria-hidden className="absolute top-80 -right-24 w-[26rem] h-[26rem] rounded-full bg-cyan-100/40 blur-3xl pointer-events-none" />
 
       {/* JSON-LD: FAQ + Article schemas (in <head> alternative — emitted in DOM, valid for Google) */}
       {post.faq_schema && (
@@ -155,7 +159,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
       )}
 
       {/* Article */}
-      <article className="pt-24 md:pt-32">
+      <article className="relative pt-24 md:pt-32">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
           {/* 1. Breadcrumbs */}
           <ArticleBreadcrumbs
@@ -229,7 +233,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
 
           {/* 7. CTA — uses imported CTA block when present, falls back to default */}
           {post.cta && (post.cta.title || post.cta.text) ? (
-            <div className="bg-sky-50 border border-sky-100 rounded-2xl p-8 md:p-10 mt-4 mb-12 text-center" data-testid="article-cta">
+            <div className="bg-teal-50/80 border border-teal-100 rounded-2xl p-8 md:p-10 mt-4 mb-12 text-center" data-testid="article-cta">
               {post.cta.title && (
                 <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-3">
                   {post.cta.title}
@@ -246,7 +250,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
                   title={post.title}
                   cta={post.cta.button}
                   external={/^https?:\/\//.test(post.cta.url)}
-                  className="inline-flex items-center justify-center gap-2 h-12 px-8 rounded-full bg-sky-500 text-white font-medium hover:bg-sky-600 transition-all"
+                  className="inline-flex items-center justify-center gap-2 h-12 px-8 rounded-full bg-teal-50/800 text-white font-medium hover:bg-teal-600 transition-all"
                   testId="article-cta-button"
                 >
                   {post.cta.button}
@@ -255,7 +259,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
               )}
             </div>
           ) : (
-            <div className="bg-sky-50 border border-sky-100 rounded-2xl p-8 md:p-10 mt-4 mb-12 text-center" data-testid="article-cta">
+            <div className="bg-teal-50/80 border border-teal-100 rounded-2xl p-8 md:p-10 mt-4 mb-12 text-center" data-testid="article-cta">
               <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-3">
                 Имате въпроси за ортодонтията?
               </h2>
@@ -268,7 +272,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
                 slug={post.slug}
                 title={post.title}
                 cta="Направете оценка"
-                className="inline-flex items-center justify-center gap-2 h-12 px-8 rounded-full bg-sky-500 text-white font-medium hover:bg-sky-600 transition-all"
+                className="inline-flex items-center justify-center gap-2 h-12 px-8 rounded-full bg-teal-50/800 text-white font-medium hover:bg-teal-600 transition-all"
                 testId="article-cta-button"
               >
                 Направете оценка
@@ -293,13 +297,13 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
                       slug={post.slug}
                       title={post.title}
                       external={/^https?:\/\//.test(link.url)}
-                      className="flex items-center gap-2 p-4 bg-white border border-slate-200 rounded-xl hover:border-sky-300 hover:shadow-sm transition-all group"
+                      className="flex items-center gap-2 p-4 bg-white border border-slate-200 rounded-xl hover:border-teal-300 hover:shadow-sm transition-all group"
                       testId={`article-related-${i}`}
                     >
-                      <span className="text-slate-700 group-hover:text-sky-600 flex-1">
+                      <span className="text-slate-700 group-hover:text-teal-600 flex-1">
                         {link.label}
                       </span>
-                      <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-sky-500 group-hover:translate-x-0.5 transition-all" />
+                      <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-teal-50/800 group-hover:translate-x-0.5 transition-all" />
                     </TrackedLink>
                   </li>
                 ))}
@@ -323,7 +327,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
                         slug={post.slug}
                         title={post.title}
                         external
-                        className="text-sky-700 hover:text-sky-800 hover:underline"
+                        className="text-teal-700 hover:text-teal-800 hover:underline"
                         testId={`article-source-${i}`}
                       >
                         {src.title}
@@ -345,11 +349,11 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
                 {post.faq.map((item, i) => (
                   <details
                     key={i}
-                    className="group bg-slate-50 rounded-xl p-5 open:bg-sky-50 transition-colors"
+                    className="group bg-slate-50 rounded-xl p-5 open:bg-teal-50/80 transition-colors"
                   >
                     <summary className="font-medium text-slate-900 cursor-pointer list-none flex items-center justify-between">
                       <span>{item.q}</span>
-                      <span className="text-sky-500 ml-4 group-open:rotate-45 transition-transform">+</span>
+                      <span className="text-teal-50/800 ml-4 group-open:rotate-45 transition-transform">+</span>
                     </summary>
                     <div className="mt-3 text-slate-700 leading-relaxed whitespace-pre-line">
                       {item.a}

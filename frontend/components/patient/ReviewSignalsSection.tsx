@@ -103,7 +103,7 @@ function SourceRow({ src }: { src: Source }) {
           target="_blank"
           rel="noopener nofollow"
           aria-label={`Виж отзивите в ${label} (отваря нов прозорец)`}
-          className="ml-auto inline-flex items-center gap-1 text-xs text-sky-600 hover:text-sky-700"
+          className="ml-auto inline-flex items-center gap-1 text-xs text-teal-600 hover:text-teal-700"
           data-testid={`review-signals-link-${src.platform}`}
         >
           <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />

@@ -93,7 +93,7 @@ export default function InvisalignPricePage() {
       {/* Hero */}
       <section className="pt-28 pb-16 md:pt-36 md:pb-20 bg-gradient-to-b from-white to-slate-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          <p className="text-sky-500 font-medium text-sm tracking-wide uppercase mb-4">
+          <p className="text-teal-500 font-medium text-sm tracking-wide uppercase mb-4">
             Актуализирано 2025
           </p>
           <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight mb-6">
@@ -105,9 +105,9 @@ export default function InvisalignPricePage() {
           </p>
           
           {/* Quick price summary */}
-          <div className="bg-sky-50 rounded-2xl border border-sky-200 p-6 inline-block">
-            <p className="text-sm text-sky-600 mb-1">Цени от</p>
-            <p className="text-4xl font-bold text-sky-700">2,500 - 8,000 лв</p>
+          <div className="bg-teal-50 rounded-2xl border border-teal-200 p-6 inline-block">
+            <p className="text-sm text-teal-600 mb-1">Цени от</p>
+            <p className="text-4xl font-bold text-teal-700">2,500 - 8,000 лв</p>
             <p className="text-sm text-slate-500 mt-2">В зависимост от варианта и клиниката</p>
           </div>
         </div>
@@ -126,18 +126,18 @@ export default function InvisalignPricePage() {
                 key={index} 
                 className={`rounded-2xl border-2 p-6 ${
                   tier.highlighted 
-                    ? 'border-sky-500 bg-sky-50' 
+                    ? 'border-teal-500 bg-teal-50' 
                     : 'border-slate-200 bg-white'
                 }`}
               >
                 {tier.highlighted && (
-                  <div className="bg-sky-500 text-white text-xs font-medium px-3 py-1 rounded-full inline-block mb-4">
+                  <div className="bg-teal-500 text-white text-xs font-medium px-3 py-1 rounded-full inline-block mb-4">
                     Най-популярен
                   </div>
                 )}
                 <h3 className="font-medium text-xl text-slate-900 mb-2">{tier.name}</h3>
                 <p className="text-slate-500 text-sm mb-4">{tier.description}</p>
-                <div className="text-3xl font-bold text-sky-600 mb-2">{tier.priceRange}</div>
+                <div className="text-3xl font-bold text-teal-600 mb-2">{tier.priceRange}</div>
                 <div className="flex items-center gap-2 text-sm text-slate-500 mb-6">
                   <Clock className="w-4 h-4" />
                   <span>{tier.duration}</span>
@@ -148,7 +148,7 @@ export default function InvisalignPricePage() {
                   <ul className="space-y-2">
                     {tier.features.map((feature, i) => (
                       <li key={i} className="flex items-center gap-2 text-sm text-slate-600">
-                        <CheckCircle className="w-4 h-4 text-sky-500" />
+                        <CheckCircle className="w-4 h-4 text-teal-500" />
                         {feature}
                       </li>
                     ))}
@@ -192,19 +192,19 @@ export default function InvisalignPricePage() {
               <Link 
                 key={index}
                 href={`/${city.slug}/orthodontics`}
-                className="block bg-slate-50 rounded-xl border border-slate-200 p-6 hover:border-sky-300 transition-colors"
+                className="block bg-slate-50 rounded-xl border border-slate-200 p-6 hover:border-teal-300 transition-colors"
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center">
-                      <MapPin className="w-5 h-5 text-sky-600" />
+                    <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center">
+                      <MapPin className="w-5 h-5 text-teal-600" />
                     </div>
                     <div>
                       <h3 className="font-medium text-slate-900">{city.city}</h3>
                       <p className="text-sm text-slate-500">{city.note}</p>
                     </div>
                   </div>
-                  <div className="text-xl font-bold text-sky-600">
+                  <div className="text-xl font-bold text-teal-600">
                     {city.range}
                   </div>
                 </div>
@@ -223,17 +223,17 @@ export default function InvisalignPricePage() {
           
           <div className="grid md:grid-cols-3 gap-6">
             <div className="bg-white rounded-xl border border-slate-200 p-6">
-              <CreditCard className="w-8 h-8 text-sky-500 mb-4" />
+              <CreditCard className="w-8 h-8 text-teal-500 mb-4" />
               <h3 className="font-medium text-slate-900 mb-2">Разсрочено плащане</h3>
               <p className="text-sm text-slate-500">6, 12 или 24 месечни вноски без лихва в повечето клиники</p>
             </div>
             <div className="bg-white rounded-xl border border-slate-200 p-6">
-              <Award className="w-8 h-8 text-sky-500 mb-4" />
+              <Award className="w-8 h-8 text-teal-500 mb-4" />
               <h3 className="font-medium text-slate-900 mb-2">Отстъпка при еднократно плащане</h3>
               <p className="text-sm text-slate-500">До 10% отстъпка при плащане на цялата сума предварително</p>
             </div>
             <div className="bg-white rounded-xl border border-slate-200 p-6">
-              <Clock className="w-8 h-8 text-sky-500 mb-4" />
+              <Clock className="w-8 h-8 text-teal-500 mb-4" />
               <h3 className="font-medium text-slate-900 mb-2">Плащане по етапи</h3>
               <p className="text-sm text-slate-500">Някои клиники предлагат плащане на всеки етап от лечението</p>
             </div>
@@ -254,16 +254,16 @@ export default function InvisalignPricePage() {
       {/* CTA */}
       <section className="py-16 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
-          <div className="bg-gradient-to-br from-sky-500 to-sky-600 rounded-3xl p-8 md:p-12 text-center text-white">
+          <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-3xl p-8 md:p-12 text-center text-white">
             <h2 className="font-serif text-2xl md:text-3xl font-semibold mb-4">
               Получете персонализирана оферта
             </h2>
-            <p className="text-sky-100 mb-8 max-w-lg mx-auto">
+            <p className="text-teal-100 mb-8 max-w-lg mx-auto">
               Направете безплатна оценка и разберете каква е точната цена за вашия случай.
             </p>
             <Link 
               href="/orthodontics/quiz"
-              className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full bg-white text-sky-600 font-medium hover:bg-sky-50"
+              className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full bg-white text-teal-600 font-medium hover:bg-teal-50"
             >
               Безплатна оценка
               <ArrowRight className="w-5 h-5" />

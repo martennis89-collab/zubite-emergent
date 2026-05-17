@@ -82,8 +82,8 @@ export function AnimatedHero() {
       }} />
 
       {/* Accent glow */}
-      <div className="absolute top-20 -right-40 w-[600px] h-[600px] rounded-full bg-sky-200/20 blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-20 -left-20 w-[400px] h-[400px] rounded-full bg-sky-100/30 blur-3xl pointer-events-none" />
+      <div className="absolute top-20 -right-40 w-[600px] h-[600px] rounded-full bg-teal-200/20 blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-20 -left-20 w-[400px] h-[400px] rounded-full bg-teal-100/30 blur-3xl pointer-events-none" />
 
       <div className="relative max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 pt-28 md:pt-36 pb-16 md:pb-24 w-full">
         <div className="grid lg:grid-cols-[1fr_0.75fr] gap-12 lg:gap-16 items-center">
@@ -97,7 +97,7 @@ export function AnimatedHero() {
               >
                 Около 75% от хората имат проблем със захапката
                 <span className="text-slate-400"> — </span>
-                <span className="text-sky-600">повечето го разбират твърде късно.</span>
+                <span className="text-teal-600">повечето го разбират твърде късно.</span>
               </h1>
             </ScrollReveal>
 
@@ -133,7 +133,7 @@ export function AnimatedHero() {
                 {/* Primary CTA */}
                 <Link
                   href="/quiz"
-                  className="group inline-flex items-center gap-2.5 px-7 py-3.5 bg-sky-500 text-white text-[15px] font-semibold rounded-xl hover:bg-sky-600 hover:shadow-lg hover:shadow-sky-500/25 hover:-translate-y-0.5 active:translate-y-0 active:shadow-md transition-all duration-300"
+                  className="group inline-flex items-center gap-2.5 px-7 py-3.5 bg-teal-500 text-white text-[15px] font-semibold rounded-xl hover:bg-teal-600 hover:shadow-lg hover:shadow-teal-500/25 hover:-translate-y-0.5 active:translate-y-0 active:shadow-md transition-all duration-300"
                   data-testid="hero-cta"
                 >
                   Провери своя случай
@@ -172,7 +172,7 @@ function HeroVisual() {
       <div className="absolute inset-4 rounded-full border border-dashed border-slate-200/40" />
 
       {/* Center orb */}
-      <div className="absolute inset-[28%] rounded-full bg-gradient-to-br from-sky-50 to-sky-100/80 flex items-center justify-center shadow-inner">
+      <div className="absolute inset-[28%] rounded-full bg-gradient-to-br from-teal-50 to-teal-100/80 flex items-center justify-center shadow-inner">
         <svg viewBox="0 0 120 120" className="w-3/5 h-3/5" fill="none" xmlns="http://www.w3.org/2000/svg">
           {/* Stylised jaw arch */}
           <path
@@ -208,14 +208,14 @@ function HeroVisual() {
           style={{ top: item.top, left: item.left, right: item.right, bottom: item.bottom }}
         >
           <span className="inline-flex items-center gap-1.5 bg-white/90 backdrop-blur-sm border border-slate-100 rounded-full px-3 py-1 shadow-sm">
-            <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+            <span className="w-1.5 h-1.5 rounded-full bg-teal-400" />
             {item.label}
           </span>
         </div>
       ))}
 
       {/* Animated scan line */}
-      <div className="absolute left-[15%] right-[15%] h-px bg-gradient-to-r from-transparent via-sky-400/40 to-transparent animate-hero-scan" />
+      <div className="absolute left-[15%] right-[15%] h-px bg-gradient-to-r from-transparent via-teal-400/40 to-transparent animate-hero-scan" />
     </div>
   )
 }
@@ -243,7 +243,7 @@ export function AnimatedInterruptSection() {
           <p className="text-lg text-slate-700 pl-4 border-l-4 border-slate-200 hover:border-slate-400 hover:pl-6 transition-all duration-300">
             Малките размествания → неравномерно износване.
           </p>
-          <p className="text-lg text-slate-900 pl-4 border-l-4 border-sky-500 font-medium hover:border-sky-600 hover:pl-6 transition-all duration-300">
+          <p className="text-lg text-slate-900 pl-4 border-l-4 border-teal-500 font-medium hover:border-teal-600 hover:pl-6 transition-all duration-300">
             Ранният етап = най-лесен за корекция.
           </p>
         </StaggerChildren>
@@ -251,7 +251,7 @@ export function AnimatedInterruptSection() {
         <ScrollReveal animation="fade-up" delay={400}>
           <Link
             href="/quiz"
-            className="inline-flex items-center gap-2 text-sky-600 font-medium hover:text-sky-700 hover:gap-3 transition-all duration-300 group"
+            className="inline-flex items-center gap-2 text-teal-600 font-medium hover:text-teal-700 hover:gap-3 transition-all duration-300 group"
           >
             <span>Провери своя етап</span>
             <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -265,13 +265,13 @@ export function AnimatedInterruptSection() {
 // Self Recognition Section with Animations
 export function AnimatedSelfRecognitionSection() {
   return (
-    <section className="py-20 md:py-28 bg-sky-600" aria-labelledby="recognition-heading">
+    <section className="py-20 md:py-28 bg-teal-600" aria-labelledby="recognition-heading">
       <div className="max-w-3xl mx-auto px-4 sm:px-6">
         <ScrollReveal animation="fade-down" duration={700}>
           <h2 id="recognition-heading" className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-white mb-4 text-center">
             Звучи ли ти познато?
           </h2>
-          <p className="text-sky-100 text-center mb-12 text-lg">
+          <p className="text-teal-100 text-center mb-12 text-lg">
             Повечето хора игнорират тези неща… докато не стане проблем.
           </p>
         </ScrollReveal>
@@ -292,7 +292,7 @@ export function AnimatedSelfRecognitionSection() {
           <div className="text-center">
             <Link
               href="/quiz"
-              className="inline-flex items-center gap-3 px-8 py-4 bg-white text-sky-600 font-medium rounded-full hover:shadow-xl hover:-translate-y-1 active:translate-y-0 transition-all duration-300 group"
+              className="inline-flex items-center gap-3 px-8 py-4 bg-white text-teal-600 font-medium rounded-full hover:shadow-xl hover:-translate-y-1 active:translate-y-0 transition-all duration-300 group"
             >
               <span>Провери своя етап</span>
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -313,7 +313,7 @@ export function AnimatedHowItWorksSection() {
       subtitle: '(60 секунди)',
       description: 'Разбираме дали има признаци, които обикновено се игнорират.',
       icon: ClipboardList,
-      color: 'bg-sky-100 text-sky-600'
+      color: 'bg-teal-100 text-teal-600'
     },
     {
       number: '2',
@@ -363,7 +363,7 @@ export function AnimatedHowItWorksSection() {
                   </div>
                   
                   {/* Step number */}
-                  <div className="text-xs md:text-sm font-bold text-sky-500 mb-2">
+                  <div className="text-xs md:text-sm font-bold text-teal-500 mb-2">
                     Стъпка {step.number}
                   </div>
                   
@@ -390,7 +390,7 @@ export function AnimatedHowItWorksSection() {
           <div className="text-center mt-10 md:mt-12">
             <Link
               href="/quiz"
-              className="inline-flex items-center gap-2 md:gap-3 px-6 md:px-8 py-3 md:py-4 bg-sky-500 text-white text-base md:text-lg font-medium rounded-full hover:bg-sky-600 hover:shadow-xl hover:shadow-sky-500/30 hover:-translate-y-1 active:translate-y-0 transition-all duration-300 group"
+              className="inline-flex items-center gap-2 md:gap-3 px-6 md:px-8 py-3 md:py-4 bg-teal-500 text-white text-base md:text-lg font-medium rounded-full hover:bg-teal-600 hover:shadow-xl hover:shadow-teal-500/30 hover:-translate-y-1 active:translate-y-0 transition-all duration-300 group"
             >
               <span>Започни сега</span>
               <ArrowRight className="w-4 h-4 md:w-5 md:h-5 group-hover:translate-x-1 transition-transform" />
@@ -453,8 +453,8 @@ export function AnimatedCostReframeSection() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6">
         <ScrollReveal animation="fade-right" duration={700}>
           <div className="flex items-start gap-3 md:gap-4 mb-8 md:mb-12">
-            <div className="flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-xl bg-sky-100 flex items-center justify-center hover:scale-110 transition-transform duration-300" aria-hidden="true">
-              <Clock className="w-5 h-5 md:w-6 md:h-6 text-sky-600" />
+            <div className="flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-xl bg-teal-100 flex items-center justify-center hover:scale-110 transition-transform duration-300" aria-hidden="true">
+              <Clock className="w-5 h-5 md:w-6 md:h-6 text-teal-600" />
             </div>
             <h2 id="cost-heading" className="font-serif text-xl md:text-3xl lg:text-4xl font-semibold text-slate-900">
               Ако хванеш проблема рано обикновено струва по-малко и се разрешава по-лесно.
@@ -515,7 +515,7 @@ export function AnimatedAuthoritySection() {
         </StaggerChildren>
         
         <ScrollReveal animation="fade-up" delay={500}>
-          <blockquote className="p-6 rounded-xl bg-slate-50 border-l-4 border-sky-500 hover:border-sky-600 hover:bg-slate-100 transition-all duration-300">
+          <blockquote className="p-6 rounded-xl bg-slate-50 border-l-4 border-teal-500 hover:border-teal-600 hover:bg-slate-100 transition-all duration-300">
             <p className="text-slate-600 italic">
               "Проучвания показват, че повечето възрастни имат признаци — но малък процент действат навреме."
             </p>
@@ -573,8 +573,8 @@ export function AnimatedRecentArticles({ posts }: RecentArticlesProps) {
         <ScrollReveal animation="fade-down" duration={700}>
           <div className="flex items-center justify-between mb-12">
             <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-sky-100 flex items-center justify-center hover:scale-110 transition-transform duration-300" aria-hidden="true">
-                <BookOpen className="w-6 h-6 text-sky-600" />
+              <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-teal-100 flex items-center justify-center hover:scale-110 transition-transform duration-300" aria-hidden="true">
+                <BookOpen className="w-6 h-6 text-teal-600" />
               </div>
               <div>
                 <h2 id="recent-articles-heading" className="font-serif text-2xl md:text-3xl font-semibold text-slate-900">
@@ -585,7 +585,7 @@ export function AnimatedRecentArticles({ posts }: RecentArticlesProps) {
             </div>
             <Link 
               href="/blog" 
-              className="hidden md:flex items-center gap-2 text-sky-600 font-medium hover:text-sky-700 hover:gap-3 transition-all duration-300"
+              className="hidden md:flex items-center gap-2 text-teal-600 font-medium hover:text-teal-700 hover:gap-3 transition-all duration-300"
             >
               Виж всички
               <ArrowRight className="w-4 h-4" />
@@ -597,7 +597,7 @@ export function AnimatedRecentArticles({ posts }: RecentArticlesProps) {
           {posts.map((post, index) => (
             <ScrollReveal key={post.id} animation="fade-up" delay={index * 150} duration={600}>
               <article 
-                className="group bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-xl hover:shadow-sky-500/10 hover:-translate-y-1 transition-all duration-300"
+                className="group bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-xl hover:shadow-teal-500/10 hover:-translate-y-1 transition-all duration-300"
               >
                 <Link href={`/blog/${post.slug}`}>
                   {/* Thumbnail */}
@@ -611,15 +611,15 @@ export function AnimatedRecentArticles({ posts }: RecentArticlesProps) {
                       />
                     </div>
                   ) : (
-                    <div className="aspect-[16/10] bg-gradient-to-br from-sky-100 to-sky-50 flex items-center justify-center group-hover:from-sky-150 group-hover:to-sky-100 transition-colors duration-300">
-                      <BookOpen className="w-12 h-12 text-sky-300 group-hover:scale-110 transition-transform duration-300" />
+                    <div className="aspect-[16/10] bg-gradient-to-br from-teal-100 to-teal-50 flex items-center justify-center group-hover:from-sky-150 group-hover:to-teal-100 transition-colors duration-300">
+                      <BookOpen className="w-12 h-12 text-teal-300 group-hover:scale-110 transition-transform duration-300" />
                     </div>
                   )}
                   
                   {/* Content */}
                   <div className="p-5">
                     <div className="flex items-center gap-3 mb-3 text-xs">
-                      <span className="px-2 py-1 rounded-full bg-sky-50 text-sky-600 font-medium group-hover:bg-sky-100 transition-colors duration-300">
+                      <span className="px-2 py-1 rounded-full bg-teal-50 text-teal-600 font-medium group-hover:bg-teal-100 transition-colors duration-300">
                         {CATEGORY_NAMES[post.category] || post.category}
                       </span>
                       <span className="flex items-center gap-1 text-slate-400">
@@ -631,7 +631,7 @@ export function AnimatedRecentArticles({ posts }: RecentArticlesProps) {
                       </span>
                     </div>
                     
-                    <h3 className="font-serif text-lg font-semibold text-slate-900 mb-2 line-clamp-2 group-hover:text-sky-600 transition-colors duration-300">
+                    <h3 className="font-serif text-lg font-semibold text-slate-900 mb-2 line-clamp-2 group-hover:text-teal-600 transition-colors duration-300">
                       {post.title}
                     </h3>
                     
@@ -650,7 +650,7 @@ export function AnimatedRecentArticles({ posts }: RecentArticlesProps) {
           <div className="mt-8 text-center md:hidden">
             <Link 
               href="/blog" 
-              className="inline-flex items-center gap-2 text-sky-600 font-medium hover:text-sky-700 hover:gap-3 transition-all duration-300"
+              className="inline-flex items-center gap-2 text-teal-600 font-medium hover:text-teal-700 hover:gap-3 transition-all duration-300"
             >
               Виж всички статии
               <ArrowRight className="w-4 h-4" />
@@ -665,7 +665,7 @@ export function AnimatedRecentArticles({ posts }: RecentArticlesProps) {
 // Final CTA Section with Animations
 export function AnimatedFinalCTA() {
   return (
-    <section className="py-20 md:py-32 bg-sky-600" aria-labelledby="final-cta-heading">
+    <section className="py-20 md:py-32 bg-teal-600" aria-labelledby="final-cta-heading">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
         <ScrollReveal animation="fade-up" duration={700}>
           <h2 id="final-cta-heading" className="font-serif text-2xl md:text-3xl lg:text-4xl font-semibold text-white mb-10">
@@ -676,7 +676,7 @@ export function AnimatedFinalCTA() {
         <ScrollReveal animation="zoom" delay={200} duration={800}>
           <Link
             href="/quiz"
-            className="inline-flex items-center gap-3 px-10 py-5 bg-white text-sky-600 text-lg font-semibold rounded-full hover:shadow-2xl hover:-translate-y-1 active:translate-y-0 transition-all duration-300 group"
+            className="inline-flex items-center gap-3 px-10 py-5 bg-white text-teal-600 text-lg font-semibold rounded-full hover:shadow-2xl hover:-translate-y-1 active:translate-y-0 transition-all duration-300 group"
             data-testid="final-cta"
           >
             <span>Провери къде се намираш</span>
@@ -685,7 +685,7 @@ export function AnimatedFinalCTA() {
         </ScrollReveal>
         
         <ScrollReveal animation="fade-up" delay={400}>
-          <p className="text-sm text-sky-100 mt-6">
+          <p className="text-sm text-teal-100 mt-6">
             60 секунди. Без регистрация. Без ангажименти.
           </p>
         </ScrollReveal>
@@ -700,16 +700,16 @@ export function AnimatedFooter() {
     <footer className="py-12 bg-white border-t border-slate-200" role="contentinfo">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-          <Link href="/" className="font-serif text-xl font-semibold text-slate-900 hover:text-sky-600 transition-colors duration-300" aria-label="Zubite.bg начална страница">
-            Zubite<span className="text-sky-500">.bg</span>
+          <Link href="/" className="font-serif text-xl font-semibold text-slate-900 hover:text-teal-600 transition-colors duration-300" aria-label="Zubite.bg начална страница">
+            Zubite<span className="text-teal-500">.bg</span>
           </Link>
           <nav className="flex flex-wrap items-center justify-center gap-6 text-sm text-slate-600" aria-label="Допълнителна навигация">
-            <Link href="/symptoms" className="hover:text-sky-600 hover:-translate-y-0.5 transition-all duration-300">Симптоми</Link>
-            <Link href="/orthodontics" className="hover:text-sky-600 hover:-translate-y-0.5 transition-all duration-300">Ортодонтия</Link>
-            <Link href="/blog" className="hover:text-sky-600 hover:-translate-y-0.5 transition-all duration-300">Блог</Link>
-            <Link href="/za-kliniki" className="hover:text-sky-600 hover:-translate-y-0.5 transition-all duration-300">За клиники</Link>
-            <Link href="/privacy" className="hover:text-sky-600 hover:-translate-y-0.5 transition-all duration-300">Поверителност</Link>
-            <Link href="/contact" className="hover:text-sky-600 hover:-translate-y-0.5 transition-all duration-300">Контакти</Link>
+            <Link href="/symptoms" className="hover:text-teal-600 hover:-translate-y-0.5 transition-all duration-300">Симптоми</Link>
+            <Link href="/orthodontics" className="hover:text-teal-600 hover:-translate-y-0.5 transition-all duration-300">Ортодонтия</Link>
+            <Link href="/blog" className="hover:text-teal-600 hover:-translate-y-0.5 transition-all duration-300">Блог</Link>
+            <Link href="/za-kliniki" className="hover:text-teal-600 hover:-translate-y-0.5 transition-all duration-300">За клиники</Link>
+            <Link href="/privacy" className="hover:text-teal-600 hover:-translate-y-0.5 transition-all duration-300">Поверителност</Link>
+            <Link href="/contact" className="hover:text-teal-600 hover:-translate-y-0.5 transition-all duration-300">Контакти</Link>
           </nav>
           <p className="text-sm text-slate-500">
             © {new Date().getFullYear()} Zubite.bg
@@ -731,7 +731,7 @@ export function AnimatedStickyCTA() {
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 md:hidden w-[calc(100%-3rem)] max-w-xs">
       <Link
         href="/quiz"
-        className="flex items-center justify-center gap-2 w-full px-5 py-3 bg-sky-500 text-white font-medium rounded-full shadow-lg shadow-sky-500/30 hover:bg-sky-600 active:scale-95 transition-all duration-300"
+        className="flex items-center justify-center gap-2 w-full px-5 py-3 bg-teal-500 text-white font-medium rounded-full shadow-lg shadow-teal-500/30 hover:bg-teal-600 active:scale-95 transition-all duration-300"
         aria-label="Провери етапа си"
       >
         <span className="text-sm">Провери къде се намираш</span>
@@ -747,17 +747,17 @@ export function AnimatedHeader() {
     <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-100">
       <nav className="max-w-6xl mx-auto px-4 sm:px-6" aria-label="Главна навигация">
         <div className="flex items-center justify-between h-16 md:h-20">
-          <Link href="/" className="font-serif text-2xl font-semibold text-slate-900 hover:text-sky-600 transition-colors duration-300" aria-label="Zubite.bg начална страница">
-            Zubite<span className="text-sky-500">.bg</span>
+          <Link href="/" className="font-serif text-2xl font-semibold text-slate-900 hover:text-teal-600 transition-colors duration-300" aria-label="Zubite.bg начална страница">
+            Zubite<span className="text-teal-500">.bg</span>
           </Link>
           <div className="hidden md:flex items-center gap-8">
-            <Link href="/symptoms" className="text-sm text-slate-600 hover:text-sky-600 hover:-translate-y-0.5 transition-all duration-300">
+            <Link href="/symptoms" className="text-sm text-slate-600 hover:text-teal-600 hover:-translate-y-0.5 transition-all duration-300">
               Симптоми
             </Link>
-            <Link href="/orthodontics" className="text-sm text-slate-600 hover:text-sky-600 hover:-translate-y-0.5 transition-all duration-300">
+            <Link href="/orthodontics" className="text-sm text-slate-600 hover:text-teal-600 hover:-translate-y-0.5 transition-all duration-300">
               Ортодонтия
             </Link>
-            <Link href="/blog" className="text-sm text-slate-600 hover:text-sky-600 hover:-translate-y-0.5 transition-all duration-300">
+            <Link href="/blog" className="text-sm text-slate-600 hover:text-teal-600 hover:-translate-y-0.5 transition-all duration-300">
               Блог
             </Link>
           </div>

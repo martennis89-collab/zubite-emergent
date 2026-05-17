@@ -100,8 +100,8 @@ export default function SymptomsPage() {
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-sky-100 flex items-center justify-center flex-shrink-0">
-                    <span className="text-sky-600 font-bold">{index + 1}</span>
+                  <div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center flex-shrink-0">
+                    <span className="text-teal-600 font-bold">{index + 1}</span>
                   </div>
                   <div className="flex-1">
                     <h2 className="font-serif text-xl sm:text-2xl font-semibold text-slate-900 mb-3">
@@ -123,18 +123,18 @@ export default function SymptomsPage() {
       </section>
       
       {/* CTA Section */}
-      <section className="py-16 md:py-24 bg-sky-600">
+      <section className="py-16 md:py-24 bg-teal-600">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-semibold text-white mb-6">
             Разпознаваш ли нещо от тези?
           </h2>
-          <p className="text-sky-100 text-lg mb-10 max-w-xl mx-auto">
+          <p className="text-teal-100 text-lg mb-10 max-w-xl mx-auto">
             Провери на кой етап си с кратък тест. Отнема 60 секунди.
           </p>
           
           <Link
             href="/quiz"
-            className="inline-flex items-center gap-3 px-10 py-5 bg-white text-sky-600 text-lg font-semibold rounded-full hover:shadow-2xl transition-all duration-300 group"
+            className="inline-flex items-center gap-3 px-10 py-5 bg-white text-teal-600 text-lg font-semibold rounded-full hover:shadow-2xl transition-all duration-300 group"
             data-testid="symptoms-quiz-cta"
           >
             <span>Провери къде се намираш</span>
@@ -153,15 +153,15 @@ export default function SymptomsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Link
               href="/orthodontics"
-              className="group bg-white border border-slate-200 rounded-2xl p-6 hover:border-sky-300 hover:shadow-lg transition-all duration-300"
+              className="group bg-white border border-slate-200 rounded-2xl p-6 hover:border-teal-300 hover:shadow-lg transition-all duration-300"
             >
-              <h3 className="font-serif text-lg font-semibold text-slate-900 mb-2 group-hover:text-sky-600 transition-colors">
+              <h3 className="font-serif text-lg font-semibold text-slate-900 mb-2 group-hover:text-teal-600 transition-colors">
                 Алайнери или брекети?
               </h3>
               <p className="text-slate-500 text-sm mb-4">
                 Разбери кой метод е подходящ за твоя случай.
               </p>
-              <span className="text-sky-600 text-sm font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
+              <span className="text-teal-600 text-sm font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
                 Научи повече
                 <ChevronRight className="w-4 h-4" />
               </span>
@@ -169,15 +169,15 @@ export default function SymptomsPage() {
             
             <Link
               href="/blog"
-              className="group bg-white border border-slate-200 rounded-2xl p-6 hover:border-sky-300 hover:shadow-lg transition-all duration-300"
+              className="group bg-white border border-slate-200 rounded-2xl p-6 hover:border-teal-300 hover:shadow-lg transition-all duration-300"
             >
-              <h3 className="font-serif text-lg font-semibold text-slate-900 mb-2 group-hover:text-sky-600 transition-colors">
+              <h3 className="font-serif text-lg font-semibold text-slate-900 mb-2 group-hover:text-teal-600 transition-colors">
                 Блог
               </h3>
               <p className="text-slate-500 text-sm mb-4">
                 Статии и съвети за грижа за зъбите.
               </p>
-              <span className="text-sky-600 text-sm font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
+              <span className="text-teal-600 text-sm font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
                 Разгледай
                 <ChevronRight className="w-4 h-4" />
               </span>

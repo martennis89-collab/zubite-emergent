@@ -80,12 +80,12 @@ export default function AssessmentPage() {
       <Header />
 
       {/* SECTION 1 — HERO */}
-      <section className="pt-24 md:pt-32 pb-16 md:pb-24 bg-gradient-to-br from-white via-sky-50/30 to-white overflow-hidden">
+      <section className="pt-24 md:pt-32 pb-16 md:pb-24 bg-gradient-to-br from-white via-teal-50/30 to-white overflow-hidden">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* Left Column - Content */}
             <div className="text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-sky-50 text-sky-600 text-sm font-medium mb-6 animate-fade-in">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-50 text-teal-600 text-sm font-medium mb-6 animate-fade-in">
                 <Clock className="w-4 h-4" />
                 <span>Около 60 секунди</span>
               </div>
@@ -101,7 +101,7 @@ export default function AssessmentPage() {
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start animate-fade-in-up animate-delay-200">
                 <Link
                   href="/assessment/quiz"
-                  className="inline-flex items-center justify-center gap-2 h-14 px-10 rounded-full bg-sky-500 text-white font-medium hover:bg-sky-600 transition-all duration-300 hover:shadow-xl hover:shadow-sky-500/25 btn-animate btn-pulse"
+                  className="inline-flex items-center justify-center gap-2 h-14 px-10 rounded-full bg-teal-500 text-white font-medium hover:bg-teal-600 transition-all duration-300 hover:shadow-xl hover:shadow-teal-500/25 btn-animate btn-pulse"
                   data-testid="assessment-cta-primary"
                 >
                   Започнете оценката
@@ -116,23 +116,23 @@ export default function AssessmentPage() {
             
             {/* Right Column - Visual */}
             <div className="relative animate-fade-in animate-delay-300">
-              <div className="relative rounded-3xl overflow-hidden shadow-2xl shadow-sky-500/10 bg-gradient-to-br from-sky-100 via-sky-50 to-white">
+              <div className="relative rounded-3xl overflow-hidden shadow-2xl shadow-teal-500/10 bg-gradient-to-br from-teal-100 via-teal-50 to-white">
                 <div className="aspect-[4/3] flex items-center justify-center p-8">
                   <div className="text-center">
                     <div className="w-24 h-24 mx-auto mb-6 rounded-2xl bg-white shadow-lg flex items-center justify-center">
-                      <Smile className="w-12 h-12 text-sky-500" />
+                      <Smile className="w-12 h-12 text-teal-500" />
                     </div>
                     <div className="space-y-3">
                       <div className="flex items-center justify-center gap-3">
-                        <div className="w-3 h-3 rounded-full bg-sky-400 animate-pulse" />
+                        <div className="w-3 h-3 rounded-full bg-teal-400 animate-pulse" />
                         <span className="text-slate-600 font-medium">Алайнери</span>
                       </div>
                       <div className="flex items-center justify-center gap-3">
-                        <div className="w-3 h-3 rounded-full bg-sky-500 animate-pulse" style={{ animationDelay: '0.5s' }} />
+                        <div className="w-3 h-3 rounded-full bg-teal-500 animate-pulse" style={{ animationDelay: '0.5s' }} />
                         <span className="text-slate-600 font-medium">Брекети</span>
                       </div>
                       <div className="flex items-center justify-center gap-3">
-                        <div className="w-3 h-3 rounded-full bg-sky-600 animate-pulse" style={{ animationDelay: '1s' }} />
+                        <div className="w-3 h-3 rounded-full bg-teal-600 animate-pulse" style={{ animationDelay: '1s' }} />
                         <span className="text-slate-600 font-medium">Консултация</span>
                       </div>
                     </div>
@@ -140,8 +140,8 @@ export default function AssessmentPage() {
                 </div>
               </div>
               {/* Decorative elements */}
-              <div className="absolute -top-4 -right-4 w-24 h-24 bg-sky-100 rounded-full blur-2xl opacity-60" />
-              <div className="absolute -bottom-4 -left-4 w-32 h-32 bg-sky-50 rounded-full blur-3xl opacity-80" />
+              <div className="absolute -top-4 -right-4 w-24 h-24 bg-teal-100 rounded-full blur-2xl opacity-60" />
+              <div className="absolute -bottom-4 -left-4 w-32 h-32 bg-teal-50 rounded-full blur-3xl opacity-80" />
             </div>
           </div>
         </div>
@@ -160,11 +160,11 @@ export default function AssessmentPage() {
             {benefitCards.map((card, index) => (
               <div 
                 key={card.title}
-                className="group bg-white rounded-2xl p-8 shadow-sm hover:shadow-xl hover:shadow-sky-500/10 transition-all duration-300 animate-fade-in-up card-hover"
+                className="group bg-white rounded-2xl p-8 shadow-sm hover:shadow-xl hover:shadow-teal-500/10 transition-all duration-300 animate-fade-in-up card-hover"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
-                <div className="w-14 h-14 mb-6 rounded-xl bg-sky-50 flex items-center justify-center group-hover:bg-sky-100 group-hover:scale-110 transition-all duration-300">
-                  <card.icon className="w-7 h-7 text-sky-500" />
+                <div className="w-14 h-14 mb-6 rounded-xl bg-teal-50 flex items-center justify-center group-hover:bg-teal-100 group-hover:scale-110 transition-all duration-300">
+                  <card.icon className="w-7 h-7 text-teal-500" />
                 </div>
                 <h3 className="font-serif text-xl font-medium text-slate-900 mb-3">{card.title}</h3>
                 <p className="text-slate-600 leading-relaxed">{card.description}</p>
@@ -218,14 +218,14 @@ export default function AssessmentPage() {
               >
                 {/* Connector line for desktop */}
                 {index < steps.length - 1 && (
-                  <div className="hidden md:block absolute top-8 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-sky-200 to-sky-100" />
+                  <div className="hidden md:block absolute top-8 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-teal-200 to-teal-100" />
                 )}
                 
                 <div className="relative z-10 inline-block">
-                  <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-sky-500 to-sky-600 shadow-lg shadow-sky-500/25 flex items-center justify-center transform hover:scale-105 transition-transform duration-300">
+                  <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-teal-500 to-teal-600 shadow-lg shadow-teal-500/25 flex items-center justify-center transform hover:scale-105 transition-transform duration-300">
                     <step.icon className="w-7 h-7 text-white" />
                   </div>
-                  <div className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 font-bold text-sm border-2 border-white shadow">
+                  <div className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 font-bold text-sm border-2 border-white shadow">
                     {step.number}
                   </div>
                 </div>
@@ -239,19 +239,19 @@ export default function AssessmentPage() {
       {/* SECTION 5 — FINAL CTA */}
       <section className="py-16 md:py-24 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
-          <div className="bg-gradient-to-br from-sky-500 via-sky-600 to-sky-700 rounded-3xl p-10 md:p-16 text-white shadow-2xl shadow-sky-500/25 animate-fade-in-up">
+          <div className="bg-gradient-to-br from-teal-500 via-teal-600 to-teal-700 rounded-3xl p-10 md:p-16 text-white shadow-2xl shadow-teal-500/25 animate-fade-in-up">
             <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-semibold mb-8">
               Готови ли сте да започнете?
             </h2>
             <Link
               href="/assessment/quiz"
-              className="inline-flex items-center justify-center gap-2 h-14 px-10 rounded-full bg-white text-sky-600 font-semibold hover:bg-sky-50 transition-all duration-300 shadow-lg hover:shadow-xl btn-animate"
+              className="inline-flex items-center justify-center gap-2 h-14 px-10 rounded-full bg-white text-teal-600 font-semibold hover:bg-teal-50 transition-all duration-300 shadow-lg hover:shadow-xl btn-animate"
               data-testid="assessment-final-cta"
             >
               <CheckCircle className="w-5 h-5" />
               Започнете оценката
             </Link>
-            <p className="text-sky-100 mt-6 text-sm">
+            <p className="text-teal-100 mt-6 text-sm">
               Безплатно • Около 60 секунди • Без регистрация
             </p>
           </div>

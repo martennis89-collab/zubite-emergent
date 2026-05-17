@@ -66,7 +66,7 @@ export default function WhatIsInvisalignPage() {
       {/* Hero */}
       <section className="pt-28 pb-16 md:pt-36 md:pb-20 bg-gradient-to-b from-white to-slate-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <p className="text-sky-500 font-medium text-sm tracking-wide uppercase mb-4 text-center">
+          <p className="text-teal-500 font-medium text-sm tracking-wide uppercase mb-4 text-center">
             Пълен гид
           </p>
           <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight mb-6 text-center">
@@ -77,8 +77,8 @@ export default function WhatIsInvisalignPage() {
             Над 14 милиона души по света са постигнали усмивката на мечтите си с Invisalign.
           </p>
           
-          <div className="bg-sky-50 rounded-2xl border border-sky-200 p-6 text-center max-w-lg mx-auto">
-            <div className="text-4xl font-bold text-sky-700 mb-2">14M+</div>
+          <div className="bg-teal-50 rounded-2xl border border-teal-200 p-6 text-center max-w-lg mx-auto">
+            <div className="text-4xl font-bold text-teal-700 mb-2">14M+</div>
             <p className="text-slate-600">пациенти по целия свят</p>
           </div>
         </div>
@@ -118,7 +118,7 @@ export default function WhatIsInvisalignPage() {
           <div className="grid md:grid-cols-2 gap-6">
             {BENEFITS.map((benefit, index) => (
               <div key={index} className="bg-white rounded-xl border border-slate-200 p-6">
-                <benefit.icon className="w-8 h-8 text-sky-500 mb-4" />
+                <benefit.icon className="w-8 h-8 text-teal-500 mb-4" />
                 <h3 className="font-medium text-slate-900 mb-2">{benefit.title}</h3>
                 <p className="text-slate-500">{benefit.description}</p>
               </div>
@@ -135,16 +135,16 @@ export default function WhatIsInvisalignPage() {
           </h2>
           
           <div className="relative">
-            <div className="hidden md:block absolute left-8 top-0 bottom-0 w-0.5 bg-sky-200" />
+            <div className="hidden md:block absolute left-8 top-0 bottom-0 w-0.5 bg-teal-200" />
             
             <div className="space-y-6">
               {HOW_IT_WORKS.map((step, index) => (
                 <div key={index} className="relative flex gap-6">
-                  <div className="hidden md:flex w-16 h-16 rounded-full bg-sky-500 text-white items-center justify-center text-xl font-bold flex-shrink-0 z-10">
+                  <div className="hidden md:flex w-16 h-16 rounded-full bg-teal-500 text-white items-center justify-center text-xl font-bold flex-shrink-0 z-10">
                     {step.step}
                   </div>
                   <div className="flex-1 bg-slate-50 rounded-2xl border border-slate-200 p-6">
-                    <div className="md:hidden w-10 h-10 rounded-full bg-sky-500 text-white flex items-center justify-center text-lg font-bold mb-3">
+                    <div className="md:hidden w-10 h-10 rounded-full bg-teal-500 text-white flex items-center justify-center text-lg font-bold mb-3">
                       {step.step}
                     </div>
                     <h3 className="font-medium text-slate-900 mb-2">{step.title}</h3>
@@ -214,17 +214,17 @@ export default function WhatIsInvisalignPage() {
       {/* CTA */}
       <section className="py-16 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
-          <div className="bg-gradient-to-br from-sky-500 to-sky-600 rounded-3xl p-8 md:p-12 text-center text-white">
+          <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-3xl p-8 md:p-12 text-center text-white">
             <h2 className="font-serif text-2xl md:text-3xl font-semibold mb-4">
               Подходящ ли е Invisalign за вас?
             </h2>
-            <p className="text-sky-100 mb-8 max-w-lg mx-auto">
+            <p className="text-teal-100 mb-8 max-w-lg mx-auto">
               Направете безплатна оценка и разберете дали Invisalign е правилният избор за вашата усмивка.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link 
                 href="/orthodontics/quiz"
-                className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full bg-white text-sky-600 font-medium hover:bg-sky-50"
+                className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-8 rounded-full bg-white text-teal-600 font-medium hover:bg-teal-50"
               >
                 Безплатна оценка
                 <ArrowRight className="w-5 h-5" />
@@ -247,15 +247,15 @@ export default function WhatIsInvisalignPage() {
             Свързани статии
           </h2>
           <div className="grid md:grid-cols-3 gap-4">
-            <Link href="/aligners-vs-braces" className="bg-white rounded-xl border border-slate-200 p-5 hover:border-sky-300 transition-colors">
+            <Link href="/aligners-vs-braces" className="bg-white rounded-xl border border-slate-200 p-5 hover:border-teal-300 transition-colors">
               <h3 className="font-medium text-slate-900 mb-2">Алайнери vs Брекети</h3>
               <p className="text-sm text-slate-500">Подробно сравнение на двата метода</p>
             </Link>
-            <Link href="/invisalign-price" className="bg-white rounded-xl border border-slate-200 p-5 hover:border-sky-300 transition-colors">
+            <Link href="/invisalign-price" className="bg-white rounded-xl border border-slate-200 p-5 hover:border-teal-300 transition-colors">
               <h3 className="font-medium text-slate-900 mb-2">Invisalign цена</h3>
               <p className="text-sm text-slate-500">Актуални цени в България 2025</p>
             </Link>
-            <Link href="/orthodontics" className="bg-white rounded-xl border border-slate-200 p-5 hover:border-sky-300 transition-colors">
+            <Link href="/orthodontics" className="bg-white rounded-xl border border-slate-200 p-5 hover:border-teal-300 transition-colors">
               <h3 className="font-medium text-slate-900 mb-2">Ортодонтия</h3>
               <p className="text-sm text-slate-500">Всички методи за изправяне на зъби</p>
             </Link>
