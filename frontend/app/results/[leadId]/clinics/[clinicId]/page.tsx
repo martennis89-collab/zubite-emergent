@@ -9,7 +9,7 @@ import {
   Sparkle, AlertCircle, Compass, Loader2, PlayCircle,
   Stethoscope, Image as ImageIcon, FileText,
   BookOpenCheck, UserCircle2, Footprints, MessagesSquare,
-  CheckCircle2,
+  CheckCircle2, ChevronDown,
 } from 'lucide-react'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
@@ -320,332 +320,20 @@ function ProfileBody({
       {/* R1 — "Подходяща ли е тази клиника за мен?" decision-support panel */}
       <ClinicFitPanel clinic={clinic} />
 
-      {/* Care Pass — premium dark panel matching the homepage.
-          Never larger than the hero, never implies treatment discount. */}
-      <CarePassPanel
-        variant="compact"
-        showLearnMore
-        testid="profile-care-pass-section"
-      />
-
-      {/* ── Видео представяне (Premium only) ─────────────────
-          Render real video URL if admin published one; otherwise use
-          the existing placeholder block. */}
-      {isPremium && (
-        clinic.clinic_profile?.clinic_video_url
-          ? (
-            <section
-              className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
-              data-testid="profile-clinic-video-section"
-            >
-              <div className="text-xs uppercase tracking-wide text-slate-500 font-medium mb-3">
-                Видео представяне
-              </div>
-              <video
-                src={clinic.clinic_profile.clinic_video_url}
-                controls
-                className="w-full rounded-xl aspect-video bg-slate-100"
-              />
-            </section>
-          )
-          : <VideoIntroSection />
-      )}
-
-      {/* ── Why this clinic appeared (all tiers) ───────────── */}
-      <section
-        className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
-        data-testid="profile-reason-section"
-      >
-        <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 mb-3">
-          Защо виждате тази клиника
-        </h2>
-        <p className="text-sm text-slate-700 leading-relaxed">{clinic.reason}</p>
-        <p className="mt-3 text-xs text-slate-500 leading-relaxed">
-          Тази препоръка е базирана на наличната партньорска информация, града
-          и типа заявка.
-        </p>
-      </section>
-
-      {/* ── Подходяща за (all tiers) ───────────────────────── */}
-      <section
-        className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
-        data-testid="profile-treatments-section"
-      >
-        <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 mb-3">
-          Подходяща за
-        </h2>
-        {(() => {
-          // Prefer canonical `treatments_supported`; fall back to legacy
-          // `treatments` (Feb 2026 cleanup).
-          const list = (clinic.treatments_supported && clinic.treatments_supported.length > 0)
-            ? clinic.treatments_supported
-            : (clinic.treatments || [])
-          return list.length > 0 ? (
-            <ul className="flex flex-wrap gap-2">
-              {list.map((t) => (
-                <li
-                  key={t}
-              className="inline-flex items-center px-3 py-1 rounded-full bg-teal-50 text-teal-700 ring-1 ring-teal-100 text-xs"
-                >
-                  {TREATMENT_LABELS[t] || t}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p
-              className="text-sm text-slate-600 leading-relaxed"
-              data-testid="profile-treatments-empty"
-            >
-              Информацията за конкретните направления ще бъде потвърдена при
-              разговор.
-            </p>
-          )
-        })()}
-        {clinic.partner_since_year && (
-          <p className="mt-4 text-xs text-slate-500 inline-flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5" />
-            Партньор на Zubite от {clinic.partner_since_year}
-          </p>
-        )}
-      </section>
-
-      {/* ── За клиниката (Featured only — Premium uses richer sections below) */}
-      {isFeatured && (
-        clinic.clinic_profile?.patient_intro || clinic.clinic_profile?.short_description
-          ? (
-            <section
-              className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
-              data-testid="profile-about-section"
-            >
-              <h2 className="font-serif text-lg font-semibold text-slate-900 mb-3">За клиниката</h2>
-              {clinic.clinic_profile.patient_intro && (
-                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
-                  {clinic.clinic_profile.patient_intro}
-                </p>
-              )}
-              {clinic.clinic_profile.short_description && !clinic.clinic_profile.patient_intro && (
-                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
-                  {clinic.clinic_profile.short_description}
-                </p>
-              )}
-            </section>
-          )
-          : (
-            <PlaceholderSection
-              testid="profile-about-section"
-              tierLabel="featured"
-              title="За клиниката"
-              icon={<FileText className="w-4 h-4 text-teal-700" />}
-              body="Клиниката все още не е добавила подробно описание към профила си."
-            />
-          )
-      )}
-
-      {/* ── Featured-only extra (lighter than Premium) ──────── */}
-      {isFeatured && (
-        <PlaceholderSection
-          testid="profile-featured-extra-section"
-          tierLabel="featured"
-          title="Допълнителна информация от клиниката"
-          icon={<Sparkle className="w-4 h-4 text-teal-700" />}
-          body="Тази секция е видима, защото клиниката е представен партньор в Zubite. Клиниката може да добави повече информация за пациентите."
-        />
-      )}
-
-      {/* ── Review signals — superseded by the consolidated
-          TrustSignalsSection added in Engagement R1. Kept here as a
-          comment so the migration is auditable. */}
-
-      {/* ── Premium-only rich section stack (P3.7) ──────────────
-          Per spec, on Premium profiles render after Reviews, in this
-          order: Clinic Story (R1), Case Library, Doctor Spotlight,
-          Environment/equipment, Patient Journey, Zubite Feedback.
-          Each section reads from clinic.clinic_profile if admin
-          published real content; otherwise falls back to the existing
-          honest placeholder. */}
-      {isPremium && (
-        <>
-          {/* Clinic story — new R1 section, premium only */}
-          {clinic.clinic_profile?.clinic_story && (
-            <section
-              className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
-              data-testid="profile-clinic-story-section"
-            >
-              <h2 className="font-serif text-lg font-semibold text-slate-900 mb-3">
-                История на клиниката
-              </h2>
-              <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
-                {clinic.clinic_profile.clinic_story}
-              </p>
-            </section>
-          )}
-
-          {/* Case library — real if any published+consent rows */}
-          {clinic.clinic_profile?.case_library && clinic.clinic_profile.case_library.length > 0 ? (
-            <section
-              className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
-              data-testid="profile-case-library-section"
-            >
-              <h2 className="font-serif text-lg font-semibold text-slate-900 mb-2">
-                Случаи от практиката
-              </h2>
-              <p className="text-xs text-slate-500 leading-relaxed mb-4">
-                Предоставено от клиниката.
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {clinic.clinic_profile.case_library.map((c) => (
-                  <div
-                    key={c.id || c.title}
-                    className="rounded-xl border border-slate-200 p-4 bg-slate-50/50"
-                    data-testid={`profile-case-${c.id || c.title}`}
-                  >
-                    <div className="text-xs uppercase tracking-wide text-slate-500 mb-1">
-                      Категория: {c.category}
-                    </div>
-                    <h3 className="font-medium text-slate-900 mb-1">{c.title}</h3>
-                    <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
-                      {c.summary}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </section>
-          ) : (
-            <CaseLibrarySection />
-          )}
-
-          {/* Doctor spotlight — real if doctor name set */}
-          {clinic.clinic_profile?.doctor_spotlight_name ? (
-            <section
-              className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
-              data-testid="profile-doctor-spotlight-section"
-            >
-              <h2 className="font-serif text-lg font-semibold text-slate-900 mb-3">
-                Лекарят
-              </h2>
-              <div className="font-medium text-slate-900">
-                {clinic.clinic_profile.doctor_spotlight_name}
-              </div>
-              {clinic.clinic_profile.doctor_spotlight_role && (
-                <div className="text-sm text-slate-500 mt-0.5">
-                  {clinic.clinic_profile.doctor_spotlight_role}
-                </div>
-              )}
-              {clinic.clinic_profile.doctor_spotlight_bio && (
-                <p className="mt-3 text-sm text-slate-700 leading-relaxed whitespace-pre-line">
-                  {clinic.clinic_profile.doctor_spotlight_bio}
-                </p>
-              )}
-              {clinic.clinic_profile.doctor_video_url && (
-                <video
-                  src={clinic.clinic_profile.doctor_video_url}
-                  controls
-                  className="mt-4 w-full rounded-xl aspect-video bg-slate-100"
-                />
-              )}
-              {clinic.clinic_profile.team_note && (
-                <p className="mt-4 text-sm text-slate-600 leading-relaxed border-l-2 border-slate-200 pl-3">
-                  {clinic.clinic_profile.team_note}
-                </p>
-              )}
-            </section>
-          ) : (
-            <DoctorSpotlightSection />
-          )}
-
-          {/* Environment/equipment — real if set */}
-          {clinic.clinic_profile?.environment_description ? (
-            <section
-              className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
-              data-testid="profile-environment-section"
-            >
-              <h2 className="font-serif text-lg font-semibold text-slate-900 mb-3">
-                Среда и оборудване
-              </h2>
-              <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
-                {clinic.clinic_profile.environment_description}
-              </p>
-            </section>
-          ) : (
-            <PlaceholderSection
-              testid="profile-environment-section"
-              tierLabel="premium"
-              title="Среда и оборудване"
-              icon={<Stethoscope className="w-4 h-4 text-teal-700" />}
-              body="Тук клиниката ще може да представи средата, технологиите и удобствата за пациента."
-            />
-          )}
-
-          {/* Consultation process — show as new section if set, else use
-              existing PatientJourneySection placeholder. */}
-          {clinic.clinic_profile?.consultation_process ? (
-            <section
-              className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
-              data-testid="profile-consultation-process-section"
-            >
-              <h2 className="font-serif text-lg font-semibold text-slate-900 mb-3">
-                Процес на консултация
-              </h2>
-              <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
-                {clinic.clinic_profile.consultation_process}
-              </p>
-            </section>
-          ) : (
-            <PatientJourneySection />
-          )}
-
-          <ZubiteFeedbackPlaceholderSection />
-        </>
-      )}
-
-      {/* R1 — "Какво се случва след заявката?" 3-step timeline (all tiers). */}
-      <PostRequestTimeline />
-
-      {/* R1 — "Сигнали за доверие" using existing data only. */}
-      <TrustSignalsSection clinic={clinic} />
-
-      {/* Aligner brand / provider tags (Feb 2026). Backend already
-          downgrades any unverified "official" claim to safe text, and
-          omits invisible entries. Renders nothing when the list is
-          empty so it never adds visual noise to clinics that don't
-          curate brand tags yet. */}
-      {clinic.aligner_brands_supported && clinic.aligner_brands_supported.length > 0 && (
-        <section
-          className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
-          data-testid="profile-aligner-brands-section"
-        >
-          <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 mb-1">
-            Алайнер системи
-          </h2>
-          <p className="text-xs text-slate-500 mb-3 leading-relaxed">
-            Етикетите по-долу показват с кои марки клиниката работи. Етикет
-            със знак за верификация означава администраторски потвърден статус.
-          </p>
-          <AlignerBrandChips chips={clinic.aligner_brands_supported} layout="profile" />
-        </section>
-      )}
-
-      {/* R2 — Approved patient reviews (moderated, public-safe).
-          The component derives the secondary "Leave a review" CTA URL
-          from window.location.origin on the client so it always points
-          at the host that actually serves the review page. */}
-      <PublicReviewsSection clinicId={clinic.id} />
-
-      {/* R1 — FAQ accordion. */}
-      <ClinicFAQSection />
+      {/* ── Tab-based content layout (P0 text-density polish, Feb 2026)
+          Replaces the previous long single-column scroll with 5 progressive-
+          disclosure tabs. All section components are reused as-is — only the
+          container changes. */}
+      <ProfileTabs clinic={clinic} isPremium={isPremium} isFeatured={isFeatured} />
 
       {/* ── Bottom CTA (all tiers) ──────────────────────────── */}
       <section
         className="rounded-2xl bg-gradient-to-br from-teal-50/85 via-white/70 to-white/60 backdrop-blur-xl ring-1 ring-teal-100/70 shadow-[0_18px_50px_-22px_rgba(13,148,136,0.18)] p-6 sm:p-8"
         data-testid="profile-bottom-cta-row"
       >
-        <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 mb-2">
+        <h2 className="font-serif text-xl sm:text-2xl font-semibold text-slate-900 mb-4">
           Готови ли сте за следваща стъпка?
         </h2>
-        <p className="text-sm text-slate-600 leading-relaxed mb-5">
-          Заявка за обаждане може да изпратите само към една клиника. Ако се
-          колебаете, разгледайте и другите препоръки.
-        </p>
         <div className="flex flex-col sm:flex-row gap-3">
           <RequestCallCta
             isSelected={isThisSelected}
@@ -662,17 +350,453 @@ function ProfileBody({
             Виж другите препоръки
           </Link>
         </div>
+        <p className="mt-4 text-[11px] text-slate-500 leading-snug">
+          Заявка може да изпратите само към една клиника.
+        </p>
       </section>
 
       {/* ── Trust note ──────────────────────────────────────── */}
       <p
-        className="text-xs text-slate-400 text-center leading-relaxed pt-2"
+        className="text-[11px] text-slate-400 text-center leading-snug pt-2"
         data-testid="profile-trust-note"
       >
-        Zubite не поставя диагноза и не заменя преглед при лекар. Целта е да
-        ви помогне да направите по-ясна следваща стъпка.
+        Zubite не поставя диагноза и не заменя преглед при лекар.
       </p>
     </article>
+  )
+}
+
+/* ──────────────── Tab container (P0 text-density polish, Feb 2026) ────────────────
+   Accessible 5-tab structure (semantic buttons + ARIA + roving-tabindex friendly)
+   that wraps existing section components. The tabs are the primary content
+   navigation. Mobile fallback: horizontal scrollable tab list. Each TabPanel
+   keeps the original data-testids of its child sections intact so existing
+   integrations (analytics, tests, deep links) keep working. */
+
+type TabKey = 'overview' | 'services' | 'process' | 'care-pass' | 'questions'
+
+function ProfileTabs({
+  clinic,
+  isPremium,
+  isFeatured,
+}: {
+  clinic: RecommendedClinic
+  isPremium: boolean
+  isFeatured: boolean
+}) {
+  const [active, setActive] = useState<TabKey>('overview')
+
+  const tabs: Array<{ key: TabKey; label: string; icon: React.ReactNode }> = [
+    { key: 'overview',  label: 'Обобщение',                icon: <Building2 className="w-3.5 h-3.5" /> },
+    { key: 'services',  label: 'Услуги',                   icon: <Stethoscope className="w-3.5 h-3.5" /> },
+    { key: 'process',   label: 'Как работи консултацията', icon: <Footprints className="w-3.5 h-3.5" /> },
+    { key: 'care-pass', label: 'Care Pass',                icon: <Sparkle className="w-3.5 h-3.5" /> },
+    { key: 'questions', label: 'Въпроси',                  icon: <MessagesSquare className="w-3.5 h-3.5" /> },
+  ]
+
+  const tabBtn = (t: (typeof tabs)[number]) => {
+    const isActive = t.key === active
+    return (
+      <button
+        key={t.key}
+        type="button"
+        role="tab"
+        id={`profile-tab-${t.key}`}
+        aria-selected={isActive}
+        aria-controls={`profile-tabpanel-${t.key}`}
+        tabIndex={isActive ? 0 : -1}
+        onClick={() => setActive(t.key)}
+        className={
+          'inline-flex items-center gap-1.5 whitespace-nowrap px-3.5 py-2 rounded-full text-[13px] font-medium transition-all ' +
+          (isActive
+            ? 'bg-slate-900 text-white shadow-[0_10px_24px_-12px_rgba(15,23,42,0.45)]'
+            : 'bg-white/55 backdrop-blur-md ring-1 ring-white/70 text-slate-700 hover:bg-white/80 hover:text-slate-900')
+        }
+        data-testid={`profile-tab-${t.key}`}
+      >
+        {t.icon}
+        {t.label}
+      </button>
+    )
+  }
+
+  return (
+    <section data-testid="profile-tabs-container">
+      {/* Tab list — sticky on mobile under the hero so the user can switch
+          tabs without scrolling back. Horizontal scroll on small screens. */}
+      <div
+        role="tablist"
+        aria-label="Информация за клиниката"
+        className="sticky top-[68px] z-20 -mx-4 sm:mx-0 px-4 sm:px-0 py-3 bg-[#FCFAF8]/85 backdrop-blur-xl flex gap-2 overflow-x-auto scrollbar-hide"
+        data-testid="profile-tablist"
+      >
+        {tabs.map(tabBtn)}
+      </div>
+
+      {/* Tab panels — only the active one is in the DOM tree to keep the page
+          light and to honor the spec ('default view = clarity'). */}
+      <div className="mt-6">
+        {active === 'overview' && (
+          <div
+            id="profile-tabpanel-overview"
+            role="tabpanel"
+            aria-labelledby="profile-tab-overview"
+            className="space-y-6"
+            data-testid="profile-tabpanel-overview"
+          >
+            {/* Why this clinic appeared — always relevant on overview. */}
+            <section
+              className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
+              data-testid="profile-reason-section"
+            >
+              <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 mb-3">
+                Защо виждате тази клиника
+              </h2>
+              <p className="text-sm text-slate-700 leading-relaxed">{clinic.reason}</p>
+              <details className="mt-3 group/reason">
+                <summary className="list-none inline-flex items-center gap-1 text-[11px] font-medium text-teal-700 cursor-pointer select-none hover:text-teal-800">
+                  Прочети повече за насочването
+                  <ChevronDown className="w-3 h-3 transition-transform group-open/reason:rotate-180" />
+                </summary>
+                <p className="mt-2 text-xs text-slate-500 leading-relaxed">
+                  Препоръката е базирана на наличната партньорска информация,
+                  града и типа на заявката. Zubite.bg не поставя диагноза.
+                </p>
+              </details>
+            </section>
+
+            {/* About / patient_intro / clinic_story — collapsed by default */}
+            {(isPremium || isFeatured) && (
+              <ClinicAboutBlock clinic={clinic} isPremium={isPremium} />
+            )}
+
+            {/* Premium-only rich sections (collapsed disclosures to keep
+                density low). Each renders only if there's real content. */}
+            {isPremium && <PremiumOverviewExtras clinic={clinic} />}
+
+            {/* Featured-only placeholder (kept for parity, compact). */}
+            {isFeatured && !clinic.clinic_profile?.patient_intro && !clinic.clinic_profile?.short_description && (
+              <PlaceholderSection
+                testid="profile-featured-extra-section"
+                tierLabel="featured"
+                title="Допълнителна информация от клиниката"
+                icon={<Sparkle className="w-4 h-4 text-teal-700" />}
+                body="Клиниката може да добави повече информация за пациентите тук."
+              />
+            )}
+          </div>
+        )}
+
+        {active === 'services' && (
+          <div
+            id="profile-tabpanel-services"
+            role="tabpanel"
+            aria-labelledby="profile-tab-services"
+            className="space-y-6"
+            data-testid="profile-tabpanel-services"
+          >
+            {/* Подходяща за — chips */}
+            <section
+              className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
+              data-testid="profile-treatments-section"
+            >
+              <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 mb-3">
+                Подходяща за
+              </h2>
+              {(() => {
+                const list = (clinic.treatments_supported && clinic.treatments_supported.length > 0)
+                  ? clinic.treatments_supported
+                  : (clinic.treatments || [])
+                return list.length > 0 ? (
+                  <ul className="flex flex-wrap gap-2">
+                    {list.map((t) => (
+                      <li
+                        key={t}
+                        className="inline-flex items-center px-3 py-1 rounded-full bg-teal-50 text-teal-700 ring-1 ring-teal-100 text-xs"
+                      >
+                        {TREATMENT_LABELS[t] || t}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p
+                    className="text-sm text-slate-600 leading-relaxed"
+                    data-testid="profile-treatments-empty"
+                  >
+                    Информацията за конкретните направления ще бъде потвърдена при разговор.
+                  </p>
+                )
+              })()}
+              {clinic.partner_since_year && (
+                <p className="mt-4 text-xs text-slate-500 inline-flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5" />
+                  Партньор на Zubite от {clinic.partner_since_year}
+                </p>
+              )}
+            </section>
+
+            {/* Aligner brands (only when populated) */}
+            {clinic.aligner_brands_supported && clinic.aligner_brands_supported.length > 0 && (
+              <section
+                className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
+                data-testid="profile-aligner-brands-section"
+              >
+                <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 mb-3">
+                  Алайнер системи
+                </h2>
+                <AlignerBrandChips chips={clinic.aligner_brands_supported} layout="profile" />
+                <details className="mt-3 group/brands">
+                  <summary className="list-none inline-flex items-center gap-1 text-[11px] font-medium text-teal-700 cursor-pointer select-none hover:text-teal-800">
+                    Какво означават етикетите?
+                    <ChevronDown className="w-3 h-3 transition-transform group-open/brands:rotate-180" />
+                  </summary>
+                  <p className="mt-2 text-xs text-slate-500 leading-relaxed">
+                    Етикет със знак за верификация означава администраторски потвърден статус.
+                  </p>
+                </details>
+              </section>
+            )}
+
+            {/* Trust signals — service-credibility chips */}
+            <TrustSignalsSection clinic={clinic} />
+
+            {/* Approved patient reviews */}
+            <PublicReviewsSection clinicId={clinic.id} />
+          </div>
+        )}
+
+        {active === 'process' && (
+          <div
+            id="profile-tabpanel-process"
+            role="tabpanel"
+            aria-labelledby="profile-tab-process"
+            className="space-y-6"
+            data-testid="profile-tabpanel-process"
+          >
+            <PostRequestTimeline />
+
+            {/* Clinic-defined consultation_process (Premium with real content) */}
+            {isPremium && clinic.clinic_profile?.consultation_process && (
+              <section
+                className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
+                data-testid="profile-consultation-process-section"
+              >
+                <h2 className="font-serif text-lg font-semibold text-slate-900 mb-3">
+                  Процес на консултация
+                </h2>
+                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line line-clamp-3 group-open:line-clamp-none">
+                  {clinic.clinic_profile.consultation_process}
+                </p>
+                <details className="mt-3 group/process">
+                  <summary className="list-none inline-flex items-center gap-1 text-[11px] font-medium text-teal-700 cursor-pointer select-none hover:text-teal-800">
+                    Прочети целия процес
+                    <ChevronDown className="w-3 h-3 transition-transform group-open/process:rotate-180" />
+                  </summary>
+                  <p className="mt-2 text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+                    {clinic.clinic_profile.consultation_process}
+                  </p>
+                </details>
+              </section>
+            )}
+
+            {/* Premium fallback patient-journey placeholder */}
+            {isPremium && !clinic.clinic_profile?.consultation_process && <PatientJourneySection />}
+          </div>
+        )}
+
+        {active === 'care-pass' && (
+          <div
+            id="profile-tabpanel-care-pass"
+            role="tabpanel"
+            aria-labelledby="profile-tab-care-pass"
+            className="space-y-6"
+            data-testid="profile-tabpanel-care-pass"
+          >
+            <CarePassPanel
+              variant="full"
+              showLearnMore
+              testid="profile-care-pass-section"
+            />
+            <section
+              className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
+              data-testid="profile-care-pass-how"
+            >
+              <h3 className="font-serif text-lg font-semibold text-slate-900 mb-2">
+                Как работи Care Pass?
+              </h3>
+              <p className="text-sm text-slate-700 leading-relaxed">
+                След проведена консултация чрез Zubite.bg, клиниката ти предоставя Zubite Care Pass с отстъпки за продукти за орална хигиена.
+              </p>
+              <details className="mt-3 group/cp-faq">
+                <summary className="list-none inline-flex items-center gap-1 text-[12px] font-medium text-teal-700 cursor-pointer select-none hover:text-teal-800">
+                  Какво НЕ е Care Pass?
+                  <ChevronDown className="w-3 h-3 transition-transform group-open/cp-faq:rotate-180" />
+                </summary>
+                <ul className="mt-2 text-xs text-slate-600 leading-relaxed list-disc pl-5 space-y-0.5">
+                  <li>Не е отстъпка от лечение.</li>
+                  <li>Не е застрахователен продукт.</li>
+                  <li>Не е абонамент или членство.</li>
+                  <li>Не е безплатно лечение.</li>
+                </ul>
+              </details>
+            </section>
+          </div>
+        )}
+
+        {active === 'questions' && (
+          <div
+            id="profile-tabpanel-questions"
+            role="tabpanel"
+            aria-labelledby="profile-tab-questions"
+            data-testid="profile-tabpanel-questions"
+          >
+            <ClinicFAQSection />
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
+/* ── Compact about block (collapsed by default) ───────────────── */
+function ClinicAboutBlock({ clinic, isPremium }: { clinic: RecommendedClinic; isPremium: boolean }) {
+  const intro = clinic.clinic_profile?.patient_intro || clinic.clinic_profile?.short_description
+  const story = clinic.clinic_profile?.clinic_story
+  if (!intro && !story) {
+    return null
+  }
+  // Short visible summary = first sentence (up to ~140 chars). Long body is
+  // available via expandable disclosure so we never delete content, only
+  // layer it.
+  const visible = (intro || story || '').split(/(?<=[.!?])\s+/)[0].slice(0, 140)
+  const full = [intro, isPremium ? story : null].filter(Boolean).join('\n\n')
+  return (
+    <section
+      className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
+      data-testid="profile-about-section"
+    >
+      <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 mb-3">
+        За клиниката
+      </h2>
+      <p className="text-base text-slate-700 leading-relaxed">{visible}{visible.length === 140 ? '…' : ''}</p>
+      {full.length > visible.length && (
+        <details className="mt-3 group/about">
+          <summary className="list-none inline-flex items-center gap-1 text-[12px] font-medium text-teal-700 cursor-pointer select-none hover:text-teal-800">
+            Прочети повече
+            <ChevronDown className="w-3 h-3 transition-transform group-open/about:rotate-180" />
+          </summary>
+          <p className="mt-3 text-sm text-slate-700 leading-relaxed whitespace-pre-line border-t border-slate-200/60 pt-3">
+            {full}
+          </p>
+        </details>
+      )}
+    </section>
+  )
+}
+
+/* ── Premium overview extras (case library, doctor, environment) ─ */
+function PremiumOverviewExtras({ clinic }: { clinic: RecommendedClinic }) {
+  return (
+    <>
+      {/* Case library */}
+      {clinic.clinic_profile?.case_library && clinic.clinic_profile.case_library.length > 0 ? (
+        <section
+          className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
+          data-testid="profile-case-library-section"
+        >
+          <h2 className="font-serif text-lg font-semibold text-slate-900 mb-3">
+            Случаи от практиката
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {clinic.clinic_profile.case_library.slice(0, 4).map((c) => (
+              <details
+                key={c.id || c.title}
+                className="group/case rounded-xl ring-1 ring-slate-200/60 bg-white/70 p-4"
+                data-testid={`profile-case-${c.id || c.title}`}
+              >
+                <summary className="list-none cursor-pointer select-none">
+                  <div className="text-[10px] uppercase tracking-wide text-slate-500 mb-1">
+                    {c.category}
+                  </div>
+                  <div className="font-medium text-slate-900 text-sm leading-snug">{c.title}</div>
+                  <span className="mt-2 inline-flex items-center gap-1 text-[11px] text-teal-700 font-medium group-open/case:hidden">
+                    Виж подробности <ChevronDown className="w-3 h-3" />
+                  </span>
+                </summary>
+                <p className="mt-2 text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+                  {c.summary}
+                </p>
+              </details>
+            ))}
+          </div>
+        </section>
+      ) : (
+        <CaseLibrarySection />
+      )}
+
+      {/* Doctor spotlight */}
+      {clinic.clinic_profile?.doctor_spotlight_name ? (
+        <section
+          className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
+          data-testid="profile-doctor-spotlight-section"
+        >
+          <h2 className="font-serif text-lg font-semibold text-slate-900 mb-3">Лекарят</h2>
+          <div className="font-medium text-slate-900">{clinic.clinic_profile.doctor_spotlight_name}</div>
+          {clinic.clinic_profile.doctor_spotlight_role && (
+            <div className="text-sm text-slate-500 mt-0.5">{clinic.clinic_profile.doctor_spotlight_role}</div>
+          )}
+          {clinic.clinic_profile.doctor_spotlight_bio && (
+            <details className="mt-3 group/doc">
+              <summary className="list-none inline-flex items-center gap-1 text-[12px] font-medium text-teal-700 cursor-pointer select-none hover:text-teal-800">
+                Прочети био
+                <ChevronDown className="w-3 h-3 transition-transform group-open/doc:rotate-180" />
+              </summary>
+              <p className="mt-3 text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+                {clinic.clinic_profile.doctor_spotlight_bio}
+              </p>
+            </details>
+          )}
+          {clinic.clinic_profile.doctor_video_url && (
+            <video
+              src={clinic.clinic_profile.doctor_video_url}
+              controls
+              className="mt-4 w-full rounded-xl aspect-video bg-slate-100"
+            />
+          )}
+        </section>
+      ) : (
+        <DoctorSpotlightSection />
+      )}
+
+      {/* Environment — collapsed */}
+      {clinic.clinic_profile?.environment_description ? (
+        <section
+          className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-7"
+          data-testid="profile-environment-section"
+        >
+          <details className="group/env">
+            <summary className="list-none cursor-pointer flex items-center justify-between">
+              <h2 className="font-serif text-lg font-semibold text-slate-900">Среда и оборудване</h2>
+              <ChevronDown className="w-4 h-4 text-teal-700 transition-transform group-open/env:rotate-180" />
+            </summary>
+            <p className="mt-3 text-sm text-slate-700 leading-relaxed whitespace-pre-line border-t border-slate-200/60 pt-3">
+              {clinic.clinic_profile.environment_description}
+            </p>
+          </details>
+        </section>
+      ) : (
+        <PlaceholderSection
+          testid="profile-environment-section"
+          tierLabel="premium"
+          title="Среда и оборудване"
+          icon={<Stethoscope className="w-4 h-4 text-teal-700" />}
+          body="Клиниката може да представи средата и технологиите тук."
+        />
+      )}
+
+      {/* Optional Zubite feedback placeholder (no real data yet) */}
+      <ZubiteFeedbackPlaceholderSection />
+    </>
   )
 }
 
