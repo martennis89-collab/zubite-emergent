@@ -182,7 +182,7 @@ export function OrthodonticsQuiz() {
   if (!isClient) {
     return (
       <main className="min-h-screen bg-white flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-sky-500 animate-spin" />
+        <Loader2 className="w-8 h-8 text-teal-500 animate-spin" />
       </main>
     )
   }
@@ -303,11 +303,11 @@ export function OrthodonticsQuiz() {
         }
       case 'needs_evaluation':
         return {
-          bg: 'bg-sky-50',
-          border: 'border-sky-200',
-          icon: <HelpCircle className="w-16 h-16 text-sky-500" />,
-          iconBg: 'bg-sky-100',
-          titleColor: 'text-sky-700'
+          bg: 'bg-teal-50',
+          border: 'border-teal-200',
+          icon: <HelpCircle className="w-16 h-16 text-teal-500" />,
+          iconBg: 'bg-teal-100',
+          titleColor: 'text-teal-700'
         }
     }
   }
@@ -331,8 +331,8 @@ export function OrthodonticsQuiz() {
           {step === 'intro' && (
             <div className="quiz-step-enter bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
               <div className="text-center mb-8">
-                <div className="w-20 h-20 rounded-2xl bg-sky-100 flex items-center justify-center mx-auto mb-6">
-                  <Smile className="w-10 h-10 text-sky-600" />
+                <div className="w-20 h-20 rounded-2xl bg-teal-100 flex items-center justify-center mx-auto mb-6">
+                  <Smile className="w-10 h-10 text-teal-600" />
                 </div>
                 <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-slate-900 mb-4">
                   Разберете дали ортодонтско лечение може да е подходящо за вас
@@ -372,7 +372,7 @@ export function OrthodonticsQuiz() {
                 </div>
                 <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-sky-500 to-sky-400 transition-all duration-300"
+                    className="h-full bg-gradient-to-r from-teal-500 to-teal-400 transition-all duration-300"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
@@ -381,9 +381,9 @@ export function OrthodonticsQuiz() {
               <div className="quiz-step-enter bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
                 {/* Info text for price awareness question */}
                 {QUIZ_QUESTIONS[currentQuestion].infoText && (
-                  <div className="bg-sky-50 border border-sky-200 rounded-xl p-4 mb-6 flex items-start gap-3">
-                    <Info className="w-5 h-5 text-sky-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-sky-800">
+                  <div className="bg-teal-50 border border-teal-200 rounded-xl p-4 mb-6 flex items-start gap-3">
+                    <Info className="w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-teal-800">
                       {QUIZ_QUESTIONS[currentQuestion].infoText}
                     </p>
                   </div>
@@ -402,7 +402,7 @@ export function OrthodonticsQuiz() {
                         option.value,
                         option.score
                       )}
-                      className="quiz-option w-full text-left p-4 rounded-xl border-2 transition-all duration-200 bg-white border-slate-200 text-slate-700 hover:border-sky-300 hover:bg-sky-50"
+                      className="quiz-option w-full text-left p-4 rounded-xl border-2 transition-all duration-200 bg-white border-slate-200 text-slate-700 hover:border-teal-300 hover:bg-teal-50"
                       data-testid={`option-${option.value}`}
                     >
                       {option.label}
@@ -446,7 +446,7 @@ export function OrthodonticsQuiz() {
               })()}
 
               <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
-                <Phone className="w-12 h-12 text-sky-500 mx-auto mb-4" />
+                <Phone className="w-12 h-12 text-teal-500 mx-auto mb-4" />
                 <h3 className="font-serif text-xl font-semibold text-slate-900 mb-2">
                   Заяви обаждане
                 </h3>
@@ -482,7 +482,7 @@ export function OrthodonticsQuiz() {
                     type="text"
                     value={formData.name}
                     onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors"
+                    className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
                     placeholder="Вашето име"
                     data-testid="input-name"
                   />
@@ -494,7 +494,7 @@ export function OrthodonticsQuiz() {
                     type="tel"
                     value={formData.phone}
                     onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                    className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors"
+                    className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
                     placeholder="+359 888 123 456"
                     data-testid="input-phone"
                   />
@@ -510,8 +510,8 @@ export function OrthodonticsQuiz() {
                         onClick={() => setFormData(prev => ({ ...prev, city: city.value }))}
                         className={`p-3 rounded-xl border-2 transition-all duration-200 flex items-center justify-center gap-2 ${
                           formData.city === city.value
-                            ? 'bg-sky-50 border-sky-500 text-sky-700'
-                            : 'bg-white border-slate-200 text-slate-700 hover:border-sky-300'
+                            ? 'bg-teal-50 border-teal-500 text-teal-700'
+                            : 'bg-white border-slate-200 text-slate-700 hover:border-teal-300'
                         }`}
                         data-testid={`city-${city.value}`}
                       >
@@ -530,7 +530,7 @@ export function OrthodonticsQuiz() {
                     value={formData.problem}
                     onChange={e => setFormData(prev => ({ ...prev, problem: e.target.value }))}
                     rows={3}
-                    className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors resize-none"
+                    className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors resize-none"
                     placeholder="Опишете накратко вашата ситуация..."
                     data-testid="input-problem"
                   />
@@ -542,7 +542,7 @@ export function OrthodonticsQuiz() {
                     id="consent"
                     checked={formData.consent}
                     onChange={e => setFormData(prev => ({ ...prev, consent: e.target.checked }))}
-                    className="mt-1 w-4 h-4 rounded border-slate-300 text-sky-500 focus:ring-sky-500"
+                    className="mt-1 w-4 h-4 rounded border-slate-300 text-teal-500 focus:ring-teal-500"
                     data-testid="input-consent"
                   />
                   <label htmlFor="consent" className="text-sm text-slate-600">

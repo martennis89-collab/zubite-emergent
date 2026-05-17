@@ -89,17 +89,17 @@ function SuccessContent() {
 
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-500" />
+      <div className="min-h-screen bg-[#FCFAF8] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500" />
       </div>
     )
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10 md:py-16">
+    <div className="relative max-w-2xl mx-auto px-4 sm:px-6 py-10 md:py-16">
       {/* Check icon + headline */}
       <div className="text-center mb-8" data-testid="success-header">
-        <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full ${bandCfg.iconBg} mb-5`}>
+        <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full ${bandCfg.iconBg} mb-5 shadow-[0_10px_30px_-10px_rgba(15,23,42,0.18)]`}>
           <CheckCircle className={`w-8 h-8 ${bandCfg.color}`} />
         </div>
         <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-slate-900 mb-2">
@@ -110,7 +110,7 @@ function SuccessContent() {
 
       {/* Result band + summary */}
       <div
-        className={`rounded-2xl border ${bandCfg.border} ${bandCfg.bg} p-5 sm:p-6 mb-6`}
+        className={`relative rounded-2xl ring-1 ${bandCfg.border.replace('border-', 'ring-')} ${bandCfg.bg} backdrop-blur-md p-5 sm:p-6 mb-6 shadow-[0_12px_40px_-20px_rgba(15,23,42,0.15)]`}
         data-testid="success-result-card"
       >
         <div className="flex items-center gap-2 mb-4">
@@ -128,7 +128,7 @@ function SuccessContent() {
 
       {/* What happens next — patient-driven choice, not auto-call */}
       <div
-        className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 mb-6"
+        className="bg-white/75 backdrop-blur-2xl rounded-2xl ring-1 ring-white/80 shadow-[0_18px_50px_-20px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.85)] p-5 sm:p-6 mb-6"
         data-testid="success-next-steps"
       >
         <h2 className="font-serif text-lg font-semibold text-slate-900 mb-5">Какво следва?</h2>
@@ -136,7 +136,8 @@ function SuccessContent() {
           {NEXT_STEPS.map((text, i) => (
             <div key={i} className="flex items-start gap-3">
               <div
-                className="flex-shrink-0 w-7 h-7 rounded-full bg-sky-500 text-white flex items-center justify-center text-xs font-bold mt-0.5"
+                className="flex-shrink-0 w-7 h-7 rounded-full text-white flex items-center justify-center text-xs font-bold mt-0.5 shadow-[0_6px_16px_-6px_rgba(13,148,136,0.5)]"
+                style={{ backgroundImage: 'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)' }}
                 aria-hidden="true"
               >
                 {i + 1}
@@ -158,11 +159,15 @@ function SuccessContent() {
                 source: 'quiz_success',
               })
             }}
-            className="w-full inline-flex items-center justify-center gap-2 h-12 px-6 rounded-full bg-sky-500 hover:bg-sky-600 text-white text-base font-medium transition-colors shadow-lg shadow-sky-500/20"
+            className="group relative w-full inline-flex items-center justify-center gap-2 h-12 px-6 rounded-full text-white text-base font-medium transition-all hover:-translate-y-0.5 shadow-[0_18px_40px_-12px_rgba(13,148,136,0.55),inset_0_1px_0_rgba(255,255,255,0.20)] overflow-hidden"
+            style={{ backgroundImage: 'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)' }}
             data-testid="success-primary-cta"
           >
-            Виж препоръчаните клиники
-            <ArrowRight className="w-4 h-4" />
+            <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
+            <span className="relative inline-flex items-center gap-2">
+              Виж препоръчаните клиники
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+            </span>
           </Link>
         ) : (
           // Defensive fallback — should not happen because the quiz now
@@ -186,26 +191,34 @@ function SuccessContent() {
           ми да избера".
         </p>
 
-        {/* Care Pass benefit note — subtle, secondary to the main CTA. */}
+        {/* Care Pass benefit note — premium glass card matching homepage */}
         <div
-          className="mt-6 rounded-xl border border-slate-200 bg-white/70 px-4 py-3 flex items-start gap-3"
+          className="relative mt-6 rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-[0_18px_50px_-22px_rgba(15,23,42,0.35)]"
+          style={{
+            background:
+              'radial-gradient(ellipse 60% 60% at 100% 0%, rgba(20,184,166,0.30) 0%, transparent 60%),' +
+              'linear-gradient(135deg, #0E1A24 0%, #112832 100%)',
+          }}
           data-testid="success-care-pass-note"
         >
-          <div className="relative w-24 h-[72px] flex-shrink-0 rounded-lg bg-white ring-1 ring-slate-200 overflow-hidden">
-            <Image
-              src="/care-pass.png"
-              alt="Zubite Care Pass"
-              fill
-              sizes="96px"
-              className="object-contain"
-            />
+          <div aria-hidden className="absolute inset-x-4 top-1 h-1/3 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+          <div className="relative p-5 flex items-start gap-3">
+            <div className="relative w-20 h-[64px] flex-shrink-0 rounded-lg bg-white/10 ring-1 ring-white/20 overflow-hidden">
+              <Image
+                src="/care-pass.png"
+                alt="Zubite Care Pass"
+                fill
+                sizes="80px"
+                className="object-contain"
+              />
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-teal-300/80 font-semibold">Zubite Care Pass</p>
+              <p className="mt-1 text-xs text-slate-300 leading-relaxed">
+                След като посетиш консултация в партньорска клиника чрез Zubite.bg, клиниката ще ти предостави Zubite Care Pass с отстъпки за продукти за орална хигиена.
+              </p>
+            </div>
           </div>
-          <p className="text-xs text-slate-600 leading-relaxed">
-            <span className="font-semibold text-slate-800">Zubite Care Pass.</span>{' '}
-            След като посетите консултация, заявена през Zubite.bg, клиниката
-            ще ви предостави Zubite Care Pass с партньорски ползи от марки за
-            орална хигиена.
-          </p>
         </div>
       </div>
 
@@ -234,26 +247,39 @@ function SuccessContent() {
 
 export default function QuizSuccessPage() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      <header className="py-5 px-4 border-b border-slate-100">
+    <main className="min-h-screen bg-[#FCFAF8] relative overflow-hidden">
+      {/* Soft warm gradient backdrop */}
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(94,234,212,0.25) 0%, transparent 60%),' +
+            'radial-gradient(ellipse 60% 50% at 80% 60%, rgba(165,243,252,0.30) 0%, transparent 60%)',
+        }}
+      />
+      <div aria-hidden className="absolute -top-32 -left-32 w-[36rem] h-[36rem] rounded-full bg-teal-200/30 blur-3xl pointer-events-none" />
+      <div aria-hidden className="absolute -bottom-40 right-0 w-[40rem] h-[40rem] rounded-full bg-cyan-100/40 blur-3xl pointer-events-none" />
+
+      <header className="relative py-5 px-4 border-b border-white/40 backdrop-blur-sm">
         <div className="max-w-2xl mx-auto">
-          <Link href="/" className="font-serif text-xl font-semibold text-slate-900">
-            Zubite<span className="text-sky-500">.bg</span>
+          <Link href="/" className="font-serif text-xl font-semibold tracking-tight text-slate-900">
+            Zubite<span className="text-teal-600">.bg</span>
           </Link>
         </div>
       </header>
       <Suspense
         fallback={
           <div className="min-h-[60vh] flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-500" />
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500" />
           </div>
         }
       >
         <SuccessContent />
       </Suspense>
-      <footer className="py-6 border-t border-slate-100">
+      <footer className="relative py-6 border-t border-white/40">
         <div className="max-w-2xl mx-auto px-4 text-center text-xs text-slate-400">
-          <p>&copy; {new Date().getFullYear()} Zubite.bg — Платформа за ориентация в ортодонтското лечение</p>
+          <p>&copy; {new Date().getFullYear()} Zubite.bg — Платформа за ориентация в денталното здраве</p>
         </div>
       </footer>
     </main>

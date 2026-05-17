@@ -1,4 +1,125 @@
 # Zubite.bg — Changelog
+## 2026-02-17 — Site-Wide Visual System: Phase 2 (Quiz + Results)
+
+Extended the homepage premium glass design system to the **8 quiz
+routes** + **results pages** + **quiz success page**. Strategic
+approach: target the **shared `MasterQuiz` / `TreatmentQuiz`
+components** so all 8 quiz routes get the upgrade in one pass,
+then rewrite the two leaf pages (`/quiz/success`, `/results/[leadId]`)
+end-to-end.
+
+### Files touched
+1. **`components/MasterQuiz.tsx`** — bulk `sky-*` → `teal-*` rebrand
+   (every color token), plus targeted chrome polish:
+   - **Internal sticky header**: `bg-white/80 backdrop-blur-md
+     border-b border-slate-100` → `bg-[#FCFAF8]/80 backdrop-blur-xl
+     border-white/40` + new question-counter pill with uppercase
+     tracking + serif logo with teal `.bg`.
+   - **Progress bar**: flat `bg-teal-500` 1px → 1.5px glossy gradient
+     `linear-gradient(90deg,#14b8a6,#0d9488,#0f766e)` with `0 0 12px
+     rgba(20,184,166,0.5)` teal glow + thin top white-40% shine line
+     for liquid-glass refraction.
+   - **Question card**: `bg-white border border-slate-200 shadow-sm`
+     → `bg-white/75 backdrop-blur-2xl ring-white/80 shadow-[deep
+     liquid-glass stack] + inset white-85%` + inner top gloss
+     pseudo-element.
+   - **Segment-select cards** ("За мен / За тийнейджър / За дете"):
+     `bg-white border-2 border-slate-200` → `bg-white/70 backdrop-
+     blur-xl ring-white/80 hover:ring-teal-300/60` with teal-50 icon
+     containers + hover lift + teal-tinted drop shadow.
+   - **Visual option cards** (smile grid) + **text option cards**
+     (multi-choice answers): same glass treatment, hover ring →
+     `ring-teal-300/70`, hover bg → `white/90-95`, hover shadow
+     → teal-tinted, lettered chip `bg-teal-50 ring-teal-200` instead
+     of grey-on-grey. Reads as a premium product step, not a form.
+2. **`components/TreatmentQuiz.tsx`** — bulk `sky-*` → `teal-*`
+   rebrand for visual parity (no other chrome changes needed; the
+   `MasterQuiz` polish flows through wherever the master is used).
+3. **`components/OrthodonticsQuiz.tsx`** + **`components/
+   AlignersVsBracesQuiz.tsx`** — same bulk color migration.
+4. **`app/quiz/success/page.tsx`** — targeted polish:
+   - Page chrome wrapped in a relative overflow-hidden container
+     with the homepage's radial-gradient ivory + teal/cyan blob
+     backdrop layers + soft warm `border-white/40` header/footer.
+   - "Какво следва?" panel: `bg-white border border-slate-200`
+     → `bg-white/75 backdrop-blur-2xl ring-white/80 shadow-[deep
+     liquid-glass]` + inset highlight. Numbered step badges:
+     flat `bg-sky-500` → diagonal teal gradient + soft teal drop
+     shadow.
+   - Primary CTA ("Виж препоръчаните клиники"): flat `bg-sky-500
+     shadow-lg` → glossy teal gradient pill with inset top white-
+     20% highlight + inset shine line + `-translate-y-0.5` hover
+     lift + arrow `translate-x-0.5` group-hover.
+   - **Care Pass card upgraded to a premium navy panel** matching
+     the homepage Care Pass section: `bg-white/70 border` →
+     `radial-gradient(rgba(20,184,166,0.30)) + linear-gradient(
+     #0E1A24 → #112832)` with inner white-10% blur highlight,
+     teal-300/80 "Zubite Care Pass" eyebrow, and the exact correct
+     copy: "След като посетиш консултация в партньорска клиника
+     чрез Zubite.bg, клиниката ще ти предостави Zubite Care Pass с
+     отстъпки за продукти за орална хигиена."
+   - Spinner color `border-sky-500` → `border-teal-500`. Logo accent
+     `.bg` `text-sky-500` → `text-teal-600`.
+5. **`app/results/[leadId]/page.tsx`** — completely rewritten end-
+   to-end (was a dark-navy page mixing sky-500 and slate-800):
+   - New page chrome: `min-h-screen bg-[#FCFAF8]` + radial
+     teal/cyan gradient backdrop + 2 large blur blobs + homepage's
+     `<Header />` + `<Footer />` (now auto-styled via Phase 1).
+   - **Primary result panel**: `rounded-[1.75rem] bg-white/75
+     backdrop-blur-2xl ring-white/80 shadow-[deep liquid-glass +
+     inset white-95%]` + inner top gloss.
+   - **NEW** "Ориентир, не диагноза" badge at the top of the panel
+     (`bg-teal-50 ring-teal-100 text-teal-700` with `ShieldCheck`
+     icon) — exactly per the brief's safety guardrail.
+   - Success icon container: gradient teal/emerald with teal-50
+     ring + teal soft drop shadow.
+   - Primary CTA "Покажи ми 3 подходящи клиники": glossy teal
+     gradient pill with shine line + group-hover arrow translate.
+   - Secondary "Към началото": frosted glass pill matching the
+     homepage Hero secondary.
+   - **NEW Care Pass reminder card** below the main panel: same
+     premium navy gradient panel as the success page, with `Gift`
+     icon, "Zubite Care Pass" eyebrow, the canonical Care Pass
+     copy, and the "Не е отстъпка от лечение" disclaimer.
+   - **NEW next-steps strip** at the bottom: 3 micro-chips ("Без
+     задължение / Личен ориентир според отговорите ти / Не заменя
+     професионален преглед") with subtle separators.
+   - Loading state and error state restyled with `bg-[#FCFAF8]` +
+     teal spinner + glass header/footer parity.
+
+### Result
+- **8 quiz routes** automatically inherit:
+  - the new floating ivory chrome,
+  - glossy teal gradient progress bar with glow,
+  - liquid-glass question cards + glass option cards,
+  - teal accent across every interactive element.
+- **All scoring, state transitions, segment branching, lead-capture
+  hooks, analytics events, and submission API calls untouched** —
+  pure presentation polish per the brief's hard guardrail.
+- **`/quiz/success`**: matching the homepage Care Pass framing
+  exactly — Care Pass now reads as the same premium dark navy
+  centerpiece across homepage, quiz success, and results page.
+- **`/results/[leadId]`**: dramatically more premium and product-led
+  while staying medically safe via the "Ориентир, не диагноза" badge.
+
+### Tests
+- Desktop 1440×900 + mobile 390×844 screenshots: quiz intro
+  segment-select cards, quiz question step, quiz success page,
+  results page. Quiz mobile: zero horizontal overflow.
+- `npx tsc --noEmit -p .` → 0 new errors (only the pre-existing
+  unrelated `lib/attribution.ts:241` enum-narrowing complaint).
+- All `data-testid` selectors preserved (`segment-*`, `option-*`,
+  `question-text`, `success-*`, `show-3-clinics-btn`, etc).
+
+### Scope discipline
+- Zero new files. Zero deletes. Zero new dependencies.
+- Zero changes to: quiz scoring, question pool, segment branching,
+  lead-capture, submission, analytics events, routes, SEO, JSON-LD,
+  backend, data models, auth.
+
+---
+
+
 ## 2026-02-17 — Site-Wide Visual System: Phase 1 (Header / Footer / Buttons / Design Tokens)
 
 Began propagating the homepage premium glass design system across

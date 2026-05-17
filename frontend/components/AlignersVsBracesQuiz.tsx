@@ -237,18 +237,18 @@ export function AlignersVsBracesQuiz() {
         }
       default:
         return {
-          bg: 'bg-sky-50',
-          border: 'border-sky-200',
-          iconBg: 'bg-sky-100',
-          titleColor: 'text-sky-700',
-          badgeColor: 'bg-sky-500'
+          bg: 'bg-teal-50',
+          border: 'border-teal-200',
+          iconBg: 'bg-teal-100',
+          titleColor: 'text-teal-700',
+          badgeColor: 'bg-teal-500'
         }
     }
   }
 
   if (!isOpen) {
     return (
-      <div className="bg-gradient-to-br from-sky-500 to-sky-600 rounded-3xl p-8 md:p-10 text-white text-center">
+      <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-3xl p-8 md:p-10 text-white text-center">
         <div className="flex items-center justify-center gap-4 mb-6">
           <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center">
             <Eye className="w-8 h-8" />
@@ -261,12 +261,12 @@ export function AlignersVsBracesQuiz() {
         <h2 className="font-serif text-2xl md:text-3xl font-semibold mb-4">
           Алайнери или Брекети?
         </h2>
-        <p className="text-sky-100 mb-8 max-w-lg mx-auto">
+        <p className="text-teal-100 mb-8 max-w-lg mx-auto">
           Не сте сигурни кой метод е подходящ за вас? Отговорете на 5 въпроса и ще ви помогнем да разберете.
         </p>
         <button
           onClick={() => setIsOpen(true)}
-          className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-10 rounded-full bg-white text-sky-600 font-medium hover:bg-sky-50"
+          className="btn-animate btn-pulse inline-flex items-center justify-center gap-2 h-14 px-10 rounded-full bg-white text-teal-600 font-medium hover:bg-teal-50"
           data-testid="start-aligners-quiz"
         >
           Започни теста
@@ -288,7 +288,7 @@ export function AlignersVsBracesQuiz() {
             </div>
             <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
               <div 
-                className="h-full bg-gradient-to-r from-sky-500 to-sky-400 transition-all duration-300"
+                className="h-full bg-gradient-to-r from-teal-500 to-teal-400 transition-all duration-300"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -305,8 +305,8 @@ export function AlignersVsBracesQuiz() {
                 onClick={() => handleAnswer(option.value)}
                 className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 ${
                   answers[currentQ.id] === option.value
-                    ? 'bg-sky-50 border-sky-500 text-slate-900'
-                    : 'bg-white border-slate-200 text-slate-700 hover:border-sky-300'
+                    ? 'bg-teal-50 border-teal-500 text-slate-900'
+                    : 'bg-white border-slate-200 text-slate-700 hover:border-teal-300'
                 }`}
                 data-testid={`quiz-option-${option.value}`}
               >
@@ -368,12 +368,12 @@ export function AlignersVsBracesQuiz() {
                   {/* Score visualization */}
                   <div className="bg-white/60 rounded-xl p-4 border border-slate-200 mb-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-sky-600">Алайнери</span>
+                      <span className="text-sm font-medium text-teal-600">Алайнери</span>
                       <span className="text-sm text-slate-500">{result.alignerScore} т.</span>
                     </div>
                     <div className="h-2 bg-slate-100 rounded-full overflow-hidden mb-4">
                       <div 
-                        className="h-full bg-sky-500"
+                        className="h-full bg-teal-500"
                         style={{ width: `${(result.alignerScore / (result.alignerScore + result.braceScore)) * 100}%` }}
                       />
                     </div>
@@ -434,7 +434,7 @@ export function AlignersVsBracesQuiz() {
                 type="text"
                 value={contactData.name}
                 onChange={e => setContactData(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors"
+                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
                 placeholder="Вашето име"
                 data-testid="quiz-input-name"
               />
@@ -446,7 +446,7 @@ export function AlignersVsBracesQuiz() {
                 type="tel"
                 value={contactData.phone}
                 onChange={e => setContactData(prev => ({ ...prev, phone: e.target.value }))}
-                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors"
+                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
                 placeholder="+359 888 123 456"
                 data-testid="quiz-input-phone"
               />
@@ -458,7 +458,7 @@ export function AlignersVsBracesQuiz() {
                 type="email"
                 value={contactData.email}
                 onChange={e => setContactData(prev => ({ ...prev, email: e.target.value }))}
-                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors"
+                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
                 placeholder="email@example.com"
                 data-testid="quiz-input-email"
               />
@@ -470,12 +470,12 @@ export function AlignersVsBracesQuiz() {
                 id="quiz-consent"
                 checked={contactData.consent}
                 onChange={e => setContactData(prev => ({ ...prev, consent: e.target.checked }))}
-                className="mt-1 w-4 h-4 rounded border-slate-300 text-sky-500 focus:ring-sky-500"
+                className="mt-1 w-4 h-4 rounded border-slate-300 text-teal-500 focus:ring-teal-500"
                 data-testid="quiz-input-consent"
               />
               <label htmlFor="quiz-consent" className="text-sm text-slate-600">
                 Съгласен/а съм с{' '}
-                <Link href="/privacy" className="text-sky-500 hover:underline">Политиката за поверителност</Link>
+                <Link href="/privacy" className="text-teal-500 hover:underline">Политиката за поверителност</Link>
                 {' '}и обработката на личните ми данни.
               </label>
             </div>

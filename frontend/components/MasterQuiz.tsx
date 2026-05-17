@@ -522,7 +522,7 @@ export function MasterQuiz() {
   }
 
   if (!isClient) {
-    return <main className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="w-8 h-8 text-sky-500 animate-spin" /></main>
+    return <main className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="w-8 h-8 text-teal-500 animate-spin" /></main>
   }
 
   const questions = segment ? QUESTION_SETS[segment] : []
@@ -686,11 +686,17 @@ export function MasterQuiz() {
 
   // ─── Header ────────────────────────────────────────────
   const Header = ({ showCount }: { showCount?: boolean }) => (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-[#FCFAF8]/80 backdrop-blur-xl border-b border-white/40">
       <div className="max-w-2xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-14">
-          <Link href="/" className="font-serif text-xl font-semibold text-slate-900">Zubite<span className="text-sky-500">.bg</span></Link>
-          {showCount && <span className="text-sm text-slate-400">{currentQuestion + 1} / {totalQ}</span>}
+          <Link href="/" className="font-serif text-xl font-semibold tracking-tight text-slate-900">Zubite<span className="text-teal-600">.bg</span></Link>
+          {showCount && (
+            <span className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.16em] text-slate-500">
+              <span className="font-medium text-slate-700">{currentQuestion + 1}</span>
+              <span className="text-slate-400">/</span>
+              <span>{totalQ}</span>
+            </span>
+          )}
         </div>
       </div>
     </header>
@@ -699,7 +705,7 @@ export function MasterQuiz() {
   // ─── SEGMENT SELECT ────────────────────────────────────
   if (step === 'segment') {
     return (
-      <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      <main className="min-h-screen bg-[#FCFAF8]">
         <Header />
         <div className="pt-14 min-h-screen flex items-center justify-center px-4 py-12">
           <div className={`w-full max-w-lg transition-all duration-200 ${isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
@@ -718,17 +724,17 @@ export function MasterQuiz() {
                 <button
                   key={seg}
                   onClick={() => handleSegmentSelect(seg)}
-                  className="w-full flex items-center gap-4 p-5 sm:p-6 bg-white rounded-2xl border-2 border-slate-200 hover:border-sky-300 hover:bg-sky-50/50 transition-all duration-200 group text-left"
+                  className="w-full flex items-center gap-4 p-5 sm:p-6 bg-white/70 backdrop-blur-xl rounded-2xl ring-1 ring-white/80 hover:ring-teal-300/60 hover:bg-white/90 hover:-translate-y-0.5 transition-all duration-200 group text-left shadow-[0_8px_30px_-20px_rgba(15,23,42,0.18)] hover:shadow-[0_16px_44px_-22px_rgba(13,148,136,0.30)]"
                   data-testid={`segment-${seg}`}
                 >
-                  <div className="w-12 h-12 rounded-xl bg-slate-100 group-hover:bg-sky-100 flex items-center justify-center text-slate-500 group-hover:text-sky-600 transition-colors shrink-0">
+                  <div className="w-12 h-12 rounded-xl bg-teal-50/80 ring-1 ring-teal-100 group-hover:bg-teal-100 flex items-center justify-center text-teal-700 transition-colors shrink-0">
                     {icon}
                   </div>
                   <div>
                     <p className="text-base sm:text-lg font-medium text-slate-800">{label}</p>
                     <p className="text-sm text-slate-400">{sub}</p>
                   </div>
-                  <ArrowRight className="w-5 h-5 text-slate-300 group-hover:text-sky-400 ml-auto transition-colors" />
+                  <ArrowRight className="w-5 h-5 text-slate-300 group-hover:text-teal-400 ml-auto transition-colors" />
                 </button>
               ))}
             </div>
@@ -741,7 +747,7 @@ export function MasterQuiz() {
   // ─── INSIGHT SCREEN ────────────────────────────────────
   if (step === 'insight') {
     return (
-      <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      <main className="min-h-screen bg-[#FCFAF8]">
         <Header />
         <div className="pt-14 min-h-screen flex items-center justify-center px-4 py-12">
           <div className="w-full max-w-lg animate-fade-in-up">
@@ -766,54 +772,65 @@ export function MasterQuiz() {
     const isVisual = q.type === 'visual'
 
     return (
-      <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      <main className="min-h-screen bg-[#FCFAF8]">
         <Header showCount />
         <div className="pt-14 min-h-screen flex flex-col">
           {/* Progress */}
-          <div className="sticky top-14 z-40 bg-white/80 backdrop-blur-sm">
-            <div className="h-1 bg-slate-100">
-              <div className="h-full bg-sky-500 transition-all duration-500 ease-out" style={{ width: `${progress}%` }} />
+          <div className="sticky top-14 z-40 bg-[#FCFAF8]/80 backdrop-blur-xl">
+            <div className="relative h-1.5 bg-slate-200/50 overflow-hidden">
+              <div
+                className="absolute inset-y-0 left-0 transition-all duration-500 ease-out rounded-r-full"
+                style={{
+                  width: `${progress}%`,
+                  backgroundImage: 'linear-gradient(90deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)',
+                  boxShadow: '0 0 12px rgba(20,184,166,0.5)',
+                }}
+              />
+              {/* Glossy shine line on top of progress */}
+              <div aria-hidden className="absolute inset-x-0 top-0 h-px bg-white/40" />
             </div>
-            <p className="text-center text-xs text-slate-400 py-2">Проверяваме ситуацията…</p>
+            <p className="text-center text-[10.5px] uppercase tracking-[0.18em] text-slate-400 py-2">Проверяваме ситуацията…</p>
           </div>
 
           <div className="flex-1 flex items-center justify-center px-4 py-8 sm:py-12">
             <div className="w-full max-w-xl">
               <div className={`transition-all duration-200 ${isTransitioning ? 'opacity-0 translate-x-4' : 'opacity-100 translate-x-0'}`}>
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
-                  <h1 className="font-serif text-xl sm:text-2xl font-semibold text-slate-900 mb-6 sm:mb-8 leading-relaxed" data-testid="question-text">
+                <div className="relative bg-white/75 backdrop-blur-2xl rounded-2xl ring-1 ring-white/80 shadow-[0_18px_50px_-20px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.85)] p-6 sm:p-8">
+                  {/* Inner top gloss */}
+                  <div aria-hidden className="absolute inset-x-6 top-0.5 h-1/3 rounded-full bg-gradient-to-b from-white/55 to-transparent pointer-events-none opacity-70" />
+                  <h1 className="relative font-serif text-xl sm:text-2xl font-semibold text-slate-900 mb-6 sm:mb-8 leading-relaxed" data-testid="question-text">
                     {q.question}
                   </h1>
 
                   {isVisual ? (
                     /* Visual grid */
-                    <div className="grid grid-cols-3 gap-3 sm:gap-4">
+                    <div className="relative grid grid-cols-3 gap-3 sm:gap-4">
                       {q.options.map((opt) => (
                         <button
                           key={opt.value}
                           onClick={() => handleAnswer(q.id, opt.value, opt.score, opt.tags)}
-                          className="flex flex-col items-center gap-2 p-3 sm:p-4 rounded-xl border-2 border-slate-200 bg-white hover:border-sky-300 hover:bg-sky-50/50 transition-all duration-200 group"
+                          className="flex flex-col items-center gap-2 p-3 sm:p-4 rounded-xl bg-white/70 backdrop-blur-xl ring-1 ring-white/80 hover:ring-teal-300/70 hover:bg-white/90 hover:-translate-y-0.5 transition-all duration-200 group shadow-[0_6px_24px_-16px_rgba(15,23,42,0.18)]"
                           data-testid={`option-${opt.value}`}
                         >
                           <div className="w-full aspect-square flex items-center justify-center">
                             {opt.visual}
                           </div>
-                          <span className="text-xs sm:text-sm font-medium text-slate-600 text-center group-hover:text-sky-700 transition-colors">{opt.label}</span>
+                          <span className="text-xs sm:text-sm font-medium text-slate-700 text-center group-hover:text-teal-700 transition-colors">{opt.label}</span>
                         </button>
                       ))}
                     </div>
                   ) : (
                     /* Text options */
-                    <div className="space-y-3">
+                    <div className="relative space-y-3">
                       {q.options.map((opt, idx) => (
                         <button
                           key={opt.value}
                           onClick={() => handleAnswer(q.id, opt.value, opt.score, opt.tags)}
-                          className="w-full text-left p-4 sm:p-5 rounded-xl border-2 border-slate-200 bg-white text-slate-700 hover:border-sky-300 hover:bg-sky-50/50 transition-all duration-200 group"
+                          className="w-full text-left p-4 sm:p-5 rounded-xl bg-white/70 backdrop-blur-xl ring-1 ring-white/80 text-slate-800 hover:ring-teal-300/70 hover:bg-white/95 hover:-translate-y-0.5 transition-all duration-200 group shadow-[0_6px_24px_-16px_rgba(15,23,42,0.18)] hover:shadow-[0_14px_36px_-18px_rgba(13,148,136,0.30)]"
                           data-testid={`option-${opt.value}`}
                         >
                           <span className="flex items-center gap-3">
-                            <span className="w-8 h-8 rounded-full border-2 border-slate-200 flex items-center justify-center text-sm font-medium text-slate-400 group-hover:border-sky-400 group-hover:text-sky-500 transition-colors shrink-0">
+                            <span className="w-8 h-8 rounded-full bg-teal-50 ring-1 ring-teal-200 flex items-center justify-center text-sm font-semibold text-teal-700 group-hover:bg-teal-100 group-hover:ring-teal-300 transition-colors shrink-0">
                               {String.fromCharCode(65 + idx)}
                             </span>
                             <span className="text-base sm:text-lg">{opt.label}</span>
@@ -843,7 +860,7 @@ export function MasterQuiz() {
     const styles = getBandStyles(result.band)
 
     return (
-      <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      <main className="min-h-screen bg-[#FCFAF8]">
         <Header />
         <div className="pt-14 min-h-screen px-4 py-8 sm:py-12">
           <div className="w-full max-w-2xl mx-auto">
@@ -876,7 +893,7 @@ export function MasterQuiz() {
             <div className="text-center animate-fade-in-up" style={{ animationDelay: '150ms' }}>
               <button
                 onClick={() => { trackEvent('result_to_soft_commit', { band: result.band, segment }); setStep('soft_commit') }}
-                className="inline-flex items-center gap-2 px-8 py-4 bg-sky-500 text-white font-medium rounded-full hover:bg-sky-600 hover:shadow-lg hover:shadow-sky-500/25 transition-all duration-300 group"
+                className="inline-flex items-center gap-2 px-8 py-4 bg-teal-500 text-white font-medium rounded-full hover:bg-teal-600 hover:shadow-lg hover:shadow-teal-500/25 transition-all duration-300 group"
                 data-testid="result-continue-btn"
               >
                 <span>Виж какви са опциите {segment === 'adult' ? 'ти' : ''}</span>
@@ -892,7 +909,7 @@ export function MasterQuiz() {
   // ─── SOFT COMMIT ───────────────────────────────────────
   if (step === 'soft_commit') {
     return (
-      <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      <main className="min-h-screen bg-[#FCFAF8]">
         <Header />
         <div className="pt-14 min-h-screen flex items-center justify-center px-4 py-12">
           <div className="w-full max-w-lg animate-fade-in-up">
@@ -906,7 +923,7 @@ export function MasterQuiz() {
                   : 'Можем да ви препоръчаме подходящи клиники според резултата и вашия град.'}
               </p>
               <div className="space-y-4">
-                <button onClick={() => { trackEvent('soft_commit', { choice: 'yes' }); trackSoftCommit(true); setStep('form') }} className="w-full px-8 py-4 bg-sky-500 text-white font-medium rounded-full hover:bg-sky-600 hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 group" data-testid="soft-commit-yes">
+                <button onClick={() => { trackEvent('soft_commit', { choice: 'yes' }); trackSoftCommit(true); setStep('form') }} className="w-full px-8 py-4 bg-teal-500 text-white font-medium rounded-full hover:bg-teal-600 hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 group" data-testid="soft-commit-yes">
                   <span>Да, покажете ми опциите</span>
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </button>
@@ -924,7 +941,7 @@ export function MasterQuiz() {
   // ─── EXIT ──────────────────────────────────────────────
   if (step === 'exit') {
     return (
-      <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      <main className="min-h-screen bg-[#FCFAF8]">
         <Header />
         <div className="pt-14 min-h-screen flex items-center justify-center px-4 py-12">
           <div className="w-full max-w-lg animate-fade-in-up">
@@ -949,7 +966,7 @@ export function MasterQuiz() {
   if (step === 'form') {
     const isParent = segment === 'teen' || segment === 'child'
     return (
-      <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      <main className="min-h-screen bg-[#FCFAF8]">
         <Header />
         <div className="pt-14 min-h-screen px-4 py-8 sm:py-12">
           <div className="w-full max-w-lg mx-auto">
@@ -968,19 +985,19 @@ export function MasterQuiz() {
                     {isParent ? 'Вашето име' : 'Име'} <span className="text-red-500">*</span>
                   </label>
                   <input type="text" value={formData.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))}
-                    className="w-full px-4 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-all"
+                    className="w-full px-4 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all"
                     placeholder={isParent ? 'Вашето име' : 'Вашето име'} data-testid="input-name" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Телефон <span className="text-red-500">*</span></label>
                   <input type="tel" value={formData.phone} onChange={e => setFormData(p => ({ ...p, phone: e.target.value }))}
-                    className="w-full px-4 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-all"
+                    className="w-full px-4 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all"
                     placeholder="+359 888 123 456" data-testid="input-phone" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Имейл <span className="text-red-500">*</span></label>
                   <input type="email" value={formData.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))}
-                    className="w-full px-4 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-all"
+                    className="w-full px-4 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all"
                     placeholder="email@example.com" data-testid="input-email" />
                 </div>
                 <div>
@@ -988,7 +1005,7 @@ export function MasterQuiz() {
                   <div className="grid grid-cols-2 gap-3">
                     {CITIES.map(c => (
                       <button key={c.value} type="button" onClick={() => setFormData(p => ({ ...p, city: c.value }))}
-                        className={`p-4 rounded-xl border-2 transition-all duration-200 flex items-center justify-center gap-2 font-medium ${formData.city === c.value ? 'bg-sky-50 border-sky-500 text-sky-700' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'}`}
+                        className={`p-4 rounded-xl border-2 transition-all duration-200 flex items-center justify-center gap-2 font-medium ${formData.city === c.value ? 'bg-teal-50 border-teal-500 text-teal-700' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'}`}
                         data-testid={`city-${c.value}`}>
                         <MapPin className="w-4 h-4" />{c.label}
                       </button>
@@ -997,7 +1014,7 @@ export function MasterQuiz() {
                 </div>
                 {error && <p className="text-red-600 text-sm bg-red-50 border border-red-200 p-3 rounded-xl">{error}</p>}
                 <button onClick={handleSubmit} disabled={isSubmitting}
-                  className="w-full mt-4 px-8 py-4 bg-sky-500 text-white font-semibold rounded-full hover:bg-sky-600 hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full mt-4 px-8 py-4 bg-teal-500 text-white font-semibold rounded-full hover:bg-teal-600 hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50"
                   data-testid="submit-btn">
                   {isSubmitting ? <><Loader2 className="w-5 h-5 animate-spin" />Изпращане...</> : <>{isParent ? 'Изпратете' : 'Изпрати и получи 3 опции'}<ArrowRight className="w-5 h-5" /></>}
                 </button>

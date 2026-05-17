@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { getLead } from '@/lib/api'
-import { CheckCircle, Loader2, Home } from 'lucide-react'
+import { CheckCircle2, Loader2, Home, ShieldCheck, ArrowRight, Gift, Sparkles } from 'lucide-react'
 
 interface Lead {
   id: string
@@ -22,11 +22,11 @@ interface Lead {
 export default function ResultsPage() {
   const params = useParams()
   const leadId = params.leadId as string
-  
+
   const [lead, setLead] = useState<Lead | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  
+
   useEffect(() => {
     const fetchLead = async () => {
       try {
@@ -38,26 +38,25 @@ export default function ResultsPage() {
         setLoading(false)
       }
     }
-    
     fetchLead()
   }, [leadId])
-  
+
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#0f172a] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-sky-400 animate-spin" />
+      <main className="min-h-screen bg-[#FCFAF8] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-teal-600 animate-spin" />
       </main>
     )
   }
-  
+
   if (error || !lead) {
     return (
-      <main className="min-h-screen bg-[#0f172a]">
+      <main className="min-h-screen bg-[#FCFAF8]">
         <Header />
         <section className="pt-32 pb-16">
           <div className="max-w-2xl mx-auto px-4 text-center">
-            <p className="text-red-400">{error || 'Резултатите не бяха намерени.'}</p>
-            <Link href="/" className="mt-4 inline-flex items-center gap-2 text-sky-400 hover:text-sky-300">
+            <p className="text-rose-700">{error || 'Резултатите не бяха намерени.'}</p>
+            <Link href="/" className="mt-4 inline-flex items-center gap-2 text-teal-700 hover:text-teal-800 font-medium">
               <Home className="w-4 h-4" />
               Към началото
             </Link>
@@ -67,56 +66,117 @@ export default function ResultsPage() {
       </main>
     )
   }
-  
+
   return (
-    <main className="min-h-screen bg-[#0f172a]">
+    <main className="min-h-screen bg-[#FCFAF8] relative overflow-hidden" data-testid="results-page">
+      {/* Soft warm gradient backdrop */}
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(94,234,212,0.25) 0%, rgba(94,234,212,0) 60%),' +
+            'radial-gradient(ellipse 60% 50% at 80% 60%, rgba(165,243,252,0.30) 0%, rgba(165,243,252,0) 60%)',
+        }}
+      />
+      <div aria-hidden className="absolute -top-32 -left-32 w-[36rem] h-[36rem] rounded-full bg-teal-200/30 blur-3xl pointer-events-none" />
+      <div aria-hidden className="absolute -bottom-40 right-0 w-[40rem] h-[40rem] rounded-full bg-cyan-100/40 blur-3xl pointer-events-none" />
+
       <Header />
-      
-      <section className="pt-24 pb-12 md:pt-32 md:pb-16">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="glass rounded-2xl p-8 text-center">
-            <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-6">
-              <CheckCircle className="w-10 h-10 text-green-400" />
+
+      <section className="relative pt-28 pb-12 md:pt-36 md:pb-20">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6">
+          {/* Primary result glass panel */}
+          <div className="relative rounded-[1.75rem] bg-white/75 backdrop-blur-2xl ring-1 ring-white/80 shadow-[0_24px_60px_-22px_rgba(15,23,42,0.22),inset_0_1px_0_rgba(255,255,255,0.95)] p-8 sm:p-10 text-center">
+            {/* Inner top gloss */}
+            <div aria-hidden className="absolute inset-x-8 top-0.5 h-1/3 rounded-full bg-gradient-to-b from-white/55 to-transparent pointer-events-none opacity-70" />
+
+            <div className="relative inline-flex items-center gap-1 text-[11px] text-teal-700 bg-teal-50 ring-1 ring-teal-100 rounded-full px-3 py-1 mb-6">
+              <ShieldCheck className="w-3 h-3" /> Ориентир, не диагноза
             </div>
-            
-            <h1 className="font-serif text-3xl font-semibold text-white mb-4">
-              Благодарим ви!
+
+            <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-teal-50 to-emerald-50 ring-1 ring-teal-100 flex items-center justify-center mx-auto mb-6 shadow-[0_10px_30px_-12px_rgba(13,148,136,0.4)]">
+              <CheckCircle2 className="w-10 h-10 text-teal-600" />
+            </div>
+
+            <h1 className="relative font-serif text-3xl sm:text-4xl font-semibold text-slate-900 mb-3 leading-tight">
+              Благодарим ти!
             </h1>
-            
-            <p className="text-slate-400 mb-8">
-              Вашата заявка е получена успешно. Ще се свържем с вас в най-кратък срок, за да обсъдим вашия случай.
+
+            <p className="relative text-slate-600 mb-6 leading-relaxed max-w-md mx-auto">
+              Заявката ти е получена. В най-кратък срок ще се свържем с теб, за да обсъдим заедно
+              следващата стъпка спрямо описания случай.
             </p>
-            
+
             {lead.name && (
-              <div className="bg-slate-800/50 rounded-xl p-4 mb-8 text-left">
-                <h3 className="text-sm font-medium text-slate-400 mb-2">Вашите данни:</h3>
-                <p className="text-white">{lead.name}</p>
-                {lead.phone && <p className="text-slate-300">{lead.phone}</p>}
-                {lead.email && <p className="text-slate-300">{lead.email}</p>}
+              <div className="relative bg-slate-50/80 ring-1 ring-slate-200/50 rounded-xl p-4 mb-8 text-left max-w-sm mx-auto">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400 font-semibold mb-2">Твоите данни</p>
+                <p className="text-slate-900 font-medium">{lead.name}</p>
+                {lead.phone && <p className="text-sm text-slate-600 mt-0.5">{lead.phone}</p>}
+                {lead.email && <p className="text-sm text-slate-600 mt-0.5">{lead.email}</p>}
               </div>
             )}
-            
-            <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-center">
+
+            <div className="relative flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-center">
               <Link
                 href={`/results/${leadId}/clinics`}
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-sky-500 hover:bg-sky-600 text-white font-medium transition-colors"
+                className="group relative inline-flex items-center justify-center gap-1.5 rounded-full text-white text-sm font-medium px-6 py-3.5 transition-all hover:-translate-y-0.5 shadow-[0_18px_40px_-12px_rgba(13,148,136,0.55),inset_0_1px_0_rgba(255,255,255,0.20)] overflow-hidden"
+                style={{ backgroundImage: 'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)' }}
                 data-testid="show-3-clinics-btn"
               >
-                Покажи ми 3 подходящи клиники
+                <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
+                <span className="relative inline-flex items-center gap-1.5">
+                  Покажи ми 3 подходящи клиники
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                </span>
               </Link>
               <Link
                 href="/"
-                className="btn-secondary px-8 py-4 rounded-full text-white font-medium inline-flex items-center justify-center gap-2"
+                className="relative inline-flex items-center justify-center gap-2 rounded-full bg-white/55 backdrop-blur-xl text-slate-900 text-sm font-medium px-6 py-3.5 ring-1 ring-white/80 hover:bg-white/80 hover:-translate-y-0.5 transition-all shadow-[0_8px_24px_-12px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.85)] overflow-hidden"
                 data-testid="home-btn"
               >
-                <Home className="w-5 h-5" />
+                <Home className="w-4 h-4" />
                 Към началото
               </Link>
             </div>
           </div>
+
+          {/* Care Pass reminder card */}
+          <div className="relative mt-6 rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-[0_24px_60px_-22px_rgba(15,23,42,0.40)]"
+            style={{
+              background:
+                'radial-gradient(ellipse 60% 60% at 100% 0%, rgba(20,184,166,0.30) 0%, transparent 60%),' +
+                'linear-gradient(135deg, #0E1A24 0%, #112832 100%)',
+            }}
+          >
+            <div aria-hidden className="absolute inset-x-4 top-1 h-1/3 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+            <div className="relative p-6 sm:p-7 flex items-center gap-5">
+              <div className="shrink-0 w-12 h-12 rounded-xl bg-white/10 ring-1 ring-white/25 flex items-center justify-center">
+                <Gift className="w-5 h-5 text-teal-200" />
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-teal-300/80 font-semibold">Zubite Care Pass</p>
+                <p className="mt-1 font-serif text-base sm:text-lg text-white leading-snug">
+                  След проведена консултация чрез Zubite.bg ще получиш Care Pass от клиниката.
+                </p>
+                <p className="mt-1 text-[11px] text-slate-400 leading-snug">
+                  Отстъпки за продукти за орална хигиена. Не е отстъпка от лечение.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Next steps strip */}
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-2 text-[11px] text-slate-500">
+            <span className="inline-flex items-center gap-1"><Sparkles className="w-3 h-3 text-teal-500" /> Без задължение</span>
+            <span aria-hidden>·</span>
+            <span>Личен ориентир според отговорите ти</span>
+            <span aria-hidden>·</span>
+            <span>Не заменя професионален преглед</span>
+          </div>
         </div>
       </section>
-      
+
       <Footer />
     </main>
   )
