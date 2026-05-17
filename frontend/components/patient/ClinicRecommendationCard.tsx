@@ -133,19 +133,19 @@ export function ClinicRecommendationCard({
         </span>
       </div>
 
-      {/* Treatments — first 3 chips visible, more in details */}
-      {treatmentBadges.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {treatmentBadges}
-          <span
-            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-700 ring-1 ring-teal-100 text-[11px] font-medium"
-            data-testid={`clinic-card-carepass-chip-${clinic.id}`}
-            title="След проведена консултация чрез Zubite.bg, клиниката ти предоставя Care Pass с отстъпки за продукти за орална хигиена."
-          >
-            <Gift className="w-3 h-3" /> Care Pass след консултация
-          </span>
-        </div>
-      )}
+      {/* Treatments + Care Pass chip row — always renders the Care Pass chip
+          so the after-visit benefit is visible on every card, regardless of
+          whether the clinic has treatment tags published. */}
+      <div className="flex flex-wrap gap-1.5 mb-3">
+        {treatmentBadges}
+        <span
+          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-700 ring-1 ring-teal-100 text-[11px] font-medium"
+          data-testid={`clinic-card-carepass-chip-${clinic.id}`}
+          title="След проведена консултация чрез Zubite.bg, клиниката ти предоставя Care Pass с отстъпки за продукти за орална хигиена."
+        >
+          <Gift className="w-3 h-3" /> Care Pass след консултация
+        </span>
+      </div>
 
       {/* Aligner brand chips — compact form, omitted when no brands. */}
       <AlignerBrandChips chips={clinic.aligner_brands_supported} layout="card" />
