@@ -1,4 +1,68 @@
 # Zubite.bg — Changelog
+
+## 2026-02-17 — Phase 3: Blog + Static Pages Visual Polish (Wave.co glass)
+
+Migrated all **patient-facing static & informational pages** to the
+premium Wave.co glassmorphism system (ivory `#FCFAF8` bg, deep navy
+serif headings, teal accents, decorative orbs, glass cards).
+
+### New / rewritten pages
+1. **`/blog`** — Premium "Журнал Zubite" hero with eyebrow chip,
+   teal-accented serif H1 "Статии и съвети **за усмивката ви**", glass
+   article cards (first card asymmetric md:col-span-2), trust chip
+   "Ориентир, не диагноза", glass CTA → /quiz.
+2. **`/blog/[slug]`** — Ivory bg + decorative orbs, all `sky-*` →
+   `teal-*` (CTA, related-articles cards, FAQ accordion, sources).
+3. **`/privacy`** — Reusable `LegalShell` + `LegalSection` glass shell,
+   GDPR eyebrow chip, 11 numbered glass section cards, teal accent
+   links, contact callout.
+4. **`/terms`** — Same shell, "Правила · Ползване" eyebrow, amber
+   medical-disclaimer callout preserved, 11 sections.
+5. **`/cookies`** — Same shell, 3 cookie-category glass cards each
+   with a styled table (necessary/analytics/marketing), teal note.
+6. **`/contact`** — 3 glass cards (Email/Phone/Location) on ivory with
+   teal-accent icons + glass working-hours card.
+
+### New shared component
+- **`components/static/LegalShell.tsx`** — `LegalShell` (eyebrow +
+  serif title + glass hero + decorative orbs + back link) and
+  `LegalSection` (numbered teal badge + serif h2 + prose body).
+  Eliminates duplication across the 3 legal pages.
+
+### Site-wide brand consistency pass
+- Migrated **all remaining patient-facing `sky-*` → `teal-*`** in
+  ~20 files (SEO landing pages: `aligners-comparison`,
+  `aligners-vs-braces`, `cosmetic-dentistry`, `crooked-teeth`,
+  `implant-price`, `implants`, `invisalign-price`, `orthodontics`,
+  `sleep-airway`, `symptoms`, `symptoms/[symptomSlug]`, `tmj`,
+  `what-is-invisalign`; route `[city]/[treatment]` + its `/quiz`;
+  `assessment`; patient components: `CookieConsent`, `ReviewPoster`,
+  `ClinicShell`, `ArticleBreadcrumbs`, `AssistedChoiceModal`,
+  `ReviewSignalsSection`, `ClinicMatchEmptyState`, `RequestCallModal`,
+  `AlignerBrandChips`, `LeadCaptureForm`, `LeadAttributionPanel`,
+  `AnimatedHomeSections`, `TestRenderModal`).
+- **Admin & clinic dashboards intentionally left untouched** —
+  scheduled for Phase 4 (P2) per roadmap.
+
+### Testing
+- `/app/test_reports/iteration_48.json` — frontend-only.
+- **100% pass** on critical Phase 3 checks: 6/6 redesigned pages
+  (correct testids, glass eyebrow chips, teal accents, 0 `sky-*`
+  refs, Bulgarian-only copy), 4/4 smoke regressions (/, /quiz,
+  /care-pass, /za-kliniki) — no breakage.
+- Minor non-blocking observations: 1 pre-existing image 500 inside
+  one blog post body; CookieConsent banner overlay (global, pre-
+  existing).
+
+### Files touched
+- `app/blog/page.tsx`, `app/blog/[slug]/page.tsx`,
+  `app/privacy/page.tsx`, `app/terms/page.tsx`,
+  `app/cookies/page.tsx`, `app/contact/page.tsx`,
+  `components/static/LegalShell.tsx` (new),
+  `components/CookieConsent.tsx`, + 20 patient-facing files for
+  `sky-*` → `teal-*` brand consistency.
+
+
 ## 2026-02-17 — Site-Wide Visual System: Phase 2 (Quiz + Results)
 
 Extended the homepage premium glass design system to the **8 quiz

@@ -71,7 +71,16 @@ Build and optimize **Zubite.bg**, an educational orthodontic platform for the Bu
 - 60-min edit window on `/leads/{id}/contact` to prevent late tampering.
 
 ## Roadmap
-### P1 — Frontend
+### Site-wide Visual System Status
+- ✅ Phase 1 (Homepage)
+- ✅ Phase 2 (Quiz + Results)
+- ✅ Phase 2.5 (Clinic List + Clinic Profile)
+- ✅ Phase 5 fast-track (Care Pass landing + /za-kliniki B2B)
+- ✅ Phase 3 (Blog + Static + SEO landing + patient component sky→teal pass) — Feb 17, 2026
+- ⏳ Phase 4 (Admin + Clinic Dashboard polish — P2)
+
+### P1 — Frontend Backlog
+- "Save Care Pass by email" feature (patient emails self the eligibility + recommended clinics; explicit consent; needs Resend API key).
 - Centralize data-fetching helper (DRY for fetch patterns across pages).
 
 ### P2 — Localization
