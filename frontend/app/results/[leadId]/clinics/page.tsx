@@ -135,18 +135,33 @@ export default function ClinicMatchPage() {
           </Link>
 
           {/* Title block */}
-          <div className="mb-10 max-w-3xl">
+          <div className="mb-8 max-w-3xl">
             <p className="font-sans text-[11px] font-semibold tracking-[0.22em] uppercase text-teal-700 mb-3">
               Препоръчани клиники
             </p>
             <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl font-semibold text-slate-900 leading-tight">
-              Ето до 3 подходящи клиники според вашия резултат
+              Подходящи следващи стъпки според отговорите ти
             </h1>
-            <p className="text-slate-600 mt-3 leading-relaxed">
-              Подбрахме партньорски клиники според града и типа заявка. Изберете
-              една, ако искате клиниката да се свърже с вас, или поискайте
-              помощ от Zubite.
+            <p className="text-slate-600 mt-3 text-base sm:text-lg leading-relaxed">
+              Виж клиники, които може да са релевантни според описания случай, града и избраната категория.
             </p>
+            {/* Title trust chips — replace longer guidance with scannable chips */}
+            <ul className="mt-5 flex flex-wrap gap-2" data-testid="match-title-chips">
+              {[
+                { l: 'Ориентир, не диагноза', icon: ShieldCheck },
+                { l: 'Насочване според случая', icon: Compass },
+                { l: 'Care Pass след консултация', icon: Sparkles },
+                { l: 'Без задължение', icon: CheckCircle2 },
+              ].map(({ l, icon: I }) => (
+                <li
+                  key={l}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-white/55 backdrop-blur-md ring-1 ring-white/75 text-[11px] text-slate-700 font-medium px-3 py-1.5 shadow-[0_4px_12px_-6px_rgba(15,23,42,0.10)]"
+                >
+                  <I className="w-3 h-3 text-teal-600" />
+                  {l}
+                </li>
+              ))}
+            </ul>
           </div>
 
           {/* Body */}
@@ -158,18 +173,17 @@ export default function ClinicMatchPage() {
             <ClinicMatchEmptyState message={data.message} />
           ) : data ? (
             <>
-              {/* Selection-rule banner */}
+              {/* Selection-rule banner — compact 1-liner with inline tabular numbers */}
               <div
-                className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_8px_24px_-16px_rgba(15,23,42,0.18)] px-4 py-3.5 mb-4 flex items-start gap-3 text-sm text-slate-700"
+                className="rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_8px_24px_-16px_rgba(15,23,42,0.18)] px-4 py-3 mb-4 flex items-center gap-3 text-[13px] text-slate-700"
                 data-testid="selection-rule-banner"
               >
-                <ShieldCheck className="w-4 h-4 text-teal-600 mt-0.5 flex-shrink-0" />
-                <p className="leading-relaxed">
-                  Може да разгледате до{' '}
-                  <strong className="text-slate-900">{data.selection_rule.can_view_clinics}</strong>{' '}
-                  клиники. Заявка за обаждане ще може да изпратите към{' '}
-                  <strong className="text-slate-900">{data.selection_rule.can_request_call_from_clinics}</strong>{' '}
-                  клиника. Ако се колебаете, използвайте „Помогнете ми да избера“.
+                <ShieldCheck className="w-4 h-4 text-teal-600 flex-shrink-0" />
+                <p className="leading-snug">
+                  Може да разгледате{' '}
+                  <strong className="text-slate-900 tabular-nums">{data.selection_rule.can_view_clinics}</strong>{' '}
+                  клиники · Заявка към{' '}
+                  <strong className="text-slate-900 tabular-nums">{data.selection_rule.can_request_call_from_clinics}</strong>.
                 </p>
               </div>
 
@@ -263,20 +277,19 @@ export default function ClinicMatchPage() {
                 ))}
               </div>
 
-              {/* Assisted choice panel — non-submitting in P3 */}
+              {/* Assisted choice panel — compact */}
               <section
-                className="mt-10 rounded-3xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_18px_50px_-22px_rgba(15,23,42,0.20)] p-6 sm:p-8 max-w-3xl mx-auto"
+                className="mt-10 rounded-3xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_18px_50px_-22px_rgba(15,23,42,0.20)] p-5 sm:p-6 max-w-3xl mx-auto"
                 data-testid="assisted-choice-panel"
               >
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2 mb-2">
                   <Sparkles className="w-4 h-4 text-teal-600" />
                   <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900">
-                    Не сте сигурни коя клиника да изберете?
+                    Колебаете ли се?
                   </h2>
                 </div>
-                <p className="text-slate-600 leading-relaxed mb-5">
-                  Можем да ви помогнем да изберете следваща стъпка според
-                  ситуацията ви.
+                <p className="text-slate-600 text-sm leading-snug mb-4">
+                  Помагаме да изберете подходяща следваща стъпка.
                 </p>
                 {selection?.has_requested_zubite_help ? (
                   <div
@@ -324,15 +337,12 @@ export default function ClinicMatchPage() {
             </>
           ) : null}
 
-          {/* Trust note — always rendered */}
+          {/* Trust note — footnote style, single line, safety preserved */}
           <p
-            className="mt-12 text-xs text-slate-400 text-center max-w-2xl mx-auto leading-relaxed"
+            className="mt-12 text-[11px] text-slate-400 text-center leading-snug max-w-2xl mx-auto"
             data-testid="match-trust-note"
           >
-            Zubite не поставя диагноза и не заменя преглед при лекар. Целта е да
-            ви помогне да направите по-ясна следваща стъпка. Препоръките са
-            базирани на наличните партньорски клиники и контекста на вашата
-            заявка.
+            Zubite.bg не поставя диагноза и не гарантира лечение. Окончателната оценка се прави от стоматолог или ортодонт.
           </p>
         </div>
       </section>
