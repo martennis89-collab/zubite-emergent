@@ -22,9 +22,8 @@ import Image from 'next/image'
 import {
   ShieldCheck, Sparkles, Building2, Stethoscope, ChevronDown,
   CheckCircle2, ArrowRight, MoveRight, Heart, Smile, Activity,
-  AlignLeft, MessageSquare, Clock, Star, BookOpen, Mail,
-  MapPin, SlidersHorizontal, Megaphone, MessagesSquare,
-  Wallet, HelpCircle, Gift,
+  AlignLeft, Clock, Star, BookOpen, Mail,
+  MessagesSquare, HelpCircle, Gift,
 } from 'lucide-react'
 
 export interface HomeBlogPost {
@@ -39,8 +38,6 @@ export interface HomeBlogPost {
 
 const HERO_BG =
   'https://static.prod-images.emergentagent.com/jobs/25b55d94-1ed6-49c7-af05-4dd6f19863cf/images/ee418e7567bbb08fdf27e9d9873be33914cd827a79e42b9833f9728687f9addb.png'
-const ZUBI_ORB =
-  'https://static.prod-images.emergentagent.com/jobs/25b55d94-1ed6-49c7-af05-4dd6f19863cf/images/863b3f96aa77cea80d56a54ca8cd6f203e1b195d375d00facc84712d20a413cd.png'
 
 // User-provided premium asset renders (Feb 2026)
 // Asset B — Floating frosted-glass UI panels (hero & decision depth layer)
@@ -55,9 +52,6 @@ const ASSET_E_CARE_PASS_CARD =
 // Asset F — Final CTA atmospheric navy/teal background
 const ASSET_F_FINAL_CTA_BG =
   'https://customer-assets.emergentagent.com/job_25b55d94-1ed6-49c7-af05-4dd6f19863cf/artifacts/jdhdxffb_ChatGPT%20Image%20May%2017%2C%202026%2C%2010_05_42%20AM.png'
-// Asset D — Zubi mascot render (futuristic healthcare-tech guide character)
-const ZUBI_MASCOT =
-  'https://customer-assets.emergentagent.com/job_25b55d94-1ed6-49c7-af05-4dd6f19863cf/artifacts/f0ehcf9d_ChatGPT%20Image%20May%2012%2C%202026%2C%2008_57_55%20AM.png'
 
 const QUIZ_URL = '/quiz'
 
@@ -169,9 +163,10 @@ function Nav() {
             <span className="text-teal-600">.bg</span>
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm text-slate-600">
+            <Link href="#noticing"   className="hover:text-slate-900 transition-colors">Какво забелязваш</Link>
             <Link href="#how"        className="hover:text-slate-900 transition-colors">Как работи</Link>
             <Link href="#treatments" className="hover:text-slate-900 transition-colors">Лечения</Link>
-            <Link href="#zubi"       className="hover:text-slate-900 transition-colors">Zubi</Link>
+            <Link href="#care-pass"  className="hover:text-slate-900 transition-colors">Care Pass</Link>
             <Link href="/blog"       className="hover:text-slate-900 transition-colors">Журнал</Link>
             <Link href="/za-kliniki" className="hover:text-slate-900 transition-colors">За клиники</Link>
           </nav>
@@ -263,22 +258,23 @@ function Hero() {
       <div className="relative max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[1.05fr_1fr] gap-12 items-center">
         <div>
           <Reveal>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/80 ring-1 ring-teal-100 text-teal-700 text-[11px] font-medium px-3 py-1">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/80 ring-1 ring-teal-100 text-teal-700 text-[11px] font-medium px-3 py-1 uppercase tracking-[0.16em]">
               <ShieldCheck className="w-3 h-3" />
-              Платформа за орална грижа · България
+              Първо яснота. После избор.
             </span>
           </Reveal>
           <Reveal delay={80}>
-            <h1 className="mt-5 font-serif font-semibold tracking-tight text-slate-900 text-4xl sm:text-5xl lg:text-6xl leading-[1.05]">
-              Първо <span className="text-teal-600">яснота</span>.
-              <br />После избор.
+            <h1 className="mt-5 font-serif font-semibold tracking-tight text-slate-900 text-[2.5rem] sm:text-5xl lg:text-[3.75rem] leading-[1.05]">
+              Възможно ли е да имаш{' '}
+              <span className="text-teal-600">дентален проблем</span>,
+              без да го осъзнаваш?
             </h1>
           </Reveal>
           <Reveal delay={160}>
-            <p className="mt-5 text-slate-600 text-base sm:text-lg leading-relaxed max-w-xl">
-              Отговори на няколко кратки въпроса и получи разбираем
-              ориентир за твоя случай — възможни посоки за лечение,
-              ориентировъчни цени и следваща стъпка към подходяща клиника.
+            <p className="mt-5 text-slate-600 text-lg sm:text-xl leading-relaxed max-w-xl">
+              Отговори на няколко въпроса и получи ориентир дали това,
+              което забелязваш, има нужда от наблюдение, профилактика или
+              консултация със специалист.
             </p>
           </Reveal>
           <Reveal delay={220}>
@@ -309,9 +305,8 @@ function Hero() {
             <div className="mt-6 flex flex-wrap gap-2">
               {[
                 'Без регистрация',
-                'Ориентир за цена и срок',
+                'Ориентир, не диагноза',
                 'Care Pass след консултация',
-                'Не заменя преглед',
               ].map((c) => (
                 <span
                   key={c}
@@ -326,8 +321,8 @@ function Hero() {
           <Reveal delay={320}>
             <p className="mt-5 text-[11px] text-slate-400 leading-snug max-w-md">
               Zubite.bg не поставя диагноза и не заменя преглед при
-              стоматолог. Помага ти да се ориентираш преди следващата
-              стъпка.
+              стоматолог. Помага ти да разбереш дали има смисъл да
+              провериш.
             </p>
           </Reveal>
         </div>
@@ -483,16 +478,36 @@ function TrustStrip() {
 }
 
 // ─── 4. Problem ──────────────────────────────────────────────────
-function Problem() {
-  const pains: Array<{ t: string; s: string; icon: React.ReactNode }> = [
-    { t: 'Реклами от всички страни', s: 'Всяка клиника обещава добър резултат. Но това не ти казва кой подход е подходящ за твоя случай.', icon: <Megaphone className="w-4 h-4" /> },
-    { t: 'Противоречиви мнения',     s: 'Във форуми и групи хората споделят личен опит — полезно е, но не винаги важи за теб.',           icon: <MessagesSquare className="w-4 h-4" /> },
-    { t: 'Неясни цени',              s: 'Една и съща дума като „алайнери“ или „брекети“ може да означава различен план, срок и цена.',     icon: <Wallet className="w-4 h-4" /> },
-    { t: 'Страх от грешен избор',    s: 'Лечението е дълго и скъпо. Нормално е да искаш повече яснота преди да продължиш.',                 icon: <HelpCircle className="w-4 h-4" /> },
+// ─── 4. Patient benefit — Section 2 ──────────────────────────────
+function PatientBenefit() {
+  const benefits: Array<{ t: string; s: string; long: string; icon: React.ReactNode }> = [
+    {
+      t: 'По-малко объркване',
+      s: 'Разбираш дали има смисъл от наблюдение, профилактика или консултация.',
+      long: 'Не всеки симптом изисква лечение веднага. Понякога е достатъчно наблюдение или подобрена ежедневна грижа. Получаваш ориентир коя посока е по-вероятна за теб.',
+      icon: <HelpCircle className="w-4 h-4" />,
+    },
+    {
+      t: 'По-добри въпроси',
+      s: 'Отиваш на преглед по-подготвен.',
+      long: 'Когато попиташ правилно, получаваш по-полезен отговор. Zubite ти показва кои въпроси да зададеш на стоматолог или ортодонт за твоя конкретен случай.',
+      icon: <MessagesSquare className="w-4 h-4" />,
+    },
+    {
+      t: 'По-малко натиск',
+      s: 'Продължаваш само ако решиш.',
+      long: 'Никой не те задължава да продължиш към клиника или лечение. Може просто да получиш ориентира си и да го обмислиш на спокойствие.',
+      icon: <ShieldCheck className="w-4 h-4" />,
+    },
+    {
+      t: 'Допълнителна стойност',
+      s: 'След консултация получаваш Care Pass с отстъпки за продукти за орална хигиена.',
+      long: 'Когато заявиш насочване чрез Zubite.bg и посетиш консултацията, партньорската клиника ти предоставя Zubite Care Pass — карта с отстъпки за продукти за орална хигиена.',
+      icon: <Gift className="w-4 h-4" />,
+    },
   ]
   return (
-    <section className="relative py-20 sm:py-28 overflow-hidden" data-testid="home-problem">
-      {/* Soft gradient blob backdrop */}
+    <section className="relative py-20 sm:py-28 overflow-hidden" data-testid="home-patient-benefit">
       <div aria-hidden className="absolute inset-0 pointer-events-none"
         style={{
           background:
@@ -506,29 +521,35 @@ function Problem() {
         className="absolute -top-20 right-0 w-[28rem] h-[28rem] rounded-full bg-cyan-200/25 blur-3xl pointer-events-none animate-[breatheGlow_15s_ease-in-out_infinite]"
         style={px(-0.05)}
       />
-      <div className="relative max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[1fr_1.2fr] gap-12 items-start">
+      <div className="relative max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[1fr_1.3fr] gap-12 items-start">
         <Reveal>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Защо съществуваме</p>
-          <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight">
-            Информация има <em className="not-italic text-teal-600">в излишък</em>.
-            Яснота — почти никаква.
+          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Защо ти трябва</p>
+          <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08]">
+            Не започвай от реклама.<br />Започни от <em className="not-italic text-teal-600">ориентир</em>.
           </h2>
-          <p className="mt-4 text-slate-600 text-base sm:text-lg max-w-md leading-relaxed">
-            Преди да избереш клиника, трябва да разбереш какъв може да е
-            проблемът, какви варианти обикновено се обсъждат и кои въпроси
-            да зададеш на преглед.
+          <p className="mt-5 text-slate-600 text-base sm:text-lg leading-relaxed max-w-md">
+            Преди да избираш клиника или лечение, първо разбери каква
+            следваща стъпка има смисъл.
           </p>
         </Reveal>
         <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
-          {pains.map((p, i) => (
-            <Reveal key={p.t} delay={i * 90}>
-              <div className="group relative rounded-2xl bg-white/70 backdrop-blur-xl ring-1 ring-white/70 p-5 hover:-translate-y-1 hover:bg-white/85 transition-all shadow-[0_6px_30px_-18px_rgba(15,23,42,0.18)] hover:shadow-[0_14px_40px_-18px_rgba(15,23,42,0.22)]">
-                <div className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-teal-50/80 text-teal-700 ring-1 ring-teal-100">
-                  {p.icon}
-                </div>
-                <h3 className="mt-4 font-serif text-lg font-semibold text-slate-900">{p.t}</h3>
-                <p className="mt-1.5 text-sm text-slate-600 leading-relaxed">{p.s}</p>
-              </div>
+          {benefits.map((b, i) => (
+            <Reveal key={b.t} delay={i * 90}>
+              <details className="group/benefit relative rounded-2xl bg-white/70 backdrop-blur-xl ring-1 ring-white/70 p-5 sm:p-6 hover:-translate-y-1 hover:bg-white/85 hover:ring-teal-200/60 transition-all shadow-[0_6px_30px_-18px_rgba(15,23,42,0.18)] hover:shadow-[0_14px_40px_-18px_rgba(13,148,136,0.22)] cursor-pointer" data-testid={`benefit-card-${i}`}>
+                <summary className="list-none flex flex-col gap-3">
+                  <div className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-teal-50/80 text-teal-700 ring-1 ring-teal-100">
+                    {b.icon}
+                  </div>
+                  <h3 className="font-serif text-xl sm:text-2xl font-semibold text-slate-900 leading-tight">{b.t}</h3>
+                  <p className="text-base text-slate-600 leading-relaxed">{b.s}</p>
+                  <span className="text-[11px] text-teal-700 font-medium inline-flex items-center gap-1 mt-1 group-open/benefit:hidden">
+                    Виж повече <ChevronDown className="w-3 h-3" />
+                  </span>
+                </summary>
+                <p className="mt-3 text-sm text-slate-600 leading-relaxed border-t border-slate-200/50 pt-3">
+                  {b.long}
+                </p>
+              </details>
             </Reveal>
           ))}
         </div>
@@ -537,15 +558,86 @@ function Problem() {
   )
 }
 
-// ─── 5. How it works ─────────────────────────────────────────────
+// ─── 5. What you may be noticing — Section 3 ─────────────────────
+function SymptomChips() {
+  const chips: string[] = [
+    'Кървящи венци',
+    'Криви или струпани зъби',
+    'Щракане в челюстта',
+    'Болка или напрежение',
+    'Лош дъх',
+    'Липсващ зъб',
+    'Износване на зъбите',
+    'Неясна захапка',
+    'Детето диша през устата',
+    'Чудиш се за брекети или алайнери',
+  ]
+  return (
+    <section id="noticing" className="relative py-20 sm:py-28 overflow-hidden" data-testid="home-noticing">
+      <div aria-hidden className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse 60% 50% at 70% 30%, rgba(165,243,252,0.30) 0%, transparent 70%),' +
+            'linear-gradient(180deg, #FCFAF8 0%, #F4FAF9 100%)',
+        }}
+      />
+      <div
+        aria-hidden
+        data-parallax
+        className="absolute -bottom-32 -left-20 w-[30rem] h-[30rem] rounded-full bg-teal-100/30 blur-3xl pointer-events-none animate-[breatheGlow_13s_ease-in-out_infinite]"
+        style={px(0.06)}
+      />
+      <div className="relative max-w-5xl mx-auto px-5 sm:px-8 text-center">
+        <Reveal>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Може би си забелязал</p>
+          <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08]">
+            Какво може да си забелязал?
+          </h2>
+          <p className="mt-5 text-slate-600 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
+            Ако не си сигурен дали е дребно, нормално или нещо за проверка —
+            започни с кратък ориентир.
+          </p>
+        </Reveal>
+        <Reveal delay={120}>
+          <ul className="mt-10 flex flex-wrap justify-center gap-2.5 sm:gap-3" data-testid="symptom-chips">
+            {chips.map((c, i) => (
+              <li
+                key={c}
+                className="inline-flex items-center gap-1.5 rounded-full bg-white/75 backdrop-blur-xl ring-1 ring-white/80 text-sm text-slate-800 font-medium px-4 py-2 shadow-[0_6px_18px_-12px_rgba(15,23,42,0.18)] hover:-translate-y-0.5 hover:bg-white hover:ring-teal-200/70 hover:text-teal-700 transition-all"
+                data-testid={`symptom-chip-${i}`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-teal-500" aria-hidden="true" />
+                {c}
+              </li>
+            ))}
+          </ul>
+        </Reveal>
+        <Reveal delay={200}>
+          <div className="mt-10">
+            <Link
+              href={QUIZ_URL}
+              className="group inline-flex items-center gap-1.5 rounded-full bg-white/55 backdrop-blur-xl ring-1 ring-white/70 text-slate-900 text-sm font-medium px-5 py-3 hover:bg-white hover:-translate-y-0.5 transition-all shadow-[0_8px_24px_-12px_rgba(15,23,42,0.18)]"
+              data-testid="noticing-cta"
+            >
+              Започни краткия ориентир
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 text-teal-600" />
+            </Link>
+          </div>
+        </Reveal>
+      </div>
+    </section>
+  )
+}
+
+// ─── 6. How it works (5 steps) ───────────────────────────────────
 function HowItWorks() {
   const steps: Array<{ n: string; t: string; s: string; mini: React.ReactNode; accent?: boolean }> = [
     {
-      n: '01', t: 'Отговори',
-      s: 'Отговаряш на кратки въпроси за симптоми, цели, възраст, град и предпочитания.',
+      n: '01', t: 'Отговаряш',
+      s: 'На кратки въпроси за това, което забелязваш.',
       mini: (
         <div className="mt-4 rounded-xl bg-slate-50/70 ring-1 ring-slate-200/60 p-3 space-y-1.5">
-          {['Възраст: 27', 'Град: София', 'Цел: естетика'].map((r) => (
+          {['Симптом: чувствителност', 'Възраст: 27', 'Град: София'].map((r) => (
             <div key={r} className="flex items-center gap-1.5 text-[10.5px] text-slate-600">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-teal-500" />{r}
             </div>
@@ -554,21 +646,21 @@ function HowItWorks() {
       ),
     },
     {
-      n: '02', t: 'Получи ориентир',
-      s: 'Виждаш разбираемо обобщение какъв тип случай може да описваш и кои фактори имат значение.',
+      n: '02', t: 'Получаваш ориентир',
+      s: 'Виждаш дали има смисъл от наблюдение, профилактика или консултация.',
       mini: (
         <div className="mt-4 rounded-xl bg-slate-50/70 ring-1 ring-slate-200/60 p-3">
           <p className="text-[10px] uppercase tracking-wider text-slate-400">Ориентир</p>
-          <p className="mt-0.5 font-serif text-[12px] text-slate-800 leading-snug">Възможно леко струпване на долни зъби</p>
+          <p className="mt-0.5 font-serif text-[12px] text-slate-800 leading-snug">Възможно е да има смисъл консултация</p>
         </div>
       ),
     },
     {
-      n: '03', t: 'Сравни възможности',
-      s: 'Разбираш кои подходи обикновено се обсъждат — например алайнери, брекети, импланти или друг тип оценка.',
+      n: '03', t: 'Избираш следваща стъпка',
+      s: 'Можеш да продължиш към подходяща клиника, ако искаш.',
       mini: (
         <div className="mt-4 rounded-xl bg-slate-50/70 ring-1 ring-slate-200/60 p-3 space-y-1.5">
-          {['Прозрачни алайнери', 'Естетични брекети'].map((r) => (
+          {['Клиника А · София', 'Клиника Б · София'].map((r) => (
             <div key={r} className="flex items-center justify-between text-[10.5px] text-slate-600">
               <span>{r}</span>
               <ArrowRight className="w-3 h-3 text-teal-500" />
@@ -578,8 +670,21 @@ function HowItWorks() {
       ),
     },
     {
-      n: '04', t: 'Посети и получи Care Pass',
-      s: 'Ако заявиш насочване и посетиш консултация в партньорска клиника, клиниката ще ти предостави Zubite Care Pass с отстъпки за продукти за орална хигиена.',
+      n: '04', t: 'Посещаваш консултация',
+      s: 'Клиниката потвърждава реалния случай.',
+      mini: (
+        <div className="mt-4 rounded-xl bg-slate-50/70 ring-1 ring-slate-200/60 p-3">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] uppercase tracking-wider text-slate-400">Преглед</p>
+            <Stethoscope className="w-3.5 h-3.5 text-teal-600" />
+          </div>
+          <p className="mt-1 text-[11px] text-slate-700 leading-snug">Стоматологът потвърждава следваща стъпка</p>
+        </div>
+      ),
+    },
+    {
+      n: '05', t: 'Получаваш Care Pass',
+      s: 'След консултацията клиниката ти дава карта с отстъпки за продукти за орална хигиена.',
       accent: true,
       mini: (
         <div className="mt-4 rounded-xl bg-gradient-to-br from-teal-500/15 to-emerald-300/10 ring-1 ring-teal-300/40 p-3">
@@ -598,25 +703,26 @@ function HowItWorks() {
       <div className="relative max-w-6xl mx-auto px-5 sm:px-8">
         <Reveal>
           <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Как работи</p>
-          <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight max-w-3xl">
-            Как стигаш от объркване до ясна следваща стъпка.
+          <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08] max-w-3xl">
+            Какво се случва след като започнеш?
           </h2>
         </Reveal>
-        <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-5">
           {steps.map((s, i) => (
-            <Reveal key={s.n} delay={i * 100}>
+            <Reveal key={s.n} delay={i * 90}>
               <div
                 className={
-                  'relative rounded-2xl backdrop-blur-xl p-6 h-full transition-all hover:-translate-y-1 ' +
+                  'relative rounded-2xl backdrop-blur-xl p-5 h-full transition-all hover:-translate-y-1 ' +
                   (s.accent
                     ? 'bg-gradient-to-br from-teal-50/90 to-white/80 ring-1 ring-teal-300/50 shadow-[0_18px_40px_-22px_rgba(13,148,136,0.4)] hover:shadow-[0_22px_50px_-20px_rgba(13,148,136,0.45)]'
                     : 'bg-white/70 ring-1 ring-white/80 shadow-[0_8px_30px_-20px_rgba(15,23,42,0.18)] hover:bg-white/85 hover:shadow-[0_16px_44px_-22px_rgba(15,23,42,0.22)]')
                 }
+                data-testid={`how-step-${i}`}
               >
                 <span className={'font-serif text-3xl font-bold ' + (s.accent ? 'text-teal-500/70' : 'text-teal-600/30')}>
                   {s.n}
                 </span>
-                <h3 className="mt-2 font-serif text-xl font-semibold text-slate-900 leading-tight">{s.t}</h3>
+                <h3 className="mt-2 font-serif text-lg lg:text-xl font-semibold text-slate-900 leading-tight">{s.t}</h3>
                 <p className="mt-2 text-sm text-slate-600 leading-relaxed">{s.s}</p>
                 {s.mini}
                 {i < steps.length - 1 && (
@@ -631,16 +737,17 @@ function HowItWorks() {
   )
 }
 
-// ─── 6. Treatment categories ─────────────────────────────────────
+// ─── 9. Treatment categories — Section 7 ─────────────────────────
 function TreatmentCategories() {
   const cats: Array<{ t: string; s: string; href: string; icon: React.ReactNode; featured?: boolean }> = [
     { t: 'Ортодонтия',              s: 'Криви зъби, захапка, струпване, разстояния и нужда от ортодонтска оценка.',          href: '/blog?category=orthodontics', icon: <Smile className="w-4 h-4" />,       featured: true },
-    { t: 'Алайнери vs брекети',     s: 'Разбери каква е разликата, кога кой вариант има смисъл и какво зависи от случая.',    href: '/blog/aligners-vs-braces',    icon: <AlignLeft className="w-4 h-4" />,   featured: true },
+    { t: 'Алайнери vs брекети',     s: 'Каква е разликата, кога кой вариант има смисъл и какво зависи от случая.',           href: '/blog/aligners-vs-braces',    icon: <AlignLeft className="w-4 h-4" />,   featured: true },
     { t: 'Импланти',                s: 'Липсващ зъб, стари мостове, подвижни протези или нужда от план за възстановяване.',  href: '/blog?category=implants',     icon: <Stethoscope className="w-4 h-4" /> },
-    { t: 'Естетична стоматология',  s: 'Фасети, бондинг, избелване и усмивка — но с правилна подготовка и реалистични очаквания.', href: '/blog?category=cosmetic', icon: <Sparkles className="w-4 h-4" /> },
-    { t: 'TMJ / челюстни стави',    s: 'Щракане, пукане, болка в челюстта, скърцане със зъби или сутрешно напрежение.',       href: '/blog?category=tmj',          icon: <Activity className="w-4 h-4" /> },
-    { t: 'Сънна апнея и дишане',    s: 'Симптоми, свързани със сън, дишане през устата, захапка и челюстна позиция.',          href: '/blog?category=sleep',        icon: <Heart className="w-4 h-4" /> },
-    { t: 'Детска ортодонтия',       s: 'Кога детето има нужда от ранна оценка и кои признаци не е добре да се игнорират.',     href: '/blog?category=pediatric',    icon: <Smile className="w-4 h-4" /> },
+    { t: 'Венци и хигиена',         s: 'Кървене, чувствителност, неприятен дъх и плакировка — какво да обсъдиш на преглед.',  href: '/blog?category=hygiene',      icon: <Heart className="w-4 h-4" /> },
+    { t: 'Естетична стоматология',  s: 'Фасети, бондинг, избелване и усмивка — с реалистични очаквания.',                     href: '/blog?category=cosmetic',     icon: <Sparkles className="w-4 h-4" /> },
+    { t: 'TMJ / челюст',            s: 'Щракане, пукане, болка в челюстта, скърцане със зъби или сутрешно напрежение.',       href: '/blog?category=tmj',          icon: <Activity className="w-4 h-4" /> },
+    { t: 'Сън и дишане',            s: 'Симптоми, свързани със сън, дишане през устата, захапка и челюстна позиция.',         href: '/blog?category=sleep',        icon: <Heart className="w-4 h-4" /> },
+    { t: 'Детска ортодонтия',       s: 'Кога детето има нужда от ранна оценка и кои признаци не е добре да се игнорират.',    href: '/blog?category=pediatric',    icon: <Smile className="w-4 h-4" /> },
   ]
   return (
     <section id="treatments" className="relative py-20 sm:py-28 overflow-hidden" data-testid="home-treatments">
@@ -654,11 +761,11 @@ function TreatmentCategories() {
       <div className="relative max-w-6xl mx-auto px-5 sm:px-8">
         <Reveal>
           <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Категории</p>
-          <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight max-w-3xl">
-            Започни от темата, която те интересува.
+          <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08] max-w-3xl">
+            С какви случаи може да ти помогне Zubite.bg да се ориентираш?
           </h2>
         </Reveal>
-        <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+        <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {cats.map((c, i) => (
             <Reveal key={c.t} delay={i * 60}>
               <Link
@@ -671,7 +778,6 @@ function TreatmentCategories() {
                 }
                 data-testid={`treatment-card-${i}`}
               >
-                {/* Subtle gradient sweep on hover */}
                 <div aria-hidden className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
                   style={{ background: 'radial-gradient(circle at 90% 0%, rgba(20,184,166,0.10) 0%, transparent 60%)' }}
                 />
@@ -684,7 +790,7 @@ function TreatmentCategories() {
                 <h3 className="relative mt-4 font-serif text-lg sm:text-xl font-semibold text-slate-900 group-hover:text-teal-700 transition-colors">
                   {c.t}
                 </h3>
-                <p className="relative mt-1.5 text-sm text-slate-600 leading-relaxed">{c.s}</p>
+                <p className="relative mt-1.5 text-sm text-slate-600 leading-relaxed line-clamp-3 group-hover:line-clamp-none">{c.s}</p>
                 <span className="relative mt-4 inline-flex items-center gap-1 text-xs font-medium text-teal-600 group-hover:gap-2 transition-all">
                   Виж насоки <ArrowRight className="w-3 h-3" />
                 </span>
@@ -716,20 +822,20 @@ function DecisionPreview() {
       />
       <div className="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[1fr_1.1fr] gap-12 items-center">
         <Reveal>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Преглед на ориентир</p>
-          <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight">
-            Виж какъв ориентир получаваш преди преглед.
+          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Какво получаваш</p>
+          <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08]">
+            Какъв ориентир получаваш?
           </h2>
-          <p className="mt-4 text-slate-600 text-base sm:text-lg leading-relaxed max-w-md">
+          <p className="mt-5 text-slate-600 text-base sm:text-lg leading-relaxed max-w-md">
             След въпросника получаваш кратко обобщение: какво си описал,
             кои посоки може да имат смисъл и какви въпроси да зададеш на
             специалист.
           </p>
-          <ul className="mt-6 space-y-2 text-sm text-slate-700">
-            <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-teal-500 mt-0.5" /> Разбираем език, без жаргон</li>
-            <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-teal-500 mt-0.5" /> Ориентировъчни срокове и ценови диапазони</li>
-            <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-teal-500 mt-0.5" /> Възможни подходи според отговорите ти</li>
-            <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-teal-500 mt-0.5" /> Продължаваш само ако решиш</li>
+          <ul className="mt-6 space-y-2.5 text-base text-slate-700">
+            <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-teal-500 mt-1" /> Ориентир, не диагноза</li>
+            <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-teal-500 mt-1" /> Възможна следваща стъпка</li>
+            <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-teal-500 mt-1" /> Какъв специалист може да има смисъл</li>
+            <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-teal-500 mt-1" /> Въпроси за преглед</li>
           </ul>
           <Link
             href={QUIZ_URL}
@@ -811,221 +917,62 @@ function DecisionPreview() {
   )
 }
 
-// ─── 8. Zubi guidance ────────────────────────────────────────────
-function ZubiSection() {
-  return (
-    <section id="zubi" className="relative py-20 sm:py-28 overflow-hidden" data-testid="home-zubi">
-      <div aria-hidden className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            'radial-gradient(ellipse 60% 60% at 30% 50%, rgba(167,243,208,0.20) 0%, transparent 70%),' +
-            'linear-gradient(180deg, #FCFAF8 0%, #F4FAF9 100%)',
-        }}
-      />
-      <div
-        aria-hidden
-        data-parallax
-        className="absolute -top-32 right-1/4 w-[28rem] h-[28rem] rounded-full bg-cyan-100/30 blur-3xl pointer-events-none animate-[breatheGlow_14s_ease-in-out_infinite]"
-        style={px(-0.05)}
-      />
-      <div className="relative max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[1fr_1fr] gap-12 items-center">
-        <Reveal delay={80}>
-          <div className="relative w-full max-w-md mx-auto">
-            {/* Frosted glow halo — slow breathing */}
-            <div aria-hidden className="absolute -inset-10 rounded-[2.5rem] bg-gradient-to-br from-teal-200/45 to-cyan-100/30 blur-3xl animate-[breatheGlow_8s_ease-in-out_infinite]" />
-            {/* Glass environment container */}
-            <div className="relative rounded-[2rem] overflow-hidden ring-1 ring-white/70 bg-white/55 backdrop-blur-xl shadow-[0_30px_60px_-25px_rgba(15,23,42,0.25)]"
-              style={{
-                background:
-                  'radial-gradient(ellipse 60% 50% at 30% 20%, rgba(94,234,212,0.20) 0%, transparent 60%),' +
-                  'linear-gradient(180deg, rgba(255,255,255,0.65) 0%, rgba(244,250,249,0.65) 100%)',
-              }}
-            >
-              {/* Top glossy highlight */}
-              <div aria-hidden className="absolute inset-x-3 top-2 h-1/3 rounded-full bg-white/45 blur-2xl pointer-events-none" />
-              <div className="relative aspect-[4/5] overflow-hidden">
-                <img
-                  src={ZUBI_MASCOT}
-                  alt="Zubi — спокоен AI ориентир за дентално здраве"
-                  className="absolute inset-0 w-full h-full object-cover animate-[floatSlow_10s_ease-in-out_infinite]"
-                  style={{ objectPosition: '55% 28%', transform: 'scale(1.18)' }}
-                  loading="lazy"
-                />
-                {/* Soft vignette at the bottom for legibility of the chat bubble */}
-                <div aria-hidden className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-white/70 to-transparent pointer-events-none" />
-              </div>
-            </div>
-            {/* Glass chat bubble */}
-            <div className="absolute -bottom-3 -right-2 sm:-right-6 max-w-[260px] rounded-2xl rounded-br-md bg-white/90 backdrop-blur-xl ring-1 ring-white/85 shadow-[0_18px_40px_-18px_rgba(15,23,42,0.30)] p-3.5 animate-[float_8s_ease-in-out_infinite]">
-              <div className="flex items-center gap-1.5">
-                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-teal-500/15 text-teal-700 ring-1 ring-teal-300/60">
-                  <Sparkles className="w-3 h-3" />
-                </span>
-                <p className="text-[10px] uppercase tracking-wider text-teal-700 font-semibold">Zubi</p>
-              </div>
-              <p className="mt-2 text-[12px] text-slate-800 leading-snug">
-                Помагам ти да разбереш дали имаш орален проблем — и след това те насочвам към верифицирана партньорска клиника.
-              </p>
-              <div aria-hidden className="absolute inset-x-3 top-0.5 h-1/2 rounded-full bg-white/45 blur-md pointer-events-none" />
-            </div>
-          </div>
-        </Reveal>
-        <Reveal>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Запознай се със Zubi</p>
-          <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight">
-            Zubi помага да разбереш <br />информацията — без да поставя диагноза.
-          </h2>
-          <p className="mt-4 text-slate-600 text-base sm:text-lg leading-relaxed max-w-md">
-            Zubi е дигиталният помощник на Zubite.bg. Той превежда сложните
-            дентални теми на разбираем език, показва възможни следващи
-            стъпки и ти помага да зададеш по-добри въпроси на преглед.
-          </p>
-          <p className="mt-5 text-[11px] text-slate-400 leading-snug max-w-md">
-            Zubi не е лекар и не дава медицински съвет. Окончателната
-            оценка се прави от стоматолог или ортодонт.
-          </p>
-        </Reveal>
-      </div>
-    </section>
-  )
-}
 
-// ─── 9. Clinic matching ──────────────────────────────────────────
-function MatchingExplain() {
+// ─── 8. Why trust Zubite — Section 6 ─────────────────────────────
+function TrustReason() {
+  const cards: Array<{ t: string; s: string; long: string; icon: React.ReactNode }> = [
+    {
+      t: 'Не поставяме диагноза',
+      s: 'Окончателната оценка се прави от стоматолог или ортодонт.',
+      long: 'Zubite.bg дава ориентир според това, което си описал. Той не замества медицински преглед, образна диагностика и професионална оценка от специалист.',
+      icon: <ShieldCheck className="w-5 h-5" />,
+    },
+    {
+      t: 'Не показваме случаен списък',
+      s: 'Насочването се базира на описания случай, град и категория.',
+      long: 'Не получаваш произволен каталог от клиники. Препоръчваме партньорски клиники, които работят с описания случай в твоя град — нищо повече.',
+      icon: <Stethoscope className="w-5 h-5" />,
+    },
+    {
+      t: 'Не те притискаме',
+      s: 'Избираш дали да продължиш.',
+      long: 'Може да получиш ориентира си и да го обмислиш на спокойствие. Заявка към клиника тръгва само ако ти решиш да продължиш.',
+      icon: <Sparkles className="w-5 h-5" />,
+    },
+  ]
   return (
-    <section className="relative py-20 sm:py-28 overflow-hidden" data-testid="home-matching">
+    <section className="relative py-20 sm:py-28 overflow-hidden" data-testid="home-trust">
       <div
         aria-hidden
         data-parallax
         className="absolute -top-32 left-1/3 w-[28rem] h-[28rem] rounded-full bg-teal-100/30 blur-3xl pointer-events-none animate-[breatheGlow_13s_ease-in-out_infinite]"
         style={px(-0.06)}
       />
-      <div className="relative max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[1.1fr_1fr] gap-12 items-center">
+      <div className="relative max-w-6xl mx-auto px-5 sm:px-8">
         <Reveal>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Насочване, а не каталог</p>
-          <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight">
-            Насочване към клиники според това, което си описал.
-          </h2>
-          <p className="mt-4 text-slate-600 text-base sm:text-lg leading-relaxed max-w-xl">
-            Zubite.bg не е случаен каталог. Използваме отговорите ти,
-            града, типа проблем и предпочитанията ти, за да предложим
-            по-релевантна следваща стъпка.
-          </p>
-          <div className="mt-8 grid sm:grid-cols-2 gap-3">
-            {[
-              { t: 'По случай, не по реклама', s: 'Насочването се базира на описания проблем, категория лечение, град и предпочитания.' },
-              { t: 'Ясни критерии',            s: 'Виждаш защо дадена клиника може да е релевантна и какъв тип случаи обслужва.' },
-              { t: 'Без задължение',           s: 'Клиниката се свързва с теб само след като заявиш насочване.' },
-            ].map((it, i) => (
-              <Reveal key={it.t} delay={i * 100}>
-                <div className="rounded-2xl bg-white/70 backdrop-blur-xl ring-1 ring-white/80 p-5 h-full shadow-[0_8px_28px_-18px_rgba(15,23,42,0.18)]">
-                  <Stethoscope className="w-5 h-5 text-teal-600" />
-                  <h3 className="mt-3 font-serif text-lg font-semibold text-slate-900">{it.t}</h3>
-                  <p className="mt-2 text-sm text-slate-600 leading-relaxed">{it.s}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </Reveal>
-        {/* Matching app mockup */}
-        <Reveal delay={120}>
-          <div className="relative w-full max-w-md mx-auto">
-            <div aria-hidden className="absolute -inset-3 rounded-[2rem] bg-gradient-to-br from-teal-50 to-white ring-1 ring-teal-100/70" />
-            <div aria-hidden className="absolute inset-0 translate-y-3 -translate-x-3 -rotate-[2deg] rounded-[1.85rem] bg-white/55 backdrop-blur-xl ring-1 ring-white/70" />
-            <div className="relative rounded-[1.75rem] bg-white/90 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_24px_60px_-22px_rgba(15,23,42,0.22)] p-5 sm:p-6">
-              {/* Criteria block */}
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Критерии за насочване</p>
-                <SlidersHorizontal className="w-3.5 h-3.5 text-teal-500" />
-              </div>
-              <div className="mt-3 space-y-2">
-                {[
-                  { icon: <MapPin className="w-3.5 h-3.5 text-teal-600" />,         label: 'Град',          value: 'София' },
-                  { icon: <Stethoscope className="w-3.5 h-3.5 text-teal-600" />,    label: 'Категория',     value: 'Ортодонтия' },
-                  { icon: <Sparkles className="w-3.5 h-3.5 text-teal-600" />,       label: 'Предпочитание', value: 'дискретно лечение' },
-                ].map((row) => (
-                  <div key={row.label} className="flex items-center justify-between rounded-xl bg-slate-50/80 ring-1 ring-slate-200/40 px-3 py-2">
-                    <div className="flex items-center gap-1.5">
-                      {row.icon}
-                      <span className="text-[10.5px] uppercase tracking-wider text-slate-500">{row.label}</span>
-                    </div>
-                    <span className="text-[12px] text-slate-800 font-medium">{row.value}</span>
-                  </div>
-                ))}
-              </div>
-              {/* Clinic cards */}
-              <p className="mt-5 text-[10px] uppercase tracking-[0.16em] text-slate-400">Релевантни клиники</p>
-              <div className="mt-2 space-y-2">
-                {[
-                  { name: 'Клиника A', tags: ['Алайнери', 'Възрастни'] },
-                  { name: 'Клиника Б', tags: ['Ортодонтия', 'Естетични брекети'] },
-                  { name: 'Клиника В', tags: ['Алайнери', 'Дискретно'] },
-                ].map((c) => (
-                  <div key={c.name} className="rounded-xl bg-white/80 ring-1 ring-slate-200/50 p-3 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-teal-50 text-teal-700 ring-1 ring-teal-100 shrink-0">
-                        <Building2 className="w-3.5 h-3.5" />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-[12px] text-slate-900 font-medium truncate">{c.name}</p>
-                        <div className="mt-0.5 flex flex-wrap gap-1">
-                          {c.tags.map((t) => (
-                            <span key={t} className="inline-flex items-center text-[9px] uppercase tracking-wider text-teal-700 bg-teal-50 ring-1 ring-teal-100 rounded-full px-1.5 py-0.5">
-                              {t}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-teal-500 shrink-0" />
-                  </div>
-                ))}
-              </div>
-              <p className="mt-4 text-[10px] text-slate-400 leading-snug">
-                Примерни клиники, не реални имена. Реалните насочвания зависят от твоите отговори.
-              </p>
-            </div>
-          </div>
-        </Reveal>
-      </div>
-    </section>
-  )
-}
-
-// ─── 10. Patient questions ───────────────────────────────────────
-function PatientQuestions() {
-  const qs: Array<{ q: string; s: string }> = [
-    { q: 'Какво означава „лек“, „среден“ или „тежък“ случай?',     s: 'Кога описанието е ориентир и кога е нужна реална оценка.' },
-    { q: 'Защо цените се различават толкова много?',                s: 'Какво влияе на цената: система, сложност, срок, лекар и брой посещения.' },
-    { q: 'Боли ли поставянето на брекети или алайнери?',            s: 'Какво е нормално в началото и кога дискомфортът не трябва да се игнорира.' },
-    { q: 'Имам ли време за лечение при моя график?',                s: 'Как различните подходи се вписват в работа, училище, пътуване и ежедневие.' },
-    { q: 'Каква е разликата между естетични и метални брекети?',    s: 'Видимост, цена, комфорт, хигиена и контрол на движенията.' },
-    { q: 'Какво се случва, ако спра по средата?',                    s: 'Защо прекъсването на лечение може да върне прогреса назад и какво да обсъдиш с лекар.' },
-  ]
-  return (
-    <section className="py-20 sm:py-28 bg-[#FCFAF8]" data-testid="home-questions">
-      <div className="max-w-6xl mx-auto px-5 sm:px-8">
-        <Reveal>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Често задавани от пациенти</p>
-          <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight max-w-3xl">
-            Въпросите, които повечето пациенти си задават преди лечение.
+          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Защо да ни се довериш</p>
+          <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08] max-w-3xl">
+            Не диагноза. Не каталог.<br />Ориентир преди избора.
           </h2>
         </Reveal>
-        <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          {qs.map((item, i) => (
-            <Reveal key={item.q} delay={i * 60}>
-              <Link
-                href="/blog"
-                className="group block rounded-2xl bg-white/70 backdrop-blur-xl ring-1 ring-white/80 p-5 hover:-translate-y-1 hover:bg-white/90 hover:ring-teal-200/70 transition-all shadow-[0_6px_24px_-16px_rgba(15,23,42,0.18)] hover:shadow-[0_14px_38px_-18px_rgba(13,148,136,0.30)] h-full"
-                data-testid={`question-card-${i}`}
-              >
-                <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-teal-50/80 text-teal-700 ring-1 ring-teal-100 group-hover:bg-teal-100 transition-colors">
-                  <MessageSquare className="w-4 h-4" />
-                </span>
-                <p className="mt-3 font-serif text-base sm:text-lg text-slate-900 leading-snug group-hover:text-teal-700 transition-colors">{item.q}</p>
-                <p className="mt-2 text-xs text-slate-500 leading-relaxed">{item.s}</p>
-                <p className="mt-3 text-xs font-medium text-teal-600 group-hover:gap-2 inline-flex items-center gap-1 transition-all">Прочети обяснението <ArrowRight className="w-3 h-3" /></p>
-              </Link>
+        <div className="mt-12 grid sm:grid-cols-3 gap-4 sm:gap-5">
+          {cards.map((c, i) => (
+            <Reveal key={c.t} delay={i * 100}>
+              <details className="group/trust block rounded-2xl bg-white/70 backdrop-blur-xl ring-1 ring-white/80 p-6 sm:p-7 h-full shadow-[0_8px_28px_-18px_rgba(15,23,42,0.18)] hover:-translate-y-1 hover:bg-white/85 hover:ring-teal-200/60 hover:shadow-[0_18px_50px_-22px_rgba(13,148,136,0.22)] transition-all cursor-pointer" data-testid={`trust-card-${i}`}>
+                <summary className="list-none flex flex-col gap-3">
+                  <div className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-teal-50/90 text-teal-700 ring-1 ring-teal-100">
+                    {c.icon}
+                  </div>
+                  <h3 className="font-serif text-xl sm:text-2xl font-semibold text-slate-900 leading-tight">{c.t}</h3>
+                  <p className="text-base text-slate-600 leading-relaxed">{c.s}</p>
+                  <span className="text-[11px] text-teal-700 font-medium inline-flex items-center gap-1 mt-1 group-open/trust:hidden">
+                    Виж повече <ChevronDown className="w-3 h-3" />
+                  </span>
+                </summary>
+                <p className="mt-3 text-sm text-slate-600 leading-relaxed border-t border-slate-200/50 pt-3">
+                  {c.long}
+                </p>
+              </details>
             </Reveal>
           ))}
         </div>
@@ -1033,6 +980,7 @@ function PatientQuestions() {
     </section>
   )
 }
+
 
 // ─── 10.5 Recent articles (SSR-fetched blog posts) ───────────────
 function RecentArticles({ posts }: { posts: HomeBlogPost[] }) {
@@ -1129,10 +1077,10 @@ function RecentArticles({ posts }: { posts: HomeBlogPost[] }) {
   )
 }
 
-// ─── 11. Care Pass teaser ────────────────────────────────────────
+// ─── 11. Care Pass teaser — Section 8 ────────────────────────────
 function CarePassTeaser() {
   return (
-    <section className="relative py-20 sm:py-28 overflow-hidden" data-testid="home-care-pass">
+    <section id="care-pass" className="relative py-20 sm:py-28 overflow-hidden" data-testid="home-care-pass">
       {/* Soft section backdrop */}
       <div aria-hidden className="absolute inset-0 pointer-events-none"
         style={{
@@ -1158,21 +1106,36 @@ function CarePassTeaser() {
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-400/10 ring-1 ring-teal-300/30 text-teal-200 text-[11px] font-medium px-3 py-1 uppercase tracking-[0.18em]">
                   <Gift className="w-3 h-3" /> Zubite Care Pass
                 </span>
-                <h2 className="mt-4 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-white leading-tight">
-                  Посети консултацията и получи <br className="hidden sm:block" />Care Pass от клиниката.
+                <h2 className="mt-4 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-white leading-[1.08]">
+                  Посети консултацията.<br className="hidden sm:block" /> Получи Care Pass.
                 </h2>
-                <p className="mt-4 text-slate-300 text-sm sm:text-base leading-relaxed max-w-xl">
+                <p className="mt-4 text-slate-300 text-base sm:text-lg leading-relaxed max-w-xl">
                   Когато заявиш насочване чрез Zubite.bg и посетиш
-                  консултацията в партньорска клиника, клиниката ще ти
-                  предостави Zubite Care Pass — карта с отстъпки за
-                  продукти за орална хигиена.
+                  консултацията, партньорската клиника ще ти предостави
+                  Zubite Care Pass — карта с отстъпки за продукти за
+                  орална хигиена.
                 </p>
-                <p className="mt-3 text-slate-400 text-sm sm:text-base leading-relaxed max-w-xl">
-                  Така получаваш не само по-ясна следваща стъпка, а и
-                  реална допълнителна стойност за ежедневната грижа за
-                  зъбите.
-                </p>
-                <div className="mt-6 flex flex-wrap items-center gap-3">
+
+                {/* 3-step visual flow */}
+                <ol className="mt-7 grid sm:grid-cols-3 gap-2.5" data-testid="care-pass-3-step">
+                  {[
+                    { n: '1', t: 'Заявяваш насочване', icon: <Sparkles className="w-3.5 h-3.5" /> },
+                    { n: '2', t: 'Посещаваш консултация', icon: <Stethoscope className="w-3.5 h-3.5" /> },
+                    { n: '3', t: 'Клиниката ти дава Care Pass', icon: <Gift className="w-3.5 h-3.5" /> },
+                  ].map((step, i) => (
+                    <li key={step.n} className="relative rounded-2xl bg-white/[0.06] ring-1 ring-white/15 backdrop-blur-md px-3.5 py-3" data-testid={`care-pass-step-${i}`}>
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-teal-400/15 ring-1 ring-teal-300/40 text-teal-200 text-[11px] font-semibold">
+                          {step.n}
+                        </span>
+                        <span className="text-teal-200">{step.icon}</span>
+                      </div>
+                      <p className="mt-2 text-[13px] text-slate-200 font-medium leading-snug">{step.t}</p>
+                    </li>
+                  ))}
+                </ol>
+
+                <div className="mt-7 flex flex-wrap items-center gap-3">
                   <Link
                     href={QUIZ_URL}
                     className="group inline-flex items-center gap-1.5 rounded-full bg-white text-slate-900 hover:bg-slate-100 text-sm font-medium px-5 py-3 transition-all hover:-translate-y-0.5 shadow-[0_10px_30px_-10px_rgba(255,255,255,0.35)]"
@@ -1191,12 +1154,12 @@ function CarePassTeaser() {
                   </Link>
                 </div>
                 {/* Benefit chips — hover/tap reveal short clarification */}
-                <div className="mt-7 flex flex-wrap gap-2">
+                <div className="mt-6 flex flex-wrap gap-2">
                   {([
-                    { l: 'След проведена консултация', d: 'Получаваш Pass-а след като посетиш консултацията в партньорска клиника.' },
-                    { l: 'От клиниката',                d: 'Pass-ът се предоставя от самата клиника, не от Zubite.bg.' },
-                    { l: 'Орална хигиена',              d: 'Отстъпки за продукти за ежедневна грижа за зъбите и венците.' },
-                    { l: 'Не е отстъпка от лечение',    d: 'Care Pass не намалява цената на лечение или процедури.' },
+                    { l: 'Отстъпки за продукти за орална хигиена', d: 'Care Pass съдържа отстъпки за партньорски продукти за ежедневна грижа за зъбите.' },
+                    { l: 'Получаваш го от клиниката',               d: 'Pass-ът се предоставя от самата клиника, не от Zubite.bg.' },
+                    { l: 'След проведена консултация',              d: 'Получаваш Pass-а след като реално посетиш консултацията.' },
+                    { l: 'Не е отстъпка от лечение',                d: 'Care Pass не намалява цената на лечение или процедури.' },
                   ] as const).map((c, i) => (
                     <details
                       key={c.l}
@@ -1358,12 +1321,12 @@ function FinalCTA() {
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/80 ring-1 ring-teal-100 text-teal-700 text-[11px] font-medium px-3 py-1">
               <Clock className="w-3 h-3" /> ~60 секунди
             </span>
-            <h2 className="mt-5 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight">
-              Първо яснота. <br />После — подходяща следваща стъпка.
+            <h2 className="mt-5 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08]">
+              Не отлагай само защото<br className="hidden sm:block" /> не знаеш от къде да започнеш.
             </h2>
             <p className="mt-4 text-slate-600 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
-              Отговори на няколко въпроса и виж какъв ориентир можеш да
-              получиш — без регистрация, без натиск и без задължение.
+              Започни с кратък въпросник и получи ориентир за следващата
+              стъпка.
             </p>
             <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
               <Link
@@ -1485,18 +1448,28 @@ export function HomeContent({ recentPosts = [] }: { recentPosts?: HomeBlogPost[]
       <MotionStyles />
       <Nav />
       <MobileStickyCTA />
+      {/* 1. Hero / Awareness */}
       <Hero />
       <TrustStrip />
-      <Problem />
+      {/* 2. Patient benefit */}
+      <PatientBenefit />
+      {/* 3. What you may be noticing */}
+      <SymptomChips />
+      {/* 4. How it works (5 steps) */}
       <HowItWorks />
-      <TreatmentCategories />
+      {/* 5. Product / result preview */}
       <DecisionPreview />
-      <ZubiSection />
-      <MatchingExplain />
-      <PatientQuestions />
-      <RecentArticles posts={recentPosts} />
+      {/* 6. Why trust Zubite */}
+      <TrustReason />
+      {/* 7. Treatment/category coverage */}
+      <TreatmentCategories />
+      {/* 8. Care Pass */}
       <CarePassTeaser />
+      {/* Bonus: editorial reinforcement (kept under Care Pass, before FAQ) */}
+      <RecentArticles posts={recentPosts} />
+      {/* 9. FAQ / objections */}
       <FAQ />
+      {/* 10. Final CTA */}
       <FinalCTA />
       <HomeFooter />
     </>
