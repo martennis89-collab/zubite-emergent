@@ -66,6 +66,41 @@ function useReveal<T extends HTMLElement>() {
   return { ref, shown }
 }
 
+// ─── Lightweight parallax — single rAF scroll → CSS var `--py` ──
+// Background decorative elements use
+//   style={{ transform: 'translate3d(0, calc(var(--py,0) * -0.08px), 0)' }}
+// to drift opposite to scroll, creating depth without re-renders.
+// Honors prefers-reduced-motion: if reduced, --py stays at 0 forever.
+function useBackgroundParallax() {
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    if (mq.matches) return
+    let raf = 0
+    const update = () => {
+      document.documentElement.style.setProperty('--py', String(window.scrollY))
+      raf = 0
+    }
+    const onScroll = () => {
+      if (raf) return
+      raf = requestAnimationFrame(update)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    update()
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      if (raf) cancelAnimationFrame(raf)
+    }
+  }, [])
+}
+
+// Inline style helper — px-based parallax offset bound to --py.
+// Use a small factor (±0.04 → 0.12) to keep things barely-noticeable.
+const px = (factor: number): React.CSSProperties => ({
+  transform: `translate3d(0, calc(var(--py, 0) * ${factor}px), 0)`,
+  willChange: 'transform',
+})
+
 function Reveal({
   children, delay = 0, className = '',
 }: { children: React.ReactNode; delay?: number; className?: string }) {
@@ -158,10 +193,25 @@ function Hero() {
           backgroundPosition: 'center',
         }}
       />
-      {/* soft turquoise glow blobs */}
-      <div aria-hidden className="absolute -top-32 -left-32 w-[36rem] h-[36rem] rounded-full bg-teal-200/30 blur-3xl pointer-events-none" />
-      <div aria-hidden className="absolute -bottom-40 right-0 w-[40rem] h-[40rem] rounded-full bg-cyan-100/40 blur-3xl pointer-events-none" />
-      <div aria-hidden className="absolute top-20 right-1/3 w-72 h-72 rounded-full bg-emerald-200/20 blur-3xl pointer-events-none" />
+      {/* soft turquoise glow blobs — slow vertical parallax + breathing */}
+      <div
+        aria-hidden
+        data-parallax
+        className="absolute -top-32 -left-32 w-[36rem] h-[36rem] rounded-full bg-teal-200/30 blur-3xl pointer-events-none animate-[breatheGlow_9s_ease-in-out_infinite]"
+        style={px(-0.08)}
+      />
+      <div
+        aria-hidden
+        data-parallax
+        className="absolute -bottom-40 right-0 w-[40rem] h-[40rem] rounded-full bg-cyan-100/40 blur-3xl pointer-events-none animate-[breatheGlow_11s_ease-in-out_infinite]"
+        style={px(0.06)}
+      />
+      <div
+        aria-hidden
+        data-parallax
+        className="absolute top-20 right-1/3 w-72 h-72 rounded-full bg-emerald-200/20 blur-3xl pointer-events-none animate-[breatheGlow_13s_ease-in-out_infinite]"
+        style={px(-0.04)}
+      />
 
       <div className="relative max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[1.05fr_1fr] gap-12 items-center">
         <div>
@@ -246,10 +296,25 @@ function Hero() {
 function HeroMockup() {
   return (
     <div className="relative w-full max-w-md mx-auto" data-testid="home-hero-mockup">
-      {/* Deepest decorative card — rotated and offset */}
-      <div aria-hidden className="absolute inset-0 -translate-y-3 translate-x-4 rotate-[3.5deg] rounded-[2rem] bg-gradient-to-br from-teal-100/70 to-cyan-50/40 ring-1 ring-white/60 shadow-[0_30px_60px_-30px_rgba(15,23,42,0.18)]" />
+      {/* Small decorative floating shapes behind the mockup — barely visible, slow drift */}
+      <div
+        aria-hidden
+        className="absolute -top-10 -left-10 w-20 h-20 rounded-2xl bg-teal-200/35 backdrop-blur-md ring-1 ring-white/50 rotate-[8deg] animate-[driftSlow_12s_ease-in-out_infinite] pointer-events-none"
+      />
+      <div
+        aria-hidden
+        className="absolute top-1/3 -right-12 w-16 h-16 rounded-full bg-cyan-100/40 backdrop-blur-md ring-1 ring-white/40 animate-[driftSlow_14s_ease-in-out_infinite_reverse] pointer-events-none"
+        style={{ animationDelay: '-3s' }}
+      />
+      <div
+        aria-hidden
+        className="absolute -bottom-8 left-6 w-14 h-14 rounded-xl bg-emerald-100/40 backdrop-blur-md ring-1 ring-white/40 -rotate-[6deg] animate-[driftSlow_16s_ease-in-out_infinite] pointer-events-none"
+        style={{ animationDelay: '-6s' }}
+      />
+      {/* Deepest decorative card — rotated and offset, slow float */}
+      <div aria-hidden className="absolute inset-0 -translate-y-3 translate-x-4 rotate-[3.5deg] rounded-[2rem] bg-gradient-to-br from-teal-100/70 to-cyan-50/40 ring-1 ring-white/60 shadow-[0_30px_60px_-30px_rgba(15,23,42,0.18)] animate-[floatSlower_10s_ease-in-out_infinite]" />
       {/* Mid translucent card — slight counter-rotate for layered depth */}
-      <div aria-hidden className="absolute inset-0 translate-y-2 -translate-x-3 -rotate-[2.5deg] rounded-[1.85rem] bg-white/55 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_20px_50px_-25px_rgba(15,23,42,0.18)]" />
+      <div aria-hidden className="absolute inset-0 translate-y-2 -translate-x-3 -rotate-[2.5deg] rounded-[1.85rem] bg-white/55 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_20px_50px_-25px_rgba(15,23,42,0.18)] animate-[floatSlow_9s_ease-in-out_infinite_reverse]" />
       {/* Bottom subtle card */}
       <div className="absolute -inset-4 sm:-inset-6 rounded-[2rem] bg-gradient-to-br from-white/60 to-teal-50/60 backdrop-blur-xl ring-1 ring-white/60" />
       {/* Primary card */}
@@ -368,7 +433,12 @@ function Problem() {
             'linear-gradient(180deg, #F4FAF9 0%, #FCFAF8 100%)',
         }}
       />
-      <div aria-hidden className="absolute -top-20 right-0 w-[28rem] h-[28rem] rounded-full bg-cyan-200/25 blur-3xl pointer-events-none" />
+      <div
+        aria-hidden
+        data-parallax
+        className="absolute -top-20 right-0 w-[28rem] h-[28rem] rounded-full bg-cyan-200/25 blur-3xl pointer-events-none animate-[breatheGlow_15s_ease-in-out_infinite]"
+        style={px(-0.05)}
+      />
       <div className="relative max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[1fr_1.2fr] gap-12 items-start">
         <Reveal>
           <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Защо съществуваме</p>
@@ -564,7 +634,20 @@ function TreatmentCategories() {
 function DecisionPreview() {
   return (
     <section className="py-20 sm:py-28 relative overflow-hidden" data-testid="home-decision-preview">
-      <div className="max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[1fr_1.1fr] gap-12 items-center">
+      {/* Background depth blobs */}
+      <div
+        aria-hidden
+        data-parallax
+        className="absolute -top-20 -right-32 w-[32rem] h-[32rem] rounded-full bg-teal-100/35 blur-3xl pointer-events-none animate-[breatheGlow_12s_ease-in-out_infinite]"
+        style={px(-0.06)}
+      />
+      <div
+        aria-hidden
+        data-parallax
+        className="absolute -bottom-32 left-1/4 w-80 h-80 rounded-full bg-cyan-100/25 blur-3xl pointer-events-none animate-[breatheGlow_14s_ease-in-out_infinite]"
+        style={px(0.05)}
+      />
+      <div className="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[1fr_1.1fr] gap-12 items-center">
         <Reveal>
           <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Преглед на ориентир</p>
           <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight">
@@ -654,11 +737,17 @@ function ZubiSection() {
             'linear-gradient(180deg, #FCFAF8 0%, #F4FAF9 100%)',
         }}
       />
+      <div
+        aria-hidden
+        data-parallax
+        className="absolute -top-32 right-1/4 w-[28rem] h-[28rem] rounded-full bg-cyan-100/30 blur-3xl pointer-events-none animate-[breatheGlow_14s_ease-in-out_infinite]"
+        style={px(-0.05)}
+      />
       <div className="relative max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[1fr_1fr] gap-12 items-center">
         <Reveal delay={80}>
           <div className="relative w-full max-w-sm mx-auto">
-            {/* Frosted glow halo */}
-            <div aria-hidden className="absolute -inset-10 rounded-full bg-gradient-to-br from-teal-200/40 to-cyan-100/30 blur-3xl" />
+            {/* Frosted glow halo — slow breathing */}
+            <div aria-hidden className="absolute -inset-10 rounded-full bg-gradient-to-br from-teal-200/40 to-cyan-100/30 blur-3xl animate-[breatheGlow_8s_ease-in-out_infinite]" />
             {/* Glass container behind orb */}
             <div aria-hidden className="absolute -inset-4 rounded-full bg-white/40 backdrop-blur-xl ring-1 ring-white/60" />
             <Image
@@ -713,7 +802,12 @@ function ZubiSection() {
 function MatchingExplain() {
   return (
     <section className="relative py-20 sm:py-28 overflow-hidden" data-testid="home-matching">
-      <div aria-hidden className="absolute -top-32 left-1/3 w-[28rem] h-[28rem] rounded-full bg-teal-100/30 blur-3xl pointer-events-none" />
+      <div
+        aria-hidden
+        data-parallax
+        className="absolute -top-32 left-1/3 w-[28rem] h-[28rem] rounded-full bg-teal-100/30 blur-3xl pointer-events-none animate-[breatheGlow_13s_ease-in-out_infinite]"
+        style={px(-0.06)}
+      />
       <div className="relative max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[1.1fr_1fr] gap-12 items-center">
         <Reveal>
           <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Насочване, а не каталог</p>
@@ -965,8 +1059,8 @@ function CarePassTeaser() {
                 'linear-gradient(135deg, #0E1A24 0%, #112832 100%)',
             }}
           >
-            <div aria-hidden className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-teal-500/15 blur-3xl" />
-            <div aria-hidden className="absolute -bottom-32 -left-20 w-96 h-96 rounded-full bg-cyan-400/10 blur-3xl" />
+            <div aria-hidden data-parallax className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-teal-500/15 blur-3xl animate-[breatheGlow_10s_ease-in-out_infinite]" style={px(-0.05)} />
+            <div aria-hidden data-parallax className="absolute -bottom-32 -left-20 w-96 h-96 rounded-full bg-cyan-400/10 blur-3xl animate-[breatheGlow_12s_ease-in-out_infinite]" style={px(0.04)} />
             <div className="relative p-8 sm:p-12 lg:p-14 grid lg:grid-cols-[1.3fr_1fr] gap-10 items-center">
               <div>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-400/10 ring-1 ring-teal-300/30 text-teal-200 text-[11px] font-medium px-3 py-1 uppercase tracking-[0.18em]">
@@ -1029,7 +1123,7 @@ function CarePassTeaser() {
                 </p>
               </div>
               {/* Glossy Care Pass card mockup */}
-              <div className="relative">
+              <div className="relative animate-[floatSlow_8s_ease-in-out_infinite]">
                 {/* Stacked depth card behind */}
                 <div aria-hidden className="absolute inset-0 translate-y-3 translate-x-3 rotate-[3deg] rounded-[1.5rem] bg-white/5 ring-1 ring-white/10 backdrop-blur-md" />
                 <div className="relative rounded-[1.5rem] overflow-hidden ring-1 ring-white/25 shadow-[0_30px_60px_-20px_rgba(0,0,0,0.5)]"
@@ -1042,6 +1136,10 @@ function CarePassTeaser() {
                 >
                   {/* Glossy top highlight */}
                   <div aria-hidden className="absolute inset-x-3 top-2 h-1/2 rounded-full bg-white/20 blur-2xl pointer-events-none" />
+                  {/* Subtle shimmer sweep — slow diagonal highlight, very tasteful */}
+                  <div aria-hidden className="absolute inset-y-0 -left-1/2 w-1/3 pointer-events-none animate-[shimmerSweep_8s_ease-in-out_infinite]"
+                    style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.18) 50%, transparent 100%)' }}
+                  />
                   {/* Inner content */}
                   <div className="relative aspect-[5/3] p-6 sm:p-7 flex flex-col justify-between">
                     <div className="flex items-start justify-between">
@@ -1144,9 +1242,9 @@ function FinalCTA() {
   return (
     <section className="py-24 sm:py-32 relative overflow-hidden" data-testid="home-final-cta">
       <div aria-hidden className="absolute inset-0 bg-gradient-to-br from-teal-50 to-white" />
-      <div aria-hidden className="absolute -top-40 left-1/2 -translate-x-1/2 w-[40rem] h-[40rem] rounded-full bg-teal-200/30 blur-3xl" />
-      <div aria-hidden className="absolute bottom-10 left-10 w-72 h-72 rounded-full bg-cyan-100/40 blur-3xl" />
-      <div aria-hidden className="absolute top-10 right-10 w-64 h-64 rounded-full bg-emerald-100/40 blur-3xl" />
+      <div aria-hidden data-parallax className="absolute -top-40 left-1/2 -translate-x-1/2 w-[40rem] h-[40rem] rounded-full bg-teal-200/30 blur-3xl animate-[breatheGlow_11s_ease-in-out_infinite]" style={px(-0.07)} />
+      <div aria-hidden data-parallax className="absolute bottom-10 left-10 w-72 h-72 rounded-full bg-cyan-100/40 blur-3xl animate-[breatheGlow_13s_ease-in-out_infinite]" style={px(0.05)} />
+      <div aria-hidden data-parallax className="absolute top-10 right-10 w-64 h-64 rounded-full bg-emerald-100/40 blur-3xl animate-[breatheGlow_9s_ease-in-out_infinite]" style={px(-0.04)} />
 
       <div className="relative max-w-4xl mx-auto px-5 sm:px-8">
         <Reveal>
@@ -1285,8 +1383,10 @@ function HomeFooter() {
 
 // ─── Public exports ──────────────────────────────────────────────
 export function HomeContent({ recentPosts = [] }: { recentPosts?: HomeBlogPost[] }) {
+  useBackgroundParallax()
   return (
     <>
+      <MotionStyles />
       <Nav />
       <MobileStickyCTA />
       <Hero />
@@ -1304,5 +1404,56 @@ export function HomeContent({ recentPosts = [] }: { recentPosts?: HomeBlogPost[]
       <FinalCTA />
       <HomeFooter />
     </>
+  )
+}
+
+// ─── Global motion styles ────────────────────────────────────────
+// Centralised keyframes + reduced-motion fallback. The base `float`
+// keyframe is also defined inline in HeroMockup for backwards
+// compatibility; that's fine because keyframes with identical names
+// are deduplicated by the browser.
+function MotionStyles() {
+  return (
+    <style jsx global>{`
+      /* Slow vertical drift — used by stacked depth cards & subtle bg shapes */
+      @keyframes floatSlow {
+        0%, 100% { transform: translate3d(0, 0, 0) }
+        50%      { transform: translate3d(0, -10px, 0) }
+      }
+      @keyframes floatSlower {
+        0%, 100% { transform: translate3d(0, 0, 0) }
+        50%      { transform: translate3d(0, -14px, 0) }
+      }
+      /* Tiny X+Y sway — used by background decorative shapes */
+      @keyframes driftSlow {
+        0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg) }
+        50%      { transform: translate3d(6px, -8px, 0) rotate(0.6deg) }
+      }
+      /* Breathing glow — used by orb halo + light leaks */
+      @keyframes breatheGlow {
+        0%, 100% { opacity: 0.55; transform: scale(1) }
+        50%      { opacity: 0.85; transform: scale(1.04) }
+      }
+      /* Diagonal shimmer sweep — used on Care Pass card highlight */
+      @keyframes shimmerSweep {
+        0%   { transform: translateX(-120%) skewX(-12deg); opacity: 0 }
+        15%  { opacity: 0.55 }
+        50%  { opacity: 0.85 }
+        85%  { opacity: 0.40 }
+        100% { transform: translateX(220%) skewX(-12deg); opacity: 0 }
+      }
+      /* Reduced-motion fallback */
+      @media (prefers-reduced-motion: reduce) {
+        /* Stop named keyframe animations */
+        .motion-safe-animate, [class*="animate-["],
+        [style*="animation"] {
+          animation: none !important;
+        }
+        /* Freeze background parallax */
+        [data-parallax] {
+          transform: none !important;
+        }
+      }
+    `}</style>
   )
 }

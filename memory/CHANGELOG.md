@@ -1,4 +1,105 @@
 # Zubite.bg — Changelog
+## 2026-02-17 — Premium Background Motion & Parallax (Wave.co Depth)
+
+Added subtle, premium-grade background motion across the homepage
+per the brief: "slow, smooth, calm, healthcare-tech, app-like,
+background-first, not attention-seeking". Zero copy changes, zero
+route/backend/dependency changes, zero new files.
+
+### Architecture
+- **Single global rAF scroll listener** (`useBackgroundParallax`)
+  writes `document.documentElement.style.setProperty('--py', scrollY)`.
+  This avoids per-element React state and keeps all parallax driven
+  by CSS `calc(var(--py, 0) * Xpx)` transforms with `will-change:
+  transform`. One listener, ~60 fps via requestAnimationFrame
+  throttling, zero re-renders.
+- **`px(factor)` helper** returns the inline style for a parallax
+  layer at a given factor (typically ±0.04 → 0.08). All affected
+  blobs are tagged `data-parallax` for the reduced-motion override.
+- **`MotionStyles` component** injects centralised global keyframes:
+  - `floatSlow` (8–9s) and `floatSlower` (10–14s) — vertical drift
+    for stacked depth cards & Care Pass glossy card.
+  - `driftSlow` (12–16s) — tiny X+Y sway + 0.6° rotation for the
+    new decorative background shapes around the Hero mockup.
+  - `breatheGlow` (8–15s) — opacity 0.55↔0.85 + scale 1↔1.04 for
+    every section's blur blobs (Hero, Problem, Decision, Zubi,
+    Matching, Care Pass, Final CTA).
+  - `shimmerSweep` (8s) — diagonal `linear-gradient(90deg,
+    transparent → rgba(255,255,255,0.18) → transparent)` translates
+    `−120% → 220%` across the Care Pass glossy card. Tasteful,
+    not bank-card / gambling-card style.
+
+### Where motion is applied
+- **Hero**: 3 background blobs get parallax (`-0.08`, `+0.06`,
+  `-0.04`) + `breatheGlow` (9/11/13s). HeroMockup gains 3 NEW
+  decorative floating shapes (rounded square 8° + circle + rounded
+  square −6°) on `driftSlow` 12/14/16s with negative `animation-delay`
+  to desync. Existing stacked depth cards now also drift on
+  `floatSlower`/`floatSlow` (10s/9s reverse).
+- **Problem section**: cyan blob → parallax + breathe.
+- **Decision preview**: 2 NEW background blobs (teal-100/35 at
+  top-right, cyan-100/25 at bottom-left) with parallax + breathe.
+  Inner grid wrapped in `relative z-10` so content stays above
+  motion layers without z-fighting.
+- **Zubi section**: orb halo gets `breatheGlow` (8s). NEW background
+  cyan-100 blob with `breatheGlow` (14s) + parallax `-0.05`.
+- **Clinic matching**: existing teal-100 blob now `breatheGlow`
+  (13s) + parallax `-0.06`.
+- **Care Pass section**: 2 blob layers get parallax + `breatheGlow`
+  (10/12s). The glossy Care Pass card now wrapped in a
+  `floatSlow` 8s container, AND a subtle diagonal `shimmerSweep`
+  overlay sweeps across the card every 8s (`linear-gradient` div with
+  `inset-y-0 -left-1/2 w-1/3` translating).
+- **Final CTA**: 3 blobs get parallax + breathe at varied tempos
+  (11/13/9s).
+- **Mobile sticky CTA + Hero/Final CTAs**: still rely on the
+  inset white-25% glassy shine line (no shimmer animation — keeps
+  CTAs static and predictable for clicks).
+
+### Accessibility
+- Top of `useBackgroundParallax` does
+  `window.matchMedia('(prefers-reduced-motion: reduce)').matches`
+  early-return → CSS var `--py` is **never set**, freezing every
+  parallax layer at translate3d(0,0,0).
+- `MotionStyles` injects a `@media (prefers-reduced-motion: reduce)`
+  block that forces `animation: none !important` on every animated
+  element and `transform: none !important` on every `[data-parallax]`
+  element, so even browser-rendered animations stop.
+- Verified via Playwright `emulate_media(reduced_motion="reduce")`:
+  `--py` empty, `activeAnims: 0`, parallax transform `none`. Page
+  still renders beautifully — just static.
+
+### Performance
+- Only `transform` and `opacity` animated (compositor-friendly).
+- `blur(3xl)` filters live on already-blurred decorative layers
+  whose `transform` is the only animated property → no repaints.
+- Single passive scroll listener + rAF throttle → ~60 fps without
+  jank. No `requestAnimationFrame` inside React state.
+- 13 layers tagged `data-parallax` + 28 elements running keyframe
+  animations total. No CLS — every motion layer is `absolute`-
+  positioned and `pointer-events-none`.
+
+### Brief compliance check
+- ✅ Hero parallax + 4 floating decorative shapes behind product mockup.
+- ✅ Floating chips already exist around Hero/Decision/Zubi (kept).
+- ✅ Section depth orbs on Hero · Decision · Zubi · Care Pass ·
+   Final CTA (and bonus on Problem · Matching).
+- ✅ Scroll-based parallax (lightweight CSS+JS) without scroll-jacking.
+- ✅ Care Pass card has subtle floating + a tasteful diagonal
+   shimmer sweep (not "bank-card / gambling-card" glamour).
+- ✅ Zubi orb halo has slow breathing glow.
+- ✅ `prefers-reduced-motion: reduce` fully respected.
+- ✅ No fast parallax, no hijacking, no bouncing, no neon, no
+   particles, no cursor-follow.
+- ✅ Mobile: no overflow at 390px (re-verified).
+
+### Files touched
+- `frontend/components/HomeContent.tsx` (~1346 LOC) — only file
+  modified. No new files, no deletes, no package changes.
+
+---
+
+
 ## 2026-02-17 — Wave.co-Inspired Glassmorphism Visual Polish
 
 Heavy visual polish pass over `frontend/components/HomeContent.tsx`.
