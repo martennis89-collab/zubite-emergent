@@ -318,13 +318,6 @@ function Hero() {
               ))}
             </div>
           </Reveal>
-          <Reveal delay={320}>
-            <p className="mt-5 text-[11px] text-slate-400 leading-snug max-w-md">
-              Zubite.bg не поставя диагноза и не заменя преглед при
-              стоматолог. Помага ти да разбереш дали има смисъл да
-              провериш.
-            </p>
-          </Reveal>
         </div>
 
         {/* Floating product mockup */}
@@ -631,71 +624,12 @@ function SymptomChips() {
 
 // ─── 6. How it works (5 steps) ───────────────────────────────────
 function HowItWorks() {
-  const steps: Array<{ n: string; t: string; s: string; mini: React.ReactNode; accent?: boolean }> = [
-    {
-      n: '01', t: 'Отговаряш',
-      s: 'На кратки въпроси за това, което забелязваш.',
-      mini: (
-        <div className="mt-4 rounded-xl bg-slate-50/70 ring-1 ring-slate-200/60 p-3 space-y-1.5">
-          {['Симптом: чувствителност', 'Възраст: 27', 'Град: София'].map((r) => (
-            <div key={r} className="flex items-center gap-1.5 text-[10.5px] text-slate-600">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-teal-500" />{r}
-            </div>
-          ))}
-        </div>
-      ),
-    },
-    {
-      n: '02', t: 'Получаваш ориентир',
-      s: 'Виждаш дали има смисъл от наблюдение, профилактика или консултация.',
-      mini: (
-        <div className="mt-4 rounded-xl bg-slate-50/70 ring-1 ring-slate-200/60 p-3">
-          <p className="text-[10px] uppercase tracking-wider text-slate-400">Ориентир</p>
-          <p className="mt-0.5 font-serif text-[12px] text-slate-800 leading-snug">Възможно е да има смисъл консултация</p>
-        </div>
-      ),
-    },
-    {
-      n: '03', t: 'Избираш следваща стъпка',
-      s: 'Можеш да продължиш към подходяща клиника, ако искаш.',
-      mini: (
-        <div className="mt-4 rounded-xl bg-slate-50/70 ring-1 ring-slate-200/60 p-3 space-y-1.5">
-          {['Клиника А · София', 'Клиника Б · София'].map((r) => (
-            <div key={r} className="flex items-center justify-between text-[10.5px] text-slate-600">
-              <span>{r}</span>
-              <ArrowRight className="w-3 h-3 text-teal-500" />
-            </div>
-          ))}
-        </div>
-      ),
-    },
-    {
-      n: '04', t: 'Посещаваш консултация',
-      s: 'Клиниката потвърждава реалния случай.',
-      mini: (
-        <div className="mt-4 rounded-xl bg-slate-50/70 ring-1 ring-slate-200/60 p-3">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] uppercase tracking-wider text-slate-400">Преглед</p>
-            <Stethoscope className="w-3.5 h-3.5 text-teal-600" />
-          </div>
-          <p className="mt-1 text-[11px] text-slate-700 leading-snug">Стоматологът потвърждава следваща стъпка</p>
-        </div>
-      ),
-    },
-    {
-      n: '05', t: 'Получаваш Care Pass',
-      s: 'След консултацията клиниката ти дава карта с отстъпки за продукти за орална хигиена.',
-      accent: true,
-      mini: (
-        <div className="mt-4 rounded-xl bg-gradient-to-br from-teal-500/15 to-emerald-300/10 ring-1 ring-teal-300/40 p-3">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] uppercase tracking-wider text-teal-700 font-semibold">Care Pass</p>
-            <Gift className="w-3.5 h-3.5 text-teal-600" />
-          </div>
-          <p className="mt-1 text-[11px] text-slate-700 leading-snug">Отстъпки за орална хигиена</p>
-        </div>
-      ),
-    },
+  const steps: Array<{ n: string; t: string; s: string; accent?: boolean }> = [
+    { n: '01', t: 'Отговаряш',              s: 'На кратки въпроси за това, което забелязваш.' },
+    { n: '02', t: 'Получаваш ориентир',     s: 'Виждаш дали има смисъл наблюдение, профилактика или консултация.' },
+    { n: '03', t: 'Избираш следваща стъпка', s: 'Можеш да продължиш към подходяща клиника, ако искаш.' },
+    { n: '04', t: 'Посещаваш консултация',  s: 'Клиниката потвърждава реалния случай.' },
+    { n: '05', t: 'Получаваш Care Pass',    s: 'Карта с отстъпки за продукти за орална хигиена.', accent: true },
   ]
   return (
     <section id="how" className="relative py-20 sm:py-28 overflow-hidden" data-testid="home-how">
@@ -712,7 +646,7 @@ function HowItWorks() {
             <Reveal key={s.n} delay={i * 90}>
               <div
                 className={
-                  'relative rounded-2xl backdrop-blur-xl p-5 h-full transition-all hover:-translate-y-1 ' +
+                  'relative rounded-2xl backdrop-blur-xl p-5 sm:p-6 h-full transition-all hover:-translate-y-1 ' +
                   (s.accent
                     ? 'bg-gradient-to-br from-teal-50/90 to-white/80 ring-1 ring-teal-300/50 shadow-[0_18px_40px_-22px_rgba(13,148,136,0.4)] hover:shadow-[0_22px_50px_-20px_rgba(13,148,136,0.45)]'
                     : 'bg-white/70 ring-1 ring-white/80 shadow-[0_8px_30px_-20px_rgba(15,23,42,0.18)] hover:bg-white/85 hover:shadow-[0_16px_44px_-22px_rgba(15,23,42,0.22)]')
@@ -724,7 +658,11 @@ function HowItWorks() {
                 </span>
                 <h3 className="mt-2 font-serif text-lg lg:text-xl font-semibold text-slate-900 leading-tight">{s.t}</h3>
                 <p className="mt-2 text-sm text-slate-600 leading-relaxed">{s.s}</p>
-                {s.mini}
+                {s.accent && (
+                  <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-teal-500/10 ring-1 ring-teal-300/40 text-[10px] uppercase tracking-wider text-teal-700 font-semibold px-2.5 py-1">
+                    <Gift className="w-3 h-3" /> Care Pass
+                  </span>
+                )}
                 {i < steps.length - 1 && (
                   <MoveRight aria-hidden className="hidden lg:block absolute top-12 -right-3 w-4 h-4 text-teal-300" />
                 )}
@@ -768,33 +706,44 @@ function TreatmentCategories() {
         <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {cats.map((c, i) => (
             <Reveal key={c.t} delay={i * 60}>
-              <Link
-                href={c.href}
+              <details
                 className={
-                  'group relative block rounded-2xl backdrop-blur-xl p-5 sm:p-6 h-full transition-all overflow-hidden hover:-translate-y-1 ' +
+                  'group/treatment relative block rounded-2xl backdrop-blur-xl p-5 sm:p-6 h-full transition-all overflow-hidden hover:-translate-y-1 cursor-pointer ' +
                   (c.featured
                     ? 'bg-gradient-to-br from-white/90 to-teal-50/70 ring-1 ring-teal-200/60 shadow-[0_14px_44px_-22px_rgba(13,148,136,0.35)] hover:shadow-[0_22px_56px_-22px_rgba(13,148,136,0.45)]'
                     : 'bg-white/70 ring-1 ring-white/80 shadow-[0_8px_30px_-20px_rgba(15,23,42,0.18)] hover:bg-white/85 hover:shadow-[0_16px_44px_-22px_rgba(15,23,42,0.22)]')
                 }
                 data-testid={`treatment-card-${i}`}
               >
-                <div aria-hidden className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{ background: 'radial-gradient(circle at 90% 0%, rgba(20,184,166,0.10) 0%, transparent 60%)' }}
-                />
-                <div className={
-                  'relative inline-flex items-center justify-center w-10 h-10 rounded-xl ring-1 ' +
-                  (c.featured ? 'bg-teal-500/10 text-teal-700 ring-teal-200/70' : 'bg-teal-50/80 text-teal-700 ring-teal-100/80')
-                }>
-                  {c.icon}
+                <summary className="list-none flex flex-col gap-3">
+                  <div aria-hidden className="absolute inset-0 opacity-0 group-hover/treatment:opacity-100 transition-opacity"
+                    style={{ background: 'radial-gradient(circle at 90% 0%, rgba(20,184,166,0.10) 0%, transparent 60%)' }}
+                  />
+                  <div className={
+                    'relative inline-flex items-center justify-center w-10 h-10 rounded-xl ring-1 ' +
+                    (c.featured ? 'bg-teal-500/10 text-teal-700 ring-teal-200/70' : 'bg-teal-50/80 text-teal-700 ring-teal-100/80')
+                  }>
+                    {c.icon}
+                  </div>
+                  <h3 className="relative font-serif text-lg sm:text-xl font-semibold text-slate-900 group-hover/treatment:text-teal-700 transition-colors">
+                    {c.t}
+                  </h3>
+                  <span className="relative inline-flex items-center gap-1 text-xs font-medium text-teal-600 group-hover/treatment:gap-2 transition-all">
+                    <span className="group-open/treatment:hidden">Виж насоки</span>
+                    <span className="hidden group-open/treatment:inline">Виж по-малко</span>
+                    <ChevronDown className="w-3 h-3 transition-transform group-open/treatment:rotate-180" />
+                  </span>
+                </summary>
+                <div className="relative mt-3 border-t border-slate-200/50 pt-3 space-y-3">
+                  <p className="text-sm text-slate-600 leading-relaxed">{c.s}</p>
+                  <Link
+                    href={c.href}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-teal-700 hover:text-teal-800 transition-colors"
+                  >
+                    Прочети повече <ArrowRight className="w-3 h-3" />
+                  </Link>
                 </div>
-                <h3 className="relative mt-4 font-serif text-lg sm:text-xl font-semibold text-slate-900 group-hover:text-teal-700 transition-colors">
-                  {c.t}
-                </h3>
-                <p className="relative mt-1.5 text-sm text-slate-600 leading-relaxed line-clamp-3 group-hover:line-clamp-none">{c.s}</p>
-                <span className="relative mt-4 inline-flex items-center gap-1 text-xs font-medium text-teal-600 group-hover:gap-2 transition-all">
-                  Виж насоки <ArrowRight className="w-3 h-3" />
-                </span>
-              </Link>
+              </details>
             </Reveal>
           ))}
         </div>
@@ -826,10 +775,8 @@ function DecisionPreview() {
           <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08]">
             Какъв ориентир получаваш?
           </h2>
-          <p className="mt-5 text-slate-600 text-base sm:text-lg leading-relaxed max-w-md">
-            След въпросника получаваш кратко обобщение: какво си описал,
-            кои посоки може да имат смисъл и какви въпроси да зададеш на
-            специалист.
+          <p className="mt-5 text-slate-600 text-lg sm:text-xl leading-relaxed max-w-md">
+            Кратко, разбираемо обобщение — без жаргон, без диагноза.
           </p>
           <ul className="mt-6 space-y-2.5 text-base text-slate-700">
             <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-teal-500 mt-1" /> Ориентир, не диагноза</li>

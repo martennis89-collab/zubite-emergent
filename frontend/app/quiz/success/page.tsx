@@ -24,35 +24,31 @@ const CITY_NAMES: Record<string, string> = {
   sofia: 'София', plovdiv: 'Пловдив', varna: 'Варна', haskovo: 'Хасково',
 }
 
-// Calm risk-band summary copy. The brief explicitly forbids "Zubite ще се
-// свърже с теб / ще ти запази час" — the patient must actively choose
-// (request a call from one clinic OR ask Zubite for help). So we keep only
-// the band/segment-aware summary line and remove all proactive-call claims.
+// Calm risk-band summary copy. Kept to a single scannable sentence — long
+// explanation lives in the dedicated profile/orientir pages, not here.
 const SEGMENT_SUMMARIES: Record<Segment, Record<ResultBand, { thanks: string; summary: string }>> = {
   adult: {
-    low:      { thanks: 'Благодарим ти', summary: 'Резултатът показва нисък риск. Подбрахме клиники, при които можеш да потвърдиш състоянието си с професионален преглед, ако решиш.' },
-    moderate: { thanks: 'Благодарим ти', summary: 'Резултатът показва умерен риск — има признаци, които заслужават внимание. Виж подбрани клиники, специализирани в твоя тип проблем.' },
-    high:     { thanks: 'Благодарим ти', summary: 'Резултатът показва висок риск. Отговорите ти показват комбинация от симптоми, които е важно да бъдат оценени от специалист. Виж приоритетно подбрани клиники.' },
+    low:      { thanks: 'Благодарим ти', summary: 'Нисък риск — виж клиники, при които можеш да потвърдиш с преглед, ако решиш.' },
+    moderate: { thanks: 'Благодарим ти', summary: 'Умерен риск — има признаци, които заслужават внимание от специалист.' },
+    high:     { thanks: 'Благодарим ти', summary: 'Висок риск — комбинация от симптоми, която е важно да се оцени от специалист.' },
   },
   teen: {
-    low:      { thanks: 'Благодарим ви', summary: 'Резултатът показва нисък риск за тийнейджъра. Профилактичен преглед в тази възраст остава важен за правилното развитие.' },
-    moderate: { thanks: 'Благодарим ви', summary: 'Резултатът показва умерен риск. В тийнейджърска възраст тези проблеми могат да се коригират значително по-лесно — виж клиники, специализирани в ранна корекция.' },
-    high:     { thanks: 'Благодарим ви', summary: 'Резултатът показва висок риск. Не се притеснявайте — в тази възраст корекцията е значително по-ефективна. Виж приоритетно подбрани клиники.' },
+    low:      { thanks: 'Благодарим ви', summary: 'Нисък риск — профилактичен преглед остава важен за правилното развитие.' },
+    moderate: { thanks: 'Благодарим ви', summary: 'Умерен риск — в тийнейджърска възраст корекцията е значително по-лесна.' },
+    high:     { thanks: 'Благодарим ви', summary: 'Висок риск — корекцията е по-ефективна в тази възраст. Виж приоритетни клиники.' },
   },
   child: {
-    low:      { thanks: 'Благодарим ви', summary: 'Резултатът показва нисък риск за детето. Първият преглед при ортодонт се препоръчва около 7-годишна възраст — дори без видим проблем.' },
-    moderate: { thanks: 'Благодарим ви', summary: 'Резултатът показва умерен риск. При децата ранната намеса може да промени хода на развитие и да предотврати по-сложно лечение по-късно.' },
-    high:     { thanks: 'Благодарим ви', summary: 'Резултатът показва висок риск. Комбинацията от сигнали показва, че е важно да се действа навреме. Виж приоритетно подбрани клиники с опит в ранна детска интервенция.' },
+    low:      { thanks: 'Благодарим ви', summary: 'Нисък риск — първи ортодонтски преглед се препоръчва около 7-годишна възраст.' },
+    moderate: { thanks: 'Благодарим ви', summary: 'Умерен риск — ранната намеса може да промени хода на развитието.' },
+    high:     { thanks: 'Благодарим ви', summary: 'Висок риск — важно е да се действа навреме. Виж клиники с опит в ранна детска интервенция.' },
   },
 }
 
-// Unified "Какво следва?" steps — same across bands/segments because the
-// next-step product flow is the same for everyone: see up to 3 clinics →
-// open profiles → choose one for a call or ask Zubite for help.
+// Unified "Какво следва?" steps — kept short.
 const NEXT_STEPS = [
-  'Виж до 3 подходящи клиники според твоя град и типа заявка.',
-  'Отвори профила на всяка клиника и прецени коя е най-подходяща за следващата стъпка.',
-  'Избери една клиника за обаждане или поискай помощ от Zubite, ако не си сигурен/на.',
+  'Виж до 3 подходящи клиники.',
+  'Отвори профил и прецени коя е подходяща.',
+  'Избери за обаждане или поискай помощ от Zubite.',
 ]
 
 function SuccessContent() {
@@ -191,7 +187,9 @@ function SuccessContent() {
           ми да избера".
         </p>
 
-        {/* Care Pass benefit note — premium glass card matching homepage */}
+        {/* Care Pass — compact chip strip matching the homepage premium panel.
+            One short headline; details (oral hygiene · post-consultation ·
+            not treatment discount) communicated through chips, not paragraphs. */}
         <div
           className="relative mt-6 rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-[0_18px_50px_-22px_rgba(15,23,42,0.35)]"
           style={{
@@ -202,40 +200,56 @@ function SuccessContent() {
           data-testid="success-care-pass-note"
         >
           <div aria-hidden className="absolute inset-x-4 top-1 h-1/3 rounded-full bg-white/10 blur-2xl pointer-events-none" />
-          <div className="relative p-5 flex items-start gap-3">
-            <div className="relative w-20 h-[64px] flex-shrink-0 rounded-lg bg-white/10 ring-1 ring-white/20 overflow-hidden">
-              <Image
-                src="/care-pass.png"
-                alt="Zubite Care Pass"
-                fill
-                sizes="80px"
-                className="object-contain"
-              />
+          <div className="relative p-5 sm:p-6">
+            <div className="flex items-center gap-3">
+              <div className="relative w-16 h-12 flex-shrink-0 rounded-lg bg-white/10 ring-1 ring-white/20 overflow-hidden">
+                <Image
+                  src="/care-pass.png"
+                  alt="Zubite Care Pass"
+                  fill
+                  sizes="64px"
+                  className="object-contain"
+                />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-teal-300/80 font-semibold">Zubite Care Pass</p>
+                <p className="mt-0.5 font-serif text-sm sm:text-base text-white leading-snug">
+                  След консултацията клиниката ти дава Care Pass.
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-teal-300/80 font-semibold">Zubite Care Pass</p>
-              <p className="mt-1 text-xs text-slate-300 leading-relaxed">
-                След като посетиш консултация в партньорска клиника чрез Zubite.bg, клиниката ще ти предостави Zubite Care Pass с отстъпки за продукти за орална хигиена.
-              </p>
-            </div>
+            <ul className="mt-3.5 flex flex-wrap gap-1.5">
+              {[
+                'Отстъпки за орална хигиена',
+                'От клиниката',
+                'След консултация',
+                'Не е отстъпка от лечение',
+              ].map((c) => (
+                <li
+                  key={c}
+                  className="inline-flex items-center gap-1 rounded-full bg-white/8 ring-1 ring-white/15 text-[10.5px] text-slate-200 font-medium px-2.5 py-1"
+                >
+                  <span className="w-1 h-1 rounded-full bg-teal-300" aria-hidden="true" />
+                  {c}
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </div>
 
-      {/* Trust + medical disclaimer */}
-      <div className="text-center space-y-3 mt-10" data-testid="success-trust">
-        <p className="flex items-center justify-center gap-1.5 text-xs text-slate-400">
-          <Shield className="w-3.5 h-3.5" />
-          {isParent
-            ? 'Данните ви са защитени. Нищо няма да бъде споделено без вашето съгласие.'
-            : 'Данните ти са защитени. Нищо няма да бъде споделено без твоето съгласие.'}
+      {/* Trust + medical disclaimer — footnote style */}
+      <div className="mt-10 pt-5 border-t border-white/40 text-center space-y-2.5" data-testid="success-trust">
+        <p className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400">
+          <Shield className="w-3 h-3" />
+          {isParent ? 'Данните ви са защитени.' : 'Данните ти са защитени.'} Споделяме само със съгласие.
         </p>
-        <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+        <p className="text-[10.5px] text-slate-400 leading-snug max-w-md mx-auto">
           Zubite не поставя диагноза и не заменя преглед при лекар.
         </p>
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors text-sm"
+          className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors text-xs mt-1"
           data-testid="success-home-link"
         >
           Обратно към началото

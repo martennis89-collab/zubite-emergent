@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, ReactNode } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, ArrowLeft, Loader2, CheckCircle, MapPin, X, User, Users, Baby } from 'lucide-react'
+import { ArrowRight, ArrowLeft, Loader2, CheckCircle, MapPin, X, User, Users, Baby, ShieldCheck } from 'lucide-react'
 import {
   trackQuizStart,
   trackQuestionAnswered,
@@ -688,10 +688,17 @@ export function MasterQuiz() {
   const Header = ({ showCount }: { showCount?: boolean }) => (
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#FCFAF8]/80 backdrop-blur-xl border-b border-white/40">
       <div className="max-w-2xl mx-auto px-4 sm:px-6">
-        <div className="flex items-center justify-between h-14">
-          <Link href="/" className="font-serif text-xl font-semibold tracking-tight text-slate-900">Zubite<span className="text-teal-600">.bg</span></Link>
+        <div className="flex items-center justify-between h-14 gap-3">
+          <Link href="/" className="font-serif text-xl font-semibold tracking-tight text-slate-900 shrink-0">Zubite<span className="text-teal-600">.bg</span></Link>
+          <span
+            className="hidden sm:inline-flex items-center gap-1 rounded-full bg-teal-50 ring-1 ring-teal-100 text-teal-700 text-[10px] uppercase tracking-[0.16em] font-semibold px-2.5 py-1"
+            data-testid="quiz-safety-chip"
+            title="Ориентир, не диагноза"
+          >
+            <ShieldCheck className="w-3 h-3" /> Ориентир, не диагноза
+          </span>
           {showCount && (
-            <span className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.16em] text-slate-500">
+            <span className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.16em] text-slate-500 shrink-0">
               <span className="font-medium text-slate-700">{currentQuestion + 1}</span>
               <span className="text-slate-400">/</span>
               <span>{totalQ}</span>
@@ -918,9 +925,7 @@ export function MasterQuiz() {
                 {segment === 'adult' ? 'Искаш ли да видиш какви са опциите ти?' : 'Искате ли да видите подходящите опции?'}
               </h1>
               <p className="text-slate-600 text-base sm:text-lg leading-relaxed mb-10">
-                {segment === 'adult'
-                  ? 'Можем да ти препоръчаме подходящи клиники според твоя резултат и град.'
-                  : 'Можем да ви препоръчаме подходящи клиники според резултата и вашия град.'}
+                Препоръчани клиники според резултата и {segment === 'adult' ? 'твоя' : 'вашия'} град.
               </p>
               <div className="space-y-4">
                 <button onClick={() => { trackEvent('soft_commit', { choice: 'yes' }); trackSoftCommit(true); setStep('form') }} className="w-full px-8 py-4 bg-teal-500 text-white font-medium rounded-full hover:bg-teal-600 hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 group" data-testid="soft-commit-yes">
@@ -950,7 +955,7 @@ export function MasterQuiz() {
                 <X className="w-7 h-7 text-slate-400" />
               </div>
               <p className="text-slate-600 text-lg leading-relaxed mb-8">
-                {segment === 'adult' ? 'Разбираемо. Ако решиш по-късно, винаги можеш да провериш отново.' : 'Разбираемо. Ако решите по-късно, винаги можете да проверите отново.'}
+                {segment === 'adult' ? 'Можеш да провериш отново по всяко време.' : 'Можете да проверите отново по всяко време.'}
               </p>
               <Link href="/" className="inline-flex items-center gap-2 px-8 py-4 bg-slate-100 text-slate-700 font-medium rounded-full hover:bg-slate-200 transition-all duration-300" data-testid="exit-home-btn">
                 Обратно към началото
