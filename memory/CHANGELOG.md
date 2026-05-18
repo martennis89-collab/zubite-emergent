@@ -1,5 +1,86 @@
 # Zubite.bg — Changelog
 
+## 2026-02-18 — /za-kliniki Trust-Signal section + Care Pass clinic-facing reframing
+
+Strategic copy polish for clinic acquisition + safety. New positioning:
+Zubite.bg is a **premium trust-signal layer**, and the Care Pass is
+**organised by Zubite (free to partner clinics)**, NOT funded or negotiated
+by clinics themselves.
+
+### Files changed
+- `frontend/components/ForClinicsContent.tsx` (one file, ~150-line delta)
+
+### Changes
+1. **NEW** `TrustSignalSection` (testid `clinics-trust-signal-section`),
+   mounted after `PartnerValueSection` and before `NeutralDecisionLayerSection`.
+   Ivory bg + decorative orbs. Headline "Партньорството със Zubite.bg е
+   **сигнал за доверие**." 4-paragraph narrative + 4 supporting glass cards
+   (По-силен сигнал за качество / По-добре подготвени пациенти / По-ясна
+   комуникация преди първия преглед / Позициониране до платформа за доверие).
+   Safety footnote: "Партньорството не е медицинска сертификация. Zubite.bg
+   не замества клиничната преценка и не гарантира резултати от лечение."
+2. **REWRITE** `CarePassClinicsSection` (testid renamed `clinics-founding`
+   → **`clinics-care-pass-clarification`** per spec). New headline
+   "Care Pass е **организиран от Zubite**, **безплатен за партньорските
+   клиники**." Body uses exact spec wording: organised by Zubite through
+   oral-hygiene/dental-care brand partnerships, free to partner clinics,
+   clinics don't need to source brands / negotiate discounts / build the
+   program themselves. 5 chips (Организирано от Zubite · Безплатно за
+   партньорските клиники · След реално посещение · Орална хигиена ·
+   дентална грижа · Не е отстъпка от лечение). Side card relabelled to
+   "Zubite Care Pass — допълнителна стойност за пациента, организирана
+   от Zubite".
+3. **REWRITE** DifferentiationSection Care Pass card: title "Care Pass е
+   организиран от Zubite", short "Допълнителна стойност за пациента — без
+   клиниката да я финансира или договаря сама.", long form full spec
+   wording.
+4. **FAQ**: replaced "Задължително ли е да се предоставя Care Pass?" with
+   exact spec wording **"Трябва ли клиниката да финансира Zubite Care
+   Pass?"** + verbatim spec answer. Added second FAQ "Какво означава за
+   пациента, че една клиника е партньор на Zubite.bg?" with spec answer.
+   The funding FAQ gets the dedicated testid **`clinics-care-pass-faq`**
+   (matcher: question text includes "финансира Zubite Care Pass"; falls
+   back to `faq-item-N` for the rest).
+5. **WhoItIsForSection** chip refined: "Готови са да предоставят Care Pass
+   след посещение" → "**Готови са да предадат Zubite Care Pass на
+   пациента след посещение**" (matches new framing — clinics hand it
+   over, they don't fund it).
+6. **lucide-react import** — added `MessagesSquare` for the trust-signal
+   "По-ясна комуникация" card icon.
+
+### Untouched (per scope)
+- Patient-facing Care Pass copy in `HomeContent`, `CarePassPanel`,
+  `ClinicRecommendationCard`, `AssistedChoiceModal`, `RequestCallModal`,
+  `ReviewPoster` — the patient-side "клиниката ти дава Care Pass" framing
+  is correct from patient POV (clinic literally hands it over).
+- Backend, DB, auth, lead capture, attribution, quiz, results.
+- Admin & clinic dashboards.
+- ApplicationSection form payload + handler.
+- All existing data-testids preserved except `clinics-founding` → renamed
+  to `clinics-care-pass-clarification` per spec.
+
+### Guardrail audit
+- ZERO occurrences of: "Zubite guarantees", "certifies", "best clinic",
+  "exclusive ranking", "medically verifies", "free treatment", "guaranteed
+  patient volume".
+- All "гарантира" occurrences are explicit **negations** ("Без
+  гарантирани класации", "не гарантира резултати", "не гарантира
+  пациентски обем").
+
+### Validation
+- `npx tsc --noEmit --skipLibCheck` → 0 new errors on the file.
+- Preview HTTP `/za-kliniki` → 200.
+- DOM probes (live preview): `clinics-trust-signal-section` ✓,
+  `clinics-care-pass-clarification` ✓, `clinics-care-pass-faq` ✓,
+  `final-apply-btn` ✓ (visible), `final-contact-btn` ✓ (visible).
+- Care Pass FAQ `el.open === true` after click.
+- Mobile horizontal overflow: 0px at 375 AND 390 across all 3 new/touched
+  sections.
+- Desktop screenshots: trust-signal section (ivory + 4 glass cards),
+  Care Pass clarification (navy + 5 chips), FAQ open with funding answer.
+
+
+
 ## 2026-02-17 — Production Deploy Fix (Suspense boundary)
 
 Production deploy was failing with:

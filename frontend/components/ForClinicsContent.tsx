@@ -25,7 +25,7 @@ import {
   Building2, Users, Clock, ClipboardCheck, ShieldCheck, Target,
   Compass, Workflow, Sparkles, Database, ChevronDown,
   Gift, Activity, FileSearch, LayoutDashboard, Tag,
-  XCircle, Layers, BadgeCheck,
+  XCircle, Layers, BadgeCheck, MessagesSquare,
 } from 'lucide-react'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
@@ -251,9 +251,9 @@ const platformValueCards: Array<{ t: string; s: string; long: string; icon: Reac
     icon: <Workflow className="w-4 h-4" />,
   },
   {
-    t: 'Care Pass увеличава perceived value',
-    s: 'След проведена консултация пациентът получава Care Pass с отстъпки за продукти за орална хигиена.',
-    long: 'Care Pass се предоставя от клиниката, не от Zubite. Той не е отстъпка от лечение или гарантиран резултат — добавя стойност към пациентското преживяване след реално посещение.',
+    t: 'Care Pass е организиран от Zubite',
+    s: 'Допълнителна стойност за пациента — без клиниката да я финансира или договаря сама.',
+    long: 'Zubite Care Pass се организира от Zubite.bg чрез партньорства с брандове в сферата на оралната хигиена и денталната грижа и се предоставя безплатно на партньорските клиники. След реално посетена консултация клиниката може да го даде на пациента като допълнителен слой внимание и стойност. Не е отстъпка от лечение, не е застрахователен продукт и не променя медицинската преценка.',
     icon: <Gift className="w-4 h-4" />,
   },
 ]
@@ -540,13 +540,113 @@ function NeutralDecisionLayerSection() {
 }
 
 /* ════════════════════════════════════════════════════════════
+   7.5 TRUST-SIGNAL — Партньорство със Zubite.bg е сигнал за доверие
+   ════════════════════════════════════════════════════════════ */
+function TrustSignalSection() {
+  const cards: { t: string; s: string; icon: React.ReactNode }[] = [
+    {
+      t: 'По-силен сигнал за качество',
+      s: 'Партньорството показва, че клиниката цени ясна комуникация и отговорна работа с пациента.',
+      icon: <ShieldCheck className="w-4 h-4" />,
+    },
+    {
+      t: 'По-добре подготвени пациенти',
+      s: 'Хората идват със собствена ориентация и по-ясни очаквания — разговорът започва от по-добра точка.',
+      icon: <Users className="w-4 h-4" />,
+    },
+    {
+      t: 'По-ясна комуникация преди първия преглед',
+      s: 'Контекстът от ориентацията намалява объркването и улеснява първата консултация.',
+      icon: <MessagesSquare className="w-4 h-4" />,
+    },
+    {
+      t: 'Позициониране до платформа за доверие',
+      s: 'Видимостта се случва в среда, изградена около яснота и пациентска ориентация — не край случаен каталог.',
+      icon: <BadgeCheck className="w-4 h-4" />,
+    },
+  ]
+
+  return (
+    <section
+      className="relative py-20 sm:py-24 bg-[#FCFAF8] overflow-hidden"
+      data-testid="clinics-trust-signal-section"
+    >
+      <div aria-hidden className="absolute -top-32 -left-20 w-[28rem] h-[28rem] rounded-full bg-teal-200/25 blur-3xl pointer-events-none" />
+      <div aria-hidden className="absolute top-40 -right-20 w-[24rem] h-[24rem] rounded-full bg-cyan-100/35 blur-3xl pointer-events-none" />
+
+      <div className="relative max-w-6xl mx-auto px-5 sm:px-8">
+        <div className="max-w-3xl mb-12">
+          <p className="font-sans text-xs font-semibold tracking-[0.25em] uppercase text-teal-700 mb-3">
+            Сигнал за доверие
+          </p>
+          <h2 className="font-serif text-[2rem] sm:text-[2.5rem] lg:text-[2.75rem] font-semibold text-slate-900 leading-[1.08] tracking-tight text-balance">
+            Партньорството със Zubite.bg е{' '}
+            <span className="text-teal-600">сигнал за доверие</span>.
+          </h2>
+        </div>
+
+        <div className="grid lg:grid-cols-[1.05fr_1fr] gap-10 lg:gap-12 items-start">
+          {/* Narrative */}
+          <div className="space-y-5 text-slate-700 text-[15px] sm:text-base leading-relaxed max-w-xl">
+            <p>
+              Когато пациент види, че една клиника е партньор на Zubite.bg,
+              това не е просто лого. Това е сигнал.
+            </p>
+            <p>
+              Сигнал, че клиниката цени ясната комуникация, по-добре
+              подготвените пациенти и връзката с човека още преди първия
+              преглед.
+            </p>
+            <p>
+              Zubite.bg се позиционира като премиум посредник между пациента и
+              клиниката — място, където хората първо получават яснота,
+              ориентация и по-добро разбиране на възможните си следващи стъпки.
+            </p>
+            <p className="text-slate-900 font-medium">
+              За партньорските клиники това означава не само повече видимост,
+              а по-силен сигнал за доверие.
+            </p>
+            <p className="pt-2 text-xs text-slate-500 leading-snug">
+              Партньорството не е медицинска сертификация. Zubite.bg не замества
+              клиничната преценка и не гарантира резултати от лечение.
+            </p>
+          </div>
+
+          {/* Supporting cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            {cards.map((c) => (
+              <div
+                key={c.t}
+                className="group rounded-2xl bg-white/70 backdrop-blur-md ring-1 ring-white/70 shadow-[0_18px_40px_-24px_rgba(15,23,42,0.18)] p-5 hover:ring-teal-200/70 hover:shadow-[0_22px_48px_-24px_rgba(13,148,136,0.25)] transition-all"
+              >
+                <div className="flex items-center gap-2.5 mb-2">
+                  <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-teal-50/80 text-teal-700 ring-1 ring-teal-100">
+                    {c.icon}
+                  </span>
+                  <p className="font-serif text-base text-slate-900 leading-snug">
+                    {c.t}
+                  </p>
+                </div>
+                <p className="text-[13px] text-slate-600 leading-relaxed">
+                  {c.s}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ════════════════════════════════════════════════════════════
    8. CARE PASS for clinics
    ════════════════════════════════════════════════════════════ */
 function CarePassClinicsSection() {
   return (
     <section
       className="relative py-20 sm:py-24 bg-[#FCFAF8] overflow-hidden"
-      data-testid="clinics-founding"
+      data-testid="clinics-care-pass-clarification"
     >
       <div className="relative max-w-6xl mx-auto px-5 sm:px-8">
         <div
@@ -563,23 +663,32 @@ function CarePassClinicsSection() {
                 <Gift className="w-3 h-3" /> Care Pass за партньори
               </span>
               <h2 className="mt-4 font-serif text-[2rem] sm:text-4xl font-semibold text-white leading-[1.08]">
-                Care Pass прави консултацията{' '}
-                <span className="text-teal-300">по-ценна за пациента</span>.
+                Care Pass е{' '}
+                <span className="text-teal-300">организиран от Zubite</span>,{' '}
+                <span className="text-teal-300">безплатен за партньорските клиники</span>.
               </h2>
               <p className="mt-4 text-slate-300 text-lg leading-relaxed max-w-xl">
-                След проведена консултация чрез Zubite.bg, партньорската клиника
-                предоставя Care Pass с отстъпки за продукти за орална хигиена.
+                Zubite Care Pass е допълнителна стойност, която Zubite.bg организира
+                чрез партньорства с брандове в сферата на оралната хигиена и
+                денталната грижа.
+              </p>
+              <p className="mt-3 text-slate-300 text-base leading-relaxed max-w-xl">
+                Партньорските клиники не трябва сами да търсят брандове, да
+                договарят отстъпки или да изграждат подобна програма от нулата.
+                Zubite.bg осигурява този слой като част от партньорската
+                екосистема — клиниката може да го даде на пациента след реално
+                посещение на консултация.
               </p>
               <p className="mt-3 text-sm text-slate-400 leading-relaxed max-w-xl">
-                Care Pass не е отстъпка от лечение и не променя медицинската
-                преценка. Той добавя стойност към пациентското преживяване след
-                реално посещение.
+                Care Pass не е отстъпка от лечение, не е застрахователен продукт,
+                не е абонамент и не променя медицинската преценка.
               </p>
               <div className="mt-6 flex flex-wrap gap-2">
                 {[
-                  'След проведена консултация',
-                  'От клиниката',
-                  'Орална хигиена',
+                  'Организирано от Zubite',
+                  'Безплатно за партньорските клиники',
+                  'След реално посещение',
+                  'Орална хигиена · дентална грижа',
                   'Не е отстъпка от лечение',
                 ].map((c) => (
                   <span
@@ -596,14 +705,14 @@ function CarePassClinicsSection() {
             <div className="relative w-full max-w-xs mx-auto lg:ml-auto">
               <div aria-hidden className="absolute -inset-4 rounded-2xl bg-teal-400/12 blur-2xl pointer-events-none" />
               <div className="relative rounded-2xl bg-white/[0.04] ring-1 ring-white/12 backdrop-blur-xl p-5">
-                <p className="text-[10px] uppercase tracking-[0.16em] text-teal-300/80 font-semibold">Care Pass</p>
+                <p className="text-[10px] uppercase tracking-[0.16em] text-teal-300/80 font-semibold">Zubite Care Pass</p>
                 <p className="mt-2 font-serif text-base text-white leading-snug">
-                  Отстъпки за продукти за орална хигиена
+                  Допълнителна стойност за пациента — организирана от Zubite
                 </p>
                 <ul className="mt-3 space-y-1.5 text-[11px] text-slate-300">
-                  <li className="flex items-center gap-2"><Sparkles className="w-3 h-3 text-teal-300" /> Партньорски марки</li>
+                  <li className="flex items-center gap-2"><Sparkles className="w-3 h-3 text-teal-300" /> Партньорски брандове в орална хигиена</li>
+                  <li className="flex items-center gap-2"><Sparkles className="w-3 h-3 text-teal-300" /> Безплатно за партньорската клиника</li>
                   <li className="flex items-center gap-2"><Sparkles className="w-3 h-3 text-teal-300" /> След реално посетена консултация</li>
-                  <li className="flex items-center gap-2"><Sparkles className="w-3 h-3 text-teal-300" /> Не е отстъпка от лечение</li>
                 </ul>
               </div>
             </div>
@@ -621,8 +730,9 @@ const faqItems = [
   { q: 'Zubite.bg каталог ли е?',                          a: 'Не. Zubite работи като подбрана партньорска мрежа. Пациентът преминава през ориентир преди да види релевантни клиники, не през открит каталог.' },
   { q: 'Какви заявки получава клиниката?',                 a: 'Заявки с контекст — категория, град, готовност и patient-reported отговори, нужни за следващата стъпка. Контактни данни се споделят със съгласие от пациента.' },
   { q: 'Как се избира коя клиника да се покаже?',          a: 'Насочването е базирано на категорията на заявката и града, а не на размер на рекламен бюджет. Спонсорираните позиции са ясно обозначени.' },
-  { q: 'Задължително ли е да се предоставя Care Pass?',    a: 'Care Pass е част от партньорския модел. Той се предоставя от клиниката след реално посетена консултация и съдържа отстъпки за продукти за орална хигиена.' },
-  { q: 'Как се проследява качеството?',                    a: 'Време за реакция, обработка на заявки и обратна връзка от пациентите се отразяват в партньорския статус.' },
+  { q: 'Трябва ли клиниката да финансира Zubite Care Pass?', a: 'Не. Zubite Care Pass се организира от Zubite.bg чрез партньорства с брандове в сферата на оралната хигиена и денталната грижа и се предоставя безплатно на партньорските клиники. Клиниката не трябва сама да договаря отстъпки или да създава програмата. Идеята е пациентът, който реално е посетил консултация чрез Zubite.bg, да получи допълнителна стойност и по-добро усещане за грижа.' },
+  { q: 'Какво означава за пациента, че една клиника е партньор на Zubite.bg?', a: 'Това е сигнал, че клиниката участва в платформа, изградена около яснота, по-добра пациентска ориентация и отговорна комуникация. Zubite.bg не замества клиничната преценка и не гарантира резултати, но помага пациентите да влизат в разговора по-подготвени и с по-ясни очаквания.' },
+  { q: 'Как се проследява качеството?', a: 'Време за реакция, обработка на заявки и обратна връзка от пациентите се отразяват в партньорския статус.' },
   { q: 'Има ли гарантиран брой пациенти?',                 a: 'Не. Zubite.bg не гарантира пациентски обем, приходи или брой започнати лечения. Целта е по-добър входящ канал, не вълшебни числа.' },
 ]
 
@@ -638,19 +748,22 @@ function FaqSection() {
           Често задавани въпроси
         </h2>
         <div className="mt-10 space-y-2">
-          {faqItems.map((item, i) => (
-            <details
-              key={item.q}
-              className="group rounded-2xl bg-white/70 backdrop-blur-xl ring-1 ring-white/80 p-5 hover:ring-teal-200/60 transition-colors"
-              data-testid={`faq-item-${i}`}
-            >
-              <summary className="list-none cursor-pointer flex items-start justify-between gap-4">
-                <h3 className="font-serif text-base sm:text-lg font-semibold text-slate-900 leading-snug pr-2">{item.q}</h3>
-                <ChevronDown className="w-4 h-4 text-teal-700 flex-shrink-0 mt-1 transition-transform group-open:rotate-180" />
-              </summary>
-              <p className="mt-3 text-sm text-slate-600 leading-relaxed border-t border-slate-200/50 pt-3">{item.a}</p>
-            </details>
-          ))}
+          {faqItems.map((item, i) => {
+            const isCarePassFundingFaq = item.q.includes('финансира Zubite Care Pass')
+            return (
+              <details
+                key={item.q}
+                className="group rounded-2xl bg-white/70 backdrop-blur-xl ring-1 ring-white/80 p-5 hover:ring-teal-200/60 transition-colors"
+                data-testid={isCarePassFundingFaq ? 'clinics-care-pass-faq' : `faq-item-${i}`}
+              >
+                <summary className="list-none cursor-pointer flex items-start justify-between gap-4">
+                  <h3 className="font-serif text-base sm:text-lg font-semibold text-slate-900 leading-snug pr-2">{item.q}</h3>
+                  <ChevronDown className="w-4 h-4 text-teal-700 flex-shrink-0 mt-1 transition-transform group-open:rotate-180" />
+                </summary>
+                <p className="mt-3 text-sm text-slate-600 leading-relaxed border-t border-slate-200/50 pt-3">{item.a}</p>
+              </details>
+            )
+          })}
         </div>
       </div>
     </section>
@@ -665,7 +778,7 @@ const suitableFor = [
   'Реагират бързо на заявки',
   'Проследяват резултати',
   'Искат по-информирани пациенти',
-  'Готови са да предоставят Care Pass след посещение',
+  'Готови са да предадат Zubite Care Pass на пациента след посещение',
 ]
 const notSuitable = [
   'Очакват гарантиран обем пациенти',
@@ -1153,6 +1266,7 @@ export function ForClinicsContent() {
       <ContextSection />
       <HowItWorksSection />
       <PartnerValueSection />
+      <TrustSignalSection />
       <NeutralDecisionLayerSection />
       <CarePassClinicsSection />
       <WhoItIsForSection />
