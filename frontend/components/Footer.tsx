@@ -65,6 +65,7 @@ export function Footer({ treatmentSlug }: FooterProps) {
             <p className="text-xs uppercase tracking-[0.18em] text-slate-500 font-semibold">За клиники</p>
             <ul className="mt-4 space-y-2.5 text-sm">
               <li><Link href="/za-kliniki" className="hover:text-teal-400 transition-colors">Стани партньор</Link></li>
+              <li><Link href="/standart-za-kliniki" className="hover:text-teal-400 transition-colors">Zubite стандарт</Link></li>
               <li><Link href="/clinic" className="hover:text-teal-400 transition-colors">Клиничен вход</Link></li>
               <li><Link href="/contact" className="hover:text-teal-400 transition-colors">Контакти</Link></li>
             </ul>

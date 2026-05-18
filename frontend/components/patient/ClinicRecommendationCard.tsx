@@ -181,6 +181,20 @@ export function ClinicRecommendationCard({
               {clinic.placement_disclosure}
             </p>
           )}
+
+          {/* Why-you-see-this-clinic block — Zubite Clinic Standard trust layer. */}
+          <div className="mt-2.5 pt-2.5 border-t border-slate-200/60">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-teal-700 mb-1.5">
+              Защо виждаш тази клиника?
+            </p>
+            <ul className="space-y-1 text-[11.5px] text-slate-600 leading-snug">
+              <li className="flex items-start gap-1.5"><span className="text-teal-500 mt-1">•</span><span>Покрива Zubite стандарт за участие</span></li>
+              <li className="flex items-start gap-1.5"><span className="text-teal-500 mt-1">•</span><span>Работи с тази категория случаи</span></li>
+              <li className="flex items-start gap-1.5"><span className="text-teal-500 mt-1">•</span><span>Релевантна е спрямо посоката от въпросника</span></li>
+              <li className="flex items-start gap-1.5"><span className="text-teal-500 mt-1">•</span><span>В твоя град / близо до избраната локация</span></li>
+              <li className="flex items-start gap-1.5"><span className="text-teal-500 mt-1">•</span><span>Предоставя Care Pass след проведена консултация чрез Zubite.bg</span></li>
+            </ul>
+          </div>
         </div>
       </details>
 

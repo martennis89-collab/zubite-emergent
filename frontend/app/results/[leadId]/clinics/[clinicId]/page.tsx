@@ -25,6 +25,7 @@ import { RequestCallModal } from '@/components/patient/RequestCallModal'
 import { PublicReviewsSection } from '@/components/patient/PublicReviewsSection'
 import { AlignerBrandChips } from '@/components/patient/AlignerBrandChips'
 import { CarePassPanel } from '@/components/patient/CarePassPanel'
+import { ClinicStandardMiniNote } from '@/components/patient/ClinicStandardSection'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
 import { getStoredLeadContact } from '@/lib/leadContact'
 
@@ -464,6 +465,9 @@ function ProfileTabs({
                 </p>
               </details>
             </section>
+
+            {/* Zubite Clinic Standard — patient-facing trust block. */}
+            <ClinicStandardMiniNote testId="profile-clinic-standard-note" />
 
             {/* About / patient_intro / clinic_story — collapsed by default */}
             {(isPremium || isFeatured) && (

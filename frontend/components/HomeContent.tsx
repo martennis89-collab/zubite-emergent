@@ -19,6 +19,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { ClinicStandardSection } from '@/components/patient/ClinicStandardSection'
 import {
   ShieldCheck, Sparkles, Building2, Stethoscope, ChevronDown,
   CheckCircle2, ArrowRight, MoveRight, Heart, Smile, Activity,
@@ -1404,6 +1405,8 @@ export function HomeContent({ recentPosts = [] }: { recentPosts?: HomeBlogPost[]
       <SymptomChips />
       {/* 4. How it works (5 steps) */}
       <HowItWorks />
+      {/* 4.5 Zubite Clinic Standard — trust pillars */}
+      <ClinicStandardSection />
       {/* 5. Product / result preview */}
       <DecisionPreview />
       {/* 6. Why trust Zubite */}

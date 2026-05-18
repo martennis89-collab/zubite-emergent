@@ -1,5 +1,115 @@
 # Zubite.bg — Changelog
 
+## 2026-02-18 — Zubite Clinic Standard trust layer
+
+Implemented coherent patient + clinic-facing trust framework. Three
+pillars: качество на работа, отношение към пациента, професионализъм
+(+ прозрачност). Central claim: "Не всяка клиника може да бъде част от
+Zubite.bg." Care Pass framing preserved exactly.
+
+### New files
+- **`frontend/components/patient/ClinicStandardSection.tsx`** — reusable
+  trust block exports:
+  - `ClinicStandardSection` — full-width section for homepage + static
+    explainer (4 pillar cards + intro + amber safety note + explainer
+    link). Props: `showExplainerLink`, `compact`, `testId`.
+  - `ClinicStandardMiniNote` — compact glass card for clinic profile
+    (collapsible "Какво означава това?" with 6-bullet list +
+    "Виж пълния Zubite стандарт" link).
+  - `CLINIC_STANDARD_PILLARS` re-export for downstream usage.
+- **`frontend/app/standart-za-kliniki/page.tsx`** — NEW canonical
+  static explainer page at `/standart-za-kliniki`:
+  - SEO `title` + meta description + canonical URL + OpenGraph.
+  - JSON-LD: `WebPage` schema + `FAQPage` schema (only on visible FAQ
+    content — 7 questions).
+  - Hero (eyebrow "Zubite стандарт" + serif H1 + safety chip).
+  - 3 definition blocks (answer-style for AI search): Партньорска клиника
+    · Как подбираме · Какво НЕ означава.
+  - Embedded `ClinicStandardSection` (4 pillars).
+  - "Какво НЕ означава партньорството" glass card with 5 negation
+    bullets (Не е класация „най-добри клиники"; Не е гаранция за
+    медицински резултат; Не е заместител на преглед; Не е онлайн
+    диагноза; Не е застрахователен продукт).
+  - "Care Pass стандарт" section: organised by Zubite, free to partner
+    clinics, after-visit only.
+  - "При неспазване на стандарта — Участието може да бъде
+    преразгледано." section.
+  - 7-item FAQ accordion (testid `clinic-standard-faq` + per-item
+    `standard-faq-{i}`).
+  - Final CTA: "Започни анализа" + "Какво е Care Pass" + safety chip.
+
+### Files updated
+- **`HomeContent.tsx`** — imported `ClinicStandardSection`, mounted
+  between `<HowItWorks />` and `<DecisionPreview />` (per spec
+  "after Как работи / near the clinic matching trust area").
+- **`results/[leadId]/clinics/page.tsx`** — new compact glass card
+  (testid `why-these-clinics`) above the clinic grid + 5 chips per
+  spec (Според случая · Според локацията · Партньорска клиника ·
+  Ориентир, не диагноза · Care Pass след консултация) + inline link to
+  `/standart-za-kliniki`.
+- **`patient/ClinicRecommendationCard.tsx`** — added "Защо виждаш тази
+  клиника?" sub-block inside existing details accordion with 5
+  spec-verbatim bullets (Покрива Zubite стандарт · Работи с тази
+  категория · Релевантна е спрямо посоката · В твоя град · Care Pass
+  след консултация). No new data-testids added to existing card.
+- **`results/[leadId]/clinics/[clinicId]/page.tsx`** — embedded
+  `ClinicStandardMiniNote` (testid `profile-clinic-standard-note`)
+  right after the existing "Защо виждате тази клиника" section in the
+  Overview tab. No layout reshuffle of other tabs.
+- **`ForClinicsContent.tsx`** — extended the existing TrustSignalSection
+  narrative with 6 spec chips (Подбрана партньорска мрежа · Пациенти с
+  повече контекст · Ясни правила за участие · Care Pass след
+  консултация · Без скрити класации · Без гарантирани позиции) + a
+  "Виж Zubite стандарта" link (testid `zk-trust-standard-link`).
+- **`Footer.tsx`** — added "Zubite стандарт" link in the brand column
+  next to "Стани партньор".
+
+### Internal linking to /standart-za-kliniki
+1. Homepage trust section — `clinic-standard-explainer-link`.
+2. Clinic results explainer — inline "Zubite стандарт" anchor.
+3. Clinic profile mini-note — "Виж пълния Zubite стандарт".
+4. /za-kliniki TrustSignalSection — `zk-trust-standard-link`.
+5. Site-wide Footer.
+
+### SEO + AI Search
+- New canonical page is statically prerendered (no force-dynamic),
+  lightweight, crawlable, no heavy client JS.
+- JSON-LD = FAQPage + WebPage **only** (no misleading LocalBusiness).
+- FAQPage `mainEntity` matches visible FAQ content verbatim.
+- Definition blocks render as standard HTML answer-style copy.
+
+### Guardrail audit — ✅ CLEAN
+Banned phrase scan: `най-добрите клиники`, `гарантирано качество`,
+`гарантирани резултати`, `медицински проверени`, `топ лекари`,
+`100% сигурен`, `диагностицираме`, `точен план онлайн`, etc. — all
+absent except as **explicit negations in quotes** (Не е класация
+„най-добри клиники" / не означава „най-добра клиника"). Per spec.
+
+### Untouched (per scope)
+- Backend, DB schema, auth, quiz scoring/logic, lead capture,
+  attribution, admin, clinic dashboard logic, existing routes.
+- Existing SEO/JSON-LD on other pages.
+- Existing data-testid attributes (only ADDED new ones, none renamed).
+- Care Pass approved framing — used verbatim.
+- Existing CTA behavior / routes.
+
+### Validation
+- ESLint: ✅ no issues on touched files.
+- `npx tsc --noEmit --skipLibCheck` → 0 new errors on touched files.
+- Preview HTTP: `/`, `/quiz`, `/standart-za-kliniki`, `/za-kliniki` → 200.
+- DOM probes (live preview, 1440×900):
+  - Homepage: `clinic-standard-section` ✓, 4 pillars ✓, explainer link
+    points to `/standart-za-kliniki` ✓.
+  - `/standart-za-kliniki`: page ✓, pillars block ✓, FAQ section ✓,
+    care-pass + violation + what-it-doesnt-mean ✓, final CTA ✓; FAQ
+    accordion opens; 4 JSON-LD scripts present.
+  - `/za-kliniki`: `zk-trust-standard-link` → `/standart-za-kliniki` ✓,
+    footer 'Zubite стандарт' link ✓.
+- Mobile 375 horizontal overflow = 0px on all 3 tested pages at the
+  new section locations.
+
+
+
 ## 2026-02-18 — Homepage hero + CTA messaging: "онлайн анализ" reframe
 
 Patient-facing messaging pivot from abstract "clarity/choice" to concrete

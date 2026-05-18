@@ -242,6 +242,48 @@ export default function ClinicMatchPage() {
                 </div>
               )}
 
+              {/* Why-you-see-these-clinics explainer — patient-facing trust
+                  block above the grid (Zubite Clinic Standard layer). */}
+              <div
+                className="mb-6 rounded-2xl bg-white/60 backdrop-blur-md ring-1 ring-white/70 shadow-[0_14px_32px_-22px_rgba(15,23,42,0.18)] p-5 sm:p-6"
+                data-testid="why-these-clinics"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-teal-50/80 text-teal-700 ring-1 ring-teal-100 flex-shrink-0">
+                    <ShieldCheck className="w-4 h-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <h2 className="font-serif text-base sm:text-lg text-slate-900 leading-snug">
+                      Защо виждаш тези клиники?
+                    </h2>
+                    <p className="mt-1.5 text-[13.5px] text-slate-600 leading-relaxed">
+                      Показваме партньорски клиники, които покриват{' '}
+                      <Link href="/standart-za-kliniki" className="text-teal-700 hover:underline">Zubite стандарт</Link>{' '}
+                      и съвпадат с посоката на твоя случай, града ти и
+                      информацията, която сподели във въпросника. Това не е
+                      класация „най-добри клиники" и не е диагноза — а
+                      ориентир за по-смислен първи разговор.
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {[
+                        'Според случая',
+                        'Според локацията',
+                        'Партньорска клиника',
+                        'Ориентир, не диагноза',
+                        'Care Pass след консултация',
+                      ].map((c) => (
+                        <span
+                          key={c}
+                          className="inline-flex items-center gap-1 rounded-full bg-teal-50/80 text-teal-700 text-[11px] font-medium px-2.5 py-1 ring-1 ring-teal-100"
+                        >
+                          {c}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Care Pass benefit strip — premium dark navy-teal panel
                   matching the homepage. Renders above the grid so patients
                   see the after-visit benefit before they pick a clinic. */}

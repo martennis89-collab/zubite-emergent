@@ -610,6 +610,34 @@ function TrustSignalSection() {
               Партньорството не е медицинска сертификация. Zubite.bg не замества
               клиничната преценка и не гарантира резултати от лечение.
             </p>
+
+            {/* Chips per Zubite Clinic Standard spec */}
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {[
+                'Подбрана партньорска мрежа',
+                'Пациенти с повече контекст',
+                'Ясни правила за участие',
+                'Care Pass след консултация',
+                'Без скрити класации',
+                'Без гарантирани позиции',
+              ].map((c) => (
+                <span
+                  key={c}
+                  className="inline-flex items-center gap-1 rounded-full bg-teal-50/80 text-teal-700 text-[11px] font-medium px-2.5 py-1 ring-1 ring-teal-100"
+                >
+                  {c}
+                </span>
+              ))}
+            </div>
+
+            <a
+              href="/standart-za-kliniki"
+              className="inline-flex items-center gap-1.5 pt-2 text-sm font-medium text-teal-700 hover:text-teal-800 transition-colors"
+              data-testid="zk-trust-standard-link"
+            >
+              Виж Zubite стандарта
+              <ArrowRight className="w-4 h-4" />
+            </a>
           </div>
 
           {/* Supporting cards */}
