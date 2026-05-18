@@ -178,7 +178,7 @@ function Nav() {
           >
             <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/15 blur-sm pointer-events-none" />
             <span className="relative inline-flex items-center gap-1.5">
-              Провери случая
+              Започни анализа
               <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
             </span>
           </Link>
@@ -265,16 +265,15 @@ function Hero() {
           </Reveal>
           <Reveal delay={80}>
             <h1 className="mt-5 font-serif font-semibold tracking-tight text-slate-900 text-[2.5rem] sm:text-5xl lg:text-[3.75rem] leading-[1.05]">
-              Възможно ли е да имаш{' '}
-              <span className="text-teal-600">дентален проблем</span>,
-              без да го осъзнаваш?
+              Направи първоначален{' '}
+              <span className="text-teal-600">онлайн анализ</span>{' '}
+              на зъбите си
             </h1>
           </Reveal>
           <Reveal delay={160}>
             <p className="mt-5 text-slate-600 text-lg sm:text-xl leading-relaxed max-w-xl">
-              Отговори на няколко въпроса и получи ориентир дали това,
-              което забелязваш, има нужда от наблюдение, профилактика или
-              консултация със специалист.
+              Отговори на няколко въпроса и виж дали има нещо, което си
+              струва да провериш със специалист.
             </p>
           </Reveal>
           <Reveal delay={220}>
@@ -287,7 +286,7 @@ function Hero() {
               >
                 <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
                 <span className="relative inline-flex items-center gap-1.5">
-                  Провери своя случай за 60 секунди
+                  Започни анализа
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                 </span>
               </Link>
@@ -304,6 +303,7 @@ function Hero() {
           <Reveal delay={260}>
             <div className="mt-6 flex flex-wrap gap-2">
               {[
+                '60 секунди',
                 'Без регистрация',
                 'Ориентир, не диагноза',
                 'Care Pass след консултация',
@@ -612,7 +612,7 @@ function SymptomChips() {
               className="group inline-flex items-center gap-1.5 rounded-full bg-white/55 backdrop-blur-xl ring-1 ring-white/70 text-slate-900 text-sm font-medium px-5 py-3 hover:bg-white hover:-translate-y-0.5 transition-all shadow-[0_8px_24px_-12px_rgba(15,23,42,0.18)]"
               data-testid="noticing-cta"
             >
-              Започни краткия ориентир
+              Започни анализа
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 text-teal-600" />
             </Link>
           </div>
@@ -789,7 +789,7 @@ function DecisionPreview() {
             className="mt-7 inline-flex items-center gap-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium px-5 py-3 transition-colors"
             data-testid="decision-cta"
           >
-            Започни краткия въпросник
+            Започни анализа
             <ArrowRight className="w-4 h-4" />
           </Link>
         </Reveal>
@@ -1088,7 +1088,7 @@ function CarePassTeaser() {
                     className="group inline-flex items-center gap-1.5 rounded-full bg-white text-slate-900 hover:bg-slate-100 text-sm font-medium px-5 py-3 transition-all hover:-translate-y-0.5 shadow-[0_10px_30px_-10px_rgba(255,255,255,0.35)]"
                     data-testid="care-pass-cta"
                   >
-                    Провери своя случай
+                    Започни анализа
                     <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                   </Link>
                   <Link
@@ -1284,7 +1284,7 @@ function FinalCTA() {
               >
                 <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
                 <span className="relative inline-flex items-center gap-1.5">
-                  Провери своя случай за 60 секунди
+                  Започни анализа
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                 </span>
               </Link>
@@ -1318,7 +1318,7 @@ function MobileStickyCTA() {
       >
         <span aria-hidden className="absolute inset-x-3 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
         <span className="relative inline-flex items-center gap-1.5">
-          Провери случая за 60 секунди
+          Започни анализа · 60 сек
           <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
         </span>
       </Link>
@@ -1352,7 +1352,7 @@ function HomeFooter() {
           <div>
             <p className="text-xs uppercase tracking-[0.18em] text-slate-500 font-semibold">Платформа</p>
             <ul className="mt-4 space-y-2.5 text-sm">
-              <li><Link href="/quiz" className="hover:text-teal-400 transition-colors">Провери случая</Link></li>
+              <li><Link href="/quiz" className="hover:text-teal-400 transition-colors">Започни анализа</Link></li>
               <li><Link href="#how" className="hover:text-teal-400 transition-colors">Как работи</Link></li>
               <li><Link href="#treatments" className="hover:text-teal-400 transition-colors">Лечения</Link></li>
               <li><Link href="/blog" className="hover:text-teal-400 transition-colors">Журнал</Link></li>

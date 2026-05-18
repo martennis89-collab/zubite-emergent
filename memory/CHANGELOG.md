@@ -1,5 +1,75 @@
 # Zubite.bg — Changelog
 
+## 2026-02-18 — Homepage hero + CTA messaging: "онлайн анализ" reframe
+
+Patient-facing messaging pivot from abstract "clarity/choice" to concrete
+"online analysis". No layout/route/logic changes. All medical-safety
+guardrails preserved.
+
+### Hero (HomeContent.tsx)
+- **Eyebrow**: kept "Първо яснота. После избор."
+- **H1**: "Възможно ли е да имаш дентален проблем, без да го осъзнаваш?"
+  → "**Направи първоначален онлайн анализ на зъбите си**" (teal accent
+  on "онлайн анализ").
+- **Subhead**: "Отговори на няколко въпроса и виж дали има нещо, което
+  си струва да провериш със специалист." (verbatim from spec).
+- **Trust chips**: now `60 секунди · Без регистрация · Ориентир, не
+  диагноза · Care Pass след консултация` (added "60 секунди" since it
+  was removed from CTA text).
+- **Primary CTA**: "Провери своя случай за 60 секунди" → "**Започни
+  анализа**" (testid `hero-primary-cta` preserved).
+- **Secondary CTA**: kept "Виж как работи" (testid `hero-secondary-cta`).
+
+### Site-wide CTA consistency (patient-facing quiz-entry CTAs only)
+All updated to "Започни анализа":
+- `HomeContent.tsx` — `nav-cta` ("Провери случая"), `noticing-cta`
+  ("Започни краткия ориентир"), `decision-cta` ("Започни краткия
+  въпросник"), `care-pass-cta` ("Провери своя случай"),
+  `final-primary-cta` ("Провери своя случай за 60 секунди"), homepage
+  footer link ("Провери случая").
+- Mobile sticky CTA: "Провери случая за 60 секунди" → "**Започни
+  анализа · 60 сек**".
+- `Header.tsx` (shared across blog/contact/privacy/etc.): nav CTA
+  (desktop + mobile drawer) "Провери случая" → "**Започни анализа**" for
+  brand consistency on every patient page.
+
+### Quiz intro (MasterQuiz.tsx)
+On the first quiz screen (segment selection) added small intro framing
+ABOVE the existing `segment-heading`:
+- New eyebrow chip (`quiz-intro-eyebrow`): "Първоначален онлайн анализ
+  на зъбите".
+- New subhead (`quiz-intro-subhead`): verbatim from spec — "Отговори
+  спокойно. Това не е диагноза — целта е да получиш ориентир дали има
+  нещо, което си струва да провериш със специалист."
+- `segment-heading` ("За кого попълваш този тест?") + adapter line
+  preserved verbatim — no testid breakage.
+- Safety chip "Ориентир, не диагноза" remains visible in quiz header.
+
+### Untouched (per scope)
+- `app/quiz/page.tsx` SEO metadata, JSON-LD, routes.
+- Quiz scoring, lead capture, attribution, backend, admin, clinic
+  dashboard, data models.
+- Care Pass logic.
+- Layout structure / visual design — only text content changes.
+- Per-question disclaimers (would have been excessive per spec).
+
+### Validation
+- `npx tsc --noEmit --skipLibCheck` → 0 new errors on touched files.
+- Preview `/` and `/quiz` → HTTP 200.
+- DOM probes (live preview, 1440×900):
+  - H1: "Направи първоначален онлайн анализ на зъбите си" ✓
+  - All 7 patient quiz-entry CTAs read "Започни анализа" → `/quiz` ✓
+  - 4 trust chips visible incl. "60 секунди" + "Ориентир, не диагноза" ✓
+  - Quiz intro eyebrow + subhead visible; `segment-heading` intact ✓
+- Mobile 375 overflow = 0px on both `/` and `/quiz`.
+
+### Files touched
+- `frontend/components/HomeContent.tsx`
+- `frontend/components/Header.tsx`
+- `frontend/components/MasterQuiz.tsx`
+
+
+
 ## 2026-02-18 — /za-kliniki Trust-Signal section + Care Pass clinic-facing reframing
 
 Strategic copy polish for clinic acquisition + safety. New positioning:

@@ -717,7 +717,15 @@ export function MasterQuiz() {
         <div className="pt-14 min-h-screen flex items-center justify-center px-4 py-12">
           <div className={`w-full max-w-lg transition-all duration-200 ${isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
             <div className="text-center mb-8">
-              <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-slate-900 mb-3" data-testid="segment-heading">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/70 ring-1 ring-teal-100 text-teal-700 text-[10px] font-semibold px-3 py-1 uppercase tracking-[0.18em]" data-testid="quiz-intro-eyebrow">
+                Първоначален онлайн анализ на зъбите
+              </span>
+              <p className="mt-4 text-slate-500 text-sm leading-relaxed max-w-sm mx-auto" data-testid="quiz-intro-subhead">
+                Отговори спокойно. Това не е диагноза — целта е да получиш
+                ориентир дали има нещо, което си струва да провериш със
+                специалист.
+              </p>
+              <h1 className="mt-6 font-serif text-2xl sm:text-3xl font-semibold text-slate-900 mb-3" data-testid="segment-heading">
                 За кого попълваш този тест?
               </h1>
               <p className="text-slate-500 text-sm">Въпросите ще бъдат адаптирани</p>

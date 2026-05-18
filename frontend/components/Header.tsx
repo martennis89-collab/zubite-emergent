@@ -87,7 +87,7 @@ export function Header() {
             >
               <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/15 blur-sm pointer-events-none" />
               <span className="relative inline-flex items-center gap-1.5">
-                Провери случая
+                Започни анализа
                 <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
               </span>
             </Link>
@@ -125,7 +125,7 @@ export function Header() {
               className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-full text-white text-sm font-medium px-4 py-2.5"
               style={{ backgroundImage: 'linear-gradient(135deg,#0f172a 0%,#1e293b 60%,#0f172a 100%)' }}
             >
-              Провери случая <ArrowRight className="w-3.5 h-3.5" />
+              Започни анализа <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </nav>
         )}
