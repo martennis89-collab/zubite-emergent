@@ -4,6 +4,8 @@ import { generateOrganizationSchema, generateWebSiteSchema } from '@/lib/schema'
 import { CookieConsent } from '@/components/CookieConsent'
 import { MetaPixel } from '@/components/MetaPixel'
 import { AttributionTracker } from '@/components/AttributionTracker'
+import { GoogleAnalyticsConsent } from '@/components/analytics/GoogleAnalyticsConsent'
+import { GA_MEASUREMENT_ID } from '@/lib/analytics/gtag'
 import { Suspense } from 'react'
 
 export const metadata: Metadata = {
@@ -80,11 +82,60 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
         />
+        {/*
+          GA4 + Google Consent Mode v2 bootstrap.
+          MUST run before the external gtag/js loader so the very first
+          network hit carries the correct consent defaults. Inlined directly
+          in <head> (not via next/script) because beforeInteractive inline
+          scripts are not guaranteed to run pre-hydration in App Router.
+        */}
+        <script
+          id="ga4-consent-default"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){window.dataLayer.push(arguments);}
+              window.gtag = gtag;
+              gtag('consent', 'default', {
+                analytics_storage: 'denied',
+                ad_storage: 'denied',
+                ad_user_data: 'denied',
+                ad_personalization: 'denied',
+                functionality_storage: 'granted',
+                security_storage: 'granted'
+              });
+              try {
+                var flag = localStorage.getItem('zubite_cookie_consent');
+                if (flag) {
+                  var prefs = JSON.parse(localStorage.getItem('zubite_cookie_preferences') || '{}');
+                  var update = {};
+                  if (prefs && prefs.analytics) update.analytics_storage = 'granted';
+                  if (prefs && prefs.marketing) {
+                    update.ad_storage = 'granted';
+                    update.ad_user_data = 'granted';
+                    update.ad_personalization = 'granted';
+                  }
+                  if (Object.keys(update).length) gtag('consent', 'update', update);
+                }
+              } catch (e) { /* localStorage may be unavailable */ }
+              gtag('js', new Date());
+              gtag('config', '${GA_MEASUREMENT_ID}', {
+                anonymize_ip: true,
+                send_page_view: false
+              });
+            `,
+          }}
+        />
+        {/* External GA4 loader — async, loads after consent defaults are
+            already in dataLayer (above). Rendered as a vanilla async
+            script so it bypasses any client-side Suspense boundary. */}
+        <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`} />
       </head>
       <body className="antialiased overflow-x-hidden bg-[#FCFAF8] text-slate-900">
         <Suspense fallback={null}>
           <AttributionTracker />
         </Suspense>
+        <GoogleAnalyticsConsent />
         {children}
         <CookieConsent />
         <MetaPixel />

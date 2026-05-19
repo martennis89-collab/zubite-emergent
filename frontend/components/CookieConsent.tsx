@@ -34,8 +34,11 @@ export function CookieConsent() {
   const [showDetails, setShowDetails] = useState(false)
   const [preferences, setPreferences] = useState<CookiePreferences>({
     necessary: true, // Always true, can't be changed
-    analytics: true,
-    marketing: true,
+    // Per Google Consent Mode v2 + GDPR best practice: optional categories
+    // must NOT be pre-checked. The user opts in explicitly via "Приемам"
+    // or by toggling individual categories in "Покажи настройките".
+    analytics: false,
+    marketing: false,
   })
 
   useEffect(() => {
@@ -62,17 +65,16 @@ export function CookieConsent() {
 
     localStorage.setItem(COOKIE_CONSENT_KEY, 'true')
     localStorage.setItem(COOKIE_PREFERENCES_KEY, JSON.stringify(finalPreferences))
-    
-    // Trigger any analytics/marketing scripts based on preferences
-    if (finalPreferences.analytics) {
-      // Enable analytics (Google Analytics, etc.)
-      window.dispatchEvent(new CustomEvent('cookie-consent-analytics', { detail: true }))
-    }
-    if (finalPreferences.marketing) {
-      // Enable marketing (Meta Pixel, Google Ads, etc.)
-      window.dispatchEvent(new CustomEvent('cookie-consent-marketing', { detail: true }))
-    }
-    
+
+    // Notify analytics/marketing layers in BOTH directions so denied also
+    // propagates to Google Consent Mode v2 / Meta Pixel etc.
+    window.dispatchEvent(
+      new CustomEvent('cookie-consent-analytics', { detail: finalPreferences.analytics }),
+    )
+    window.dispatchEvent(
+      new CustomEvent('cookie-consent-marketing', { detail: finalPreferences.marketing }),
+    )
+
     setIsVisible(false)
   }
 
@@ -115,8 +117,7 @@ export function CookieConsent() {
                   Използваме бисквитки
                 </h2>
                 <p className="text-slate-600 text-sm leading-relaxed">
-                  Използваме бисквитки, за да подобрим вашето изживяване, да анализираме трафика и да показваме персонализирани реклами. 
-                  Можете да изберете кои бисквитки да приемете.
+                  Използваме cookies, за да подобрим работата на сайта и да разберем кои страници са най-полезни. Можеш да приемеш всички cookies или да продължиш само с необходимите.
                 </p>
               </div>
             </div>

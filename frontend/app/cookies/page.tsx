@@ -109,11 +109,16 @@ export default function CookiesPage() {
         <LegalSection number={4} title="Бисквитки от трети страни">
           <p>Използваме услуги от трети страни, които могат да поставят собствени бисквитки:</p>
           <ul>
-            <li><strong>Google Analytics</strong> — за анализ на трафика</li>
+            <li><strong>Google Analytics 4</strong> — за анализ на трафика (зарежда се само след съгласие за аналитични cookies)</li>
             <li><strong>Meta (Facebook) Pixel</strong> — за рекламни кампании</li>
             <li><strong>Google Ads</strong> — за измерване на конверсии</li>
           </ul>
           <p>Политиките за поверителност на тези услуги можете да намерите на техните уебсайтове.</p>
+          <div className="not-prose mt-5 p-4 rounded-xl bg-teal-50/70 ring-1 ring-teal-100">
+            <p className="text-teal-900 text-sm leading-relaxed">
+              <strong>Google Consent Mode v2:</strong> Zubite.bg използва Google Consent Mode v2. При първо посещение по подразбиране аналитичните и маркетинговите cookies са <strong>отказани</strong>. Google Analytics ще получи данни за посещението <em>само</em> ако приемете аналитичните cookies от банера. Можете да откажете по всяко време, като продължите само с необходимите cookies.
+            </p>
+          </div>
         </LegalSection>
 
         <LegalSection number={5} title="Промени в политиката">
