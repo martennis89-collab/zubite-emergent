@@ -39,14 +39,16 @@ export function Header() {
         className={
           'pointer-events-auto w-full max-w-5xl rounded-3xl md:rounded-full transition-all duration-300 relative ' +
           (scrolled
-            ? 'bg-white/45 backdrop-blur-2xl ring-1 ring-slate-400/60 shadow-[0_10px_40px_-12px_rgba(15,23,42,0.20),inset_0_1px_0_rgba(255,255,255,0.95),inset_0_-1px_0_rgba(15,23,42,0.05)]'
-            : 'bg-white/20 backdrop-blur-2xl ring-1 ring-slate-400/55 shadow-[0_6px_24px_-12px_rgba(15,23,42,0.12),inset_0_1px_0_rgba(255,255,255,0.85),inset_0_-1px_0_rgba(15,23,42,0.03)]')
+            ? 'bg-white/15 backdrop-blur-[28px] ring-1 ring-white/40 shadow-[0_14px_44px_-12px_rgba(15,23,42,0.18),0_2px_8px_-2px_rgba(15,23,42,0.06)]'
+            : 'bg-white/10 backdrop-blur-[28px] ring-1 ring-white/35 shadow-[0_10px_36px_-12px_rgba(15,23,42,0.15),0_2px_8px_-2px_rgba(15,23,42,0.05)]')
         }
       >
-        {/* Liquid glass inner top highlight */}
-        <div aria-hidden className="absolute inset-x-6 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/70 to-transparent pointer-events-none opacity-80" />
-        {/* Subtle bottom inner shadow for refraction depth */}
-        <div aria-hidden className="absolute inset-x-6 bottom-0.5 h-px rounded-full bg-gradient-to-r from-transparent via-slate-900/8 to-transparent pointer-events-none" />
+        {/* Liquid glass top highlight — strong specular like real glass */}
+        <div aria-hidden className="absolute inset-x-4 top-px h-1/2 rounded-t-full bg-gradient-to-b from-white/80 via-white/30 to-transparent pointer-events-none" />
+        {/* Liquid glass bottom shadow — refraction depth */}
+        <div aria-hidden className="absolute inset-x-6 bottom-px h-1/3 rounded-b-full bg-gradient-to-t from-white/20 to-transparent pointer-events-none" />
+        {/* Bottom inner thin line — subtle refraction edge */}
+        <div aria-hidden className="absolute inset-x-8 bottom-0.5 h-px rounded-full bg-gradient-to-r from-transparent via-slate-900/8 to-transparent pointer-events-none" />
 
         <div className="px-4 sm:px-6 h-14 sm:h-15 flex items-center justify-between">
           {/* Logo */}
