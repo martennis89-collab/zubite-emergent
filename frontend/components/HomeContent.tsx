@@ -150,11 +150,14 @@ function Nav() {
         className={
           'pointer-events-auto w-full max-w-5xl rounded-full transition-all duration-300 relative ' +
           (scrolled
-            ? 'bg-white/85 backdrop-blur-2xl ring-[3px] ring-black shadow-[0_18px_50px_-10px_rgba(15,23,42,0.35),0_0_0_1px_rgba(0,0,0,0.4)]'
-            : 'bg-white/70 backdrop-blur-2xl ring-[3px] ring-black shadow-[0_12px_36px_-10px_rgba(15,23,42,0.28),0_0_0_1px_rgba(0,0,0,0.4)]')
+            ? 'bg-white/45 backdrop-blur-2xl ring-1 ring-slate-400/60 shadow-[0_10px_40px_-12px_rgba(15,23,42,0.20),inset_0_1px_0_rgba(255,255,255,0.95),inset_0_-1px_0_rgba(15,23,42,0.05)]'
+            : 'bg-white/20 backdrop-blur-2xl ring-1 ring-slate-400/55 shadow-[0_6px_24px_-12px_rgba(15,23,42,0.12),inset_0_1px_0_rgba(255,255,255,0.85),inset_0_-1px_0_rgba(15,23,42,0.03)]')
         }
       >
-        {/* No inner highlights — keep the black border crisp and visible */}
+        {/* Liquid glass inner top highlight */}
+        <div aria-hidden className="absolute inset-x-6 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/70 to-transparent pointer-events-none opacity-80" />
+        {/* Subtle bottom inner shadow for refraction depth */}
+        <div aria-hidden className="absolute inset-x-6 bottom-0.5 h-px rounded-full bg-gradient-to-r from-transparent via-slate-900/8 to-transparent pointer-events-none" />
         <div className="px-4 sm:px-6 h-14 sm:h-15 flex items-center justify-between">
           <Link href="/" className="font-serif text-lg sm:text-xl font-semibold tracking-tight">
             <span className="text-slate-900">Zubite</span>
