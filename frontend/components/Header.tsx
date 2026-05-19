@@ -39,13 +39,11 @@ export function Header() {
         className={
           'pointer-events-auto w-full max-w-5xl rounded-3xl md:rounded-full transition-all duration-300 relative ' +
           (scrolled
-            ? 'bg-white/55 backdrop-blur-2xl ring-1 ring-slate-900/20 shadow-[0_14px_44px_-10px_rgba(15,23,42,0.30),inset_0_1px_0_rgba(255,255,255,0.95),inset_0_-1px_0_rgba(15,23,42,0.06)]'
-            : 'bg-white/30 backdrop-blur-2xl ring-1 ring-slate-900/15 shadow-[0_10px_30px_-10px_rgba(15,23,42,0.22),inset_0_1px_0_rgba(255,255,255,0.9),inset_0_-1px_0_rgba(15,23,42,0.04)]')
+            ? 'bg-white/85 backdrop-blur-2xl ring-[3px] ring-black shadow-[0_18px_50px_-10px_rgba(15,23,42,0.35),0_0_0_1px_rgba(0,0,0,0.4)]'
+            : 'bg-white/70 backdrop-blur-2xl ring-[3px] ring-black shadow-[0_12px_36px_-10px_rgba(15,23,42,0.28),0_0_0_1px_rgba(0,0,0,0.4)]')
         }
       >
-        {/* Liquid glass inner top highlight */}
-        <div aria-hidden className="absolute inset-x-6 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/70 to-transparent pointer-events-none opacity-80" />
-        <div aria-hidden className="absolute inset-x-6 bottom-0.5 h-px rounded-full bg-gradient-to-r from-transparent via-slate-900/8 to-transparent pointer-events-none" />
+        {/* No inner highlights — keep the black border crisp and visible */}
 
         <div className="px-4 sm:px-6 h-14 sm:h-15 flex items-center justify-between">
           {/* Logo */}
