@@ -53,7 +53,7 @@ const QUICK_FACTS: Array<{ q: string; a: string }> = [
   { q: 'Какво я отличава?', a: 'SmartTrack материал, ClinCheck планиране, SmartForce attachments и iTero workflow.' },
   { q: 'Работи ли при сложни случаи?', a: 'Да — при правилен случай, опитен лекар и добра дисциплина.' },
   { q: 'Колко часа се носи?', a: 'Обикновено 20–22 часа дневно.' },
-  { q: 'Колко струва?', a: 'Lite ~1 500–2 500 €, Moderate ~2 500–3 500 €, Comprehensive ~4 000–5 000 €.' },
+  { q: 'Колко струва?', a: 'Lite ~1 500–2 500 €, Moderate ~2 500–3 500 €, Comprehensive ~3 500–5 000 €.' },
   { q: 'Колко бързо пристигат?', a: 'Често около 5 работни дни след финализирана поръчка — по обратна връзка от лекари в България.' },
   { q: 'Има ли локално присъствие?', a: 'Да — реална българска клинична и търговска екосистема, не само дистанционна доставка.' },
   { q: 'Нормално ли е refinements?', a: 'Да — refinements са нормална част от финното довършване, особено при по-сложни случаи.' },
@@ -67,7 +67,7 @@ const AEO_ANSWERS: Array<{ q: string; a: string }> = [
   },
   {
     q: 'Колко струва Invisalign в България?',
-    a: 'Ориентировъчно: Invisalign Lite около 1 500–2 500 €, Moderate около 2 500–3 500 €, Comprehensive около 4 000–5 000 €. Финалната цена зависи от сложността на случая, броя алайнери, refinements, ретайнери и клиниката.',
+    a: 'Ориентировъчно: Invisalign Lite около 1 500–2 500 €, Moderate около 2 500–3 500 €, Comprehensive около 3 500–5 000 €. Финалната цена зависи от сложността на случая, броя алайнери, refinements, ретайнери и клиниката.',
   },
   {
     q: 'Колко време отнема лечението?',
@@ -115,14 +115,14 @@ const PRICE_TIERS: Array<{
     range: 'moderate',
     desc: 'Средни случаи с повече движения и по-дълъг план.',
     features: ['до ~26 двойки алайнери', 'по-дълъг план', 'attachments + IPR при нужда', 'умерена сложност'],
-    featured: true,
   },
   {
     name: 'Invisalign Comprehensive',
-    price: '€4 000 – 5 000',
+    price: '€3 500 – 5 000',
     range: 'comprehensive',
     desc: 'Цялостно лечение, по-сложни случаи и пълен контрол.',
     features: ['неограничени алайнери в срок', 'включени refinements', 'комбинирани механики', 'сложна биомеханика'],
+    featured: true,
   },
 ]
 
@@ -160,7 +160,7 @@ const FAQS = [
   { q: 'Invisalign работи ли наистина?', a: 'Да. Invisalign работи при леки, умерени и избрани сложни ортодонтски случаи. Най-добри резултати идват от правилен план, опит на лекаря, достатъчно часове носене и редовен контрол.' },
   { q: 'Може ли Invisalign да лекува сложни случаи?', a: 'Да, в много случаи. Съвременният Invisalign разполага със SmartTrack, SmartForce attachments, ластици, bite ramps, precision cuts и ClinCheck планиране. При някои много сложни случаи брекети или комбиниран подход може да са по-предвидими.' },
   { q: 'Всички алайнери ли са еднакви?', a: 'Не. Материалът, софтуерът, производството, лекарският контрол, attachments и протоколите имат значение. Invisalign използва SmartTrack материал и по-голяма клинична база от повечето генерични системи.' },
-  { q: 'Колко струва Invisalign в България?', a: 'Ориентировъчно: Lite ~1 500–2 500 €, Moderate ~2 500–3 500 €, Comprehensive ~4 000–5 000 €. Цената зависи от сложността, клиниката, включените refinements и ретайнерите.' },
+  { q: 'Колко струва Invisalign в България?', a: 'Ориентировъчно: Lite ~1 500–2 500 €, Moderate ~2 500–3 500 €, Comprehensive ~3 500–5 000 €. Цената зависи от сложността, клиниката, включените refinements и ретайнерите.' },
   { q: 'За колко време пристигат алайнерите в България?', a: 'По обратна връзка от лекари в България, след финализирана поръчка често около 5 работни дни. Срокът може да варира според логистиката и производствения график.' },
   { q: 'Има ли официално Invisalign присъствие в България?', a: 'Да. Има реална локална клинична и търговска екосистема: българско юридическо/търговско представителство, сертифицирани Invisalign лекари, официален doctor locator и providers с различни нива на опит.' },
   { q: 'Колко часа на ден трябва да се носи Invisalign?', a: 'Обикновено 20–22 часа дневно. Свалят се при хранене, пиене на всичко различно от вода и при миене на зъби.' },
@@ -337,13 +337,13 @@ export default function InvisalignBulgariaPage() {
                     <p className="text-[10px] uppercase tracking-wider text-slate-400">Lite</p>
                     <p className="text-[13px] font-semibold text-slate-800">1.5–2.5k €</p>
                   </div>
-                  <div className="rounded-xl bg-teal-50/80 ring-1 ring-teal-100 p-2.5">
-                    <p className="text-[10px] uppercase tracking-wider text-teal-700">Moderate</p>
-                    <p className="text-[13px] font-semibold text-teal-800">2.5–3.5k €</p>
-                  </div>
                   <div className="rounded-xl bg-white/80 ring-1 ring-slate-100 p-2.5">
-                    <p className="text-[10px] uppercase tracking-wider text-slate-400">Compr.</p>
-                    <p className="text-[13px] font-semibold text-slate-800">4–5k €</p>
+                    <p className="text-[10px] uppercase tracking-wider text-slate-400">Moderate</p>
+                    <p className="text-[13px] font-semibold text-slate-800">2.5–3.5k €</p>
+                  </div>
+                  <div className="rounded-xl bg-teal-50/80 ring-1 ring-teal-100 p-2.5">
+                    <p className="text-[10px] uppercase tracking-wider text-teal-700">Compr.</p>
+                    <p className="text-[13px] font-semibold text-teal-800">3.5–5k €</p>
                   </div>
                 </div>
               </div>
