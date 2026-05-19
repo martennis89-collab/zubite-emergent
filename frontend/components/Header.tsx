@@ -39,8 +39,8 @@ export function Header() {
         className={
           'pointer-events-auto w-full max-w-5xl rounded-3xl md:rounded-full transition-all duration-300 relative ' +
           (scrolled
-            ? 'bg-white/45 backdrop-blur-2xl ring-1 ring-slate-300/60 shadow-[0_10px_40px_-12px_rgba(15,23,42,0.20),inset_0_1px_0_rgba(255,255,255,0.95),inset_0_-1px_0_rgba(15,23,42,0.05)]'
-            : 'bg-white/20 backdrop-blur-2xl ring-1 ring-slate-300/50 shadow-[0_6px_24px_-12px_rgba(15,23,42,0.12),inset_0_1px_0_rgba(255,255,255,0.85),inset_0_-1px_0_rgba(15,23,42,0.03)]')
+            ? 'bg-white/55 backdrop-blur-2xl ring-1 ring-slate-900/20 shadow-[0_14px_44px_-10px_rgba(15,23,42,0.30),inset_0_1px_0_rgba(255,255,255,0.95),inset_0_-1px_0_rgba(15,23,42,0.06)]'
+            : 'bg-white/30 backdrop-blur-2xl ring-1 ring-slate-900/15 shadow-[0_10px_30px_-10px_rgba(15,23,42,0.22),inset_0_1px_0_rgba(255,255,255,0.9),inset_0_-1px_0_rgba(15,23,42,0.04)]')
         }
       >
         {/* Liquid glass inner top highlight */}
