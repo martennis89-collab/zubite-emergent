@@ -11,6 +11,8 @@ import {
   trackSoftCommit,
   trackLeadSubmit
 } from './MetaPixel'
+import { trackEvent as gaTrackEvent } from '@/lib/analytics/gtag'
+import { getStoredAttribution } from '@/lib/attribution'
 
 // ─── Types ────────────────────────────────────────────────
 type Segment = 'adult' | 'teen' | 'child'
@@ -502,6 +504,10 @@ export function MasterQuiz() {
   const sessionId = useRef('')
   const startTime = useRef(0)
   const questionStartTime = useRef(0)
+  // GA4 funnel-event dedupe (each fires at most once per quiz session).
+  const gaQuizStartFiredRef = useRef(false)
+  const gaQuizCompleteFiredRef = useRef(false)
+  const gaLeadSubmitFiredRef = useRef(false)
 
   useEffect(() => {
     setIsClient(true)
@@ -534,6 +540,22 @@ export function MasterQuiz() {
     setIsTransitioning(true)
     trackEvent('segment_selected', { segment: seg })
     trackEvent('quiz_start', { session_id: sessionId.current, segment: seg })
+
+    // GA4 — fire quiz_start exactly once per session (Consent Mode v2
+    // gates the network hit at the Google tag level; no need to check
+    // consent here). Only category-level metadata — no PII.
+    if (!gaQuizStartFiredRef.current) {
+      gaQuizStartFiredRef.current = true
+      const utm = getStoredAttribution().latest
+      gaTrackEvent('quiz_start', {
+        quiz_type: 'master',
+        entry_path: typeof window !== 'undefined' ? window.location.pathname : '/quiz',
+        source_context: utm?.utm_source || utm?.utm_medium || 'unknown',
+        utm_source: utm?.utm_source || undefined,
+        utm_campaign: utm?.utm_campaign || undefined,
+      })
+    }
+
     setTimeout(() => {
       setSegment(seg)
       setStep('quiz')
@@ -566,6 +588,20 @@ export function MasterQuiz() {
         const totalTime = Date.now() - startTime.current
         trackEvent('quiz_completed', { total_score: res.totalScore, band: res.band, flags: res.flags, segment, total_time_ms: totalTime, answers: newAnswers.map(a => ({ q: a.questionId, v: a.value, s: a.score })) })
         trackQuizComplete(res.band, res.totalScore)
+
+        // GA4 — fire quiz_complete once per completed session. Only
+        // category-level metadata (band, segment, count) — no PII / no
+        // free-text answers / no per-question payload.
+        if (!gaQuizCompleteFiredRef.current) {
+          gaQuizCompleteFiredRef.current = true
+          gaTrackEvent('quiz_complete', {
+            quiz_type: 'master',
+            result_category: res.band,
+            soonness_band: res.band,
+            questions_answered: newAnswers.length,
+          })
+        }
+
         setStep('result')
       }
       setIsTransitioning(false)
@@ -673,6 +709,20 @@ export function MasterQuiz() {
 
       trackEvent('form_submitted', { form_version: formVersion, city: formData.city, has_name: !!trimmedName, has_email: !!trimmedEmail, segment })
       trackLeadSubmit(formData.city, formVersion)
+
+      // GA4 — fire lead_submit ONLY after the backend confirmed lead
+      // creation (we are past the `if (!response.ok) throw` guard).
+      // Category-level metadata only — no name / phone / email / lead ID.
+      if (!gaLeadSubmitFiredRef.current) {
+        gaLeadSubmitFiredRef.current = true
+        gaTrackEvent('lead_submit', {
+          quiz_type: 'master',
+          result_category: result?.band || 'unknown',
+          city: formData.city || undefined,
+          lead_type: 'patient_request',
+          source_path: typeof window !== 'undefined' ? window.location.pathname : '/quiz',
+        })
+      }
       const successParams = new URLSearchParams({ stage: result?.band || 'low', city: formData.city, name: trimmedName, segment: segment || 'adult' })
       if (createdLeadId) successParams.set('leadId', createdLeadId)
       router.push(`/quiz/success?${successParams.toString()}`)
