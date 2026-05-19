@@ -148,6 +148,7 @@ export function Header() {
                 { href: '/symptoms', label: 'Симптоми' },
                 { href: '/crooked-teeth', label: 'Криви зъби' },
                 { href: '/what-is-invisalign', label: 'Какво е Invisalign' },
+                { href: '/invisalign-bulgaria', label: 'Invisalign в България' },
                 { href: '/aligners-vs-braces', label: 'Алайнери vs Брекети' },
                 { href: '/aligners-comparison', label: 'Сравнение на алайнери' },
               ]}

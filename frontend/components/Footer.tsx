@@ -19,6 +19,7 @@ const GUIDES: FooterLink[] = [
   { label: 'Симптоми', href: '/symptoms' },
   { label: 'Криви зъби', href: '/crooked-teeth' },
   { label: 'Какво е Invisalign', href: '/what-is-invisalign' },
+  { label: 'Invisalign в България', href: '/invisalign-bulgaria' },
   { label: 'Алайнери vs Брекети', href: '/aligners-vs-braces' },
   { label: 'Сравнение на алайнери', href: '/aligners-comparison' },
 ]
