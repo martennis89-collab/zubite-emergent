@@ -5,17 +5,76 @@ interface FooterProps {
   treatmentSlug?: string
 }
 
-export function Footer({ treatmentSlug }: FooterProps) {
+interface FooterLink { label: string; href: string }
+
+const TREATMENTS: FooterLink[] = [
+  { label: 'Ортодонтия', href: '/orthodontics' },
+  { label: 'Импланти', href: '/implants' },
+  { label: 'Естетична стоматология', href: '/cosmetic-dentistry' },
+  { label: 'TMJ / челюстни ставни', href: '/tmj' },
+  { label: 'Сън и дишане', href: '/sleep-airway' },
+]
+
+const GUIDES: FooterLink[] = [
+  { label: 'Симптоми', href: '/symptoms' },
+  { label: 'Криви зъби', href: '/crooked-teeth' },
+  { label: 'Какво е Invisalign', href: '/what-is-invisalign' },
+  { label: 'Алайнери vs Брекети', href: '/aligners-vs-braces' },
+  { label: 'Сравнение на алайнери', href: '/aligners-comparison' },
+]
+
+const PRICES: FooterLink[] = [
+  { label: 'Цена Invisalign', href: '/invisalign-price' },
+  { label: 'Цена импланти', href: '/implant-price' },
+]
+
+const PLATFORM: FooterLink[] = [
+  { label: 'Започни анализа', href: '/quiz' },
+  { label: 'Care Pass', href: '/care-pass' },
+  { label: 'Zubite стандарт', href: '/standart-za-kliniki' },
+  { label: 'Журнал', href: '/blog' },
+]
+
+const FOR_CLINICS: FooterLink[] = [
+  { label: 'Стани партньор', href: '/za-kliniki' },
+  { label: 'Клиничен вход', href: '/clinic' },
+  { label: 'Контакти', href: '/contact' },
+]
+
+const LEGAL: FooterLink[] = [
+  { label: 'Поверителност', href: '/privacy' },
+  { label: 'Условия', href: '/terms' },
+  { label: 'Бисквитки', href: '/cookies' },
+]
+
+function Column({ title, links }: { title: string; links: FooterLink[] }) {
+  return (
+    <div>
+      <p className="text-xs uppercase tracking-[0.18em] text-slate-500 font-semibold">{title}</p>
+      <ul className="mt-4 space-y-2.5 text-sm">
+        {links.map((l) => (
+          <li key={l.href}>
+            <Link href={l.href} className="hover:text-teal-400 transition-colors">
+              {l.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+export function Footer({ treatmentSlug: _treatmentSlug }: FooterProps) {
   return (
     <footer className="relative bg-[#0E1A1A] text-slate-300 pt-16 pb-10 overflow-hidden" data-testid="site-footer">
       {/* Subtle glassy top border */}
       <div aria-hidden className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-teal-400/40 to-transparent" />
       <div aria-hidden className="absolute -top-32 left-1/4 w-96 h-96 rounded-full bg-teal-500/8 blur-3xl pointer-events-none" />
 
-      <div className="relative max-w-6xl mx-auto px-5 sm:px-8">
-        <div className="grid md:grid-cols-[1.5fr_1fr_1fr_1fr] gap-10 md:gap-8">
+      <div className="relative max-w-7xl mx-auto px-5 sm:px-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-[1.5fr_repeat(5,1fr)] gap-8 md:gap-10">
           {/* Brand */}
-          <div>
+          <div className="col-span-2 md:col-span-4 lg:col-span-1">
             <Link href="/" className="inline-flex items-baseline">
               <span className="font-serif text-2xl font-semibold text-white">Zubite</span>
               <span className="font-serif text-2xl font-semibold text-teal-400">.bg</span>
@@ -48,38 +107,31 @@ export function Footer({ treatmentSlug }: FooterProps) {
             </div>
           </div>
 
-          {/* Platform */}
-          <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-slate-500 font-semibold">Платформа</p>
-            <ul className="mt-4 space-y-2.5 text-sm">
-              <li><Link href="/quiz" className="hover:text-teal-400 transition-colors">Провери случая</Link></li>
-              <li><Link href="/orthodontics" className="hover:text-teal-400 transition-colors">Ортодонтия</Link></li>
-              <li><Link href="/aligners-vs-braces" className="hover:text-teal-400 transition-colors">Алайнери vs Брекети</Link></li>
-              <li><Link href="/symptoms" className="hover:text-teal-400 transition-colors">Симптоми</Link></li>
-              <li><Link href="/blog" className="hover:text-teal-400 transition-colors">Журнал</Link></li>
-            </ul>
-          </div>
+          <Column title="Лечения" links={TREATMENTS} />
+          <Column title="Ръководства" links={GUIDES} />
+          <Column title="Цени" links={PRICES} />
+          <Column title="Платформа" links={PLATFORM} />
 
-          {/* For clinics */}
-          <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-slate-500 font-semibold">За клиники</p>
-            <ul className="mt-4 space-y-2.5 text-sm">
-              <li><Link href="/za-kliniki" className="hover:text-teal-400 transition-colors">Стани партньор</Link></li>
-              <li><Link href="/standart-za-kliniki" className="hover:text-teal-400 transition-colors">Zubite стандарт</Link></li>
-              <li><Link href="/clinic" className="hover:text-teal-400 transition-colors">Клиничен вход</Link></li>
-              <li><Link href="/contact" className="hover:text-teal-400 transition-colors">Контакти</Link></li>
-            </ul>
-          </div>
-
-          {/* Legal */}
-          <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-slate-500 font-semibold">Право</p>
-            <ul className="mt-4 space-y-2.5 text-sm">
-              <li><Link href="/privacy" className="hover:text-teal-400 transition-colors">Поверителност</Link></li>
-              <li><Link href="/terms" className="hover:text-teal-400 transition-colors">Условия</Link></li>
-              <li><Link href="/cookies" className="hover:text-teal-400 transition-colors">Бисквитки</Link></li>
-              <li><Link href="/contact" className="inline-flex items-center gap-1.5 hover:text-teal-400 transition-colors"><Mail className="w-3.5 h-3.5" /> Контакти</Link></li>
-            </ul>
+          {/* Combined: For clinics + Legal stacked on small screens */}
+          <div className="space-y-8">
+            <Column title="За клиники" links={FOR_CLINICS} />
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-slate-500 font-semibold">Право</p>
+              <ul className="mt-4 space-y-2.5 text-sm">
+                {LEGAL.map((l) => (
+                  <li key={l.href}>
+                    <Link href={l.href} className="hover:text-teal-400 transition-colors">
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+                <li>
+                  <Link href="/contact" className="inline-flex items-center gap-1.5 hover:text-teal-400 transition-colors">
+                    <Mail className="w-3.5 h-3.5" /> Контакти
+                  </Link>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
 

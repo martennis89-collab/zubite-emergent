@@ -106,26 +106,81 @@ export function Header() {
           </div>
         </div>
 
-        {/* Mobile menu drawer */}
+        {/* Mobile menu drawer — categorized */}
         {isOpen && (
-          <nav className="md:hidden border-t border-white/40 px-5 py-4 animate-fade-in-down">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={
-                  'block py-2.5 text-sm transition-colors ' +
-                  (isActive(link.href) ? 'text-teal-700 font-medium' : 'text-slate-700 hover:text-slate-900')
-                }
-                onClick={() => setIsOpen(false)}
-              >
-                {link.label}
-              </Link>
-            ))}
+          <nav
+            className="md:hidden border-t border-white/40 px-5 py-4 animate-fade-in-down max-h-[80vh] overflow-y-auto"
+            data-testid="mobile-menu-drawer"
+          >
+            {/* Primary */}
+            <div className="space-y-1">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={
+                    'block py-2 text-sm transition-colors ' +
+                    (isActive(link.href) ? 'text-teal-700 font-medium' : 'text-slate-700 hover:text-slate-900')
+                  }
+                  onClick={() => setIsOpen(false)}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+
+            <MobileMenuGroup
+              label="Лечения"
+              links={[
+                { href: '/orthodontics', label: 'Ортодонтия' },
+                { href: '/implants', label: 'Импланти' },
+                { href: '/cosmetic-dentistry', label: 'Естетична стоматология' },
+                { href: '/tmj', label: 'TMJ / челюстни ставни' },
+                { href: '/sleep-airway', label: 'Сън и дишане' },
+              ]}
+              onLinkClick={() => setIsOpen(false)}
+              isActive={isActive}
+            />
+
+            <MobileMenuGroup
+              label="Ръководства"
+              links={[
+                { href: '/symptoms', label: 'Симптоми' },
+                { href: '/crooked-teeth', label: 'Криви зъби' },
+                { href: '/what-is-invisalign', label: 'Какво е Invisalign' },
+                { href: '/aligners-vs-braces', label: 'Алайнери vs Брекети' },
+                { href: '/aligners-comparison', label: 'Сравнение на алайнери' },
+              ]}
+              onLinkClick={() => setIsOpen(false)}
+              isActive={isActive}
+            />
+
+            <MobileMenuGroup
+              label="Цени"
+              links={[
+                { href: '/invisalign-price', label: 'Цена Invisalign' },
+                { href: '/implant-price', label: 'Цена импланти' },
+              ]}
+              onLinkClick={() => setIsOpen(false)}
+              isActive={isActive}
+            />
+
+            <MobileMenuGroup
+              label="Платформа"
+              links={[
+                { href: '/care-pass', label: 'Care Pass' },
+                { href: '/standart-za-kliniki', label: 'Zubite стандарт' },
+                { href: '/za-kliniki', label: 'За клиники' },
+                { href: '/contact', label: 'Контакти' },
+              ]}
+              onLinkClick={() => setIsOpen(false)}
+              isActive={isActive}
+            />
+
             <Link
               href="/quiz"
               onClick={() => setIsOpen(false)}
-              className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-full text-white text-sm font-medium px-4 py-2.5"
+              className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-full text-white text-sm font-medium px-4 py-2.5"
               style={{ backgroundImage: 'linear-gradient(135deg,#0f172a 0%,#1e293b 60%,#0f172a 100%)' }}
             >
               Започни анализа <ArrowRight className="w-3.5 h-3.5" />
@@ -133,6 +188,39 @@ export function Header() {
           </nav>
         )}
       </header>
+    </div>
+  )
+}
+
+
+interface MobileMenuGroupProps {
+  label: string
+  links: { href: string; label: string }[]
+  onLinkClick: () => void
+  isActive: (path: string) => boolean
+}
+
+function MobileMenuGroup({ label, links, onLinkClick, isActive }: MobileMenuGroupProps) {
+  return (
+    <div className="mt-3 pt-3 border-t border-slate-200/60">
+      <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-semibold px-1 mb-1.5">
+        {label}
+      </p>
+      {links.map((link) => (
+        <Link
+          key={link.href}
+          href={link.href}
+          onClick={onLinkClick}
+          className={
+            'block py-1.5 px-1 text-[13.5px] transition-colors ' +
+            (isActive(link.href)
+              ? 'text-teal-700 font-medium'
+              : 'text-slate-700 hover:text-slate-900')
+          }
+        >
+          {link.label}
+        </Link>
+      ))}
     </div>
   )
 }
