@@ -20,6 +20,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ClinicStandardSection } from '@/components/patient/ClinicStandardSection'
+import { Footer } from '@/components/Footer'
 import {
   ShieldCheck, Sparkles, Building2, Stethoscope, ChevronDown,
   CheckCircle2, ArrowRight, MoveRight, Heart, Smile, Activity,
@@ -1423,7 +1424,7 @@ export function HomeContent({ recentPosts = [] }: { recentPosts?: HomeBlogPost[]
       <FAQ />
       {/* 10. Final CTA */}
       <FinalCTA />
-      <HomeFooter />
+      <Footer />
     </>
   )
 }
