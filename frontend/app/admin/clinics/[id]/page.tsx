@@ -259,7 +259,7 @@ export default function AdminClinicEditPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50" data-testid="admin-clinic-editor">
+      <main className="min-h-screen bg-[#FCFAF8]" data-testid="admin-clinic-editor">
         <AdminHeader
           pageTitle="Профил на клиника"
           backHref="/admin/clinics"
@@ -271,7 +271,7 @@ export default function AdminClinicEditPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 pb-32" data-testid="admin-clinic-editor">
+    <main className="min-h-screen bg-[#FCFAF8] pb-32" data-testid="admin-clinic-editor">
       <AdminHeader
         pageTitle={clinicName ? `Профил: ${clinicName}` : 'Профил на клиника'}
         backHref="/admin/clinics"
@@ -282,7 +282,7 @@ export default function AdminClinicEditPage() {
           type="button"
           onClick={save}
           disabled={saving}
-          className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full bg-sky-500 hover:bg-sky-600 text-white text-sm font-medium disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium disabled:opacity-50"
           data-testid="admin-clinic-save"
         >
           <Save className="w-4 h-4" />
@@ -318,7 +318,7 @@ export default function AdminClinicEditPage() {
                     ? t.value === 'premium'
                       ? 'bg-violet-600 text-white'
                       : t.value === 'featured'
-                      ? 'bg-sky-600 text-white'
+                      ? 'bg-teal-600 text-white'
                       : 'bg-slate-900 text-white'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200')
                 }
@@ -725,7 +725,7 @@ export default function AdminClinicEditPage() {
         </div>
         <button
           type="button" onClick={save} disabled={saving}
-          className="inline-flex items-center gap-1.5 h-10 px-5 rounded-full bg-sky-500 hover:bg-sky-600 text-white text-sm font-medium disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 h-10 px-5 rounded-full bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium disabled:opacity-50"
           data-testid="admin-clinic-save-sticky"
         >
           <Save className="w-4 h-4" />

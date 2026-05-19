@@ -2,8 +2,8 @@
 
 export const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
   new:                  { label: 'Нова',                  cls: 'bg-slate-100 text-slate-700' },
-  assigned:             { label: 'Назначена',             cls: 'bg-sky-100 text-sky-700' },
-  clinic_viewed:        { label: 'Видяна',                cls: 'bg-sky-100 text-sky-700' },
+  assigned:             { label: 'Назначена',             cls: 'bg-teal-100 text-teal-700' },
+  clinic_viewed:        { label: 'Видяна',                cls: 'bg-teal-100 text-teal-700' },
   call_attempted:       { label: 'Опит за обаждане',      cls: 'bg-amber-100 text-amber-800' },
   patient_contacted:    { label: 'Свързано с пациента',   cls: 'bg-amber-100 text-amber-800' },
   no_answer:            { label: 'Без отговор',           cls: 'bg-amber-100 text-amber-800' },
@@ -487,7 +487,7 @@ export const REQUEST_KIND_DESCRIPTORS: Record<RequestKindKey, RequestKindDescrip
     badgeLabel: 'Пациентът избра клиника',
     detailTitle: 'Избрана клиника',
     detailDescription: 'Пациентът е избрал конкретна клиника.',
-    badgeCls: 'bg-sky-50 text-sky-700 border border-sky-200',
+    badgeCls: 'bg-teal-50 text-teal-700 border border-teal-200',
     rowAccentCls: '',
   },
   assisted_choice: {

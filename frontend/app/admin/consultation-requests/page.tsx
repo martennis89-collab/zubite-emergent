@@ -116,7 +116,7 @@ function AdminConsultationRequestsInner() {
   }, [requests])
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-[#FCFAF8]">
       <AdminHeader pageTitle="Заявки за консултации" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
         <h2 className="font-serif text-2xl font-semibold text-slate-900">
@@ -255,7 +255,7 @@ function AdminConsultationRequestsInner() {
                             }
                             return (
                               <span
-                                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-sky-50 text-sky-800 border border-sky-200"
+                                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-teal-50 text-teal-800 border border-teal-200"
                                 data-testid={`admin-cr-selected-clinic-${r.id}`}
                                 title={`Избрана от пациента (${cid})`}
                               >
@@ -288,7 +288,7 @@ function AdminConsultationRequestsInner() {
                       <td className="px-4 py-3 text-right">
                         <Link
                           href={`/admin/consultation-requests/${r.id}`}
-                          className="text-sky-600 hover:text-sky-700 font-medium text-sm"
+                          className="text-teal-600 hover:text-teal-700 font-medium text-sm"
                           data-testid={`admin-cr-open-${r.id}`}
                         >
                           Отвори

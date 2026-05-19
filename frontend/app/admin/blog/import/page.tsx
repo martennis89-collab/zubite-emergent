@@ -496,7 +496,7 @@ export default function ArticleImporterPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-[#FCFAF8]">
       <AdminHeader
         pageTitle="Импортиране на статия"
         backHref="/admin/blog"
@@ -513,7 +513,7 @@ export default function ArticleImporterPage() {
                 type="button"
                 onClick={() => zipInputRef.current?.click()}
                 disabled={isExtractingZip}
-                className="text-sm inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100 disabled:opacity-50"
+                className="text-sm inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-teal-300 bg-teal-50 text-teal-700 hover:bg-teal-100 disabled:opacity-50"
                 data-testid="importer-zip-upload-btn"
               >
                 {isExtractingZip ? (
@@ -561,13 +561,13 @@ export default function ArticleImporterPage() {
             value={rawMd}
             onChange={(e) => setRawMd(e.target.value)}
             placeholder="Поставете тук # ZUBITE_ARTICLE_PACKAGE..."
-            className="w-full h-[480px] font-mono text-sm border border-slate-200 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+            className="w-full h-[480px] font-mono text-sm border border-slate-200 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-teal-500/30"
             data-testid="importer-textarea"
           />
           {/* ZIP package status */}
           {zipFileName && (
-            <div className="mt-3 flex items-center gap-2 text-xs bg-sky-50 border border-sky-200 rounded-lg p-2.5" data-testid="importer-zip-status">
-              <Package className="w-4 h-4 text-sky-600 flex-shrink-0" />
+            <div className="mt-3 flex items-center gap-2 text-xs bg-teal-50 border border-teal-200 rounded-lg p-2.5" data-testid="importer-zip-status">
+              <Package className="w-4 h-4 text-teal-600 flex-shrink-0" />
               <span className="flex-1 text-slate-700">
                 <strong>{zipFileName}</strong> — {zipFiles.size} изображения извлечени
               </span>
@@ -586,7 +586,7 @@ export default function ArticleImporterPage() {
             <button
               type="button"
               onClick={handleParse}
-              className="inline-flex items-center gap-2 h-11 px-6 rounded-full bg-sky-500 text-white font-medium hover:bg-sky-600 transition-colors"
+              className="inline-flex items-center gap-2 h-11 px-6 rounded-full bg-teal-500 text-white font-medium hover:bg-teal-600 transition-colors"
               data-testid="importer-parse-btn"
             >
               <Sparkles className="w-4 h-4" /> Разбор на статията
@@ -813,7 +813,7 @@ export default function ArticleImporterPage() {
               {parsed.imageAssets.length > 0 && (
                 <div className="border-t border-slate-200 pt-4" data-testid="importer-image-mapping">
                   <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                    <ImageIcon className="w-4 h-4 text-sky-500" />
+                    <ImageIcon className="w-4 h-4 text-teal-500" />
                     Image Assets ({parsed.imageAssets.length})
                   </h3>
 
@@ -883,7 +883,7 @@ export default function ArticleImporterPage() {
                             <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-[10px]">
                               {a.type || '—'}
                             </span>
-                            <span className="px-2 py-0.5 rounded bg-sky-100 text-sky-700 text-[10px]">
+                            <span className="px-2 py-0.5 rounded bg-teal-100 text-teal-700 text-[10px]">
                               {a.placement || '—'}
                             </span>
                             {zipFiles.size > 0 && (
@@ -945,7 +945,7 @@ export default function ArticleImporterPage() {
               <button
                 type="button"
                 onClick={() => setShowTestRender(true)}
-                className="inline-flex items-center gap-2 h-11 px-5 rounded-full border border-sky-300 bg-sky-50 text-sky-700 font-medium hover:bg-sky-100"
+                className="inline-flex items-center gap-2 h-11 px-5 rounded-full border border-teal-300 bg-teal-50 text-teal-700 font-medium hover:bg-teal-100"
                 data-testid="importer-test-render-btn"
               >
                 <Eye className="w-4 h-4" />
@@ -965,7 +965,7 @@ export default function ArticleImporterPage() {
                 type="button"
                 onClick={() => handleSave(true)}
                 disabled={isSaving !== null || (validation && !validation.ok) || false}
-                className="inline-flex items-center gap-2 h-11 px-5 rounded-full bg-sky-500 text-white font-medium hover:bg-sky-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-2 h-11 px-5 rounded-full bg-teal-500 text-white font-medium hover:bg-teal-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 data-testid="importer-publish-btn"
               >
                 {isSaving === 'publish' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
@@ -1010,7 +1010,7 @@ function FieldText(props: {
         value={props.value}
         onChange={(e) => props.onChange(e.target.value)}
         className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
-          props.hasError ? 'border-red-300 focus:ring-red-200' : 'border-slate-200 focus:ring-sky-500/30'
+          props.hasError ? 'border-red-300 focus:ring-red-200' : 'border-slate-200 focus:ring-teal-500/30'
         }`}
         data-testid={props.testId}
       />
@@ -1034,7 +1034,7 @@ function FieldTextArea(props: {
         onChange={(e) => props.onChange(e.target.value)}
         rows={props.rows || 3}
         className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
-          props.hasError ? 'border-red-300 focus:ring-red-200' : 'border-slate-200 focus:ring-sky-500/30'
+          props.hasError ? 'border-red-300 focus:ring-red-200' : 'border-slate-200 focus:ring-teal-500/30'
         }`}
         data-testid={props.testId}
       />
@@ -1253,7 +1253,7 @@ function SchemaEditor(props: {
         onChange={(e) => handleChange(e.target.value)}
         rows={4}
         className={`w-full font-mono text-xs border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 ${
-          props.error ? 'border-red-300 focus:ring-red-200' : 'border-slate-200 focus:ring-sky-500/30'
+          props.error ? 'border-red-300 focus:ring-red-200' : 'border-slate-200 focus:ring-teal-500/30'
         }`}
         data-testid={props.testId}
       />

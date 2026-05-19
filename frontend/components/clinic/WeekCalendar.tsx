@@ -13,7 +13,7 @@ const ROW_HEIGHT = 56      // px per hour
 const TOTAL_HEIGHT = (HOUR_END - HOUR_START) * ROW_HEIGHT
 
 const STATUS_BLOCK_CLS: Record<string, string> = {
-  booked: 'bg-sky-50 border-sky-300 text-sky-900',
+  booked: 'bg-teal-50 border-teal-300 text-teal-900',
   confirmed: 'bg-emerald-50 border-emerald-300 text-emerald-900',
   rescheduled: 'bg-amber-50 border-amber-300 text-amber-900',
   attended: 'bg-emerald-50 border-emerald-400 text-emerald-900',
@@ -23,7 +23,7 @@ const STATUS_BLOCK_CLS: Record<string, string> = {
 }
 
 const STATUS_BADGE_CLS: Record<string, string> = {
-  booked: 'bg-sky-100 text-sky-700',
+  booked: 'bg-teal-100 text-teal-700',
   confirmed: 'bg-emerald-100 text-emerald-700',
   rescheduled: 'bg-amber-100 text-amber-800',
   attended: 'bg-emerald-100 text-emerald-700',
@@ -83,7 +83,7 @@ export function WeekCalendar({ appointments, weekStart }: Props) {
                 <div
                   key={i}
                   className={`px-2 py-2 text-center border-l border-slate-200 ${
-                    isToday ? 'bg-sky-50' : ''
+                    isToday ? 'bg-teal-50' : ''
                   }`}
                   data-testid={`week-col-header-${i}`}
                 >
@@ -93,7 +93,7 @@ export function WeekCalendar({ appointments, weekStart }: Props) {
                   <div
                     className={`text-sm font-semibold mt-0.5 ${
                       isToday
-                        ? 'text-sky-700 inline-flex items-center justify-center w-7 h-7 rounded-full bg-sky-600 text-white mx-auto'
+                        ? 'text-teal-700 inline-flex items-center justify-center w-7 h-7 rounded-full bg-teal-600 text-white mx-auto'
                         : 'text-slate-900'
                     }`}
                   >
@@ -135,7 +135,7 @@ export function WeekCalendar({ appointments, weekStart }: Props) {
                 <div
                   key={i}
                   className={`relative border-l border-slate-200 ${
-                    isToday ? 'bg-sky-50/40' : ''
+                    isToday ? 'bg-teal-50/40' : ''
                   }`}
                   data-testid={`week-col-${i}`}
                 >

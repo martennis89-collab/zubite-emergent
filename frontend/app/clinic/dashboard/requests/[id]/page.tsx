@@ -179,7 +179,7 @@ export default function ClinicRequestDetailPage() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <a
                     href={`tel:${req.patient_phone}`}
-                    className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-sky-500 hover:bg-sky-600 text-white text-sm font-medium"
+                    className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium"
                     data-testid="request-call-link"
                   >
                     <Phone className="w-4 h-4" />
@@ -252,7 +252,7 @@ export default function ClinicRequestDetailPage() {
                       <>
                         <a
                           href={`tel:${req.patient_phone}`}
-                          className="inline-flex items-center gap-1.5 h-10 px-4 rounded-full bg-sky-500 hover:bg-sky-600 text-white text-sm font-medium"
+                          className="inline-flex items-center gap-1.5 h-10 px-4 rounded-full bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium"
                           data-testid="action-call-phone"
                         >
                           <Phone className="w-4 h-4" />
@@ -278,7 +278,7 @@ export default function ClinicRequestDetailPage() {
                         disabled={busy}
                         onClick={() => setShowBook('book_consultation')}
                         data-testid="action-book_consultation"
-                        className="h-10 px-5 rounded-full bg-sky-500 hover:bg-sky-600 text-white text-sm font-semibold shadow-sm disabled:opacity-50 inline-flex items-center gap-2"
+                        className="h-10 px-5 rounded-full bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold shadow-sm disabled:opacity-50 inline-flex items-center gap-2"
                       >
                         <CalIcon className="w-4 h-4" />
                         Резервирай консултация
@@ -321,7 +321,7 @@ export default function ClinicRequestDetailPage() {
                         disabled={busy}
                         onClick={() => setShowBook('book_consultation')}
                         data-testid="action-book_consultation"
-                        className="h-10 px-5 rounded-full bg-sky-500 hover:bg-sky-600 text-white text-sm font-semibold disabled:opacity-50"
+                        className="h-10 px-5 rounded-full bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold disabled:opacity-50"
                       >
                         Резервирай консултация
                       </button>
@@ -336,7 +336,7 @@ export default function ClinicRequestDetailPage() {
                         disabled={busy}
                         onClick={() => setShowBook('book_consultation')}
                         data-testid="action-book_consultation"
-                        className="h-9 px-3.5 rounded-full border border-sky-200 text-sky-700 bg-sky-50 hover:bg-sky-100 text-xs font-medium disabled:opacity-50 inline-flex items-center gap-1.5"
+                        className="h-9 px-3.5 rounded-full border border-teal-200 text-teal-700 bg-teal-50 hover:bg-teal-100 text-xs font-medium disabled:opacity-50 inline-flex items-center gap-1.5"
                       >
                         <CalIcon className="w-3.5 h-3.5" />
                         Резервирай директно
@@ -405,15 +405,15 @@ export default function ClinicRequestDetailPage() {
                 {events.map((ev) => {
                   const actor = inferEventActor(ev)
                   const actorCls =
-                    actor === 'clinic' ? 'bg-sky-50 text-sky-700' :
+                    actor === 'clinic' ? 'bg-teal-50 text-teal-700' :
                     actor === 'zubite' ? 'bg-violet-50 text-violet-700' :
                     actor === 'admin'  ? 'bg-amber-50 text-amber-700' :
                     actor === 'patient' ? 'bg-rose-50 text-rose-700' :
                     'bg-slate-50 text-slate-600'
                   return (
                     <li key={ev.id} className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-full bg-sky-50 grid place-items-center mt-0.5 flex-shrink-0">
-                        <CheckCircle2 className="w-4 h-4 text-sky-500" />
+                      <div className="w-8 h-8 rounded-full bg-teal-50 grid place-items-center mt-0.5 flex-shrink-0">
+                        <CheckCircle2 className="w-4 h-4 text-teal-500" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -587,7 +587,7 @@ function BookingModal({
           <select
             value={type}
             onChange={(e) => setType(e.target.value)}
-            className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-200"
+            className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-200"
             data-testid="booking-type"
           >
             {APPOINTMENT_TYPES.map((t) => (
@@ -667,7 +667,7 @@ function BookingModal({
             <button
               type="submit"
               disabled={busy}
-              className="h-10 px-5 rounded-full bg-sky-500 hover:bg-sky-600 text-white font-medium disabled:opacity-50 inline-flex items-center gap-2"
+              className="h-10 px-5 rounded-full bg-teal-500 hover:bg-teal-600 text-white font-medium disabled:opacity-50 inline-flex items-center gap-2"
               data-testid="booking-submit"
             >
               {busy && <Loader2 className="w-4 h-4 animate-spin" />}

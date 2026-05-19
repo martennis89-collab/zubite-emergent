@@ -67,7 +67,7 @@ export default function ClinicOverviewPage() {
           </div>
           <Link
             href="/clinic/dashboard/requests"
-            className="inline-flex items-center gap-1.5 text-sm text-sky-600 hover:text-sky-700 font-medium"
+            className="inline-flex items-center gap-1.5 text-sm text-teal-600 hover:text-teal-700 font-medium"
             data-testid="clinic-overview-go-requests"
           >
             Към всички заявки <ArrowRight className="w-4 h-4" />
@@ -141,7 +141,7 @@ export default function ClinicOverviewPage() {
                   </h2>
                   <Link
                     href="/clinic/dashboard/requests"
-                    className="text-xs text-sky-600 hover:text-sky-700 font-medium inline-flex items-center gap-0.5"
+                    className="text-xs text-teal-600 hover:text-teal-700 font-medium inline-flex items-center gap-0.5"
                     data-testid="top-requests-all-link"
                   >
                     Всички <ChevronRight className="w-3 h-3" />
@@ -167,7 +167,7 @@ export default function ClinicOverviewPage() {
                             data-testid={`top-request-${r.id}`}
                           >
                             <div className="min-w-0 flex-1">
-                              <div className="text-sm font-medium text-slate-900 truncate group-hover:text-sky-700">
+                              <div className="text-sm font-medium text-slate-900 truncate group-hover:text-teal-700">
                                 {r.patient_name}
                               </div>
                               <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5 flex-wrap">
@@ -219,21 +219,21 @@ export default function ClinicOverviewPage() {
             </div>
 
             {/* TIPS */}
-            <div className="bg-gradient-to-br from-sky-50 to-white border border-sky-100 rounded-2xl p-5">
+            <div className="bg-gradient-to-br from-teal-50 to-white border border-teal-100 rounded-2xl p-5">
               <h2 className="font-medium text-slate-900 mb-2 text-sm">
                 Какво да направя сега?
               </h2>
               <ol className="text-sm text-slate-600 space-y-1.5 list-decimal list-inside">
                 <li>
                   Отворете секция{' '}
-                  <Link href="/clinic/dashboard/requests" className="text-sky-700 underline">
+                  <Link href="/clinic/dashboard/requests" className="text-teal-700 underline">
                     Заявки
                   </Link>{' '}
                   и реагирайте на новите.
                 </li>
                 <li>
                   Резервирайте консултация → ще се появи автоматично в{' '}
-                  <Link href="/clinic/dashboard/calendar" className="text-sky-700 underline">
+                  <Link href="/clinic/dashboard/calendar" className="text-teal-700 underline">
                     Календара
                   </Link>
                   .
@@ -255,7 +255,7 @@ export default function ClinicOverviewPage() {
 type Tone = 'sky' | 'amber' | 'emerald' | 'rose' | 'slate'
 
 const TONE_BG: Record<Tone, string> = {
-  sky: 'bg-sky-50 text-sky-700 ring-sky-100',
+  sky: 'bg-teal-50 text-teal-700 ring-teal-100',
   amber: 'bg-amber-50 text-amber-700 ring-amber-100',
   emerald: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
   rose: 'bg-rose-50 text-rose-700 ring-rose-100',
@@ -293,7 +293,7 @@ function HeroKpi({
       {cta && (
         <Link
           href="/clinic/dashboard/requests"
-          className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-sky-600 hover:text-sky-700"
+          className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-teal-600 hover:text-teal-700"
         >
           {cta} <ArrowRight className="w-3 h-3" />
         </Link>

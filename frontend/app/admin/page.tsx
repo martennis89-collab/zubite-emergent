@@ -61,18 +61,18 @@ export default function AdminLoginPage() {
   
   if (checkingAuth) {
     return (
-      <main className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-sky-500 animate-spin" />
+      <main className="min-h-screen bg-[#FCFAF8] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-teal-500 animate-spin" />
       </main>
     )
   }
   
   return (
-    <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+    <main className="min-h-screen bg-[#FCFAF8] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-sky-100 rounded-2xl mb-4">
-            <Lock className="w-8 h-8 text-sky-600" />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-teal-100 rounded-2xl mb-4">
+            <Lock className="w-8 h-8 text-teal-600" />
           </div>
           <h1 className="font-serif text-2xl font-semibold text-slate-900 mb-2">
             Админ Панел
@@ -92,7 +92,7 @@ export default function AdminLoginPage() {
                 type="text"
                 value={username}
                 onChange={e => setUsername(e.target.value)}
-                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors"
+                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
                 placeholder="admin"
                 required
                 data-testid="login-username"
@@ -107,7 +107,7 @@ export default function AdminLoginPage() {
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors"
+                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
                 placeholder="••••••••"
                 required
                 data-testid="login-password"

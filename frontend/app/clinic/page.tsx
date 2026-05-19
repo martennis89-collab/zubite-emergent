@@ -49,17 +49,17 @@ export default function ClinicLoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-10">
+    <main className="min-h-screen bg-[#FCFAF8] flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
         {/* Left: brand + value props (hidden on mobile, shown on lg+) */}
         <section className="hidden lg:flex flex-col gap-8" data-testid="clinic-login-brand">
           <div>
-            <div className="inline-flex items-center gap-2 text-sm font-medium text-sky-700 bg-sky-50 border border-sky-100 px-3 py-1.5 rounded-full">
+            <div className="inline-flex items-center gap-2 text-sm font-medium text-teal-700 bg-teal-50 border border-teal-100 px-3 py-1.5 rounded-full">
               <Building2 className="w-4 h-4" />
               Партньорски портал
             </div>
             <h1 className="font-serif text-4xl font-semibold text-slate-900 mt-5 leading-tight">
-              Zubite<span className="text-sky-500">.bg</span> за клиники
+              Zubite<span className="text-teal-500">.bg</span> за клиники
             </h1>
             <p className="text-slate-600 mt-3 leading-relaxed">
               Управлявайте заявките от пациенти, резервациите и резултатите на
@@ -98,8 +98,8 @@ export default function ClinicLoginPage() {
         {/* Right: login card */}
         <section>
           <div className="text-center mb-6 lg:hidden">
-            <div className="w-14 h-14 rounded-2xl bg-sky-50 border border-sky-100 flex items-center justify-center mx-auto mb-3">
-              <Building2 className="w-7 h-7 text-sky-500" />
+            <div className="w-14 h-14 rounded-2xl bg-teal-50 border border-teal-100 flex items-center justify-center mx-auto mb-3">
+              <Building2 className="w-7 h-7 text-teal-500" />
             </div>
             <h1 className="text-xl font-semibold text-slate-900">Вход за клиники</h1>
             <p className="text-sm text-slate-500 mt-1">Партньорски портал на Zubite.bg</p>
@@ -140,7 +140,7 @@ export default function ClinicLoginPage() {
                   required
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none transition-colors"
+                  className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 outline-none transition-colors"
                   placeholder="clinic@example.com"
                   data-testid="input-email"
                 />
@@ -154,7 +154,7 @@ export default function ClinicLoginPage() {
                 </label>
                 <a
                   href="mailto:partners@zubite.bg?subject=Забравена%20парола%20—%20Zubite%20партньор"
-                  className="text-xs text-sky-600 hover:text-sky-700 underline-offset-2 hover:underline"
+                  className="text-xs text-teal-600 hover:text-teal-700 underline-offset-2 hover:underline"
                   data-testid="forgot-password-link"
                 >
                   Забравена парола?
@@ -169,7 +169,7 @@ export default function ClinicLoginPage() {
                   required
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none transition-colors"
+                  className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 outline-none transition-colors"
                   placeholder="Въведете парола"
                   data-testid="input-password"
                 />
@@ -179,7 +179,7 @@ export default function ClinicLoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-sky-500 text-white font-medium rounded-xl hover:bg-sky-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-teal-500 text-white font-medium rounded-xl hover:bg-teal-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               data-testid="login-submit-btn"
             >
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
@@ -198,7 +198,7 @@ export default function ClinicLoginPage() {
           </form>
 
           <p className="text-center text-sm text-slate-400 mt-6">
-            <Link href="/" className="hover:text-sky-500 transition-colors">
+            <Link href="/" className="hover:text-teal-500 transition-colors">
               ← Обратно към Zubite.bg
             </Link>
           </p>
@@ -213,7 +213,7 @@ function ValueProp({
 }: { icon: React.ReactNode; title: string; body: string }) {
   return (
     <li className="flex items-start gap-3">
-      <span className="w-8 h-8 rounded-lg bg-white border border-slate-200 grid place-items-center text-sky-600 flex-shrink-0">
+      <span className="w-8 h-8 rounded-lg bg-white border border-slate-200 grid place-items-center text-teal-600 flex-shrink-0">
         {icon}
       </span>
       <div>

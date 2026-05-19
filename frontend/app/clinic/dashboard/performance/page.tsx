@@ -379,11 +379,11 @@ export default function ClinicPerformancePage() {
 
             {/* Insights card */}
             <section
-              className="bg-gradient-to-br from-sky-50 to-white border border-sky-100 rounded-2xl p-5"
+              className="bg-gradient-to-br from-teal-50 to-white border border-teal-100 rounded-2xl p-5"
               data-testid="performance-insights"
             >
               <div className="flex items-center gap-2 mb-3">
-                <Info className="w-4 h-4 text-sky-600" />
+                <Info className="w-4 h-4 text-teal-600" />
                 <h2 className="text-sm font-semibold text-slate-900">
                   Как да четете тези данни
                 </h2>
@@ -423,7 +423,7 @@ export default function ClinicPerformancePage() {
 type Tone = 'sky' | 'emerald' | 'rose' | 'slate' | 'amber'
 
 const TONE_BG: Record<Tone, string> = {
-  sky: 'bg-sky-50 text-sky-700 ring-sky-100',
+  sky: 'bg-teal-50 text-teal-700 ring-teal-100',
   emerald: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
   rose: 'bg-rose-50 text-rose-700 ring-rose-100',
   slate: 'bg-slate-50 text-slate-600 ring-slate-100',
@@ -506,7 +506,7 @@ function EmptyAllTime() {
       className="bg-white border border-slate-200 rounded-xl p-10 text-center"
       data-testid="performance-empty-alltime"
     >
-      <div className="mx-auto w-12 h-12 grid place-items-center rounded-full bg-sky-50 text-sky-600 mb-3">
+      <div className="mx-auto w-12 h-12 grid place-items-center rounded-full bg-teal-50 text-teal-600 mb-3">
         <TrendingUp className="w-5 h-5" />
       </div>
       <div className="text-base font-medium text-slate-700">

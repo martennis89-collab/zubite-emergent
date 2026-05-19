@@ -14,7 +14,7 @@ export function RequestCard({ r }: { r: ConsultationRequest }) {
     <Link
       href={`/clinic/dashboard/requests/${r.id}`}
       data-testid={`request-card-${r.id}`}
-      className="block bg-white border border-slate-200 rounded-2xl p-4 active:bg-slate-50 hover:border-sky-300 transition-colors"
+      className="block bg-white border border-slate-200 rounded-2xl p-4 active:bg-slate-50 hover:border-teal-300 transition-colors"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
@@ -47,7 +47,7 @@ export function RequestCard({ r }: { r: ConsultationRequest }) {
       {(r.readiness || r.urgency) && (
         <div className="mt-2 flex flex-wrap gap-1.5 text-[11px]">
           {r.readiness && (
-            <span className="px-2 py-0.5 rounded-full bg-sky-50 text-sky-700">{readinessLabel(r.readiness)}</span>
+            <span className="px-2 py-0.5 rounded-full bg-teal-50 text-teal-700">{readinessLabel(r.readiness)}</span>
           )}
           {r.urgency && r.urgency !== 'none' && (
             <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">{urgencyLabel(r.urgency)}</span>
@@ -60,7 +60,7 @@ export function RequestCard({ r }: { r: ConsultationRequest }) {
           <Clock className="w-3 h-3" />
           {timeSince(r.assigned_at || r.created_at)}
         </div>
-        <span className="inline-flex items-center gap-0.5 text-sky-600 font-medium">
+        <span className="inline-flex items-center gap-0.5 text-teal-600 font-medium">
           Отвори
           <ChevronRight className="w-3.5 h-3.5" />
         </span>

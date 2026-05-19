@@ -205,14 +205,14 @@ export default function LeadDetailPage() {
   
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50">
+      <main className="min-h-screen bg-[#FCFAF8]">
         <AdminHeader
           pageTitle="Детайли на лийд"
           backHref="/admin/leads"
           backLabel="Към лийдовете"
         />
         <div className="flex items-center justify-center py-32">
-          <Loader2 className="w-8 h-8 text-sky-500 animate-spin" />
+          <Loader2 className="w-8 h-8 text-teal-500 animate-spin" />
         </div>
       </main>
     )
@@ -220,7 +220,7 @@ export default function LeadDetailPage() {
   
   if (!lead) {
     return (
-      <main className="min-h-screen bg-slate-50">
+      <main className="min-h-screen bg-[#FCFAF8]">
         <AdminHeader
           pageTitle="Детайли на лийд"
           backHref="/admin/leads"
@@ -252,7 +252,7 @@ export default function LeadDetailPage() {
     })
   
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-[#FCFAF8]">
       <AdminHeader
         pageTitle="Детайли на лийд"
         backHref="/admin/leads"
@@ -270,7 +270,7 @@ export default function LeadDetailPage() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-2 px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors disabled:opacity-50"
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           <span>Запази</span>
@@ -301,7 +301,7 @@ export default function LeadDetailPage() {
                     type="text"
                     value={editForm.name}
                     onChange={e => setEditForm(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                     placeholder="Име на клиента"
                   />
                 </div>
@@ -312,7 +312,7 @@ export default function LeadDetailPage() {
                     type="tel"
                     value={editForm.phone}
                     onChange={e => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                     placeholder="+359..."
                   />
                 </div>
@@ -323,7 +323,7 @@ export default function LeadDetailPage() {
                     type="email"
                     value={editForm.email}
                     onChange={e => setEditForm(prev => ({ ...prev, email: e.target.value }))}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                     placeholder="email@example.com"
                   />
                 </div>
@@ -333,7 +333,7 @@ export default function LeadDetailPage() {
                   <select
                     value={editForm.city_slug}
                     onChange={e => setEditForm(prev => ({ ...prev, city_slug: e.target.value }))}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                   >
                     <option value="">Избери град</option>
                     <option value="sofia">София</option>
@@ -348,7 +348,7 @@ export default function LeadDetailPage() {
                   <select
                     value={editForm.status}
                     onChange={e => setEditForm(prev => ({ ...prev, status: e.target.value }))}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                   >
                     {STATUS_OPTIONS.map(opt => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -365,7 +365,7 @@ export default function LeadDetailPage() {
                 value={editForm.notes}
                 onChange={e => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
                 rows={4}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
                 placeholder="Добави бележки..."
               />
             </div>

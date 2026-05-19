@@ -150,14 +150,14 @@ export default function AdminBlogPage() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-sky-500 animate-spin" />
+      <main className="min-h-screen bg-[#FCFAF8] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-teal-500 animate-spin" />
       </main>
     )
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-[#FCFAF8]">
       <AdminHeader pageTitle="Блог" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -173,7 +173,7 @@ export default function AdminBlogPage() {
           </div>
           <Link
             href="/admin/blog/new"
-            className="inline-flex items-center justify-center gap-2 h-11 px-6 bg-sky-500 text-white rounded-lg font-medium hover:bg-sky-600 transition-colors"
+            className="inline-flex items-center justify-center gap-2 h-11 px-6 bg-teal-500 text-white rounded-lg font-medium hover:bg-teal-600 transition-colors"
             data-testid="new-post-btn"
           >
             <Plus className="w-5 h-5" />
@@ -194,8 +194,8 @@ export default function AdminBlogPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             <div className="bg-white rounded-xl border border-slate-200 p-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-sky-100 flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-sky-600" />
+                <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-teal-600" />
                 </div>
                 <div>
                   <p className="text-sm text-slate-500">Публикации</p>
@@ -235,7 +235,7 @@ export default function AdminBlogPage() {
               <select
                 value={filterPublished}
                 onChange={e => setFilterPublished(e.target.value)}
-                className="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-sky-500"
+                className="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-teal-500"
               >
                 <option value="">Всички статуси</option>
                 <option value="true">Публикувани</option>
@@ -249,7 +249,7 @@ export default function AdminBlogPage() {
                   placeholder="Търсене..."
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
-                  className="pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-sky-500 w-48"
+                  className="pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-teal-500 w-48"
                 />
               </div>
             </div>
@@ -272,7 +272,7 @@ export default function AdminBlogPage() {
               <p className="text-slate-500">Няма намерени публикации</p>
               <Link
                 href="/admin/blog/new"
-                className="inline-flex items-center gap-2 mt-4 text-sky-500 hover:text-sky-600"
+                className="inline-flex items-center gap-2 mt-4 text-teal-500 hover:text-teal-600"
               >
                 <Plus className="w-4 h-4" />
                 Създайте първата публикация
@@ -339,7 +339,7 @@ export default function AdminBlogPage() {
                       </button>
                       <Link
                         href={`/admin/blog/${post.id}`}
-                        className="p-2 text-slate-400 hover:text-sky-500 hover:bg-sky-50 rounded-lg transition-colors"
+                        className="p-2 text-slate-400 hover:text-teal-500 hover:bg-teal-50 rounded-lg transition-colors"
                         title="Редактирай"
                       >
                         <Edit className="w-5 h-5" />

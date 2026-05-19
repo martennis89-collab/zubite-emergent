@@ -177,7 +177,7 @@ export default function NewBlogPostPage() {
   // Logout is now handled by <AdminHeader />.
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-[#FCFAF8]">
       <AdminHeader
         pageTitle="Нова статия"
         backHref="/admin/blog"
@@ -230,7 +230,7 @@ export default function NewBlogPostPage() {
                 type="text"
                 value={formData.title}
                 onChange={handleTitleChange}
-                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
                 placeholder="Въведете заглавие..."
                 required
               />
@@ -248,14 +248,14 @@ export default function NewBlogPostPage() {
                   type="text"
                   value={formData.slug}
                   onChange={e => setFormData(prev => ({ ...prev, slug: e.target.value }))}
-                  className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-r-lg text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                  className="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-r-lg text-slate-900 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
                   placeholder="url-slug"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, slug: generateSlug(prev.title) }))}
-                  className="px-3 py-3 text-slate-500 hover:text-sky-600 transition-colors"
+                  className="px-3 py-3 text-slate-500 hover:text-teal-600 transition-colors"
                   title="Генерирай от заглавие"
                 >
                   <RefreshCw className="w-4 h-4" />
@@ -273,7 +273,7 @@ export default function NewBlogPostPage() {
               <textarea
                 value={formData.excerpt}
                 onChange={e => setFormData(prev => ({ ...prev, excerpt: e.target.value }))}
-                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500"
+                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
                 rows={2}
                 placeholder="Кратко описание за листинга..."
               />
@@ -286,7 +286,7 @@ export default function NewBlogPostPage() {
               <textarea
                 value={formData.content}
                 onChange={e => setFormData(prev => ({ ...prev, content: e.target.value }))}
-                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 font-mono text-sm"
+                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 font-mono text-sm"
                 rows={20}
                 placeholder="Напишете съдържанието тук... (поддържа Markdown)"
                 required
@@ -319,7 +319,7 @@ export default function NewBlogPostPage() {
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploading}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-sky-50 border-2 border-dashed border-sky-200 rounded-lg text-sky-600 hover:bg-sky-100 hover:border-sky-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-teal-50 border-2 border-dashed border-teal-200 rounded-lg text-teal-600 hover:bg-teal-100 hover:border-teal-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isUploading ? (
                     <>
@@ -355,7 +355,7 @@ export default function NewBlogPostPage() {
                   type="url"
                   value={formData.featured_image}
                   onChange={e => handleImageUrlChange(e.target.value)}
-                  className="w-full px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm focus:outline-none focus:border-sky-500"
+                  className="w-full px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm focus:outline-none focus:border-teal-500"
                   placeholder="https://..."
                 />
                 <p className="text-xs text-slate-400 mt-1">
@@ -382,7 +382,7 @@ export default function NewBlogPostPage() {
                 <select
                   value={formData.category}
                   onChange={e => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                  className="w-full px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm focus:outline-none focus:border-sky-500"
+                  className="w-full px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm focus:outline-none focus:border-teal-500"
                 >
                   <option value="orthodontics">Ортодонтия</option>
                   <option value="aligners">Алайнери</option>
@@ -401,7 +401,7 @@ export default function NewBlogPostPage() {
                   type="text"
                   value={formData.tags}
                   onChange={e => setFormData(prev => ({ ...prev, tags: e.target.value }))}
-                  className="w-full px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm focus:outline-none focus:border-sky-500"
+                  className="w-full px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm focus:outline-none focus:border-teal-500"
                   placeholder="таг1, таг2, таг3"
                 />
               </div>
@@ -421,7 +421,7 @@ export default function NewBlogPostPage() {
                   type="text"
                   value={formData.meta_title}
                   onChange={e => setFormData(prev => ({ ...prev, meta_title: e.target.value }))}
-                  className="w-full px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm focus:outline-none focus:border-sky-500"
+                  className="w-full px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm focus:outline-none focus:border-teal-500"
                   placeholder="SEO заглавие (ако е различно)"
                 />
               </div>
@@ -433,7 +433,7 @@ export default function NewBlogPostPage() {
                 <textarea
                   value={formData.meta_description}
                   onChange={e => setFormData(prev => ({ ...prev, meta_description: e.target.value }))}
-                  className="w-full px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm focus:outline-none focus:border-sky-500"
+                  className="w-full px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-900 text-sm focus:outline-none focus:border-teal-500"
                   rows={3}
                   placeholder="SEO описание..."
                 />

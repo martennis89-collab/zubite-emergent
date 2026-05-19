@@ -46,12 +46,12 @@ export default function VerifyPage({ params }: { params: { token: string } }) {
     <main className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md text-center">
         <Link href="/" className="inline-block font-serif text-2xl font-semibold text-slate-900 mb-8">
-          Zubite<span className="text-sky-500">.bg</span>
+          Zubite<span className="text-teal-500">.bg</span>
         </Link>
 
         {status === 'loading' && (
           <div className="bg-white rounded-2xl border border-slate-200 p-10 shadow-sm" data-testid="verify-loading">
-            <Loader2 className="w-10 h-10 text-sky-500 animate-spin mx-auto mb-4" />
+            <Loader2 className="w-10 h-10 text-teal-500 animate-spin mx-auto mb-4" />
             <p className="text-slate-500">Обработка...</p>
           </div>
         )}
@@ -115,7 +115,7 @@ export default function VerifyPage({ params }: { params: { token: string } }) {
         )}
 
         <p className="text-sm text-slate-400 mt-8">
-          <Link href="/" className="hover:text-sky-500 transition-colors">← Обратно към Zubite.bg</Link>
+          <Link href="/" className="hover:text-teal-500 transition-colors">← Обратно към Zubite.bg</Link>
         </p>
       </div>
     </main>

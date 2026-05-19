@@ -27,7 +27,7 @@ const STATUS_OPTS = [
 ]
 
 const STATUS_BADGE: Record<string, string> = {
-  booked: 'bg-sky-100 text-sky-700',
+  booked: 'bg-teal-100 text-teal-700',
   confirmed: 'bg-emerald-100 text-emerald-700',
   rescheduled: 'bg-amber-100 text-amber-800',
   attended: 'bg-emerald-100 text-emerald-700',
@@ -229,7 +229,7 @@ export default function ClinicCalendarPage() {
                 className={`text-sm font-medium px-3 py-1.5 rounded-md border ${
                   isCurrentWeekShown
                     ? 'text-slate-400 border-slate-200 cursor-not-allowed'
-                    : 'text-sky-700 border-sky-200 hover:bg-sky-50'
+                    : 'text-teal-700 border-teal-200 hover:bg-teal-50'
                 }`}
                 data-testid="calendar-today-btn"
               >
@@ -341,7 +341,7 @@ export default function ClinicCalendarPage() {
                         {a.consultation_request_id && (
                           <Link
                             href={`/clinic/dashboard/requests/${a.consultation_request_id}`}
-                            className="text-sm text-sky-600 hover:text-sky-700 font-medium"
+                            className="text-sm text-teal-600 hover:text-teal-700 font-medium"
                           >
                             Заявка
                           </Link>
@@ -367,7 +367,7 @@ function EmptyState({
       className="bg-white border border-slate-200 rounded-xl p-10 text-center"
       data-testid={testid}
     >
-      <div className="mx-auto w-12 h-12 grid place-items-center rounded-full bg-sky-50 text-sky-600 mb-3">
+      <div className="mx-auto w-12 h-12 grid place-items-center rounded-full bg-teal-50 text-teal-600 mb-3">
         <CalIcon className="w-5 h-5" />
       </div>
       <div className="text-base font-medium text-slate-700">{title}</div>

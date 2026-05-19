@@ -53,14 +53,14 @@ export default function AdminLeadsPage() {
   
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-sky-500 animate-spin" />
+      <main className="min-h-screen bg-[#FCFAF8] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-teal-500 animate-spin" />
       </main>
     )
   }
   
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-[#FCFAF8]">
       <AdminHeader
         pageTitle="Всички лийдове"
         backHref="/admin/dashboard"
@@ -101,7 +101,7 @@ export default function AdminLeadsPage() {
                     <td className="py-4 px-4">
                       <Link 
                         href={`/admin/leads/${lead.id}`}
-                        className="text-sky-600 hover:text-sky-700 transition-colors"
+                        className="text-teal-600 hover:text-teal-700 transition-colors"
                       >
                         <ChevronRight className="w-5 h-5" />
                       </Link>

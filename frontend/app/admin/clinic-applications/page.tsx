@@ -41,7 +41,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
   pending: { label: 'Изчаква', color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200' },
   approved: { label: 'Одобрена', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200' },
   rejected: { label: 'Отхвърлена', color: 'text-red-700', bg: 'bg-red-50 border-red-200' },
-  waiting_list: { label: 'Лист на чакащите', color: 'text-sky-700', bg: 'bg-sky-50 border-sky-200' },
+  waiting_list: { label: 'Лист на чакащите', color: 'text-teal-700', bg: 'bg-teal-50 border-teal-200' },
 }
 
 const RESPONSE_TIME_LABELS: Record<string, string> = {
@@ -299,7 +299,7 @@ function DetailView({ app, onClose, onUpdate }: {
               rows={3}
               value={notes}
               onChange={e => setNotes(e.target.value)}
-              className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors outline-none resize-none"
+              className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors outline-none resize-none"
               placeholder="Добави бележка..."
               data-testid="admin-notes-input"
             />
@@ -401,14 +401,14 @@ export default function ClinicApplicationsPage() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-sky-500 animate-spin" />
+      <main className="min-h-screen bg-[#FCFAF8] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-teal-500 animate-spin" />
       </main>
     )
   }
 
   return (
-    <main className="min-h-screen bg-slate-50" data-testid="clinic-applications-page">
+    <main className="min-h-screen bg-[#FCFAF8]" data-testid="clinic-applications-page">
       <AdminHeader pageTitle="Кандидатури за клиники" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -440,7 +440,7 @@ export default function ClinicApplicationsPage() {
             { key: 'pending', label: 'Изчакват', count: counts.pending, color: 'bg-amber-50 border-amber-200 text-amber-700' },
             { key: 'approved', label: 'Одобрени', count: counts.approved, color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
             { key: 'rejected', label: 'Отхвърлени', count: counts.rejected, color: 'bg-red-50 border-red-200 text-red-700' },
-            { key: 'waiting_list', label: 'Чакащи', count: counts.waiting_list, color: 'bg-sky-50 border-sky-200 text-sky-700' },
+            { key: 'waiting_list', label: 'Чакащи', count: counts.waiting_list, color: 'bg-teal-50 border-teal-200 text-teal-700' },
           ].map(s => (
             <button
               key={s.label}
@@ -462,7 +462,7 @@ export default function ClinicApplicationsPage() {
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             placeholder="Търси по име на клиника, контакт, град или имейл..."
-            className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors outline-none"
+            className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors outline-none"
             data-testid="search-input"
           />
         </div>

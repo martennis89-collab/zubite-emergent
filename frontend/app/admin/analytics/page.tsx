@@ -146,10 +146,10 @@ export default function AdminAnalyticsPage() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-slate-50">
+      <main className="min-h-screen bg-[#FCFAF8]">
         <AdminHeader pageTitle="Анализи" />
         <div className="flex items-center justify-center py-32">
-          <Loader2 className="w-8 h-8 text-sky-500 animate-spin" />
+          <Loader2 className="w-8 h-8 text-teal-500 animate-spin" />
         </div>
       </main>
     )
@@ -162,7 +162,7 @@ export default function AdminAnalyticsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-[#FCFAF8]">
       <AdminHeader pageTitle="Анализи" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -237,7 +237,7 @@ export default function AdminAnalyticsPage() {
                     data-testid={`analytics-preset-${p.key}`}
                     className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
                       preset === p.key
-                        ? 'bg-sky-500 text-white border-sky-500'
+                        ? 'bg-teal-500 text-white border-teal-500'
                         : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                     }`}
                   >
@@ -276,8 +276,8 @@ export default function AdminAnalyticsPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               <div className="bg-white rounded-xl border border-slate-200 p-5">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-lg bg-sky-100 flex items-center justify-center">
-                    <Users className="w-5 h-5 text-sky-600" />
+                  <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center">
+                    <Users className="w-5 h-5 text-teal-600" />
                   </div>
                 </div>
                 <p className="text-2xl font-bold text-slate-900">{analytics.total_starts}</p>
@@ -412,8 +412,8 @@ export default function AdminAnalyticsPage() {
               
               <div className="space-y-4">
                 {[
-                  { key: 'quiz_start', label: 'Започнали теста', color: 'bg-sky-500' },
-                  { key: 'quiz_completed', label: 'Завършили теста', color: 'bg-sky-400' },
+                  { key: 'quiz_start', label: 'Започнали теста', color: 'bg-teal-500' },
+                  { key: 'quiz_completed', label: 'Завършили теста', color: 'bg-teal-400' },
                   { key: 'soft_commit_yes', label: 'Искат опции', color: 'bg-emerald-500' },
                   { key: 'form_submitted', label: 'Изпратили форма', color: 'bg-emerald-600' },
                 ].map((step, index) => {
@@ -517,12 +517,12 @@ export default function AdminAnalyticsPage() {
                 <div className="mt-6 pt-6 border-t border-slate-100">
                   <h3 className="text-sm font-medium text-slate-700 mb-3">Лийдове по град</h3>
                   <div className="flex gap-4">
-                    <div className="flex-1 text-center p-3 bg-sky-50 rounded-lg">
-                      <p className="text-xl font-bold text-sky-600">{analytics.leads_by_city.sofia || 0}</p>
+                    <div className="flex-1 text-center p-3 bg-teal-50 rounded-lg">
+                      <p className="text-xl font-bold text-teal-600">{analytics.leads_by_city.sofia || 0}</p>
                       <p className="text-xs text-slate-500">София</p>
                     </div>
-                    <div className="flex-1 text-center p-3 bg-sky-50 rounded-lg">
-                      <p className="text-xl font-bold text-sky-600">{analytics.leads_by_city.plovdiv || 0}</p>
+                    <div className="flex-1 text-center p-3 bg-teal-50 rounded-lg">
+                      <p className="text-xl font-bold text-teal-600">{analytics.leads_by_city.plovdiv || 0}</p>
                       <p className="text-xs text-slate-500">Пловдив</p>
                     </div>
                   </div>
@@ -603,7 +603,7 @@ export default function AdminAnalyticsPage() {
                     return (
                       <div 
                         key={index}
-                        className="flex-1 bg-sky-500 rounded-t hover:bg-sky-600 transition-colors"
+                        className="flex-1 bg-teal-500 rounded-t hover:bg-teal-600 transition-colors"
                         style={{ height: `${Math.max(height, 4)}%` }}
                         title={`${day.date}: ${day.count} лийда`}
                       />

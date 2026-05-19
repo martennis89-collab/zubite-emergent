@@ -34,7 +34,7 @@ export function RequestProgressStrip({ shape }: { shape: ProgressShape }) {
           const ring = isDone
             ? 'bg-emerald-500 text-white border-emerald-500'
             : isCurrent
-            ? 'bg-sky-500 text-white border-sky-500 ring-4 ring-sky-100'
+            ? 'bg-teal-500 text-white border-teal-500 ring-4 ring-teal-100'
             : 'bg-white text-slate-400 border-slate-200'
           const labelCls = isDone
             ? 'text-emerald-700'

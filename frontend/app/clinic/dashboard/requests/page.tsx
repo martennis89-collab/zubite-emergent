@@ -95,7 +95,7 @@ export default function ClinicRequestsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Търсене по име, телефон или лечение…"
-              className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-200 placeholder-slate-400"
+              className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-200 placeholder-slate-400"
             />
           </div>
           <div className="flex items-center gap-1.5 overflow-x-auto -mx-1 px-1 sm:mx-0 sm:px-0">
@@ -109,7 +109,7 @@ export default function ClinicRequestsPage() {
                 onClick={() => setFilter(f.key)}
                 className={`px-3 py-1.5 text-sm rounded-full whitespace-nowrap border transition-colors ${
                   filter === f.key
-                    ? 'bg-sky-500 border-sky-500 text-white shadow-sm'
+                    ? 'bg-teal-500 border-teal-500 text-white shadow-sm'
                     : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
                 }`}
               >
@@ -194,7 +194,7 @@ export default function ClinicRequestsPage() {
                           <Link
                             href={`/clinic/dashboard/requests/${r.id}`}
                             data-testid={`request-open-${r.id}`}
-                            className="inline-flex items-center text-sky-600 hover:text-sky-700 font-medium text-sm"
+                            className="inline-flex items-center text-teal-600 hover:text-teal-700 font-medium text-sm"
                           >
                             Отвори →
                           </Link>
@@ -263,8 +263,8 @@ function RequestsEmptyState({ filterActive, totalLoaded }: { filterActive: boole
       className="bg-white border border-slate-200 rounded-2xl p-10 text-center"
       data-testid="requests-empty"
     >
-      <div className="mx-auto w-14 h-14 rounded-full bg-sky-50 grid place-items-center mb-4">
-        <Inbox className="w-7 h-7 text-sky-500" />
+      <div className="mx-auto w-14 h-14 rounded-full bg-teal-50 grid place-items-center mb-4">
+        <Inbox className="w-7 h-7 text-teal-500" />
       </div>
       {isFilteredOut ? (
         <>

@@ -117,7 +117,7 @@ export default function AdminConsultationDetail() {
     : null
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-[#FCFAF8]">
       <AdminHeader
         pageTitle="Детайли на заявка"
         backHref="/admin/consultation-requests"
@@ -165,7 +165,7 @@ export default function AdminConsultationDetail() {
                 (kind.key === 'assisted_choice'
                   ? 'bg-violet-50/50 border-violet-200'
                   : kind.key === 'selected_clinic'
-                  ? 'bg-sky-50/40 border-sky-200'
+                  ? 'bg-teal-50/40 border-teal-200'
                   : 'bg-white border-slate-200')
               }
               data-testid="admin-cr-kind-section"
@@ -360,8 +360,8 @@ export default function AdminConsultationDetail() {
                 {events.length === 0 && <li className="text-sm text-slate-400">Няма събития.</li>}
                 {events.map((ev) => (
                   <li key={ev.id} className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-full bg-sky-50 grid place-items-center mt-0.5 flex-shrink-0">
-                      <CheckCircle2 className="w-4 h-4 text-sky-500" />
+                    <div className="w-8 h-8 rounded-full bg-teal-50 grid place-items-center mt-0.5 flex-shrink-0">
+                      <CheckCircle2 className="w-4 h-4 text-teal-500" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-slate-900">{EVENT_LABELS[ev.event_type] || ev.event_type}</div>
@@ -393,7 +393,7 @@ export default function AdminConsultationDetail() {
                   type="button"
                   disabled={busy || !note.trim()}
                   onClick={addNote}
-                  className="h-9 px-4 rounded-full bg-sky-500 hover:bg-sky-600 text-white text-sm font-medium disabled:opacity-50"
+                  className="h-9 px-4 rounded-full bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium disabled:opacity-50"
                   data-testid="admin-cr-note-submit"
                 >
                   Добави бележка
@@ -435,7 +435,7 @@ function ConsentSection({ r }: { r: ConsultationRequest }) {
       </div>
 
       {hasClinicConsent && (
-        <div className="mt-3 border-l-2 border-sky-200 pl-3" data-testid="admin-cr-consent-clinic">
+        <div className="mt-3 border-l-2 border-teal-200 pl-3" data-testid="admin-cr-consent-clinic">
           <div className="text-xs uppercase tracking-wide text-slate-500">Тип съгласие</div>
           <div className="text-sm text-slate-900">Споделяне на данните с избраната клиника</div>
           <div className="text-xs text-slate-500 mt-1">

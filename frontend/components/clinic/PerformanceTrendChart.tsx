@@ -116,7 +116,7 @@ export function PerformanceTrendChart({ data }: Props) {
 
       <div className="flex items-center gap-5 text-xs text-slate-600 pl-2 mt-1">
         <span className="inline-flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-sm bg-sky-600" />
+          <span className="w-3 h-3 rounded-sm bg-teal-600" />
           Резервирани
         </span>
         <span className="inline-flex items-center gap-1.5">

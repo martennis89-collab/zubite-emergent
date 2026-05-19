@@ -102,7 +102,7 @@ export default function PublicClinicReviewPage() {
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50 grid place-items-center">
-        <Loader2 className="w-7 h-7 text-sky-500 animate-spin" />
+        <Loader2 className="w-7 h-7 text-teal-500 animate-spin" />
       </main>
     )
   }
@@ -118,7 +118,7 @@ export default function PublicClinicReviewPage() {
           </p>
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 mt-5 text-sm text-sky-600 hover:text-sky-700"
+            className="inline-flex items-center gap-1.5 mt-5 text-sm text-teal-600 hover:text-teal-700"
           >
             Към Zubite.bg
           </Link>
@@ -145,7 +145,7 @@ export default function PublicClinicReviewPage() {
           </p>
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 mt-6 text-sm text-sky-600 hover:text-sky-700"
+            className="inline-flex items-center gap-1.5 mt-6 text-sm text-teal-600 hover:text-teal-700"
             data-testid="review-success-home-link"
           >
             Към Zubite.bg
@@ -159,7 +159,7 @@ export default function PublicClinicReviewPage() {
     <main className="min-h-screen bg-slate-50 px-4 py-10 sm:py-14" data-testid="review-page">
       <div className="max-w-xl mx-auto">
         <header className="mb-6">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-sky-600 mb-1">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-teal-600 mb-1">
             Zubite.bg
           </p>
           <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-slate-900 leading-tight">
@@ -216,7 +216,7 @@ export default function PublicClinicReviewPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Иван П."
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-200 focus:border-teal-300"
               data-testid="review-name-input"
             />
           </div>
@@ -231,7 +231,7 @@ export default function PublicClinicReviewPage() {
               value={treatment}
               onChange={(e) => setTreatment(e.target.value)}
               placeholder="напр. Алайнери, Профилактика…"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-200 focus:border-teal-300"
               data-testid="review-treatment-input"
             />
           </div>
@@ -246,7 +246,7 @@ export default function PublicClinicReviewPage() {
               onChange={(e) => setFeedback(e.target.value)}
               rows={4}
               placeholder="Споделете опита си от посещението — без медицински детайли или диагнози."
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300 leading-relaxed"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-200 focus:border-teal-300 leading-relaxed"
               data-testid="review-feedback-input"
             />
           </div>
@@ -261,7 +261,7 @@ export default function PublicClinicReviewPage() {
               onChange={(e) => setPrivateNote(e.target.value)}
               rows={3}
               placeholder="Не се показва публично. Само клиниката ще го види."
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300 leading-relaxed"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-200 focus:border-teal-300 leading-relaxed"
               data-testid="review-private-note-input"
             />
           </div>
@@ -276,7 +276,7 @@ export default function PublicClinicReviewPage() {
               value={contact}
               onChange={(e) => setContact(e.target.value)}
               placeholder="Email или телефон, ако желаете да ви потърсим"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-200 focus:border-teal-300"
               data-testid="review-contact-input"
             />
           </div>
@@ -324,7 +324,7 @@ export default function PublicClinicReviewPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="inline-flex w-full items-center justify-center gap-2 px-6 py-3 bg-sky-500 hover:bg-sky-600 disabled:opacity-60 text-white text-sm font-medium rounded-full transition-colors"
+            className="inline-flex w-full items-center justify-center gap-2 px-6 py-3 bg-teal-500 hover:bg-teal-600 disabled:opacity-60 text-white text-sm font-medium rounded-full transition-colors"
             data-testid="review-submit-btn"
           >
             {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}

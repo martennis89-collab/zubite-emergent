@@ -126,7 +126,7 @@ export default function ClinicReviewsPage() {
     return (
       <ClinicShell>
         <div className="flex items-center justify-center py-32">
-          <Loader2 className="w-7 h-7 text-sky-500 animate-spin" />
+          <Loader2 className="w-7 h-7 text-teal-500 animate-spin" />
         </div>
       </ClinicShell>
     )
@@ -157,7 +157,7 @@ export default function ClinicReviewsPage() {
               </p>
               <div className="flex items-center gap-2 rounded-lg bg-slate-50 border border-slate-200 px-3 py-2">
                 <span
-                  className="text-xs sm:text-sm text-sky-700 truncate font-mono flex-1 min-w-0"
+                  className="text-xs sm:text-sm text-teal-700 truncate font-mono flex-1 min-w-0"
                   data-testid="clinic-review-url"
                   title={reviewUrl}
                 >
@@ -167,7 +167,7 @@ export default function ClinicReviewsPage() {
                   type="button"
                   onClick={() => reviewUrl && window.open(reviewUrl, '_blank', 'noopener,noreferrer')}
                   disabled={!reviewUrl}
-                  className="flex-shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-sky-600 hover:bg-sky-50 disabled:opacity-40"
+                  className="flex-shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-teal-600 hover:bg-teal-50 disabled:opacity-40"
                   data-testid="clinic-review-open-btn"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
@@ -176,7 +176,7 @@ export default function ClinicReviewsPage() {
                 <button
                   type="button"
                   onClick={handleCopy}
-                  className="flex-shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-sky-600 hover:bg-sky-50"
+                  className="flex-shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-teal-600 hover:bg-teal-50"
                   data-testid="clinic-review-copy-btn"
                 >
                   {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
@@ -188,7 +188,7 @@ export default function ClinicReviewsPage() {
                 <button
                   type="button"
                   onClick={() => setShowPosterPreview((v) => !v)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-sky-200 text-sky-700 hover:bg-sky-50 text-xs font-medium"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-teal-200 text-teal-700 hover:bg-teal-50 text-xs font-medium"
                   data-testid="clinic-review-preview-btn"
                 >
                   <Eye className="w-3.5 h-3.5" />
@@ -240,7 +240,7 @@ export default function ClinicReviewsPage() {
               onClick={() => setFilter(filter === s ? 'all' : s)}
               className={
                 'rounded-2xl border bg-white p-4 text-left transition ' +
-                (filter === s ? 'border-sky-300 ring-2 ring-sky-100' : 'border-slate-200 hover:border-slate-300')
+                (filter === s ? 'border-teal-300 ring-2 ring-teal-100' : 'border-slate-200 hover:border-slate-300')
               }
               data-testid={`clinic-review-count-${s}`}
             >
@@ -259,7 +259,7 @@ export default function ClinicReviewsPage() {
             <button
               type="button"
               onClick={() => setFilter('all')}
-              className="text-xs text-sky-600 hover:text-sky-700"
+              className="text-xs text-teal-600 hover:text-teal-700"
             >
               Покажи всички
             </button>

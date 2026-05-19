@@ -231,7 +231,7 @@ function ClinicVerificationPanel({ lead, onMessage, onLeadUpdate }: {
           <select
             value={selectedClinicId}
             onChange={e => setSelectedClinicId(e.target.value)}
-            className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+            className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
             data-testid="assign-clinic-select"
           >
             <option value="">Изберете клиника</option>
@@ -250,7 +250,7 @@ function ClinicVerificationPanel({ lead, onMessage, onLeadUpdate }: {
           </button>
         </div>
         {assignedClinic && (
-          <p className="text-xs text-sky-600 mt-1.5 flex items-center gap-1">
+          <p className="text-xs text-teal-600 mt-1.5 flex items-center gap-1">
             <CheckCircle className="w-3 h-3" />
             Насочен към: {assignedClinic.clinic_name}
           </p>
@@ -275,7 +275,7 @@ function ClinicVerificationPanel({ lead, onMessage, onLeadUpdate }: {
           onClick={handleSendVerification}
           disabled={sendingVerification || !lead.assigned_clinic_id || !lead.email}
           title={!lead.assigned_clinic_id ? 'Лийдът трябва да е насочен към клиника' : !lead.email ? 'Лийдът няма имейл' : 'Изпрати верификация'}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-sky-700 bg-sky-50 border border-sky-200 rounded-lg hover:bg-sky-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-teal-700 bg-teal-50 border border-teal-200 rounded-lg hover:bg-teal-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           data-testid="send-verification-btn"
         >
           {sendingVerification ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
@@ -665,14 +665,14 @@ export default function AdminDashboardPage() {
   
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-sky-500 animate-spin" />
+      <main className="min-h-screen bg-[#FCFAF8] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-teal-500 animate-spin" />
       </main>
     )
   }
   
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-[#FCFAF8]">
       <AdminHeader />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -697,8 +697,8 @@ export default function AdminDashboardPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             <div className="bg-white rounded-xl border border-slate-200 p-5">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-lg bg-sky-100 flex items-center justify-center">
-                  <Users className="w-5 h-5 text-sky-600" />
+                <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center">
+                  <Users className="w-5 h-5 text-teal-600" />
                 </div>
               </div>
               <p className="text-2xl font-bold text-slate-900">{stats.total_leads}</p>
@@ -749,7 +749,7 @@ export default function AdminDashboardPage() {
               <select
                 value={filterBand}
                 onChange={e => setFilterBand(e.target.value)}
-                className="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-sky-500"
+                className="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-teal-500"
               >
                 <option value="">Всички категории</option>
                 <option value="GREEN">Зелен</option>
@@ -760,7 +760,7 @@ export default function AdminDashboardPage() {
               <select
                 value={filterCity}
                 onChange={e => setFilterCity(e.target.value)}
-                className="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-sky-500"
+                className="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-teal-500"
               >
                 <option value="">Всички градове</option>
                 {Object.entries(CITY_NAMES).map(([slug, name]) => (
@@ -771,7 +771,7 @@ export default function AdminDashboardPage() {
               <select
                 value={filterSource}
                 onChange={e => setFilterSource(e.target.value)}
-                className="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-sky-500"
+                className="px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-teal-500"
                 data-testid="filter-source"
               >
                 <option value="">Всички източници</option>
@@ -793,7 +793,7 @@ export default function AdminDashboardPage() {
                   placeholder="Търсене..."
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
-                  className="pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-sky-500 w-48"
+                  className="pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-700 focus:outline-none focus:border-teal-500 w-48"
                 />
               </div>
             </div>
@@ -827,7 +827,7 @@ export default function AdminDashboardPage() {
               </button>
               <button
                 onClick={handleExportCSV}
-                className="flex items-center gap-2 px-4 py-2 bg-sky-500 text-white rounded-lg text-sm font-medium hover:bg-sky-600 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-lg text-sm font-medium hover:bg-teal-600 transition-colors"
               >
                 <FileDown className="w-4 h-4" />
                 Експорт CSV
@@ -847,7 +847,7 @@ export default function AdminDashboardPage() {
                       type="checkbox"
                       checked={filteredLeads.length > 0 && selectedIds.size === filteredLeads.length}
                       onChange={toggleSelectAll}
-                      className="w-4 h-4 rounded border-slate-300 text-sky-500 focus:ring-sky-500"
+                      className="w-4 h-4 rounded border-slate-300 text-teal-500 focus:ring-teal-500"
                     />
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Лийд</th>
@@ -873,7 +873,7 @@ export default function AdminDashboardPage() {
                     <tr 
                       key={lead.id} 
                       onClick={() => router.push(`/admin/leads/${lead.id}`)}
-                      className={`hover:bg-slate-50 transition-colors cursor-pointer ${selectedIds.has(lead.id) ? 'bg-sky-50' : ''}`}
+                      className={`hover:bg-slate-50 transition-colors cursor-pointer ${selectedIds.has(lead.id) ? 'bg-teal-50' : ''}`}
                     >
                       <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
                         <input
@@ -881,7 +881,7 @@ export default function AdminDashboardPage() {
                           checked={selectedIds.has(lead.id)}
                           onChange={() => {}}
                           onClick={(e) => toggleSelectLead(lead.id, e)}
-                          className="w-4 h-4 rounded border-slate-300 text-sky-500 focus:ring-sky-500"
+                          className="w-4 h-4 rounded border-slate-300 text-teal-500 focus:ring-teal-500"
                         />
                       </td>
                       <td className="px-4 py-4">
@@ -949,7 +949,7 @@ export default function AdminDashboardPage() {
                             organic_social: 'bg-pink-100 text-pink-700',
                             referral: 'bg-amber-100 text-amber-700',
                             direct: 'bg-slate-100 text-slate-700',
-                            blog: 'bg-sky-100 text-sky-700',
+                            blog: 'bg-teal-100 text-teal-700',
                             internal_content: 'bg-indigo-100 text-indigo-700',
                             unknown: 'bg-slate-100 text-slate-500',
                           }
@@ -959,7 +959,7 @@ export default function AdminDashboardPage() {
                                 {t}
                               </span>
                               {lead.blog_assisted_conversion && (
-                                <span className="text-[10px] text-sky-600">📄 blog-assist</span>
+                                <span className="text-[10px] text-teal-600">📄 blog-assist</span>
                               )}
                             </div>
                           )
@@ -978,7 +978,7 @@ export default function AdminDashboardPage() {
                             )}
                           </div>
                         ) : lead.latest_article_slug ? (
-                          <div className="text-xs text-sky-600 truncate" title={lead.latest_article_slug}>
+                          <div className="text-xs text-teal-600 truncate" title={lead.latest_article_slug}>
                             /blog/{lead.latest_article_slug}
                           </div>
                         ) : (
@@ -1055,7 +1055,7 @@ export default function AdminDashboardPage() {
                   <button
                     onClick={handleSaveLead}
                     disabled={saving}
-                    className="flex items-center gap-2 px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors disabled:opacity-50"
+                    className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors disabled:opacity-50"
                   >
                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     <span>Запази</span>
@@ -1090,7 +1090,7 @@ export default function AdminDashboardPage() {
                             type="text"
                             value={editForm.name}
                             onChange={e => setEditForm(prev => ({ ...prev, name: e.target.value }))}
-                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                           />
                         </div>
                         <div>
@@ -1099,7 +1099,7 @@ export default function AdminDashboardPage() {
                             type="tel"
                             value={editForm.phone}
                             onChange={e => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
-                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                           />
                         </div>
                         <div>
@@ -1108,7 +1108,7 @@ export default function AdminDashboardPage() {
                             type="email"
                             value={editForm.email}
                             onChange={e => setEditForm(prev => ({ ...prev, email: e.target.value }))}
-                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                           />
                         </div>
                         <div>
@@ -1116,7 +1116,7 @@ export default function AdminDashboardPage() {
                           <select
                             value={editForm.city_slug}
                             onChange={e => setEditForm(prev => ({ ...prev, city_slug: e.target.value }))}
-                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                           >
                             <option value="">Избери</option>
                             {Object.entries(CITY_NAMES).map(([slug, name]) => (
@@ -1129,7 +1129,7 @@ export default function AdminDashboardPage() {
                           <select
                             value={editForm.status}
                             onChange={e => setEditForm(prev => ({ ...prev, status: e.target.value }))}
-                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                           >
                             {STATUS_OPTIONS.map(opt => (
                               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -1195,7 +1195,7 @@ export default function AdminDashboardPage() {
                         value={editForm.notes}
                         onChange={e => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
                         rows={3}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
                         placeholder="Добави бележки..."
                       />
                     </div>

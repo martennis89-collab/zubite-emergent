@@ -130,7 +130,7 @@ export default function AdminReviewsPage() {
   const filtered = useMemo(() => reviews, [reviews])
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-[#FCFAF8]">
       <AdminHeader pageTitle="Ревюта" />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
@@ -167,7 +167,7 @@ export default function AdminReviewsPage() {
                 className={
                   'inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ' +
                   (active
-                    ? 'border-sky-500 text-sky-700'
+                    ? 'border-teal-500 text-teal-700'
                     : 'border-transparent text-slate-500 hover:text-slate-900')
                 }
                 data-testid={`admin-reviews-tab-${t.key}`}
@@ -179,7 +179,7 @@ export default function AdminReviewsPage() {
                     className={
                       'inline-flex items-center justify-center min-w-[1.5rem] h-5 px-1.5 text-[11px] rounded-full ring-1 ' +
                       (active
-                        ? 'bg-sky-50 text-sky-700 ring-sky-200'
+                        ? 'bg-teal-50 text-teal-700 ring-teal-200'
                         : 'bg-slate-100 text-slate-600 ring-slate-200')
                     }
                   >
@@ -199,7 +199,7 @@ export default function AdminReviewsPage() {
               value={clinicFilter}
               onChange={(e) => setClinicFilter(e.target.value)}
               placeholder="Филтър по clinic_id (опционално)"
-              className="pl-8 pr-3 py-1.5 text-xs rounded-md border border-slate-200 bg-white w-72 focus:outline-none focus:ring-2 focus:ring-sky-100 focus:border-sky-300"
+              className="pl-8 pr-3 py-1.5 text-xs rounded-md border border-slate-200 bg-white w-72 focus:outline-none focus:ring-2 focus:ring-teal-100 focus:border-teal-300"
               data-testid="admin-reviews-clinic-filter"
             />
           </div>
@@ -207,7 +207,7 @@ export default function AdminReviewsPage() {
             <button
               type="button"
               onClick={() => setClinicFilter('')}
-              className="text-[11px] text-sky-600 hover:text-sky-700"
+              className="text-[11px] text-teal-600 hover:text-teal-700"
             >
               Изчисти
             </button>
@@ -217,7 +217,7 @@ export default function AdminReviewsPage() {
         {/* List */}
         {loading ? (
           <div className="grid place-items-center py-24" data-testid="admin-reviews-loading">
-            <Loader2 className="w-7 h-7 text-sky-500 animate-spin" />
+            <Loader2 className="w-7 h-7 text-teal-500 animate-spin" />
           </div>
         ) : filtered.length === 0 ? (
           <div
@@ -342,7 +342,7 @@ export default function AdminReviewsPage() {
                           setNotesById((prev) => ({ ...prev, [r.id]: e.target.value }))
                         }
                         placeholder="Бележки от модерацията (опционално)"
-                        className="w-full text-xs rounded-md border border-slate-200 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-100 focus:border-sky-300"
+                        className="w-full text-xs rounded-md border border-slate-200 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-100 focus:border-teal-300"
                         data-testid={`admin-review-notes-${r.id}`}
                       />
                       <div className="flex flex-wrap gap-2 justify-end">

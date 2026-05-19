@@ -127,7 +127,7 @@ export function WeeklyTrendChart({ data }: { data: TrendPoint[] }) {
       </svg>
       <div className="flex items-center gap-5 text-xs text-slate-600 pl-2 mt-1">
         <span className="inline-flex items-center gap-1.5">
-          <span className="w-3 h-0.5 bg-sky-600 rounded" />
+          <span className="w-3 h-0.5 bg-teal-600 rounded" />
           Назначени заявки
         </span>
         <span className="inline-flex items-center gap-1.5">

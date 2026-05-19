@@ -136,7 +136,7 @@ export function AdminHeader({ backHref, backLabel, pageTitle }: Props) {
               className="font-serif text-xl font-semibold text-slate-900 whitespace-nowrap"
               data-testid="admin-header-brand"
             >
-              Zubite<span className="text-sky-500">.bg</span>
+              Zubite<span className="text-teal-600">.bg</span>
             </Link>
             <span className="text-slate-300" aria-hidden>
               |
@@ -197,7 +197,7 @@ export function AdminHeader({ backHref, backLabel, pageTitle }: Props) {
                       className={
                         'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors ' +
                         (active
-                          ? 'bg-sky-50 text-sky-700'
+                          ? 'bg-teal-50 text-teal-700'
                           : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50')
                       }
                     >

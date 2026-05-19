@@ -76,7 +76,7 @@ export default function AdminClinicsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-[#FCFAF8]">
       <AdminHeader pageTitle="Партньорски клиники" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex items-center justify-between mb-6">
@@ -84,7 +84,7 @@ export default function AdminClinicsPage() {
           <button
             type="button"
             onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full bg-sky-500 hover:bg-sky-600 text-white text-sm font-medium"
+            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium"
             data-testid="admin-create-clinic-btn"
           >
             <Plus className="w-4 h-4" /> Нова клиника
@@ -159,7 +159,7 @@ export default function AdminClinicsPage() {
                     <td className="px-4 py-3 text-right">
                       <Link
                         href={`/admin/clinics/${c.id}`}
-                        className="text-sky-600 hover:text-sky-700 font-medium text-sm"
+                        className="text-teal-600 hover:text-teal-700 font-medium text-sm"
                         data-testid={`admin-clinic-edit-${c.id}`}
                       >
                         Редактирай профил
@@ -279,7 +279,7 @@ function CreateClinicModal({
           <button
             type="submit"
             disabled={busy}
-            className="h-10 px-5 rounded-full bg-sky-500 hover:bg-sky-600 text-white font-medium inline-flex items-center gap-2 disabled:opacity-50"
+            className="h-10 px-5 rounded-full bg-teal-500 hover:bg-teal-600 text-white font-medium inline-flex items-center gap-2 disabled:opacity-50"
             data-testid="create-clinic-submit"
           >
             {busy && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -313,7 +313,7 @@ function CredentialsModal({
           <div>temporary password: {info.password}</div>
         </div>
         <div className="text-right">
-          <button type="button" onClick={onClose} className="h-10 px-5 rounded-full bg-sky-500 hover:bg-sky-600 text-white font-medium">
+          <button type="button" onClick={onClose} className="h-10 px-5 rounded-full bg-teal-500 hover:bg-teal-600 text-white font-medium">
             OK
           </button>
         </div>

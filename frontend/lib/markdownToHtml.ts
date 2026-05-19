@@ -37,7 +37,7 @@ export function parseMarkdown(content: string): string {
       },
     )
     // Links
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-sky-500 hover:text-sky-600 underline">$1</a>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-teal-500 hover:text-teal-600 underline">$1</a>')
     // Unordered lists
     .replace(/^\- (.*$)/gim, '<li class="ml-4">$1</li>')
     // Line breaks / paragraphs

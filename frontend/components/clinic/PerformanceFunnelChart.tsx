@@ -15,8 +15,8 @@ interface Props {
 }
 
 const STAGE_COLORS = [
-  'bg-sky-500',
-  'bg-sky-400',
+  'bg-teal-500',
+  'bg-teal-400',
   'bg-emerald-400',
   'bg-emerald-500',
   'bg-emerald-600',
