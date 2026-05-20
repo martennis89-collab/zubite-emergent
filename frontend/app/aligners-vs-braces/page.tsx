@@ -62,8 +62,8 @@ const COMPARISON_DATA = [
   },
   { 
     feature: 'Цена', 
-    aligners: '4,000 - 8,000 лв', 
-    braces: '2,000 - 5,000 лв', 
+    aligners: '€1 500 – €5 000', 
+    braces: '€1 025 – €2 555', 
     winner: 'braces',
     alignersIcon: <Wallet className="w-5 h-5" />,
     bracesIcon: <Wallet className="w-5 h-5" />
@@ -74,16 +74,16 @@ const ALIGNERS_PROS = [
   'Почти невидими при носене',
   'Могат да се свалят за хранене',
   'По-лесна хигиена на зъбите',
-  'По-малко посещения при ортодонта',
+  'По-малко спешни посещения (без счупени телове/brackets)',
   'Без ограничения в храната',
-  'По-бързи резултати при леки случаи'
+  'SmartTrack материал — по-равномерна сила и предвидимост'
 ]
 
 const ALIGNERS_CONS = [
-  'По-скъпи от традиционните брекети',
-  'Изискват дисциплина (20-22ч носене)',
-  'Не са подходящи за тежки случаи',
-  'Могат да се загубят'
+  'По-скъпи от металните брекети',
+  'Изискват дисциплина (20–22 ч. носене)',
+  'При много тежки скелетни случаи брекети или хибриден подход може да е по-предвидим',
+  'Могат да се загубят (контактирай клиниката бързо)'
 ]
 
 const BRACES_PROS = [
@@ -108,7 +108,15 @@ const FAQS = [
   },
   { 
     q: 'Мога ли да си позволя алайнери?', 
-    a: 'Алайнерите струват между 4,000-8,000 лв в България. Повечето клиники предлагат разсрочено плащане на 12-24 месеца, което ги прави достъпни.' 
+    a: 'Invisalign в България струва ориентировъчно €1 500 – €5 000 според вида (Lite / Moderate / Comprehensive) и сложността на случая. Повечето клиники предлагат разсрочено плащане на 12–24 месеца.' 
+  },
+  {
+    q: 'Работи ли Invisalign при сложни случаи?',
+    a: 'Да — при правилно подбран случай и опитен Invisalign provider, системата може да лекува струпване, разстояния, дълбока и кръстосана захапка и избрани Class II случаи. Резултатът зависи от ClinCheck плана, SmartTrack материала, attachments, ластици и дисциплината на пациента. При много тежки скелетни несъответствия брекети или комбиниран подход могат да са по-предвидимият избор.'
+  },
+  {
+    q: 'Какво прави Invisalign различен от по-евтини алайнери?',
+    a: 'Не плащаш само за прозрачна шина — а за цяла система: SmartTrack материал, ClinCheck планиране, attachments, обучени лекари, проследяване и възможност за refinements. Алайнерите често пристигат в България около 5 работни дни според обратна връзка от лекари.'
   },
   { 
     q: 'Болезнени ли са брекетите в сравнение с алайнерите?', 
@@ -162,12 +170,59 @@ export default function AlignersVsBracesPage() {
               Кратко резюме
             </h2>
             <p className="text-slate-600 mb-4">
-              <strong>Изберете алайнери</strong> ако искате дискретно лечение, имате лек до умерен проблем и сте дисциплинирани да ги носите 20-22 часа на ден.
+              <strong>Изберете алайнери</strong>, ако искате дискретно лечение, имате лек до умерен (или избран сложен) случай и сте дисциплинирани да ги носите 20–22 часа на ден.
             </p>
             <p className="text-slate-600">
-              <strong>Изберете брекети</strong> ако имате сложен случай, предпочитате по-ниска начална цена или не искате да се притеснявате дали носите апарата достатъчно.
+              <strong>Изберете брекети</strong>, ако предпочитате по-ниска начална цена, не искате да зависите от дисциплина за носенето, или ако лекарят прецени, че при много тежко скелетно несъответствие комбиниран подход е по-предвидим.
             </p>
           </div>
+        </div>
+      </section>
+
+      {/* Invisalign today — SmartTrack / complex cases / 5-day delivery */}
+      <section className="py-14 bg-[#FCFAF8]" data-testid="invisalign-today">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          <p className="text-[12px] uppercase tracking-[0.18em] text-teal-700 font-medium mb-3">Какво се промени при Invisalign</p>
+          <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-slate-900 mb-4 max-w-3xl">
+            Invisalign днес: не просто „прозрачна шина“
+          </h2>
+          <p className="text-slate-600 max-w-3xl mb-8">
+            Един от най-важните моменти при сравнението с брекети: съвременният Invisalign е цяла дигитална ортодонтска
+            система — със собствен материал, лекарски контрол и реален локален достъп. Това променя кой случай за кой
+            метод е по-подходящ.
+          </p>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="rounded-2xl bg-white ring-1 ring-slate-200/70 p-5">
+              <p className="text-[11px] uppercase tracking-wider text-teal-700 mb-2">SmartTrack материал</p>
+              <p className="text-[14px] text-slate-700 leading-relaxed">
+                Многослоен медицински полимер, проектиран за ортодонтска сила. Подобрява прилягането, разпределя силата по-равномерно и запазва формата си между смените.
+              </p>
+            </div>
+            <div className="rounded-2xl bg-white ring-1 ring-slate-200/70 p-5">
+              <p className="text-[11px] uppercase tracking-wider text-teal-700 mb-2">Сложни случаи</p>
+              <p className="text-[14px] text-slate-700 leading-relaxed">
+                Със SmartForce attachments, ластици, IPR, bite ramps и ClinCheck планиране Invisalign може да лекува струпване, разстояния, дълбока/кръстосана захапка и избрани Class II — когато случаят е правилно подбран.
+              </p>
+            </div>
+            <div className="rounded-2xl bg-white ring-1 ring-slate-200/70 p-5">
+              <p className="text-[11px] uppercase tracking-wider text-teal-700 mb-2">Доставка в България</p>
+              <p className="text-[14px] text-slate-700 leading-relaxed">
+                По обратна връзка от лекари в България — след финализиран план алайнерите често пристигат около 5 работни дни. Срокът може да варира.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 flex flex-wrap gap-3 text-[13px]">
+            <Link href="/invisalign-bulgaria" className="inline-flex items-center gap-1.5 text-teal-700 hover:text-teal-800 font-medium">
+              Пълно ръководство за Invisalign в България
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          <p className="mt-5 text-[12.5px] text-slate-500 italic max-w-3xl">
+            * Това не отменя предимствата на брекетите. Силният лекар не продава система — избира подходящата механика за конкретния случай.
+          </p>
         </div>
       </section>
 
@@ -294,19 +349,23 @@ export default function AlignersVsBracesPage() {
           
           <div className="grid md:grid-cols-2 gap-6">
             <div className="bg-white rounded-2xl border border-slate-200 p-6">
-              <h3 className="font-medium text-lg text-teal-600 mb-4">Прозрачни алайнери</h3>
+              <h3 className="font-medium text-lg text-teal-600 mb-4">Прозрачни алайнери (Invisalign)</h3>
               <div className="space-y-3">
                 <div className="flex justify-between py-2 border-b border-slate-100">
-                  <span className="text-slate-600">Invisalign Full</span>
-                  <span className="font-medium text-slate-900">5,500 - 8,000 лв</span>
+                  <span className="text-slate-600">Invisalign Comprehensive</span>
+                  <span className="font-medium text-slate-900">€3 500 – €5 000</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-slate-100">
+                  <span className="text-slate-600">Invisalign Moderate</span>
+                  <span className="font-medium text-slate-900">€2 500 – €3 500</span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-slate-100">
                   <span className="text-slate-600">Invisalign Lite</span>
-                  <span className="font-medium text-slate-900">4,000 - 5,500 лв</span>
+                  <span className="font-medium text-slate-900">€1 500 – €2 500</span>
                 </div>
                 <div className="flex justify-between py-2">
                   <span className="text-slate-600">Други марки алайнери</span>
-                  <span className="font-medium text-slate-900">3,000 - 5,000 лв</span>
+                  <span className="font-medium text-slate-900">€1 535 – €2 555</span>
                 </div>
               </div>
             </div>
@@ -316,15 +375,15 @@ export default function AlignersVsBracesPage() {
               <div className="space-y-3">
                 <div className="flex justify-between py-2 border-b border-slate-100">
                   <span className="text-slate-600">Метални брекети</span>
-                  <span className="font-medium text-slate-900">2,000 - 3,500 лв</span>
+                  <span className="font-medium text-slate-900">€1 025 – €1 790</span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-slate-100">
                   <span className="text-slate-600">Керамични брекети</span>
-                  <span className="font-medium text-slate-900">3,000 - 5,000 лв</span>
+                  <span className="font-medium text-slate-900">€1 535 – €2 555</span>
                 </div>
                 <div className="flex justify-between py-2">
                   <span className="text-slate-600">Лингвални брекети</span>
-                  <span className="font-medium text-slate-900">5,000 - 10,000 лв</span>
+                  <span className="font-medium text-slate-900">€2 555 – €5 110</span>
                 </div>
               </div>
             </div>

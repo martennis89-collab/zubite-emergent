@@ -101,9 +101,9 @@ export const BRAND_COMPARISON_DISCLAIMER = 'Най-важният фактор �
 // Educational disclaimer
 export const EDUCATIONAL_DISCLAIMER = 'Информацията е образователна и не замества преглед.'
 
-// Helper function to format price with EUR primary, BGN secondary
+// Helper function to format price (EUR only — Bulgaria has adopted EUR)
 export function formatPrice(price: PriceRange): string {
-  return `€${price.minEUR.toLocaleString('bg-BG')} – €${price.maxEUR.toLocaleString('bg-BG')} (≈ ${price.minBGN.toLocaleString('bg-BG')} – ${price.maxBGN.toLocaleString('bg-BG')} лв.)`
+  return `€${price.minEUR.toLocaleString('bg-BG')} – €${price.maxEUR.toLocaleString('bg-BG')}`
 }
 
 // Helper to format just EUR
@@ -167,7 +167,7 @@ export const ALIGNER_BRANDS: AlignerBrand[] = [
     availability: 'Широко разпространен в България',
     orthodontistControl: 'Пълен контрол от ортодонта, дигитално планиране',
     priceRange: '€2 000 – €6 000',
-    priceBGN: '≈ 4 000 – 12 000 лв.'
+    priceBGN: ''
   },
   {
     name: 'Spark',
@@ -178,7 +178,7 @@ export const ALIGNER_BRANDS: AlignerBrand[] = [
     availability: 'Нарастваща наличност в България',
     orthodontistControl: 'Пълен контрол от ортодонта, дигитално планиране',
     priceRange: '€1 800 – €5 000',
-    priceBGN: '≈ 3 600 – 10 000 лв.'
+    priceBGN: ''
   },
   {
     name: 'Angel Aligner',
@@ -189,7 +189,7 @@ export const ALIGNER_BRANDS: AlignerBrand[] = [
     availability: 'Налични в избрани клиники',
     orthodontistControl: 'Пълен контрол от ортодонта, дигитално планиране',
     priceRange: '€1 500 – €4 000',
-    priceBGN: '≈ 3 000 – 8 000 лв.'
+    priceBGN: ''
   }
 ]
 

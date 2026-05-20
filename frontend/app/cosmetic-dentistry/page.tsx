@@ -165,7 +165,7 @@ const SUITABLE_FOR = [
 const FAQS = [
   { 
     q: 'Каква е цената на фасети в България?', 
-    a: 'Цената на порцеланови фасети варира между €200 и €600 на зъб (≈ 400-1200 лв.), в зависимост от материала, лабораторията и клиниката. Hollywood Smile с 8-10 фасети може да струва €4000-€10000.' 
+    a: 'Цената на порцеланови фасети варира между €200 и €600 на зъб, в зависимост от материала, лабораторията и клиниката. Hollywood Smile с 8-10 фасети може да струва €4 000 – €10 000.' 
   },
   { 
     q: 'Колко издържа бондингът?', 
@@ -480,9 +480,6 @@ export default function CosmeticDentistryPage() {
                 </h3>
                 <div className="text-2xl font-bold mb-1">
                   €{price.eurMin.toLocaleString('bg-BG')} – €{price.eurMax.toLocaleString('bg-BG')}
-                </div>
-                <div className="text-teal-200 text-sm">
-                  (≈ {price.bgnMin.toLocaleString('bg-BG')} – {price.bgnMax.toLocaleString('bg-BG')} лв.)
                 </div>
               </div>
             ))}

@@ -193,9 +193,6 @@ export default async function CityTreatmentPage({ params }: PageProps) {
                       <div className="text-2xl md:text-3xl font-bold">
                         €{price.minEUR.toLocaleString('bg-BG')} – €{price.maxEUR.toLocaleString('bg-BG')}
                       </div>
-                      <div className="text-teal-200 text-sm mt-1">
-                        (≈ {price.minBGN.toLocaleString('bg-BG')} – {price.maxBGN.toLocaleString('bg-BG')} лв.)
-                      </div>
                     </div>
                   </div>
                 </div>

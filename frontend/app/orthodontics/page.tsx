@@ -128,7 +128,7 @@ const FAQS = [
   },
   { 
     q: 'Колко струват алайнерите?', 
-    a: 'Ориентировъчно €1 500 – €6 000 (≈ 3 000 – 12 000 лв.), в зависимост от сложността на случая и избраната система. Точната цена се определя след клиничен преглед и план за лечение.' 
+    a: 'Ориентировъчно €1 500 – €6 000, в зависимост от сложността на случая и избраната система. Точната цена се определя след клиничен преглед и план за лечение.' 
   },
   { 
     q: 'Коя марка алайнери е най-добра?', 
@@ -360,7 +360,6 @@ export default function OrthodonticsPage() {
                   <div className="pt-4 border-t border-slate-200">
                     <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Цена</p>
                     <p className="font-semibold text-teal-600">{brand.priceRange}</p>
-                    <p className="text-xs text-slate-400">{brand.priceBGN}</p>
                   </div>
                 </div>
               </div>
@@ -394,9 +393,6 @@ export default function OrthodonticsPage() {
               <div className="text-3xl font-bold mb-1">
                 €{alignersPrice.minEUR.toLocaleString('bg-BG')} – €{alignersPrice.maxEUR.toLocaleString('bg-BG')}
               </div>
-              <div className="text-teal-200 text-sm">
-                (≈ {alignersPrice.minBGN.toLocaleString('bg-BG')} – {alignersPrice.maxBGN.toLocaleString('bg-BG')} лв.)
-              </div>
             </div>
             
             {/* Braces Price */}
@@ -407,9 +403,6 @@ export default function OrthodonticsPage() {
               </div>
               <div className="text-3xl font-bold mb-1">
                 €{bracesPrice.minEUR.toLocaleString('bg-BG')} – €{bracesPrice.maxEUR.toLocaleString('bg-BG')}
-              </div>
-              <div className="text-slate-300 text-sm">
-                (≈ {bracesPrice.minBGN.toLocaleString('bg-BG')} – {bracesPrice.maxBGN.toLocaleString('bg-BG')} лв.)
               </div>
             </div>
           </div>

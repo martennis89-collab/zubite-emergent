@@ -335,9 +335,6 @@ export default function ImplantsPage() {
                 <div className="text-2xl font-bold mb-1">
                   €{price.eurMin.toLocaleString('bg-BG')} – €{price.eurMax.toLocaleString('bg-BG')}
                 </div>
-                <div className="text-teal-200 text-sm">
-                  (≈ {price.bgnMin.toLocaleString('bg-BG')} – {price.bgnMax.toLocaleString('bg-BG')} лв.)
-                </div>
               </div>
             ))}
           </div>

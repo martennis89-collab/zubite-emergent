@@ -151,9 +151,6 @@ export default function AlignersComparisonPage() {
                 <p className="font-semibold text-slate-900">
                   €{alignersPrice.minEUR.toLocaleString('bg-BG')} – €{alignersPrice.maxEUR.toLocaleString('bg-BG')}
                 </p>
-                <p className="text-xs text-slate-400">
-                  (≈ {alignersPrice.minBGN.toLocaleString('bg-BG')} – {alignersPrice.maxBGN.toLocaleString('bg-BG')} лв.)
-                </p>
               </div>
             </div>
             
@@ -196,9 +193,6 @@ export default function AlignersComparisonPage() {
                 <p className="text-sm text-slate-500">Цена:</p>
                 <p className="font-semibold text-slate-900">
                   €{bracesPrice.minEUR.toLocaleString('bg-BG')} – €{bracesPrice.maxEUR.toLocaleString('bg-BG')}
-                </p>
-                <p className="text-xs text-slate-400">
-                  (≈ {bracesPrice.minBGN.toLocaleString('bg-BG')} – {bracesPrice.maxBGN.toLocaleString('bg-BG')} лв.)
                 </p>
               </div>
             </div>
@@ -252,7 +246,6 @@ export default function AlignersComparisonPage() {
                   <div className="pt-4 border-t border-slate-200">
                     <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Цена</p>
                     <p className="font-semibold text-teal-600">{brand.priceRange}</p>
-                    <p className="text-xs text-slate-400">{brand.priceBGN}</p>
                   </div>
                 </div>
               </div>

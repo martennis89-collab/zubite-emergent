@@ -21,36 +21,36 @@ export const metadata: Metadata = {
 
 const PRICE_TIERS = [
   {
-    name: 'Invisalign Go',
-    description: 'За леки корекции (до 20 шини)',
-    priceRange: '2,500 - 4,000 лв',
-    duration: '3-6 месеца',
-    ideal: 'Леки козметични корекции',
-    features: ['До 20 шини', 'Бързи резултати', 'Най-достъпна опция']
-  },
-  {
     name: 'Invisalign Lite',
-    description: 'За умерени случаи (до 14 шини)',
-    priceRange: '4,000 - 5,500 лв',
-    duration: '6-12 месеца',
-    ideal: 'Умерено криви зъби',
-    features: ['До 14 шини', 'Средна сложност', 'Популярен избор'],
-    highlighted: true
+    description: 'По-леки случаи с ограничен брой движения',
+    priceRange: '€1 500 – €2 500',
+    duration: '6-9 месеца',
+    ideal: 'Леки козметични корекции',
+    features: ['до ~14 двойки алайнери', 'кратък план', 'ограничени refinements']
   },
   {
-    name: 'Invisalign Full',
-    description: 'За сложни случаи (неограничен брой шини)',
-    priceRange: '5,500 - 8,000 лв',
+    name: 'Invisalign Moderate',
+    description: 'Средни случаи с повече движения и по-дълъг план',
+    priceRange: '€2 500 – €3 500',
+    duration: '9-15 месеца',
+    ideal: 'Умерена сложност',
+    features: ['до ~26 двойки алайнери', 'attachments + IPR при нужда', 'умерена сложност']
+  },
+  {
+    name: 'Invisalign Comprehensive',
+    description: 'Цялостно лечение и пълен контрол при сложни случаи',
+    priceRange: '€3 500 – €5 000',
     duration: '12-24 месеца',
-    ideal: 'Сложни ортодонтски проблеми',
-    features: ['Неограничени шини', 'Пълна корекция', 'Гарантиран резултат']
+    ideal: 'Сложни ортодонтски случаи',
+    features: ['неограничени алайнери в срок', 'включени refinements', 'комбинирани механики'],
+    highlighted: true
   }
 ]
 
 const CITY_PRICES = [
-  { city: 'София', slug: 'sofia', range: '4,500 - 8,000 лв', note: 'Най-широк избор на клиники' },
-  { city: 'Пловдив', slug: 'plovdiv', range: '4,000 - 7,000 лв', note: 'Добро съотношение цена-качество' },
-  { city: 'Варна', slug: 'varna', range: '4,000 - 6,500 лв', note: 'Конкурентни цени' }
+  { city: 'София', slug: 'sofia', range: '€2 300 – €4 100', note: 'Най-широк избор на клиники' },
+  { city: 'Пловдив', slug: 'plovdiv', range: '€2 050 – €3 580', note: 'Добро съотношение цена-качество' },
+  { city: 'Варна', slug: 'varna', range: '€2 050 – €3 325', note: 'Конкурентни цени' }
 ]
 
 const WHATS_INCLUDED = [
@@ -107,7 +107,7 @@ export default function InvisalignPricePage() {
           {/* Quick price summary */}
           <div className="bg-teal-50 rounded-2xl border border-teal-200 p-6 inline-block">
             <p className="text-sm text-teal-600 mb-1">Цени от</p>
-            <p className="text-4xl font-bold text-teal-700">2,500 - 8,000 лв</p>
+            <p className="text-4xl font-bold text-teal-700">€1 500 – €5 000</p>
             <p className="text-sm text-slate-500 mt-2">В зависимост от варианта и клиниката</p>
           </div>
         </div>

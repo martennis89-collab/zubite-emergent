@@ -837,7 +837,7 @@ function DecisionPreview() {
                 </div>
                 <div className="rounded-xl bg-slate-50/80 ring-1 ring-slate-200/40 p-3">
                   <p className="text-[10px] uppercase tracking-wider text-slate-500">Ценови диапазон</p>
-                  <p className="mt-1 font-serif text-lg text-slate-900">~2 500 – 4 200 лв.</p>
+                  <p className="mt-1 font-serif text-lg text-slate-900">~€1 300 – €2 150</p>
                 </div>
               </div>
               <div className="mt-5 space-y-2 text-sm text-slate-700">
