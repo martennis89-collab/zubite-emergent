@@ -52,14 +52,18 @@ export function resolveImageUrl(src: string | null | undefined): string {
     ''
   ).replace(/\/$/, '')
 
-  // Rewrite retired backend hostnames to the current API origin (keeps the
-  // /api/files/... path intact so file-IDs that still exist server-side
-  // continue to resolve).
+  // Rewrite retired backend hostnames so existing /api/files/... paths
+  // still resolve. If `NEXT_PUBLIC_API_URL` is configured (cross-origin
+  // setup like preview), prepend it; otherwise fall back to a same-origin
+  // relative path — the browser will resolve `/api/files/...` against the
+  // current host, which is what we want when the API lives on the same
+  // origin as the frontend (production zubite.bg).
   if (/^https?:\/\//i.test(trimmed)) {
     try {
       const u = new URL(trimmed)
-      if (RETIRED_HOSTS.includes(u.host) && apiBase) {
-        return `${apiBase}${u.pathname}${u.search}`
+      if (RETIRED_HOSTS.includes(u.host)) {
+        const path = `${u.pathname}${u.search}`
+        return apiBase ? `${apiBase}${path}` : path
       }
     } catch {
       /* malformed URL — fall through and return as-is */
