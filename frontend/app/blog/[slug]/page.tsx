@@ -7,6 +7,7 @@ import { BlogViewTracker } from '@/components/BlogViewTracker'
 import { ArticleBreadcrumbs } from '@/components/ArticleBreadcrumbs'
 import { TrackedLink } from '@/components/TrackedLink'
 import { parseMarkdown } from '@/lib/markdownToHtml'
+import { resolveImageUrl } from '@/lib/imageUrl'
 import { Calendar, ArrowRight, Tag, User, Shield } from 'lucide-react'
 
 // Force dynamic rendering - do not pre-render at build time
@@ -110,7 +111,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
       type: 'article',
       publishedTime: post.published_at,
       modifiedTime: post.updated_at,
-      images: post.featured_image ? [post.featured_image] : [],
+      images: post.featured_image ? [resolveImageUrl(post.featured_image)] : [],
     },
     twitter: {
       card: 'summary_large_image',
@@ -218,7 +219,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
           {post.featured_image && (
             <div className="mb-10 rounded-2xl overflow-hidden">
               <img
-                src={post.featured_image}
+                src={resolveImageUrl(post.featured_image)}
                 alt={post.featured_image_alt || post.title}
                 className="w-full h-auto"
               />

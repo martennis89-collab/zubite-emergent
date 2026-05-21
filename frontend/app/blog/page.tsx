@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Metadata } from 'next'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
+import { resolveImageUrl } from '@/lib/imageUrl'
 import { Calendar, ArrowRight, BookOpen, Sparkles } from 'lucide-react'
 
 // Force dynamic rendering - do not pre-render at build time
@@ -129,7 +130,7 @@ export default async function BlogPage() {
                         <div className={idx === 0 ? 'md:w-1/2 flex-shrink-0' : 'w-full'}>
                           <div className={(idx === 0 ? 'aspect-[16/10] md:aspect-auto md:h-full' : 'aspect-[16/10]') + ' relative overflow-hidden bg-teal-50/40'}>
                             <img
-                              src={post.featured_image}
+                              src={resolveImageUrl(post.featured_image)}
                               alt={post.title}
                               className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
                               loading="lazy"

@@ -4,6 +4,7 @@ import { ReactNode } from 'react'
 import Link from 'next/link'
 import { ArrowRight, ChevronRight, AlertTriangle, TrendingUp, Clock, Target, BookOpen, Calendar, ClipboardList, Eye, MessageSquare, Shield, CheckCircle } from 'lucide-react'
 import { ScrollReveal, StaggerChildren } from '../hooks/useScrollAnimation'
+import { resolveImageUrl } from '../lib/imageUrl'
 
 // Self-recognition symptoms
 const symptoms = [
@@ -604,7 +605,7 @@ export function AnimatedRecentArticles({ posts }: RecentArticlesProps) {
                   {post.featured_image ? (
                     <div className="aspect-[16/10] relative overflow-hidden bg-slate-100">
                       <img 
-                        src={post.featured_image} 
+                        src={resolveImageUrl(post.featured_image)} 
                         alt={post.title}
                         className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                         loading="lazy"

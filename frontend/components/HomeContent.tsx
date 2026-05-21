@@ -21,6 +21,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { ClinicStandardSection } from '@/components/patient/ClinicStandardSection'
 import { Footer } from '@/components/Footer'
+import { resolveImageUrl } from '@/lib/imageUrl'
 import {
   ShieldCheck, Sparkles, Building2, Stethoscope, ChevronDown,
   CheckCircle2, ArrowRight, MoveRight, Heart, Smile, Activity,
@@ -985,7 +986,7 @@ function RecentArticles({ posts }: { posts: HomeBlogPost[] }) {
                   {p.featured_image && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={p.featured_image}
+                      src={resolveImageUrl(p.featured_image)}
                       alt={p.title}
                       className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
                       loading="lazy"
