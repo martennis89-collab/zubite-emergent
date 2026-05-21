@@ -5,6 +5,10 @@ import Link from 'next/link'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { createLead } from '@/lib/api'
+import {
+  MANUAL_RECOMMENDATION_COPY,
+  MANUAL_RECOMMENDATION_CTA,
+} from '@/lib/manualRecommendationCopy'
 import { ArrowLeft, ArrowRight, Loader2, CheckCircle, AlertCircle, HelpCircle, Phone, MapPin, Smile, Info } from 'lucide-react'
 
 // Types
@@ -448,10 +452,10 @@ export function OrthodonticsQuiz() {
               <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
                 <Phone className="w-12 h-12 text-teal-500 mx-auto mb-4" />
                 <h3 className="font-serif text-xl font-semibold text-slate-900 mb-2">
-                  Заяви обаждане
+                  {MANUAL_RECOMMENDATION_COPY.formIntroHeadline}
                 </h3>
                 <p className="text-slate-500 mb-6">
-                  Оставете данните си и ще се свържем с вас за безплатна консултация.
+                  {MANUAL_RECOMMENDATION_COPY.formIntroBody}
                 </p>
                 <button
                   onClick={handleShowForm}
@@ -459,8 +463,11 @@ export function OrthodonticsQuiz() {
                   data-testid="show-form-btn"
                 >
                   <Phone className="w-5 h-5" />
-                  Заяви обаждане
+                  {MANUAL_RECOMMENDATION_CTA.requestGuidance}
                 </button>
+                <p className="mt-4 text-xs text-slate-400 max-w-md mx-auto">
+                  {MANUAL_RECOMMENDATION_COPY.safetyNote}
+                </p>
               </div>
             </div>
           )}
@@ -469,10 +476,10 @@ export function OrthodonticsQuiz() {
           {step === 'form' && (
             <div className="quiz-step-enter bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
               <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-2">
-                Заявка за обаждане
+                {MANUAL_RECOMMENDATION_COPY.formIntroHeadline}
               </h2>
               <p className="text-slate-500 mb-8">
-                Оставете данните си и ще се свържем с вас скоро.
+                {MANUAL_RECOMMENDATION_COPY.formIntroBody}
               </p>
 
               <div className="space-y-4">
@@ -575,7 +582,7 @@ export function OrthodonticsQuiz() {
                       </>
                     ) : (
                       <>
-                        Изпрати заявка
+                        {MANUAL_RECOMMENDATION_CTA.primary}
                         <ArrowRight className="w-5 h-5" />
                       </>
                     )}

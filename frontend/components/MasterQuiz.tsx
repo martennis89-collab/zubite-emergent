@@ -13,6 +13,7 @@ import {
 } from './MetaPixel'
 import { trackEvent as gaTrackEvent } from '@/lib/analytics/gtag'
 import { getStoredAttribution } from '@/lib/attribution'
+import { MANUAL_RECOMMENDATION_COPY, MANUAL_RECOMMENDATION_CTA } from '@/lib/manualRecommendationCopy'
 
 // ─── Types ────────────────────────────────────────────────
 type Segment = 'adult' | 'teen' | 'child'
@@ -983,7 +984,7 @@ export function MasterQuiz() {
                 {segment === 'adult' ? 'Искаш ли да видиш какви са опциите ти?' : 'Искате ли да видите подходящите опции?'}
               </h1>
               <p className="text-slate-600 text-base sm:text-lg leading-relaxed mb-10">
-                Препоръчани клиники според резултата и {segment === 'adult' ? 'твоя' : 'вашия'} град.
+                {MANUAL_RECOMMENDATION_COPY.shortIntro}
               </p>
               <div className="space-y-4">
                 <button onClick={() => { trackEvent('soft_commit', { choice: 'yes' }); trackSoftCommit(true); setStep('form') }} className="w-full px-8 py-4 bg-teal-500 text-white font-medium rounded-full hover:bg-teal-600 hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 group" data-testid="soft-commit-yes">
@@ -1036,10 +1037,10 @@ export function MasterQuiz() {
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 animate-fade-in-up">
               <div className="text-center mb-8 pb-6 border-b border-slate-100">
                 <h2 className="font-serif text-xl sm:text-2xl font-semibold text-slate-900 mb-3">
-                  {isParent ? 'Получете препоръчани клиники' : 'Получи 3 препоръчани клиники'}
+                  {MANUAL_RECOMMENDATION_COPY.formIntroHeadline}
                 </h2>
                 <p className="text-slate-600 text-sm sm:text-base">
-                  {isParent ? 'Ще получите препоръки според резултата и вашия град.' : 'Ще получиш реални препоръки според твоя случай.'}
+                  {MANUAL_RECOMMENDATION_COPY.formIntroBody}
                 </p>
               </div>
               <div className="space-y-5">
@@ -1079,9 +1080,9 @@ export function MasterQuiz() {
                 <button onClick={handleSubmit} disabled={isSubmitting}
                   className="w-full mt-4 px-8 py-4 bg-teal-500 text-white font-semibold rounded-full hover:bg-teal-600 hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50"
                   data-testid="submit-btn">
-                  {isSubmitting ? <><Loader2 className="w-5 h-5 animate-spin" />Изпращане...</> : <>{isParent ? 'Изпратете' : 'Изпрати и получи 3 опции'}<ArrowRight className="w-5 h-5" /></>}
+                  {isSubmitting ? <><Loader2 className="w-5 h-5 animate-spin" />Изпращане...</> : <>{MANUAL_RECOMMENDATION_CTA.primary}<ArrowRight className="w-5 h-5" /></>}
                 </button>
-                <p className="text-center text-xs text-slate-500 mt-6 leading-relaxed">Без ангажимент. Не сме клиника.</p>
+                <p className="text-center text-xs text-slate-500 mt-6 leading-relaxed">{MANUAL_RECOMMENDATION_COPY.safetyNote}</p>
               </div>
             </div>
           </div>

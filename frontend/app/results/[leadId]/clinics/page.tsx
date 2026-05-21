@@ -170,7 +170,7 @@ export default function ClinicMatchPage() {
           ) : errKind ? (
             <ErrorPanel kind={errKind} onRetry={load} leadId={leadId} />
           ) : data && data.clinic_count === 0 ? (
-            <ClinicMatchEmptyState message={data.message} />
+            <ClinicMatchEmptyState message={data.message} leadId={leadId} />
           ) : data ? (
             <>
               {/* Selection-rule banner — compact 1-liner with inline tabular numbers */}

@@ -44,11 +44,13 @@ const SEGMENT_SUMMARIES: Record<Segment, Record<ResultBand, { thanks: string; su
   },
 }
 
-// Unified "Какво следва?" steps — kept short.
+// Unified "Какво следва?" steps — kept short. Framed for manual
+// recommendation mode: viewing possible clinics is one option, leaving
+// it to the Zubite team is another, both equally valid.
 const NEXT_STEPS = [
-  'Виж до 3 подходящи клиники.',
-  'Отвори профил и прецени коя е подходяща.',
-  'Избери за обаждане или поискай помощ от Zubite.',
+  'Виж възможните клиники в района.',
+  'Отвори профил, ако някоя ти изглежда подходяща.',
+  'Или остави на Zubite — екипът ще се свърже с теб.',
 ]
 
 function SuccessContent() {
@@ -151,7 +153,11 @@ function SuccessContent() {
         </div>
       </div>
 
-      {/* Primary CTA — into the matching flow */}
+      {/* Primary CTA — into the matching flow. Copy is intentionally calmer
+          than the previous "Виж препоръчаните клиники": while the Zubite
+          partner network is still being built, the next page may show
+          manual-matching empty state instead of a guaranteed list, so we
+          frame this as "възможности" not as instant matches.  */}
       <div className="space-y-3" data-testid="success-cta-block">
         {leadId ? (
           <Link
@@ -168,7 +174,7 @@ function SuccessContent() {
           >
             <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
             <span className="relative inline-flex items-center gap-2">
-              Виж препоръчаните клиники
+              Виж възможни клиники
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
             </span>
           </Link>
@@ -181,8 +187,8 @@ function SuccessContent() {
             className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 leading-relaxed"
             data-testid="success-no-leadid-fallback"
           >
-            Не успяхме да заредим директната връзка към твоите препоръчани
-            клиники. Моля, презареди страницата или се върни към квиза.
+            Не успяхме да заредим директната връзка към следващата стъпка.
+            Моля, презареди страницата или се върни към квиза.
           </div>
         )}
         <p
@@ -190,8 +196,8 @@ function SuccessContent() {
           data-testid="success-helper-text"
         >
           <Sparkles className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-violet-500" />
-          Не си сигурен/на? На следващата страница можеш да избереш „Помогнете
-          ми да избера".
+          Ако в твоя район все още нямаме партньорска клиника, екипът на
+          Zubite.bg ще се свърже с теб с подходящи насоки.
         </p>
 
         {/* Care Pass — compact chip strip matching the homepage premium panel.

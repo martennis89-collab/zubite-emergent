@@ -7,6 +7,10 @@ import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { CITIES, TREATMENTS, getQuizQuestions } from '@/lib/data'
 import { createLead } from '@/lib/api'
+import {
+  MANUAL_RECOMMENDATION_COPY,
+  MANUAL_RECOMMENDATION_CTA,
+} from '@/lib/manualRecommendationCopy'
 import { ArrowLeft, ArrowRight, Loader2, CheckCircle, AlertCircle, XCircle, Phone } from 'lucide-react'
 
 type Band = 'green' | 'yellow' | 'red'
@@ -362,10 +366,10 @@ export default function CityTreatmentQuizPage() {
               <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
                 <Phone className="w-12 h-12 text-teal-500 mx-auto mb-4" />
                 <h3 className="font-serif text-xl font-semibold text-slate-900 mb-2">
-                  Искате ли да ви се обадим?
+                  {MANUAL_RECOMMENDATION_COPY.formIntroHeadline}
                 </h3>
                 <p className="text-slate-500 mb-6">
-                  Нашият консултант ще ви се обади, за да обсъдите вашите възможности и да отговори на въпросите ви.
+                  {MANUAL_RECOMMENDATION_COPY.formIntroBody}
                 </p>
                 <button
                   onClick={handleRequestCall}
@@ -373,8 +377,11 @@ export default function CityTreatmentQuizPage() {
                   data-testid="request-call-btn"
                 >
                   <Phone className="w-5 h-5" />
-                  Да, обадете ми се
+                  {MANUAL_RECOMMENDATION_CTA.requestGuidance}
                 </button>
+                <p className="mt-4 text-xs text-slate-400 max-w-md mx-auto">
+                  {MANUAL_RECOMMENDATION_COPY.safetyNote}
+                </p>
               </div>
             </div>
           )}
@@ -383,10 +390,10 @@ export default function CityTreatmentQuizPage() {
           {showContactForm && !submitted && (
             <div className="quiz-step-enter bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
               <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-2">
-                Заявка за обаждане
+                {MANUAL_RECOMMENDATION_COPY.formIntroHeadline}
               </h2>
               <p className="text-slate-500 mb-8">
-                Оставете данните си и ще се свържем с вас в рамките на 24 часа.
+                {MANUAL_RECOMMENDATION_COPY.formIntroBody}
               </p>
               
               <div className="space-y-4">
@@ -466,7 +473,7 @@ export default function CityTreatmentQuizPage() {
                       </>
                     ) : (
                       <>
-                        Изпрати заявка
+                        {MANUAL_RECOMMENDATION_CTA.primary}
                         <ArrowRight className="w-5 h-5" />
                       </>
                     )}
@@ -483,10 +490,13 @@ export default function CityTreatmentQuizPage() {
                 <CheckCircle className="w-10 h-10 text-emerald-600" />
               </div>
               <h2 className="font-serif text-2xl font-semibold text-emerald-800 mb-3">
-                Заявката е изпратена успешно!
+                {MANUAL_RECOMMENDATION_COPY.submittedTitle}
               </h2>
-              <p className="text-emerald-700 mb-6">
-                Благодарим ви! Наш консултант ще се свърже с вас в рамките на 24 часа на телефон <strong>{contactData.phone}</strong>.
+              <p className="text-emerald-700 mb-3">
+                {MANUAL_RECOMMENDATION_COPY.submittedBody}
+              </p>
+              <p className="text-sm text-emerald-700/80 mb-6">
+                Ще ти потърсим на <strong>{contactData.phone}</strong>.
               </p>
               <Link
                 href={`/${city}/${treatment}`}

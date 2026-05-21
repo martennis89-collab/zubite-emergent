@@ -4,6 +4,10 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ArrowRight, ArrowLeft, CheckCircle, AlertCircle, Phone, Loader2, Smile, Shield, Eye, Wallet } from 'lucide-react'
 import { createLead } from '@/lib/api'
+import {
+  MANUAL_RECOMMENDATION_COPY,
+  MANUAL_RECOMMENDATION_CTA,
+} from '@/lib/manualRecommendationCopy'
 
 type Band = 'green' | 'yellow' | 'red'
 
@@ -402,7 +406,7 @@ export function AlignersVsBracesQuiz() {
                     data-testid="request-consultation"
                   >
                     <Phone className="w-5 h-5" />
-                    Заявете консултация
+                    {MANUAL_RECOMMENDATION_CTA.requestGuidance}
                   </button>
                   <button
                     onClick={resetQuiz}
@@ -421,10 +425,10 @@ export function AlignersVsBracesQuiz() {
       {showContactForm && !submitted && (
         <div className="p-6 md:p-8">
           <h3 className="font-serif text-xl font-semibold text-slate-900 mb-2">
-            Заявка за консултация
+            {MANUAL_RECOMMENDATION_COPY.formIntroHeadline}
           </h3>
           <p className="text-slate-500 mb-6">
-            Оставете данните си и ще се свържем с вас в рамките на 24 часа.
+            {MANUAL_RECOMMENDATION_COPY.formIntroBody}
           </p>
           
           <div className="space-y-4">
@@ -522,10 +526,13 @@ export function AlignersVsBracesQuiz() {
               <CheckCircle className="w-10 h-10 text-emerald-600" />
             </div>
             <h3 className="font-serif text-2xl font-semibold text-emerald-800 mb-3">
-              Заявката е изпратена успешно!
+              {MANUAL_RECOMMENDATION_COPY.submittedTitle}
             </h3>
-            <p className="text-emerald-700 mb-6">
-              Благодарим ви! Наш консултант ще се свърже с вас в рамките на 24 часа на телефон <strong>{contactData.phone}</strong>.
+            <p className="text-emerald-700 mb-3">
+              {MANUAL_RECOMMENDATION_COPY.submittedBody}
+            </p>
+            <p className="text-sm text-emerald-700/80 mb-6">
+              Ще ти потърсим на <strong>{contactData.phone}</strong>.
             </p>
             <button
               onClick={() => setIsOpen(false)}
