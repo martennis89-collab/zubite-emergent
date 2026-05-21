@@ -28,14 +28,14 @@ const CITY_NAMES: Record<string, string> = {
 // explanation lives in the dedicated profile/orientir pages, not here.
 const SEGMENT_SUMMARIES: Record<Segment, Record<ResultBand, { thanks: string; summary: string }>> = {
   adult: {
-    low:      { thanks: 'Благодарим ти', summary: 'Нисък риск — виж клиники, при които можеш да потвърдиш с преглед, ако решиш.' },
+    low:      { thanks: 'Благодарим ти', summary: 'Нисък риск — профилактичен преглед остава добра идея.' },
     moderate: { thanks: 'Благодарим ти', summary: 'Умерен риск — има признаци, които заслужават внимание от специалист.' },
     high:     { thanks: 'Благодарим ти', summary: 'Висок риск — комбинация от симптоми, която е важно да се оцени от специалист.' },
   },
   teen: {
     low:      { thanks: 'Благодарим ви', summary: 'Нисък риск — профилактичен преглед остава важен за правилното развитие.' },
     moderate: { thanks: 'Благодарим ви', summary: 'Умерен риск — в тийнейджърска възраст корекцията е значително по-лесна.' },
-    high:     { thanks: 'Благодарим ви', summary: 'Висок риск — корекцията е по-ефективна в тази възраст. Виж приоритетни клиники.' },
+    high:     { thanks: 'Благодарим ви', summary: 'Висок риск — корекцията е по-ефективна в тази възраст и заслужава оценка от специалист.' },
   },
   child: {
     low:      { thanks: 'Благодарим ви', summary: 'Нисък риск — първи ортодонтски преглед се препоръчва около 7-годишна възраст.' },
@@ -44,13 +44,13 @@ const SEGMENT_SUMMARIES: Record<Segment, Record<ResultBand, { thanks: string; su
   },
 }
 
-// Unified "Какво следва?" steps — kept short. Framed for manual
-// recommendation mode: viewing possible clinics is one option, leaving
-// it to the Zubite team is another, both equally valid.
+// Unified "Какво следва?" steps — kept short. Manual Clinic Recommendation
+// Mode: no auto-matching promise; the Zubite team manually reviews each
+// submission and reaches out with relevant clinic guidance.
 const NEXT_STEPS = [
-  'Виж възможните клиники в района.',
-  'Отвори профил, ако някоя ти изглежда подходяща.',
-  'Или остави на Zubite — екипът ще се свърже с теб.',
+  'Получаваме отговорите ти и заявката за насочване.',
+  'Екипът на Zubite.bg преглежда случая ръчно.',
+  'Свързваме се с теб с подходящи насоки и клиники.',
 ]
 
 function SuccessContent() {
@@ -153,51 +153,29 @@ function SuccessContent() {
         </div>
       </div>
 
-      {/* Primary CTA — into the matching flow. Copy is intentionally calmer
-          than the previous "Виж препоръчаните клиники": while the Zubite
-          partner network is still being built, the next page may show
-          manual-matching empty state instead of a guaranteed list, so we
-          frame this as "възможности" not as instant matches.  */}
+      {/* Manual Clinic Recommendation Mode: no clinic-list CTA after lead
+          submission. The patient submitted their details — the Zubite team
+          will manually review and reach out. We show a calm reassurance
+          panel instead of a button that would promise an instant list. */}
       <div className="space-y-3" data-testid="success-cta-block">
-        {leadId ? (
-          <Link
-            href={`/results/${leadId}/clinics`}
-            onClick={() => {
-              trackPatientEvent('recommended_clinics_cta_clicked', {
-                lead_id: leadId,
-                source: 'quiz_success',
-              })
-            }}
-            className="group relative w-full inline-flex items-center justify-center gap-2 h-12 px-6 rounded-full text-white text-base font-medium transition-all hover:-translate-y-0.5 shadow-[0_18px_40px_-12px_rgba(13,148,136,0.55),inset_0_1px_0_rgba(255,255,255,0.20)] overflow-hidden"
-            style={{ backgroundImage: 'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)' }}
-            data-testid="success-primary-cta"
-          >
-            <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
-            <span className="relative inline-flex items-center gap-2">
-              Виж възможни клиники
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-            </span>
-          </Link>
-        ) : (
-          // Defensive fallback — should not happen because the quiz now
-          // captures the created lead id. Never invent a route; just
-          // ask the patient to refresh / open from the link they will
-          // receive. We do NOT auto-promise a callback.
-          <div
-            className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 leading-relaxed"
-            data-testid="success-no-leadid-fallback"
-          >
-            Не успяхме да заредим директната връзка към следващата стъпка.
-            Моля, презареди страницата или се върни към квиза.
-          </div>
-        )}
+        <div
+          className="relative w-full rounded-2xl bg-white/55 backdrop-blur-xl ring-1 ring-white/80 shadow-[0_8px_24px_-12px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.85)] px-6 py-5 text-center overflow-hidden"
+          data-testid="success-reassurance-panel"
+        >
+          <div aria-hidden className="absolute inset-x-6 top-0.5 h-1/3 rounded-2xl bg-white/40 blur-sm pointer-events-none" />
+          <p className="relative font-serif text-base sm:text-[17px] text-slate-900 leading-snug">
+            Екипът на Zubite.bg ще прегледа отговорите ти и ще се свърже с теб
+            с подходящи насоки и клиники.
+          </p>
+        </div>
         <p
           className="flex items-start justify-center gap-1.5 text-xs text-slate-500 leading-relaxed text-center"
           data-testid="success-helper-text"
         >
           <Sparkles className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-violet-500" />
-          Ако в твоя район все още нямаме партньорска клиника, екипът на
-          Zubite.bg ще се свърже с теб с подходящи насоки.
+          В момента изграждаме подбрана партньорска мрежа от клиники, затова
+          преглеждаме част от заявките ръчно — за по-смислено насочване според
+          твоя случай.
         </p>
 
         {/* Care Pass — compact chip strip matching the homepage premium panel.
