@@ -395,7 +395,7 @@ function HeroMockup() {
             Следваща стъпка: <br />консултация с ортодонт
           </p>
           <span className="inline-flex items-center gap-1 text-teal-700 text-xs font-medium whitespace-nowrap">
-            Виж подходящи клиники <ArrowRight className="w-3 h-3" />
+            Виж следващи стъпки <ArrowRight className="w-3 h-3" />
           </span>
         </div>
       </div>

@@ -119,18 +119,6 @@ export default function ResultsPage() {
 
             <div className="relative flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-center">
               <Link
-                href={`/results/${leadId}/clinics`}
-                className="group relative inline-flex items-center justify-center gap-1.5 rounded-full text-white text-sm font-medium px-6 py-3.5 transition-all hover:-translate-y-0.5 shadow-[0_18px_40px_-12px_rgba(13,148,136,0.55),inset_0_1px_0_rgba(255,255,255,0.20)] overflow-hidden"
-                style={{ backgroundImage: 'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)' }}
-                data-testid="show-3-clinics-btn"
-              >
-                <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
-                <span className="relative inline-flex items-center gap-1.5">
-                  Покажи ми 3 подходящи клиники
-                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-                </span>
-              </Link>
-              <Link
                 href="/"
                 className="relative inline-flex items-center justify-center gap-2 rounded-full bg-white/55 backdrop-blur-xl text-slate-900 text-sm font-medium px-6 py-3.5 ring-1 ring-white/80 hover:bg-white/80 hover:-translate-y-0.5 transition-all shadow-[0_8px_24px_-12px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.85)] overflow-hidden"
                 data-testid="home-btn"

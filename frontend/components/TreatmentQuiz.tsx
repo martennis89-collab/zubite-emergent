@@ -192,7 +192,7 @@ export function TreatmentQuiz({ treatment }: TreatmentQuizProps) {
                   В кой град търсите лечение?
                 </h1>
                 <p className="text-slate-500">
-                  Изберете вашия град, за да ви покажем подходящи клиники и цени
+                  Изберете вашия град, за да дадем по-смислено насочване според района
                 </p>
               </div>
               

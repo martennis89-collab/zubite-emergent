@@ -328,7 +328,7 @@ export function AnimatedHowItWorksSection() {
       number: '3',
       title: 'Получаваш конкретни следващи стъпки',
       subtitle: '',
-      description: 'И ако искаш — ще ти препоръчаме 3 подходящи клиники според твоя случай и град.',
+      description: 'Екипът на Zubite.bg ще прегледа отговорите ти и ще се свърже с теб с подходящи насоки и клиники.',
       icon: MessageSquare,
       color: 'bg-emerald-100 text-emerald-600'
     }
