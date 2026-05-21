@@ -8,6 +8,26 @@
  * re-injected after paragraph splitting so they don't get wrapped in <p>.
  */
 
+import { resolveImageUrl } from './imageUrl'
+
+/**
+ * Rewrite `<img src="…">` (and `<source srcset>`) URLs in already-rendered
+ * HTML through `resolveImageUrl`. This catches images embedded inside the
+ * markdown article body via `<figure>...<img src="…">...</figure>` HTML
+ * blocks produced by the legacy importer, where the stored URL may point
+ * to a retired Emergent backend host.
+ */
+export function rewriteImageUrlsInHtml(html: string): string {
+  if (!html) return html
+  return html.replace(
+    /(<img\b[^>]*?\bsrc=)(["'])([^"']+)\2/gi,
+    (_m, prefix: string, quote: string, url: string) => {
+      const resolved = resolveImageUrl(url)
+      return `${prefix}${quote}${resolved}${quote}`
+    },
+  )
+}
+
 export function parseMarkdown(content: string): string {
   // Step 1: extract pre-existing <figure>...</figure> HTML blocks so the
   // link/paragraph regexes below don't mangle them.
@@ -65,6 +85,11 @@ export function parseMarkdown(content: string): string {
     (_m, idx: string) => figures[Number(idx)] || '',
   )
   html = html.replace(/\u0000FIG(\d+)\u0000/g, (_m, idx: string) => figures[Number(idx)] || '')
+
+  // Final pass: rewrite any <img src="..."> URLs (retired hosts → current
+  // backend; relative paths → absolute) so all body images render correctly
+  // in production, where the API origin differs from the frontend origin.
+  html = rewriteImageUrlsInHtml(html)
 
   return html
 }
