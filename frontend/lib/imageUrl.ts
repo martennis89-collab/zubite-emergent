@@ -37,10 +37,13 @@ export function resolveImageUrl(src: string | null | undefined): string {
   const trimmed = src.trim()
   if (!trimmed) return ''
 
-  // Google Drive normalisation
+  // Google Drive normalisation — prefer the direct `lh3` content URL,
+  // which bypasses the redirect chain through drive.usercontent.google.com.
+  // Browsers sometimes refuse to render those redirected images in <img>
+  // tags. The `=w1600` size param requests a sensibly-sized JPEG.
   const driveMatch = trimmed.match(DRIVE_ID_RE)
   if (driveMatch) {
-    return `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`
+    return `https://lh3.googleusercontent.com/d/${driveMatch[1]}=w1600`
   }
 
   const apiBase = (
