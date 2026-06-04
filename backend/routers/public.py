@@ -1,12 +1,12 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
 from datetime import datetime, timezone, timedelta
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 import asyncio
 import uuid
 
 from database import db
 from aligner_brands import public_aligner_brand_chips
-from schemas import Clinic, LeadCreate, LeadContactUpdate, Lead, RequestCallBody, RequestZubiteHelpBody
+from schemas import Clinic, LeadCreate, LeadContactUpdate, Lead, RequestCallBody, RequestZubiteHelpBody, SaveCarePassEmailBody
 from auth import hash_password
 from config import CITIES, logger
 from scoring import calculate_score
@@ -15,6 +15,7 @@ from emails import (
     send_lead_confirmation_email,
     send_admin_selected_clinic_request_alert,
     send_admin_assisted_choice_request_alert,
+    send_care_pass_summary_email,
 )
 from rate_limit import rate_limit
 
@@ -293,6 +294,70 @@ async def update_lead_contact(lead_id: str, data: LeadContactUpdate):
             asyncio.create_task(send_lead_confirmation_email(full_lead))
 
     return lead
+
+
+# ─── Patient layer: Save Care Pass by email ─────────────────────────
+#
+# POST /leads/{lead_id}/email-care-pass
+#
+# Patient-initiated, self-service summary email. Sent on explicit
+# consent from /quiz/success. The email reiterates:
+#   • The risk band the patient saw on the success page,
+#   • Care Pass eligibility wording (oral hygiene only, AFTER consult),
+#   • Manual Recommendation Mode messaging (no instant matching).
+#
+# Privacy/safety:
+#   • Rate-limited to 3 calls / 5 min / client.
+#   • Requires explicit `consent_to_email=True`.
+#   • Looks up the lead so we can include the correct band + city +
+#     treatment_type — but the request body's `email` is the destination
+#     (patient may want to send to a different inbox).
+#   • Never leaks phone or full quiz answers back.
+@router.post(
+    "/leads/{lead_id}/email-care-pass",
+    dependencies=[Depends(rate_limit("email_care_pass", 3, 300))],
+)
+async def email_care_pass(lead_id: str, body: SaveCarePassEmailBody):
+    if not body.consent_to_email:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "success": False,
+                "code": "consent_required",
+                "message": (
+                    "Необходимо е съгласие, за да изпратим резултата "
+                    "и информация за Care Pass на твоя имейл."
+                ),
+            },
+        )
+
+    lead = await db.leads.find_one(
+        {"id": lead_id},
+        {"_id": 0, "id": 1, "band": 1, "city_slug": 1,
+         "treatment_type": 1, "name": 1},
+    )
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    name = (body.name or "").strip() or (lead.get("name") or "").strip() or None
+
+    sent = await send_care_pass_summary_email(
+        to_email=body.email,
+        name=name,
+        band=lead.get("band"),
+        city_slug=lead.get("city_slug"),
+        treatment_type=lead.get("treatment_type"),
+    )
+
+    # Always return success to the client — Resend outages or missing
+    # RESEND_API_KEY should not surface as a patient-visible error. The
+    # server log carries the actual delivery state.
+    if not sent:
+        logger.warning(
+            "email_care_pass: delivery failed or skipped lead=%s", lead_id,
+        )
+
+    return {"success": True, "message": "Изпратихме информацията на твоя имейл."}
 
 
 # ─── Patient layer: recommended clinics (Phase P2) ────────────────

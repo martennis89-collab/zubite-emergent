@@ -410,3 +410,146 @@ async def send_admin_assisted_choice_request_alert(
     except Exception as e:
         logging.error(f"send_admin_assisted_choice_request_alert failed: {e}")
         return False
+
+
+# ─────────────────────────────────────────────────────────────
+# Patient self-service: "Save Care Pass by email"
+# ─────────────────────────────────────────────────────────────
+#
+# Sent ONLY when the patient explicitly opts in on /quiz/success.
+#
+# Hard copy rules — must stay in sync with
+# /app/frontend/lib/manualRecommendationCopy.ts:
+#   • No diagnosis language ("диагноза", "лечение", "гарантиран").
+#   • Care Pass = oral hygiene product discounts only, AFTER consultation.
+#   • Manual Recommendation Mode = Zubite team reviews leads and reaches
+#     out manually. No promise of instant clinic matching / booking.
+#   • Never include phone numbers, attribution, or quiz answer payloads.
+
+# Friendly band labels for the email — kept distinct from BAND_NAMES
+# (which is admin-facing and includes "Висок приоритет" / "Среден
+# приоритет" / "Нисък приоритет" — too operational for a patient email).
+_PATIENT_BAND_LABELS = {
+    "GREEN": "Нисък риск",
+    "YELLOW": "Умерен риск",
+    "RED": "Висок риск",
+}
+
+_PATIENT_BAND_SUMMARIES = {
+    "GREEN": (
+        "Профилактичен преглед при стоматолог остава добра идея, "
+        "за да поддържаш здравето си."
+    ),
+    "YELLOW": (
+        "Има признаци, които заслужават внимание от специалист. "
+        "Препоръчваме консултация при стоматолог или ортодонт."
+    ),
+    "RED": (
+        "Комбинация от симптоми, които е важно да се оценят "
+        "от специалист. Препоръчваме да насрочиш консултация."
+    ),
+}
+
+
+async def send_care_pass_summary_email(
+    *,
+    to_email: str,
+    name: str | None,
+    band: str | None,
+    city_slug: str | None,
+    treatment_type: str | None,
+) -> bool:
+    """Patient-initiated summary email: quiz outcome + Care Pass
+    eligibility text + Manual Recommendation Mode messaging.
+
+    Best-effort: returns False if Resend is unconfigured or the call
+    fails — caller logs and returns a success response either way so
+    the patient never sees an internal Resend error."""
+    if not RESEND_API_KEY:
+        logging.warning(
+            "send_care_pass_summary_email skipped — RESEND_API_KEY missing"
+        )
+        return False
+
+    greeting_name = (name or "").strip()
+    greeting = f"Здравей{(' ' + greeting_name) if greeting_name else ''}"
+
+    band_key = (band or "").upper()
+    band_label = _PATIENT_BAND_LABELS.get(band_key, "Резултат от ориентира")
+    band_summary = _PATIENT_BAND_SUMMARIES.get(
+        band_key,
+        "Препоръчваме консултация при стоматолог за по-добра оценка.",
+    )
+
+    city_name = CITIES.get((city_slug or "").lower(), "")
+    treatment_name = TREATMENT_NAMES.get(
+        (treatment_type or "").lower(), ""
+    )
+
+    context_rows = ""
+    if city_name:
+        context_rows += (
+            f"<tr><td style=\"padding:6px 0;color:#64748b;width:140px;\">Град:</td>"
+            f"<td style=\"padding:6px 0;color:#0f172a;font-weight:500;\">{_h(city_name)}</td></tr>"
+        )
+    if treatment_name:
+        context_rows += (
+            f"<tr><td style=\"padding:6px 0;color:#64748b;\">Категория:</td>"
+            f"<td style=\"padding:6px 0;color:#0f172a;font-weight:500;\">{_h(treatment_name)}</td></tr>"
+        )
+
+    subject = "Твоят резултат от Zubite.bg + Care Pass"
+
+    html = f"""
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;background:#FCFAF8;">
+        <h1 style="font-size:22px;color:#0f172a;margin:0 0 8px;font-weight:600;">{_h(greeting)},</h1>
+        <p style="color:#475569;font-size:15px;line-height:1.6;margin:0 0 20px;">
+            Запазваме твоя резултат от ориентира на Zubite.bg, заедно с
+            информация за Care Pass. Това е <strong>ориентир, не диагноза</strong>
+            и не замества преглед при специалист.
+        </p>
+
+        <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin:0 0 20px;">
+            <p style="color:#0f766e;font-size:11px;text-transform:uppercase;letter-spacing:0.12em;margin:0 0 8px;font-weight:600;">Твоят ориентир</p>
+            <h2 style="color:#0f172a;font-size:18px;margin:0 0 8px;font-weight:600;">{_h(band_label)}</h2>
+            <p style="color:#475569;font-size:14px;line-height:1.55;margin:0 0 14px;">{_h(band_summary)}</p>
+            {f'<table style="width:100%;border-collapse:collapse;font-size:14px;margin-top:10px;">{context_rows}</table>' if context_rows else ''}
+        </div>
+
+        <div style="background:#0E1A24;background-image:linear-gradient(135deg,#0E1A24 0%,#112832 100%);border-radius:12px;padding:22px;margin:0 0 20px;color:#e2e8f0;">
+            <p style="color:#5eead4;font-size:11px;text-transform:uppercase;letter-spacing:0.14em;margin:0 0 6px;font-weight:600;">Zubite Care Pass</p>
+            <h2 style="color:#ffffff;font-size:18px;margin:0 0 12px;font-weight:600;">След консултацията клиниката ти дава Care Pass.</h2>
+            <p style="color:#cbd5e1;font-size:14px;line-height:1.55;margin:0 0 14px;">
+                Ако посетиш консултация в партньорска клиника чрез Zubite.bg,
+                клиниката ще ти предостави Zubite Care Pass —
+                <strong>отстъпки за продукти за орална хигиена</strong>.
+            </p>
+            <p style="color:#94a3b8;font-size:12px;line-height:1.5;margin:0;">
+                Care Pass не е отстъпка от лечение, не е застраховка и не е абонамент.
+            </p>
+        </div>
+
+        <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin:0 0 20px;">
+            <p style="color:#0f172a;font-size:14px;font-weight:600;margin:0 0 10px;">Какво следва?</p>
+            <p style="color:#475569;font-size:14px;line-height:1.55;margin:0;">
+                В момента изграждаме подбрана партньорска мрежа от клиники, затова
+                екипът на Zubite.bg преглежда заявките ръчно и се свързва с теб
+                с подходящи насоки.
+            </p>
+        </div>
+
+        <p style="color:#94a3b8;font-size:12px;line-height:1.55;margin:14px 0 0;">
+            Получаваш този имейл, защото поиска да го запазиш на страницата с резултата си в Zubite.bg.
+            Информацията е ориентировъчна — Zubite не поставя диагноза и не замества преглед при лекар.
+        </p>
+        <p style="color:#94a3b8;font-size:12px;margin:8px 0 0;">
+            — Екипът на <a href="{_h(_admin_url('/'))}" style="color:#0d9488;text-decoration:none;">Zubite.bg</a>
+        </p>
+    </div>
+    """
+
+    try:
+        return await _send_email(to_email, subject, html)
+    except Exception as e:
+        logging.error(f"send_care_pass_summary_email failed: {e}")
+        return False

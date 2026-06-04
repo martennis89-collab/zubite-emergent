@@ -4,9 +4,10 @@ import { useEffect, useRef, useState, Suspense } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
-import { CheckCircle, ArrowRight, MapPin, Shield, ShieldCheck, Sparkles } from 'lucide-react'
+import { CheckCircle, ArrowRight, MapPin, Mail, Shield, ShieldCheck, Sparkles } from 'lucide-react'
 import { trackPageView } from '@/components/MetaPixel'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
+import { SaveCarePassModal } from '@/components/patient/SaveCarePassModal'
 
 type ResultBand = 'low' | 'moderate' | 'high'
 type Segment = 'adult' | 'teen' | 'child'
@@ -56,6 +57,8 @@ const NEXT_STEPS = [
 function SuccessContent() {
   const searchParams = useSearchParams()
   const [mounted, setMounted] = useState(false)
+  const [saveModalOpen, setSaveModalOpen] = useState(false)
+  const [prefillEmail, setPrefillEmail] = useState('')
 
   const band = (searchParams.get('stage') || 'low') as ResultBand
   const city = searchParams.get('city') || ''
@@ -69,6 +72,18 @@ function SuccessContent() {
   const isParent = segment === 'teen' || segment === 'child'
 
   useEffect(() => { setMounted(true); trackPageView() }, [])
+
+  // Read stored email (from quiz submit) to prefill the modal.
+  useEffect(() => {
+    if (!leadId) return
+    ;(async () => {
+      try {
+        const { getStoredLeadContact } = await import('@/lib/leadContact')
+        const c = getStoredLeadContact(leadId)
+        if (c?.email) setPrefillEmail(c.email)
+      } catch { /* silent */ }
+    })()
+  }, [leadId])
 
   // Fire `quiz_success_viewed` exactly once per page mount (StrictMode-safe
   // via useRef latch — React would otherwise invoke this effect twice in dev).
@@ -227,6 +242,25 @@ function SuccessContent() {
             </ul>
           </div>
         </div>
+
+        {/* Save-by-email CTA — patient-initiated, requires consent. */}
+        {leadId && (
+          <div className="mt-3" data-testid="success-save-care-pass-block">
+            <button
+              type="button"
+              onClick={() => setSaveModalOpen(true)}
+              className="group w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-white/70 backdrop-blur-xl ring-1 ring-white/80 shadow-[0_8px_22px_-12px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.85)] text-slate-800 text-sm font-semibold hover:-translate-y-0.5 hover:ring-teal-200 transition-all"
+              data-testid="success-save-care-pass-cta"
+            >
+              <Mail className="w-4 h-4 text-teal-600" />
+              Запази резултата на имейл
+              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+            </button>
+            <p className="mt-1.5 text-[11px] text-slate-400 text-center leading-relaxed">
+              Изпращаме ти кратко резюме + информация за Care Pass. Без спам.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Trust + medical disclaimer — footnote style */}
@@ -246,6 +280,17 @@ function SuccessContent() {
           Обратно към началото
         </Link>
       </div>
+
+      {/* Save Care Pass by email modal */}
+      {leadId && (
+        <SaveCarePassModal
+          open={saveModalOpen}
+          onClose={() => setSaveModalOpen(false)}
+          leadId={leadId}
+          defaultEmail={prefillEmail}
+          defaultName={name}
+        />
+      )}
     </div>
   )
 }

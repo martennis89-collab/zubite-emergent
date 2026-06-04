@@ -148,6 +148,19 @@ class RequestZubiteHelpBody(BaseModel):
     source: AssistedChoiceSource = "matching_page"
 
 
+# ─── Patient layer: Save Care Pass by email ────────────────────────
+# Body for POST /api/leads/{lead_id}/email-care-pass.
+# Sends the patient a summary of their quiz outcome + the Manual
+# Recommendation Mode explanation + Care Pass eligibility text.
+# Strictly NO instant-clinic-match / booking promises in the email.
+class SaveCarePassEmailBody(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    email: EmailStr
+    consent_to_email: bool
+    # Optional display name to personalise the greeting.
+    name: Optional[str] = Field(default=None, max_length=200)
+
+
 class Lead(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
