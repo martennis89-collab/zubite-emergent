@@ -270,15 +270,25 @@ function Hero() {
           </Reveal>
           <Reveal delay={80}>
             <h1 className="mt-5 font-serif font-semibold tracking-tight text-slate-900 text-[2.5rem] sm:text-5xl lg:text-[3.75rem] leading-[1.05]">
-              Направи първоначален{' '}
-              <span className="text-teal-600">онлайн анализ</span>{' '}
-              на зъбите си
+              Спри да питаш{' '}
+              <span className="text-teal-600">случайни хора</span>{' '}
+              в социалните мрежи за дентални съвети.
             </h1>
           </Reveal>
           <Reveal delay={160}>
             <p className="mt-5 text-slate-600 text-lg sm:text-xl leading-relaxed max-w-xl">
-              Отговори на няколко въпроса и виж дали има нещо, което си
-              струва да провериш със специалист.
+              Zubite.bg ти помага да се ориентираш дали симптомите ти може да
+              са сигнал за дентален проблем, какви решения съществуват и към
+              какъв тип специалист има смисъл да се насочиш.
+            </p>
+          </Reveal>
+          <Reveal delay={200}>
+            <p
+              className="mt-4 text-slate-500 text-[15px] sm:text-base leading-relaxed max-w-xl italic"
+              data-testid="hero-quiz-hook"
+            >
+              Мислиш, че всичко е наред със зъбите ти? Отговори на няколко
+              въпроса и виж дали има сигнал, който си струва да провериш.
             </p>
           </Reveal>
           <Reveal delay={220}>
@@ -291,7 +301,7 @@ function Hero() {
               >
                 <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
                 <span className="relative inline-flex items-center gap-1.5">
-                  Започни анализа
+                  Провери своя случай
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                 </span>
               </Link>
