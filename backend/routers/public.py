@@ -341,23 +341,164 @@ async def email_care_pass(lead_id: str, body: SaveCarePassEmailBody):
 
     name = (body.name or "").strip() or (lead.get("name") or "").strip() or None
 
+    # Generate secure magic-link token: 256-bit URL-safe random.
+    # Store ONLY the SHA-256 hash so a DB read can't be replayed.
+    import secrets as _secrets
+    import hashlib as _hashlib
+    access_token = _secrets.token_urlsafe(32)
+    token_hash = _hashlib.sha256(access_token.encode("utf-8")).hexdigest()
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(days=90)
+    await db.lead_access_tokens.insert_one({
+        "token_hash": token_hash,
+        "lead_id": lead_id,
+        "created_at": now.isoformat(),
+        "expires_at": expires_at.isoformat(),
+        "revoked_at": None,
+        "last_accessed_at": None,
+        "access_count": 0,
+    })
+
     sent = await send_care_pass_summary_email(
         to_email=body.email,
         name=name,
         band=lead.get("band"),
         city_slug=lead.get("city_slug"),
         treatment_type=lead.get("treatment_type"),
+        access_token=access_token,
     )
 
-    # Always return success to the client — Resend outages or missing
-    # RESEND_API_KEY should not surface as a patient-visible error. The
-    # server log carries the actual delivery state.
     if not sent:
         logger.warning(
             "email_care_pass: delivery failed or skipped lead=%s", lead_id,
         )
 
     return {"success": True, "message": "Изпратихме информацията на твоя имейл."}
+
+
+# ─── Patient orientation magic-link lookup ──────────────────────────
+#
+# GET /patient-orientation/{access_token}
+#
+# Resolves a magic-link token emitted by `POST /leads/{id}/email-care-pass`
+# and returns ONLY safe, patient-facing fields. Never returns lead_id,
+# raw answers, attribution, phone, full email, score_total, scoring
+# breakdown, or internal status/assignment fields.
+#
+# Privacy/safety:
+#   • Tokens are stored as SHA-256 hashes — DB read alone cannot reveal
+#     a usable token.
+#   • Rate-limited to 30 lookups / 5 min / client IP.
+#   • Expired (>90d) → 410 Gone with a stable error code.
+#   • Unknown / revoked → 404 with same code shape.
+#   • Lookup increments access_count + stamps last_accessed_at for audit.
+#   • Fires an `orientation_link_opened` analytics_events row (best-effort,
+#     non-blocking) — same pattern as other patient-funnel events.
+@router.get(
+    "/patient-orientation/{access_token}",
+    dependencies=[Depends(rate_limit("patient_orientation_lookup", 30, 300))],
+)
+async def get_patient_orientation(access_token: str):
+    if not access_token or len(access_token) < 16 or len(access_token) > 200:
+        raise HTTPException(
+            status_code=404,
+            detail={"success": False, "code": "token_not_found",
+                    "message": "Линкът е невалиден или вече не съществува."},
+        )
+    import hashlib as _hashlib
+    token_hash = _hashlib.sha256(access_token.encode("utf-8")).hexdigest()
+    record = await db.lead_access_tokens.find_one(
+        {"token_hash": token_hash}, {"_id": 0},
+    )
+    if not record:
+        raise HTTPException(
+            status_code=404,
+            detail={"success": False, "code": "token_not_found",
+                    "message": "Линкът е невалиден или вече не съществува."},
+        )
+    if record.get("revoked_at"):
+        raise HTTPException(
+            status_code=404,
+            detail={"success": False, "code": "token_revoked",
+                    "message": "Линкът вече не е активен."},
+        )
+    # Expiry check.
+    expires_raw = record.get("expires_at")
+    try:
+        expires_dt = datetime.fromisoformat(expires_raw) if isinstance(expires_raw, str) else expires_raw
+        if expires_dt and expires_dt.tzinfo is None:
+            expires_dt = expires_dt.replace(tzinfo=timezone.utc)
+    except Exception:
+        expires_dt = None
+    if expires_dt and datetime.now(timezone.utc) > expires_dt:
+        raise HTTPException(
+            status_code=410,
+            detail={"success": False, "code": "token_expired",
+                    "message": "Линкът е изтекъл. Можеш да попълниш ориентира отново."},
+        )
+
+    lead_id = record.get("lead_id")
+    lead = await db.leads.find_one(
+        {"id": lead_id},
+        {"_id": 0, "id": 1, "band": 1, "city_slug": 1,
+         "treatment_type": 1, "name": 1, "created_at": 1, "answers": 1},
+    )
+    if not lead:
+        # Lead was deleted but token survived — treat as not-found.
+        raise HTTPException(
+            status_code=404,
+            detail={"success": False, "code": "token_not_found",
+                    "message": "Линкът е невалиден или вече не съществува."},
+        )
+
+    # Best-effort: stamp access metadata + analytics event. Never block.
+    try:
+        await db.lead_access_tokens.update_one(
+            {"token_hash": token_hash},
+            {
+                "$inc": {"access_count": 1},
+                "$set": {"last_accessed_at": datetime.now(timezone.utc).isoformat()},
+            },
+        )
+    except Exception as e:
+        logger.warning("lead_access_tokens access stamp failed: %s", e)
+    try:
+        await db.analytics_events.insert_one({
+            "event_type": "orientation_link_opened",
+            "session_id": f"magic-link-{token_hash[:12]}",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "band": lead.get("band"),
+            "city": lead.get("city_slug"),
+            "has_lead_id": bool(lead_id),
+        })
+    except Exception as e:
+        logger.warning("orientation_link_opened analytics insert failed: %s", e)
+
+    # Extract a safe segment hint from quiz answers if present. Quiz
+    # stores segment as `answers.segment` ∈ {adult, teen, child}.
+    answers = lead.get("answers") or {}
+    segment = None
+    if isinstance(answers, dict):
+        raw_seg = (answers.get("segment") or "").strip().lower()
+        if raw_seg in {"adult", "teen", "child"}:
+            segment = raw_seg
+
+    # Safe display name — first word only, bounded length, optional.
+    raw_name = (lead.get("name") or "").strip()
+    display_name = None
+    if raw_name:
+        first = raw_name.split()[0] if raw_name.split() else ""
+        display_name = first[:24] or None
+
+    return {
+        "success": True,
+        "band": lead.get("band"),
+        "city_slug": lead.get("city_slug") or None,
+        "treatment_type": lead.get("treatment_type") or None,
+        "segment": segment,
+        "display_name": display_name,
+        "created_at": lead.get("created_at"),
+    }
 
 
 # ─── Patient layer: recommended clinics (Phase P2) ────────────────

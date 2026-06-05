@@ -458,9 +458,14 @@ async def send_care_pass_summary_email(
     band: str | None,
     city_slug: str | None,
     treatment_type: str | None,
+    access_token: str | None = None,
 ) -> bool:
     """Patient-initiated summary email: quiz outcome + Care Pass
     eligibility text + Manual Recommendation Mode messaging.
+
+    If `access_token` is provided, the email includes a secure magic
+    link button back to /patient/orientir/{access_token}. The raw lead
+    ID is NEVER included in the URL.
 
     Best-effort: returns False if Resend is unconfigured or the call
     fails — caller logs and returns a success response either way so
@@ -500,6 +505,30 @@ async def send_care_pass_summary_email(
 
     subject = "Твоят резултат от Zubite.bg + Care Pass"
 
+    # Optional magic-link block — only rendered when an access token is
+    # provided. We use the public PRODUCTION_URL as the canonical base
+    # (the email is a long-lived asset that may outlive a preview env).
+    magic_link_block = ""
+    if access_token:
+        from config import PRODUCTION_URL
+        base = (PRODUCTION_URL or "https://zubite.bg").rstrip("/")
+        magic_url = f"{base}/patient/orientir/{access_token}"
+        magic_link_block = f"""
+        <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:22px;margin:0 0 20px;text-align:center;">
+            <p style="color:#0f172a;font-size:14px;font-weight:600;margin:0 0 8px;">Запазен достъп до твоя ориентир</p>
+            <p style="color:#475569;font-size:13px;line-height:1.55;margin:0 0 16px;">
+                Можеш да се върнеш към своя ориентир и обяснението за Zubite Care Pass от този линк.
+                Това не е диагноза, а помощ да разбереш каква следваща стъпка има смисъл за твоя случай.
+            </p>
+            <a href="{_h(magic_url)}" style="display:inline-block;background:#0d9488;background-image:linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%);color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:999px;font-weight:600;font-size:14px;">
+                Отвори своя ориентир
+            </a>
+            <p style="color:#94a3b8;font-size:11px;line-height:1.5;margin:14px 0 0;">
+                Линкът е личен — не го споделяй публично. Активен е до 90 дни.
+            </p>
+        </div>
+        """
+
     html = f"""
     <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;background:#FCFAF8;">
         <h1 style="font-size:22px;color:#0f172a;margin:0 0 8px;font-weight:600;">{_h(greeting)},</h1>
@@ -515,6 +544,8 @@ async def send_care_pass_summary_email(
             <p style="color:#475569;font-size:14px;line-height:1.55;margin:0 0 14px;">{_h(band_summary)}</p>
             {f'<table style="width:100%;border-collapse:collapse;font-size:14px;margin-top:10px;">{context_rows}</table>' if context_rows else ''}
         </div>
+
+        {magic_link_block}
 
         <div style="background:#0E1A24;background-image:linear-gradient(135deg,#0E1A24 0%,#112832 100%);border-radius:12px;padding:22px;margin:0 0 20px;color:#e2e8f0;">
             <p style="color:#5eead4;font-size:11px;text-transform:uppercase;letter-spacing:0.14em;margin:0 0 6px;font-weight:600;">Zubite Care Pass</p>
