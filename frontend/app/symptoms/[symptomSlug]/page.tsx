@@ -86,7 +86,7 @@ const SYMPTOMS_DATA: Record<string, {
       'Има лош дъх',
       'Зъбите изглеждат по-дълги'
     ],
-    relatedTreatment: { slug: 'full-mouth', name: 'Пълна възстановителна терапия' }
+    relatedTreatment: { slug: 'gum-care', name: 'Грижа за венците и хигиена' }
   },
   aesthetic: {
     title: 'Естетични проблеми',
@@ -122,12 +122,14 @@ export async function generateStaticParams() {
 //
 // The dynamic route is `/[city]/[treatment]`, where valid `treatment`
 // values come from `lib/data.ts` TREATMENTS: orthodontics, implants,
-// cosmetic-dentistry, sleep-airway, tmj. Two of the legacy slugs in
-// SYMPTOMS_DATA (`bonding`, `full-mouth`) are NOT valid treatments, so
-// we route them to the closest existing top-level page instead:
-//   - bonding     → /cosmetic-dentistry (bonding is a cosmetic procedure)
-//   - full-mouth  → /implants (full-mouth restoration is implant-led;
-//                    bleeding gums has no dedicated periodontics page)
+// cosmetic-dentistry, sleep-airway, tmj. Legacy SYMPTOMS slugs that
+// don't match any TREATMENT route to the closest existing top-level
+// page or to `/symptoms` as a safe fallback:
+//   - bonding    → /cosmetic-dentistry (bonding is a cosmetic procedure)
+//   - gum-care   → /symptoms            (no dedicated periodontology
+//                                        page yet; the symptoms index
+//                                        is the safest, clinically
+//                                        neutral landing for gum issues)
 // Default city is Sofia, matching the prior hardcoded behavior.
 function buildRelatedTreatmentHref(slug: string): string {
   const VALID_CITY_TREATMENTS = new Set([
@@ -136,10 +138,8 @@ function buildRelatedTreatmentHref(slug: string): string {
   if (VALID_CITY_TREATMENTS.has(slug)) {
     return `/sofia/${slug}`
   }
-  // Legacy SYMPTOMS_DATA slugs that don't match any TREATMENT — fall
-  // back to the most relevant existing top-level page.
   if (slug === 'bonding') return '/cosmetic-dentistry'
-  if (slug === 'full-mouth') return '/implants'
+  if (slug === 'gum-care') return '/symptoms'
   // Defensive fallback — should never happen given the closed SYMPTOMS
   // dictionary. Sends the user to the quiz so they at least get a
   // working entry point rather than a 404.
