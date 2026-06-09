@@ -495,8 +495,10 @@ function HeroMockup() {
           <p className="text-[11px] text-slate-500 leading-snug">
             Следваща стъпка: <br />консултация с ортодонт
           </p>
-          <span className="inline-flex items-center gap-1 text-teal-700 text-xs font-medium whitespace-nowrap">
-            Виж следващи стъпки <ArrowRight className="w-3 h-3" />
+          {/* Decorative mockup label only — intentionally non-interactive.
+              The real CTA is the hero "Провери своя случай" button. */}
+          <span aria-hidden className="inline-flex items-center text-slate-400 text-xs font-medium whitespace-nowrap">
+            Пример
           </span>
         </div>
       </div>
@@ -659,17 +661,23 @@ function PatientBenefit() {
 
 // ─── 5. What you may be noticing — Section 3 ─────────────────────
 function SymptomChips() {
-  const chips: string[] = [
-    'Кървящи венци',
-    'Криви или струпани зъби',
-    'Щракане в челюстта',
-    'Болка или напрежение',
-    'Лош дъх',
-    'Липсващ зъб',
-    'Износване на зъбите',
-    'Неясна захапка',
-    'Детето диша през устата',
-    'Чудиш се за брекети или алайнери',
+  // Each chip routes to the closest existing destination. Where the
+  // dynamic /symptoms/[symptomSlug] page already supports a slug, we
+  // use it; otherwise we link to the most relevant top-level page
+  // (e.g. /tmj for jaw clicking, /orthodontics for malocclusion).
+  // Only "Лош дъх" has no specific destination → falls back to /symptoms.
+  // Order MUST stay in sync with `data-testid="symptom-chip-{i}"`.
+  const chips: Array<{ label: string; href: string }> = [
+    { label: 'Кървящи венци',                        href: '/symptoms/bleeding-gums' },
+    { label: 'Криви или струпани зъби',              href: '/orthodontics' },
+    { label: 'Щракане в челюстта',                   href: '/tmj' },
+    { label: 'Болка или напрежение',                 href: '/symptoms/toothache' },
+    { label: 'Лош дъх',                              href: '/symptoms' },
+    { label: 'Липсващ зъб',                          href: '/implants' },
+    { label: 'Износване на зъбите',                  href: '/symptoms/sensitivity' },
+    { label: 'Неясна захапка',                       href: '/orthodontics' },
+    { label: 'Детето диша през устата',              href: '/sleep-airway' },
+    { label: 'Чудиш се за брекети или алайнери',     href: '/aligners-vs-braces' },
   ]
   return (
     <section id="noticing" className="relative py-20 sm:py-28 overflow-hidden" data-testid="home-noticing">
@@ -700,13 +708,15 @@ function SymptomChips() {
         <Reveal delay={120}>
           <ul className="mt-10 flex flex-wrap justify-center gap-2.5 sm:gap-3" data-testid="symptom-chips">
             {chips.map((c, i) => (
-              <li
-                key={c}
-                className="inline-flex items-center gap-1.5 rounded-full bg-white/75 backdrop-blur-xl ring-1 ring-white/80 text-sm text-slate-800 font-medium px-4 py-2 shadow-[0_6px_18px_-12px_rgba(15,23,42,0.18)] hover:-translate-y-0.5 hover:bg-white hover:ring-teal-200/70 hover:text-teal-700 transition-all"
-                data-testid={`symptom-chip-${i}`}
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-teal-500" aria-hidden="true" />
-                {c}
+              <li key={c.label}>
+                <Link
+                  href={c.href}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-white/75 backdrop-blur-xl ring-1 ring-white/80 text-sm text-slate-800 font-medium px-4 py-2 shadow-[0_6px_18px_-12px_rgba(15,23,42,0.18)] hover:-translate-y-0.5 hover:bg-white hover:ring-teal-200/70 hover:text-teal-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 transition-all cursor-pointer"
+                  data-testid={`symptom-chip-${i}`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-teal-500" aria-hidden="true" />
+                  {c.label}
+                </Link>
               </li>
             ))}
           </ul>
@@ -950,7 +960,9 @@ function DecisionPreview() {
               </div>
               <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
                 <p className="text-[11px] text-slate-500">Насочване към партньорска клиника по избор</p>
-                <span className="text-xs font-medium text-teal-700">Виж клиники →</span>
+                {/* Decorative mockup label only — non-interactive. Real CTA
+                    is the "Започни анализа" button to the left of this card. */}
+                <span aria-hidden className="text-xs font-medium text-slate-400">Пример</span>
               </div>
             </div>
             {/* Floating secondary glass chip — top */}
