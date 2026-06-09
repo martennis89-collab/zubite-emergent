@@ -26,7 +26,7 @@ import {
   ShieldCheck, Sparkles, Building2, Stethoscope, ChevronDown,
   CheckCircle2, ArrowRight, MoveRight, Heart, Smile, Activity,
   AlignLeft, Clock, Star, BookOpen, Mail,
-  MessagesSquare, HelpCircle, Gift,
+  MessagesSquare, HelpCircle, Gift, Menu, X,
 } from 'lucide-react'
 
 export interface HomeBlogPost {
@@ -137,12 +137,23 @@ function Reveal({
 // ─── 1. Sticky navigation ────────────────────────────────────────
 function Nav() {
   const [scrolled, setScrolled] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
   useEffect(() => {
     const on = () => setScrolled(window.scrollY > 6)
     on()
     window.addEventListener('scroll', on, { passive: true })
     return () => window.removeEventListener('scroll', on)
   }, [])
+  // ESC closes the mobile drawer.
+  useEffect(() => {
+    if (!mobileOpen) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setMobileOpen(false)
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [mobileOpen])
+  const closeMobile = () => setMobileOpen(false)
   return (
     <div
       className="fixed top-3 sm:top-4 inset-x-3 sm:inset-x-6 z-50 flex justify-center pointer-events-none"
@@ -150,7 +161,7 @@ function Nav() {
     >
       <header
         className={
-          'pointer-events-auto w-full max-w-5xl rounded-full transition-all duration-300 relative ' +
+          'pointer-events-auto w-full max-w-5xl rounded-3xl md:rounded-full transition-all duration-300 relative ' +
           (scrolled
             ? 'bg-white/15 backdrop-blur-[28px] ring-1 ring-white/40 shadow-[0_14px_44px_-12px_rgba(15,23,42,0.18),0_2px_8px_-2px_rgba(15,23,42,0.06)]'
             : 'bg-white/10 backdrop-blur-[28px] ring-1 ring-white/35 shadow-[0_10px_36px_-12px_rgba(15,23,42,0.15),0_2px_8px_-2px_rgba(15,23,42,0.05)]')
@@ -175,19 +186,99 @@ function Nav() {
             <Link href="/blog"       className="hover:text-slate-900 transition-colors">Журнал</Link>
             <Link href="/za-kliniki" className="hover:text-slate-900 transition-colors">За клиники</Link>
           </nav>
-          <Link
-            href={QUIZ_URL}
-            className="group relative inline-flex items-center gap-1.5 rounded-full text-white text-xs sm:text-sm font-medium px-3.5 sm:px-4 py-2 transition-all hover:-translate-y-0.5 shadow-[0_6px_20px_-8px_rgba(15,23,42,0.5),inset_0_1px_0_rgba(255,255,255,0.18)] overflow-hidden"
-            style={{ backgroundImage: 'linear-gradient(135deg,#0f172a 0%,#1e293b 60%,#0f172a 100%)' }}
-            data-testid="nav-cta"
-          >
-            <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/15 blur-sm pointer-events-none" />
-            <span className="relative inline-flex items-center gap-1.5">
-              Започни анализа
-              <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
-            </span>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href={QUIZ_URL}
+              className="group relative inline-flex items-center gap-1.5 rounded-full text-white text-xs sm:text-sm font-medium px-3.5 sm:px-4 py-2 transition-all hover:-translate-y-0.5 shadow-[0_6px_20px_-8px_rgba(15,23,42,0.5),inset_0_1px_0_rgba(255,255,255,0.18)] overflow-hidden"
+              style={{ backgroundImage: 'linear-gradient(135deg,#0f172a 0%,#1e293b 60%,#0f172a 100%)' }}
+              data-testid="nav-cta"
+            >
+              <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/15 blur-sm pointer-events-none" />
+              <span className="relative inline-flex items-center gap-1.5">
+                Започни анализа
+                <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+              </span>
+            </Link>
+            {/* Mobile hamburger — visible only <md */}
+            <button
+              type="button"
+              className="md:hidden p-2 text-slate-700 hover:text-slate-900 transition-colors"
+              onClick={() => setMobileOpen((v) => !v)}
+              aria-label={mobileOpen ? 'Затвори меню' : 'Отвори меню'}
+              aria-expanded={mobileOpen}
+              aria-controls="home-mobile-menu"
+              data-testid="home-mobile-menu-toggle"
+            >
+              {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
+
+        {/* Mobile drawer — categorised, opens under the glass nav bar */}
+        {mobileOpen && (
+          <nav
+            id="home-mobile-menu"
+            className="md:hidden border-t border-white/40 px-5 py-4 max-h-[80vh] overflow-y-auto"
+            data-testid="home-mobile-menu-drawer"
+          >
+            {/* Primary — section anchors + key pages */}
+            <div className="space-y-1">
+              {[
+                { href: '#noticing',    label: 'Какво забелязваш', testid: 'home-mobile-link-noticing' },
+                { href: '#how',         label: 'Как работи',        testid: 'home-mobile-link-how' },
+                { href: '#treatments',  label: 'Лечения',           testid: 'home-mobile-link-treatments' },
+                { href: '#care-pass',   label: 'Care Pass',         testid: 'home-mobile-link-care-pass' },
+                { href: '/blog',        label: 'Журнал',            testid: 'home-mobile-link-blog' },
+                { href: '/za-kliniki',  label: 'За клиники',        testid: 'home-mobile-link-za-kliniki' },
+              ].map((l) => (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  onClick={closeMobile}
+                  className="block py-2 text-sm text-slate-700 hover:text-slate-900 transition-colors"
+                  data-testid={l.testid}
+                >
+                  {l.label}
+                </Link>
+              ))}
+            </div>
+
+            {/* Categories — full treatment routes */}
+            <div className="mt-3 pt-3 border-t border-slate-200/60">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-semibold px-1 mb-1.5">
+                Лечения и ръководства
+              </p>
+              {[
+                { href: '/symptoms',           label: 'Симптоми',                testid: 'home-mobile-link-symptoms' },
+                { href: '/orthodontics',       label: 'Ортодонтия',              testid: 'home-mobile-link-orthodontics' },
+                { href: '/implants',           label: 'Импланти',                testid: 'home-mobile-link-implants' },
+                { href: '/cosmetic-dentistry', label: 'Естетична стоматология',  testid: 'home-mobile-link-cosmetic' },
+                { href: '/tmj',                label: 'TMJ',                     testid: 'home-mobile-link-tmj' },
+                { href: '/sleep-airway',       label: 'Сън и дишане',            testid: 'home-mobile-link-sleep' },
+              ].map((l) => (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  onClick={closeMobile}
+                  className="block py-1.5 px-1 text-[13.5px] text-slate-700 hover:text-slate-900 transition-colors"
+                  data-testid={l.testid}
+                >
+                  {l.label}
+                </Link>
+              ))}
+            </div>
+
+            <Link
+              href={QUIZ_URL}
+              onClick={closeMobile}
+              className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-full text-white text-sm font-medium px-4 py-2.5"
+              style={{ backgroundImage: 'linear-gradient(135deg,#0f172a 0%,#1e293b 60%,#0f172a 100%)' }}
+              data-testid="home-mobile-link-quiz"
+            >
+              Започни анализа <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </nav>
+        )}
       </header>
     </div>
   )
@@ -693,14 +784,14 @@ function HowItWorks() {
 // ─── 9. Treatment categories — Section 7 ─────────────────────────
 function TreatmentCategories() {
   const cats: Array<{ t: string; s: string; href: string; icon: React.ReactNode; featured?: boolean }> = [
-    { t: 'Ортодонтия',              s: 'Криви зъби, захапка, струпване, разстояния и нужда от ортодонтска оценка.',          href: '/blog?category=orthodontics', icon: <Smile className="w-4 h-4" />,       featured: true },
-    { t: 'Алайнери vs брекети',     s: 'Каква е разликата, кога кой вариант има смисъл и какво зависи от случая.',           href: '/blog/aligners-vs-braces',    icon: <AlignLeft className="w-4 h-4" />,   featured: true },
-    { t: 'Импланти',                s: 'Липсващ зъб, стари мостове, подвижни протези или нужда от план за възстановяване.',  href: '/blog?category=implants',     icon: <Stethoscope className="w-4 h-4" /> },
-    { t: 'Венци и хигиена',         s: 'Кървене, чувствителност, неприятен дъх и плакировка — какво да обсъдиш на преглед.',  href: '/blog?category=hygiene',      icon: <Heart className="w-4 h-4" /> },
-    { t: 'Естетична стоматология',  s: 'Фасети, бондинг, избелване и усмивка — с реалистични очаквания.',                     href: '/blog?category=cosmetic',     icon: <Sparkles className="w-4 h-4" /> },
-    { t: 'TMJ / челюст',            s: 'Щракане, пукане, болка в челюстта, скърцане със зъби или сутрешно напрежение.',       href: '/blog?category=tmj',          icon: <Activity className="w-4 h-4" /> },
-    { t: 'Сън и дишане',            s: 'Симптоми, свързани със сън, дишане през устата, захапка и челюстна позиция.',         href: '/blog?category=sleep',        icon: <Heart className="w-4 h-4" /> },
-    { t: 'Детска ортодонтия',       s: 'Кога детето има нужда от ранна оценка и кои признаци не е добре да се игнорират.',    href: '/blog?category=pediatric',    icon: <Smile className="w-4 h-4" /> },
+    { t: 'Ортодонтия',              s: 'Криви зъби, захапка, струпване, разстояния и нужда от ортодонтска оценка.',          href: '/orthodontics',         icon: <Smile className="w-4 h-4" />,       featured: true },
+    { t: 'Алайнери vs брекети',     s: 'Каква е разликата, кога кой вариант има смисъл и какво зависи от случая.',           href: '/aligners-vs-braces',   icon: <AlignLeft className="w-4 h-4" />,   featured: true },
+    { t: 'Импланти',                s: 'Липсващ зъб, стари мостове, подвижни протези или нужда от план за възстановяване.',  href: '/implants',             icon: <Stethoscope className="w-4 h-4" /> },
+    { t: 'Венци и хигиена',         s: 'Кървене, чувствителност, неприятен дъх и плакировка — какво да обсъдиш на преглед.',  href: '/symptoms',             icon: <Heart className="w-4 h-4" /> },
+    { t: 'Естетична стоматология',  s: 'Фасети, бондинг, избелване и усмивка — с реалистични очаквания.',                     href: '/cosmetic-dentistry',   icon: <Sparkles className="w-4 h-4" /> },
+    { t: 'TMJ / челюст',            s: 'Щракане, пукане, болка в челюстта, скърцане със зъби или сутрешно напрежение.',       href: '/tmj',                  icon: <Activity className="w-4 h-4" /> },
+    { t: 'Сън и дишане',            s: 'Симптоми, свързани със сън, дишане през устата, захапка и челюстна позиция.',         href: '/sleep-airway',         icon: <Heart className="w-4 h-4" /> },
+    { t: 'Детска ортодонтия',       s: 'Кога детето има нужда от ранна оценка и кои признаци не е добре да се игнорират.',    href: '/orthodontics',         icon: <Smile className="w-4 h-4" /> },
   ]
   return (
     <section id="treatments" className="relative py-20 sm:py-28 overflow-hidden" data-testid="home-treatments">
