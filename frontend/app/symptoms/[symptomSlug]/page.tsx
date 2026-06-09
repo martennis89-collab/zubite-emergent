@@ -118,6 +118,34 @@ export async function generateStaticParams() {
   return Object.keys(SYMPTOMS_DATA).map((symptomSlug) => ({ symptomSlug }))
 }
 
+// Map a SYMPTOMS_DATA `relatedTreatment.slug` to a real, navigable route.
+//
+// The dynamic route is `/[city]/[treatment]`, where valid `treatment`
+// values come from `lib/data.ts` TREATMENTS: orthodontics, implants,
+// cosmetic-dentistry, sleep-airway, tmj. Two of the legacy slugs in
+// SYMPTOMS_DATA (`bonding`, `full-mouth`) are NOT valid treatments, so
+// we route them to the closest existing top-level page instead:
+//   - bonding     → /cosmetic-dentistry (bonding is a cosmetic procedure)
+//   - full-mouth  → /implants (full-mouth restoration is implant-led;
+//                    bleeding gums has no dedicated periodontics page)
+// Default city is Sofia, matching the prior hardcoded behavior.
+function buildRelatedTreatmentHref(slug: string): string {
+  const VALID_CITY_TREATMENTS = new Set([
+    'orthodontics', 'implants', 'cosmetic-dentistry', 'sleep-airway', 'tmj',
+  ])
+  if (VALID_CITY_TREATMENTS.has(slug)) {
+    return `/sofia/${slug}`
+  }
+  // Legacy SYMPTOMS_DATA slugs that don't match any TREATMENT — fall
+  // back to the most relevant existing top-level page.
+  if (slug === 'bonding') return '/cosmetic-dentistry'
+  if (slug === 'full-mouth') return '/implants'
+  // Defensive fallback — should never happen given the closed SYMPTOMS
+  // dictionary. Sends the user to the quiz so they at least get a
+  // working entry point rather than a 404.
+  return '/quiz'
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { symptomSlug } = await params
   const symptom = SYMPTOMS_DATA[symptomSlug]
@@ -200,8 +228,9 @@ export default async function SymptomDetailPage({ params }: PageProps) {
           {/* CTA */}
           <div className="text-center">
             <Link
-              href={`/city/sofia/${symptom.relatedTreatment.slug}`}
+              href={buildRelatedTreatmentHref(symptom.relatedTreatment.slug)}
               className="btn-primary px-8 py-4 rounded-full text-white font-medium inline-flex items-center gap-2"
+              data-testid="symptom-related-treatment-cta"
             >
               Научете повече за {symptom.relatedTreatment.name}
               <ArrowRight className="w-5 h-5" />
