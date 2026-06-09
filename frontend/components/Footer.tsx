@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Facebook, Instagram, Linkedin, Mail } from 'lucide-react'
+import { Facebook, Instagram, Mail } from 'lucide-react'
 
 interface FooterProps {
   treatmentSlug?: string
@@ -39,7 +39,6 @@ const PLATFORM: FooterLink[] = [
 const FOR_CLINICS: FooterLink[] = [
   { label: 'Стани партньор', href: '/za-kliniki' },
   { label: 'Клиничен вход', href: '/clinic' },
-  { label: 'Контакти', href: '/contact' },
 ]
 
 const LEGAL: FooterLink[] = [
@@ -87,12 +86,13 @@ export function Footer({ treatmentSlug: _treatmentSlug }: FooterProps) {
               Не поставяме диагнози. Не заменяме професионален преглед.
               Информацията е ориентировъчна.
             </p>
-            {/* Social */}
+            {/* Social — only official Zubite profiles. Source: lib/schema.ts.
+                LinkedIn intentionally omitted: no official Zubite LinkedIn
+                profile exists yet (would have been a placeholder). */}
             <div className="flex items-center gap-2 mt-5">
               {[
-                { Icon: Facebook, href: 'https://facebook.com', label: 'Facebook' },
-                { Icon: Instagram, href: 'https://instagram.com', label: 'Instagram' },
-                { Icon: Linkedin, href: 'https://linkedin.com', label: 'LinkedIn' },
+                { Icon: Facebook, href: 'https://facebook.com/zubitebg', label: 'Facebook' },
+                { Icon: Instagram, href: 'https://instagram.com/zubitebg', label: 'Instagram' },
               ].map(({ Icon, href, label }) => (
                 <a
                   key={label}
@@ -101,6 +101,7 @@ export function Footer({ treatmentSlug: _treatmentSlug }: FooterProps) {
                   rel="noopener noreferrer"
                   className="w-9 h-9 rounded-full bg-white/5 hover:bg-teal-500/15 ring-1 ring-white/10 hover:ring-teal-400/30 flex items-center justify-center text-slate-400 hover:text-teal-300 transition-all"
                   aria-label={label}
+                  data-testid={`footer-social-${label.toLowerCase()}`}
                 >
                   <Icon className="w-4 h-4" />
                 </a>

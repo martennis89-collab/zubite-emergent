@@ -25,7 +25,7 @@ import { resolveImageUrl } from '@/lib/imageUrl'
 import {
   ShieldCheck, Sparkles, Building2, Stethoscope, ChevronDown,
   CheckCircle2, ArrowRight, MoveRight, Heart, Smile, Activity,
-  AlignLeft, Clock, Star, BookOpen, Mail,
+  AlignLeft, Clock, Star, BookOpen,
   MessagesSquare, HelpCircle, Gift, Menu, X,
 } from 'lucide-react'
 
@@ -1133,6 +1133,7 @@ function RecentArticles({ posts }: { posts: HomeBlogPost[] }) {
           <Link
             href="/blog"
             className="inline-flex items-center gap-1.5 text-sm text-teal-700 hover:text-teal-800 font-medium"
+            data-testid="recent-articles-view-all-mobile"
           >
             Виж всички статии <ArrowRight className="w-4 h-4" />
           </Link>
@@ -1441,67 +1442,6 @@ function MobileStickyCTA() {
         </span>
       </Link>
     </div>
-  )
-}
-
-// ─── 14. Premium minimal footer ──────────────────────────────────
-function HomeFooter() {
-  return (
-    <footer className="relative bg-[#0E1A1A] text-slate-300 pt-16 pb-10 overflow-hidden" data-testid="home-footer">
-      {/* Subtle glassy top border */}
-      <div aria-hidden className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-teal-400/40 to-transparent" />
-      <div aria-hidden className="absolute -top-32 left-1/4 w-96 h-96 rounded-full bg-teal-500/8 blur-3xl pointer-events-none" />
-      <div className="relative max-w-6xl mx-auto px-5 sm:px-8">
-        <div className="grid md:grid-cols-[1.5fr_1fr_1fr_1fr] gap-10 md:gap-8">
-          <div>
-            <Link href="/" className="inline-flex items-baseline">
-              <span className="font-serif text-2xl font-semibold text-white">Zubite</span>
-              <span className="font-serif text-2xl font-semibold text-teal-400">.bg</span>
-            </Link>
-            <p className="mt-4 text-sm text-slate-400 leading-relaxed max-w-xs">
-              Спокоен ориентир в денталното здраве. Първо яснота, после избор.
-            </p>
-            <p className="mt-5 text-[11px] text-slate-500 leading-snug max-w-xs">
-              Не поставяме диагнози. Не заменяме професионален преглед.
-              Информацията е ориентировъчна.
-            </p>
-          </div>
-
-          <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-slate-500 font-semibold">Платформа</p>
-            <ul className="mt-4 space-y-2.5 text-sm">
-              <li><Link href="/quiz" className="hover:text-teal-400 transition-colors">Започни анализа</Link></li>
-              <li><Link href="#how" className="hover:text-teal-400 transition-colors">Как работи</Link></li>
-              <li><Link href="#treatments" className="hover:text-teal-400 transition-colors">Лечения</Link></li>
-              <li><Link href="/blog" className="hover:text-teal-400 transition-colors">Журнал</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-slate-500 font-semibold">За клиники</p>
-            <ul className="mt-4 space-y-2.5 text-sm">
-              <li><Link href="/za-kliniki" className="hover:text-teal-400 transition-colors">Стани партньор</Link></li>
-              <li><Link href="/clinic/login" className="hover:text-teal-400 transition-colors">Клиничен вход</Link></li>
-              <li><Link href="/care-pass" className="hover:text-teal-400 transition-colors">Care Pass</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-slate-500 font-semibold">Право</p>
-            <ul className="mt-4 space-y-2.5 text-sm">
-              <li><Link href="/privacy" className="hover:text-teal-400 transition-colors">Поверителност</Link></li>
-              <li><Link href="/terms" className="hover:text-teal-400 transition-colors">Условия</Link></li>
-              <li><Link href="/contact" className="inline-flex items-center gap-1.5 hover:text-teal-400 transition-colors"><Mail className="w-3.5 h-3.5" /> Контакти</Link></li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="mt-12 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-[11px] text-slate-500">
-          <p>© {new Date().getFullYear()} Zubite.bg · Всички права запазени.</p>
-          <p>Направено с грижа в България.</p>
-        </div>
-      </div>
-    </footer>
   )
 }
 
