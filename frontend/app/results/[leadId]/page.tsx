@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
@@ -16,6 +16,7 @@ interface Lead {
   band: string
   score_total: number
   name?: string
+  answers?: Record<string, unknown>
   // MVP unlock-mechanic flags (Phase A) — returned by GET /api/leads/{id}
   contact_details_submitted?: boolean
   full_result_unlocked?: boolean
@@ -25,8 +26,17 @@ interface Lead {
   clinic_confirmed_consultation?: boolean
 }
 
+// Map backend bands (RED/YELLOW/GREEN) → frontend stage param
+// (high/moderate/low) used by /quiz/success.
+const BAND_TO_STAGE: Record<string, string> = {
+  RED: 'high',
+  YELLOW: 'moderate',
+  GREEN: 'low',
+}
+
 export default function ResultsPage() {
   const params = useParams()
+  const router = useRouter()
   const leadId = params.leadId as string
 
   const [lead, setLead] = useState<Lead | null>(null)
@@ -47,10 +57,23 @@ export default function ResultsPage() {
     fetchLead()
   }, [leadId])
 
-  // After the unlock gate successfully submits we refetch the lead so
-  // the full result panel below picks up the new flags.
-  const handleUnlocked = (updated: Partial<Lead>) => {
-    setLead((prev) => (prev ? { ...prev, ...updated, full_result_unlocked: true, care_pass_eligible: true } : prev))
+  // After the unlock gate successfully submits, redirect to
+  // /quiz/success?leadId=... to preserve Manual Recommendation Mode.
+  // The success page reads stage/city/name/segment/leadId from query
+  // params and shows the segment-aware "thanks + manual review" UI.
+  const handleUnlocked = (updated: { name: string }) => {
+    const stage = BAND_TO_STAGE[lead?.band || 'GREEN'] || 'low'
+    const city = lead?.city_slug || ''
+    const rawSegment = (lead?.answers as Record<string, unknown> | undefined)?.['segment']
+    const segment = typeof rawSegment === 'string' && rawSegment ? rawSegment : 'adult'
+    const params = new URLSearchParams({
+      leadId: leadId,
+      stage,
+      city,
+      name: updated.name,
+      segment,
+    })
+    router.push(`/quiz/success?${params.toString()}`)
   }
 
   if (loading) {

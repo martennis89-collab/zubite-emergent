@@ -13,7 +13,7 @@ import {
 } from './MetaPixel'
 import { trackEvent as gaTrackEvent } from '@/lib/analytics/gtag'
 import { getStoredAttribution } from '@/lib/attribution'
-import { MANUAL_RECOMMENDATION_COPY, MANUAL_RECOMMENDATION_CTA } from '@/lib/manualRecommendationCopy'
+import { MANUAL_RECOMMENDATION_COPY } from '@/lib/manualRecommendationCopy'
 
 // ─── Types ────────────────────────────────────────────────
 type Segment = 'adult' | 'teen' | 'child'
@@ -496,7 +496,7 @@ export function MasterQuiz() {
   const [result, setResult] = useState<{ band: ResultBand; totalScore: number; flags: string[] } | null>(null)
   const [step, setStep] = useState<'segment' | 'quiz' | 'insight' | 'result' | 'soft_commit' | 'form' | 'exit'>('segment')
   const [formVersion, setFormVersion] = useState<'A' | 'B'>('A')
-  const [formData, setFormData] = useState({ name: '', phone: '', email: '', city: '' })
+  const [formData, setFormData] = useState({ city: '' })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [isClient, setIsClient] = useState(false)
@@ -508,7 +508,9 @@ export function MasterQuiz() {
   // GA4 funnel-event dedupe (each fires at most once per quiz session).
   const gaQuizStartFiredRef = useRef(false)
   const gaQuizCompleteFiredRef = useRef(false)
-  const gaLeadSubmitFiredRef = useRef(false)
+  // gaLeadSubmitFiredRef removed in Phase B — lead_submit GA event now
+  // fires on /results/[leadId] after the unlock gate succeeds (where
+  // PII is actually collected).
 
   useEffect(() => {
     setIsClient(true)
@@ -624,31 +626,12 @@ export function MasterQuiz() {
   }
 
   const handleSubmit = async () => {
-    // Strict contact validation for the diagnostic-quiz / recommendation
-    // flow: name, phone, email are all required upfront so the clinic
-    // on the receiving end has what it needs to follow up.
-    const trimmedName = formData.name.trim()
-    const trimmedPhone = formData.phone.trim()
-    const trimmedEmail = formData.email.trim()
-    if (!trimmedName) { setError('Моля, въведете името си.'); return }
-    if (!trimmedPhone) { setError('Моля, въведете телефонен номер.'); return }
-    if (!/^[\d\s\-+()]+$/.test(trimmedPhone)) {
-      setError('Моля, въведете телефонен номер само с цифри, интервали, тирета, скоби или знака „+“.')
-      return
-    }
-    const phoneDigits = (trimmedPhone.match(/\d/g) || []).length
-    if (phoneDigits < 6) {
-      setError('Моля, въведете валиден телефонен номер (поне 6 цифри).')
-      return
-    }
-    if (!trimmedEmail) { setError('Моля, въведете email адрес.'); return }
-    // Lightweight client-side email format check; backend EmailStr is
-    // the authoritative validator, but we want a friendly Bulgarian
-    // message before the patient ever sees a 422.
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-      setError('Моля, въведете валиден email адрес.')
-      return
-    }
+    // Phase B (June 2026): the MasterQuiz no longer collects name / phone /
+    // email here. We POST an ANSWER-ONLY lead and let the
+    // `ResultUnlockGate` on /results/[leadId] collect contact details.
+    // This prevents asking the patient for contacts twice and keeps
+    // Manual Recommendation Mode intact (post-unlock redirect goes to
+    // /quiz/success?leadId=...).
     if (!formData.city) { setError('Моля, изберете град.'); return }
     setIsSubmitting(true); setError('')
 
@@ -662,10 +645,10 @@ export function MasterQuiz() {
         answers: { ...answersObj, quiz_score: result?.totalScore || 0, quiz_band: result?.band || '', quiz_flags: result?.flags || [], segment, form_version: formVersion, session_id: sessionId.current, source: 'diagnostic_quiz_v1' },
         score_total: result?.totalScore || 0,
         band: bandMap[result?.band || 'low'],
-        name: trimmedName,
-        phone: trimmedPhone,
-        email: trimmedEmail,
-        consent: true, source: 'diagnostic_quiz_v1', form_version: formVersion,
+        // No name/phone/email/consent here — backend creates a locked
+        // lead (contact_details_submitted=false). Contact is gathered on
+        // /results/[leadId] via ResultUnlockGate → POST /unlock-result.
+        source: 'diagnostic_quiz_v1', form_version: formVersion,
         // ─── Attribution data — never throws (returns {} if storage blocked) ───
         ...(typeof window !== 'undefined'
           ? (await import('@/lib/attribution')).attachAttributionToLead()
@@ -685,48 +668,30 @@ export function MasterQuiz() {
         } catch { /* ignore */ }
         throw new Error(backendMsg || 'Failed')
       }
-      // Capture leadId from the created lead so the success page can link
-      // straight into the matching flow (/results/[leadId]/clinics).
-      // Failure to parse is non-fatal: the success page falls back gracefully.
+      // Capture leadId from the created (locked) lead so we can redirect
+      // the patient to the unlock gate on /results/[leadId].
       let createdLeadId = ''
       try {
         const created = await response.json()
         if (created && typeof created.id === 'string') createdLeadId = created.id
-      } catch { /* leadId remains empty → success page hides matching CTA */ }
+      } catch { /* parsing failure handled below */ }
 
-      // Cache contact info locally so RequestCallModal / AssistedChoiceModal
-      // can confirm-instead-of-ask on the same browser. localStorage-only;
-      // never sent automatically to the backend.
-      if (createdLeadId) {
-        try {
-          const { setStoredLeadContact } = await import('@/lib/leadContact')
-          setStoredLeadContact(createdLeadId, {
-            name: trimmedName,
-            phone: trimmedPhone,
-            email: trimmedEmail,
-          })
-        } catch { /* silent */ }
-      }
-
-      trackEvent('form_submitted', { form_version: formVersion, city: formData.city, has_name: !!trimmedName, has_email: !!trimmedEmail, segment })
+      trackEvent('locked_lead_created', { form_version: formVersion, city: formData.city, segment })
       trackLeadSubmit(formData.city, formVersion)
 
-      // GA4 — fire lead_submit ONLY after the backend confirmed lead
-      // creation (we are past the `if (!response.ok) throw` guard).
-      // Category-level metadata only — no name / phone / email / lead ID.
-      if (!gaLeadSubmitFiredRef.current) {
-        gaLeadSubmitFiredRef.current = true
-        gaTrackEvent('lead_submit', {
-          quiz_type: 'master',
-          result_category: result?.band || 'unknown',
-          city: formData.city || undefined,
-          lead_type: 'patient_request',
-          source_path: typeof window !== 'undefined' ? window.location.pathname : '/quiz',
-        })
+      if (!createdLeadId) {
+        // Backend accepted the lead but we couldn't read the id — fall
+        // back to the legacy success page so the patient still lands
+        // somewhere coherent.
+        const successParams = new URLSearchParams({ stage: result?.band || 'low', city: formData.city, segment: segment || 'adult' })
+        router.push(`/quiz/success?${successParams.toString()}`)
+        return
       }
-      const successParams = new URLSearchParams({ stage: result?.band || 'low', city: formData.city, name: trimmedName, segment: segment || 'adult' })
-      if (createdLeadId) successParams.set('leadId', createdLeadId)
-      router.push(`/quiz/success?${successParams.toString()}`)
+      // Phase B redirect: send the patient to the unlock gate. The
+      // ResultUnlockGate POSTs to /unlock-result and then this app
+      // redirects again to /quiz/success?leadId=... (see
+      // /app/frontend/app/results/[leadId]/page.tsx).
+      router.push(`/results/${createdLeadId}`)
     } catch (e) {
       const msg = e instanceof Error && e.message && e.message !== 'Failed'
         ? e.message

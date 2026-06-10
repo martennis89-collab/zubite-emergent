@@ -74,9 +74,12 @@ def _validate_quiz_contact(data: LeadCreate) -> None:
     fully_empty = not (has_name or has_phone or has_email)
     if not (fully_populated or fully_empty):
         missing: List[str] = []
-        if not has_name: missing.append("name")
-        if not has_phone: missing.append("phone")
-        if not has_email: missing.append("email")
+        if not has_name:
+            missing.append("name")
+        if not has_phone:
+            missing.append("phone")
+        if not has_email:
+            missing.append("email")
         raise HTTPException(
             status_code=422,
             detail={
