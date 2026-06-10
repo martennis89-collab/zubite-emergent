@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Loader2, ChevronRight } from 'lucide-react'
+import { Loader2, ChevronRight, Download } from 'lucide-react'
 import { AdminHeader } from '@/components/admin/AdminHeader'
 
 interface Lead {
@@ -17,11 +17,28 @@ interface Lead {
   created_at: string
 }
 
+// Bulgarian city labels for the dropdown. We deliberately list ALL
+// city_slug values the leads table can store so admins can filter
+// by anything that's actually in the database; "all" disables filtering.
+const CITY_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: 'all', label: 'Всички градове' },
+  { value: 'sofia', label: 'София' },
+  { value: 'plovdiv', label: 'Пловдив' },
+  { value: 'varna', label: 'Варна' },
+  { value: 'burgas', label: 'Бургас' },
+  { value: 'ruse', label: 'Русе' },
+  { value: 'stara-zagora', label: 'Стара Загора' },
+  { value: 'pleven', label: 'Плевен' },
+  { value: 'haskovo', label: 'Хасково' },
+]
+
 export default function AdminLeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
+  const [cityFilter, setCityFilter] = useState<string>('all')
+  const [exporting, setExporting] = useState(false)
   const router = useRouter()
-  
+
   useEffect(() => {
     const fetchLeads = async () => {
       try {
@@ -29,7 +46,7 @@ export default function AdminLeadsPage() {
         const response = await fetch(`${API_URL}/api/admin/leads`, {
           credentials: 'include' as RequestCredentials,
         })
-        
+
         if (!response.ok) {
           if (response.status === 401 || response.status === 403) {
             try { localStorage.removeItem('admin_token'); localStorage.removeItem('admin_user') } catch { /* noop */ }
@@ -38,7 +55,7 @@ export default function AdminLeadsPage() {
           }
           throw new Error('Failed to load')
         }
-        
+
         const data = await response.json()
         setLeads(data)
       } catch {
@@ -47,10 +64,54 @@ export default function AdminLeadsPage() {
         setLoading(false)
       }
     }
-    
+
     fetchLeads()
   }, [router])
-  
+
+  // Client-side filtering — backend returns all leads. For the export
+  // we hit the dedicated endpoint with the same city_slug filter, so
+  // the downloaded spreadsheet matches what the admin sees on screen.
+  const filteredLeads = useMemo(() => {
+    if (cityFilter === 'all') return leads
+    return leads.filter((l) => (l.city_slug || '').toLowerCase() === cityFilter)
+  }, [leads, cityFilter])
+
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+      const url = cityFilter === 'all'
+        ? `${API_URL}/api/admin/leads/export/csv`
+        : `${API_URL}/api/admin/leads/export/csv?city_slug=${encodeURIComponent(cityFilter)}`
+      const res = await fetch(url, { credentials: 'include' as RequestCredentials })
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          router.push('/admin')
+          return
+        }
+        throw new Error('Export failed')
+      }
+      const blob = await res.blob()
+      const dl = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = dl
+      const stamp = new Date().toISOString().slice(0, 10)
+      a.download = cityFilter === 'all'
+        ? `zubite-leads-${stamp}.csv`
+        : `zubite-leads-${cityFilter}-${stamp}.csv`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(dl)
+    } catch (err) {
+      // Best-effort — surface a calm alert so admin knows it failed.
+      console.error('CSV export failed', err)
+      alert('Експортът не успя. Опитай отново.')
+    } finally {
+      setExporting(false)
+    }
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen bg-[#FCFAF8] flex items-center justify-center">
@@ -58,7 +119,7 @@ export default function AdminLeadsPage() {
       </main>
     )
   }
-  
+
   return (
     <main className="min-h-screen bg-[#FCFAF8]">
       <AdminHeader
@@ -68,9 +129,43 @@ export default function AdminLeadsPage() {
       />
 
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-slate-900 mb-6">
-          Всички лийдове
-        </h1>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-slate-900">
+            Всички лийдове
+          </h1>
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <label className="flex items-center gap-2">
+              <span className="text-xs uppercase tracking-wide text-slate-500 font-medium whitespace-nowrap">Град</span>
+              <select
+                value={cityFilter}
+                onChange={(e) => setCityFilter(e.target.value)}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                data-testid="admin-leads-city-filter"
+              >
+                {CITY_OPTIONS.map((c) => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
+              </select>
+            </label>
+
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={exporting}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-teal-600 hover:bg-teal-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2 transition-colors"
+              data-testid="admin-leads-export-csv"
+            >
+              {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              {exporting ? 'Сваляне…' : 'Свали CSV'}
+            </button>
+          </div>
+        </div>
+
+        <p className="text-sm text-slate-500 mb-4" data-testid="admin-leads-count">
+          Показани: <span className="font-medium text-slate-800">{filteredLeads.length}</span>
+          {cityFilter !== 'all' && ` от ${leads.length}`}
+        </p>
 
         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
           <div className="overflow-x-auto">
@@ -86,7 +181,7 @@ export default function AdminLeadsPage() {
                 </tr>
               </thead>
               <tbody>
-                {leads.map((lead) => (
+                {filteredLeads.map((lead) => (
                   <tr key={lead.id} className="border-b border-slate-100 hover:bg-slate-50">
                     <td className="py-4 px-4 text-slate-900">{lead.name || 'Без име'}</td>
                     <td className="py-4 px-4">
@@ -99,7 +194,7 @@ export default function AdminLeadsPage() {
                       {new Date(lead.created_at).toLocaleDateString('bg-BG')}
                     </td>
                     <td className="py-4 px-4">
-                      <Link 
+                      <Link
                         href={`/admin/leads/${lead.id}`}
                         className="text-teal-600 hover:text-teal-700 transition-colors"
                       >
@@ -108,10 +203,12 @@ export default function AdminLeadsPage() {
                     </td>
                   </tr>
                 ))}
-                {leads.length === 0 && (
+                {filteredLeads.length === 0 && (
                   <tr>
                     <td colSpan={6} className="py-12 text-center text-slate-400">
-                      Няма лийдове все още
+                      {cityFilter === 'all'
+                        ? 'Няма лийдове все още'
+                        : 'Няма лийдове за този град'}
                     </td>
                   </tr>
                 )}

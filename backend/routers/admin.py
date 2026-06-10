@@ -310,7 +310,17 @@ async def export_csv(
     leads = await db.leads.find(query, {"_id": 0}).to_list(10000)
     output = StringIO()
     if leads:
-        writer = csv.DictWriter(output, fieldnames=leads[0].keys())
+        # Union of all keys across all rows — some leads carry fields
+        # (e.g. verification_status, assigned_clinic_id) that others
+        # don't, and csv.DictWriter would otherwise raise ValueError.
+        fieldnames: list[str] = []
+        seen: set[str] = set()
+        for lead in leads:
+            for k in lead.keys():
+                if k not in seen:
+                    seen.add(k)
+                    fieldnames.append(k)
+        writer = csv.DictWriter(output, fieldnames=fieldnames, extrasaction="ignore")
         writer.writeheader()
         for lead in leads:
             flat = {k: str(v) if isinstance(v, dict) else v for k, v in lead.items()}
