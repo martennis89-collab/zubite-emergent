@@ -1109,3 +1109,113 @@ class ClinicOnlineOrientationSettingsUpdate(BaseModel):
         if v is None:
             return v
         return ClinicOnlineOrientationSettings._v_cats(v)  # type: ignore[attr-defined]
+
+
+# ─── Phase E — Online Orientation Bookings (June 2026) ────────────
+# Patient submits a request to a specific clinic + slot. Booking starts
+# as `pending_clinic_confirmation` and a soft lock is held on the slot
+# for 24h. Clinic confirms / rejects / cancels via the clinic dashboard.
+# NO Care Pass unlock here — that is Phase F.
+
+ORIENTATION_BOOKING_STATUS_VALUES = (
+    "pending_clinic_confirmation",
+    "confirmed_by_clinic",
+    "rejected_by_clinic",
+    "expired_pending_confirmation",
+    "scheduled",
+    "completed",
+    "no_show",
+    "cancelled_by_patient",
+    "cancelled_by_clinic",
+    "converted_to_in_clinic",
+    "not_suitable",
+    "needs_admin_review",
+)
+
+# Statuses that hold an active lock on the slot — these block another
+# patient from picking the same slot.
+ORIENTATION_BOOKING_ACTIVE_LOCK_STATUSES = (
+    "pending_clinic_confirmation",
+    "confirmed_by_clinic",
+    "scheduled",
+)
+
+ORIENTATION_TOPIC_VALUES = (
+    "aligners_braces",
+    "implants",
+    "cosmetic",
+    "gums_periodontology",
+    "not_sure",
+    "other",
+)
+
+ORIENTATION_TOPIC_LABELS_BG = {
+    "aligners_braces": "Алайнери / брекети",
+    "implants": "Импланти",
+    "cosmetic": "Естетична стоматология",
+    "gums_periodontology": "Венци / пародонтология",
+    "not_sure": "Не съм сигурен откъде да започна",
+    "other": "Друго",
+}
+
+# Clinic / admin booking-action types.
+ORIENTATION_BOOKING_ACTION_VALUES = (
+    "confirm",
+    "reject",
+    "cancel",
+    "mark_completed",
+    "mark_no_show",
+    "mark_converted_to_in_clinic",
+    "mark_not_suitable",
+    "add_note",
+)
+
+
+class OnlineOrientationBookingCreate(BaseModel):
+    """Patient-side payload. Does NOT take name/phone/email — those are
+    read server-side from the unlocked lead doc."""
+    model_config = ConfigDict(extra="ignore")
+    clinic_id: str = Field(min_length=1, max_length=100)
+    scheduled_at: str = Field(min_length=10, max_length=40)  # ISO 8601 UTC
+    topic: str
+    treatment_category: Optional[str] = Field(default=None, max_length=80)
+    consent_confirmed: bool = False
+    disclaimer_acknowledged: bool = False
+    patient_note: Optional[str] = Field(default=None, max_length=500)
+
+    @field_validator("topic")
+    @classmethod
+    def _v_topic(cls, v: str) -> str:
+        if v not in ORIENTATION_TOPIC_VALUES:
+            raise ValueError(f"topic must be one of {ORIENTATION_TOPIC_VALUES}")
+        return v
+
+
+class OnlineOrientationBookingClinicAction(BaseModel):
+    """Clinic dashboard action body."""
+    model_config = ConfigDict(extra="ignore")
+    action: str
+    note: Optional[str] = Field(default=None, max_length=2000)
+
+    @field_validator("action")
+    @classmethod
+    def _v_action(cls, v: str) -> str:
+        if v not in ORIENTATION_BOOKING_ACTION_VALUES:
+            raise ValueError(f"action must be one of {ORIENTATION_BOOKING_ACTION_VALUES}")
+        return v
+
+
+class OnlineOrientationBookingAdminAction(BaseModel):
+    """Admin override action body — same shape as clinic action, plus
+    an admin-only `release_slot` flag for manual unlock of stuck slots."""
+    model_config = ConfigDict(extra="ignore")
+    action: str
+    note: Optional[str] = Field(default=None, max_length=2000)
+    release_slot: bool = False
+
+    @field_validator("action")
+    @classmethod
+    def _v_action(cls, v: str) -> str:
+        if v not in ORIENTATION_BOOKING_ACTION_VALUES:
+            raise ValueError(f"action must be one of {ORIENTATION_BOOKING_ACTION_VALUES}")
+        return v

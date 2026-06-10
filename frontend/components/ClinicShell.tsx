@@ -17,6 +17,7 @@ interface ClinicUser {
 const NAV = [
   { href: '/clinic/dashboard', label: 'Преглед', icon: LayoutDashboard, exact: true },
   { href: '/clinic/dashboard/requests', label: 'Заявки', icon: ListChecks },
+  { href: '/clinic/dashboard/online-orientation', label: 'Онлайн ориентация', icon: Calendar },
   { href: '/clinic/dashboard/calendar', label: 'Календар', icon: Calendar },
   { href: '/clinic/dashboard/performance', label: 'Резултати', icon: BarChart3 },
   { href: '/clinic/dashboard/reviews', label: 'Ревюта', icon: MessageSquare },

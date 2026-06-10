@@ -68,6 +68,13 @@ export const ADMIN_NAV: AdminNavItem[] = [
     matchPrefix: '/admin/clinic-applications',
   },
   {
+    href: '/admin/online-orientation-bookings',
+    label: 'Онлайн заявки',
+    icon: ClipboardList,
+    testId: 'admin-nav-orient-bookings',
+    matchPrefix: '/admin/online-orientation-bookings',
+  },
+  {
     href: '/admin/reviews',
     label: 'Ревюта',
     icon: Star,

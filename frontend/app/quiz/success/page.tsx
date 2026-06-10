@@ -8,6 +8,7 @@ import { CheckCircle, ArrowRight, MapPin, Mail, Shield, ShieldCheck, Sparkles } 
 import { trackPageView } from '@/components/MetaPixel'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
 import { SaveCarePassModal } from '@/components/patient/SaveCarePassModal'
+import { FreeOnlineOrientationSection } from '@/components/patient/FreeOnlineOrientationSection'
 
 type ResultBand = 'low' | 'moderate' | 'high'
 type Segment = 'adult' | 'teen' | 'child'
@@ -265,6 +266,9 @@ function SuccessContent() {
           </div>
         )}
       </div>
+
+      {/* Phase E — Free Online Orientation section (only when leadId) */}
+      {leadId && <FreeOnlineOrientationSection leadId={leadId} />}
 
       {/* Trust + medical disclaimer — footnote style */}
       <div className="mt-10 pt-5 border-t border-white/40 text-center space-y-2.5" data-testid="success-trust">
