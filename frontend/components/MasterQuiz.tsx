@@ -1026,9 +1026,12 @@ export function MasterQuiz() {
     )
   }
 
-  // ─── FORM ──────────────────────────────────────────────
+  // ─── FORM (city-only, Phase B) ─────────────────────────
+  // Contact details are intentionally NOT collected here anymore — they
+  // are gathered by the ResultUnlockGate on /results/[leadId] after the
+  // patient sees that their result is ready. This avoids asking for
+  // name/phone/email twice and keeps Manual Recommendation Mode intact.
   if (step === 'form') {
-    const isParent = segment === 'teen' || segment === 'child'
     return (
       <main className="min-h-screen bg-[#FCFAF8]">
         <Header />
@@ -1037,33 +1040,14 @@ export function MasterQuiz() {
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 animate-fade-in-up">
               <div className="text-center mb-8 pb-6 border-b border-slate-100">
                 <h2 className="font-serif text-xl sm:text-2xl font-semibold text-slate-900 mb-3">
-                  {MANUAL_RECOMMENDATION_COPY.formIntroHeadline}
+                  Последна стъпка преди резултата
                 </h2>
                 <p className="text-slate-600 text-sm sm:text-base">
-                  {MANUAL_RECOMMENDATION_COPY.formIntroBody}
+                  Избери в кой град си — данните за връзка ще въведеш на
+                  следващия екран, заедно с твоя персонален резултат.
                 </p>
               </div>
               <div className="space-y-5">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    {isParent ? 'Вашето име' : 'Име'} <span className="text-red-500">*</span>
-                  </label>
-                  <input type="text" value={formData.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))}
-                    className="w-full px-4 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all"
-                    placeholder={isParent ? 'Вашето име' : 'Вашето име'} data-testid="input-name" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Телефон <span className="text-red-500">*</span></label>
-                  <input type="tel" value={formData.phone} onChange={e => setFormData(p => ({ ...p, phone: e.target.value }))}
-                    className="w-full px-4 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all"
-                    placeholder="+359 888 123 456" data-testid="input-phone" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Имейл <span className="text-red-500">*</span></label>
-                  <input type="email" value={formData.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))}
-                    className="w-full px-4 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all"
-                    placeholder="email@example.com" data-testid="input-email" />
-                </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Град <span className="text-red-500">*</span></label>
                   <div className="grid grid-cols-2 gap-3">
@@ -1080,7 +1064,7 @@ export function MasterQuiz() {
                 <button onClick={handleSubmit} disabled={isSubmitting}
                   className="w-full mt-4 px-8 py-4 bg-teal-500 text-white font-semibold rounded-full hover:bg-teal-600 hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50"
                   data-testid="submit-btn">
-                  {isSubmitting ? <><Loader2 className="w-5 h-5 animate-spin" />Изпращане...</> : <>{MANUAL_RECOMMENDATION_CTA.primary}<ArrowRight className="w-5 h-5" /></>}
+                  {isSubmitting ? <><Loader2 className="w-5 h-5 animate-spin" />Изпращане...</> : <>Виж моя резултат<ArrowRight className="w-5 h-5" /></>}
                 </button>
                 <p className="text-center text-xs text-slate-500 mt-6 leading-relaxed">{MANUAL_RECOMMENDATION_COPY.safetyNote}</p>
               </div>

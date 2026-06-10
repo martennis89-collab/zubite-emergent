@@ -47,58 +47,73 @@ _PHONE_ALLOWED_CHARS_RE = _re.compile(r"^[\d\s\-+()]+$")
 
 
 def _validate_quiz_contact(data: LeadCreate) -> None:
-    """Raises HTTPException(422) with a friendly Bulgarian message when
-    a quiz-source lead is missing or has malformed contact info."""
+    """Raises HTTPException(422) when a quiz-source lead carries
+    PARTIAL contact info (e.g. phone but no email). Answer-only leads
+    (no contact fields at all) are accepted — they will go through the
+    Phase B unlock gate on /results/[leadId] before any clinic
+    matching happens.
+
+    The function still validates phone format if a phone is present so
+    we never store malformed numbers, even if the value technically
+    arrives in an unlock flow rather than the initial POST."""
     if data.source not in _STRICT_CONTACT_LEAD_SOURCES:
         return
 
-    missing: List[str] = []
-    if not data.name or not data.name.strip():
-        missing.append("name")
-    if not data.phone or not data.phone.strip():
-        missing.append("phone")
-    if not data.email:
-        # email is EmailStr; blank/whitespace was already coerced to None
-        # by LeadCreate's pre-validator. Treat None as missing.
-        missing.append("email")
+    has_name = bool((data.name or "").strip())
+    has_phone = bool((data.phone or "").strip())
+    has_email = bool(data.email)
 
-    if missing:
+    # Three accepted shapes:
+    #   1) Fully populated — legacy path (back-compat with old MasterQuiz
+    #      builds & API consumers that still send contacts inline).
+    #   2) Entirely empty — Phase B answer-only path (new MasterQuiz).
+    #   3) Partially populated — rejected: indicates a frontend bug or
+    #      tampering. We never store half-leads as "unlocked" because
+    #      then the gate's transition-trigger would not fire.
+    fully_populated = has_name and has_phone and has_email
+    fully_empty = not (has_name or has_phone or has_email)
+    if not (fully_populated or fully_empty):
+        missing: List[str] = []
+        if not has_name: missing.append("name")
+        if not has_phone: missing.append("phone")
+        if not has_email: missing.append("email")
         raise HTTPException(
             status_code=422,
             detail={
-                "code": "missing_required_contact",
+                "code": "partial_contact_not_allowed",
                 "message": (
                     "Моля, попълнете името, телефона и email-а си, "
-                    "за да получите препоръчани клиники."
+                    "или продължете без контакт и ги въведете на следващата стъпка."
                 ),
                 "missing": missing,
             },
         )
 
-    # Phone format check (only if phone passed the missing test).
-    phone_str = (data.phone or "").strip()
-    if not _PHONE_ALLOWED_CHARS_RE.match(phone_str):
-        raise HTTPException(
-            status_code=422,
-            detail={
-                "code": "invalid_phone_format",
-                "message": (
-                    "Моля, въведете телефонен номер само с цифри, "
-                    "интервали, тирета, скоби или знака „+“."
-                ),
-                "missing": ["phone"],
-            },
-        )
-    digits = len(_PHONE_DIGIT_RE.findall(phone_str))
-    if digits < 6:
-        raise HTTPException(
-            status_code=422,
-            detail={
-                "code": "invalid_phone",
-                "message": "Моля, въведете валиден телефонен номер (поне 6 цифри).",
-                "missing": ["phone"],
-            },
-        )
+    # Phone format check — only if a phone was provided.
+    if has_phone:
+        phone_str = (data.phone or "").strip()
+        if not _PHONE_ALLOWED_CHARS_RE.match(phone_str):
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "invalid_phone_format",
+                    "message": (
+                        "Моля, въведете телефонен номер само с цифри, "
+                        "интервали, тирета, скоби или знака „+“."
+                    ),
+                    "missing": ["phone"],
+                },
+            )
+        digits = len(_PHONE_DIGIT_RE.findall(phone_str))
+        if digits < 6:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "invalid_phone",
+                    "message": "Моля, въведете валиден телефонен номер (поне 6 цифри).",
+                    "missing": ["phone"],
+                },
+            )
 
 
 async def _detect_soft_duplicate(
@@ -219,22 +234,39 @@ async def create_lead(data: LeadCreate):
         "duplicate_reason": dup_reason,
         "possible_duplicate_lead_id": dup_lead_id,
     })
-    # MVP unlock flags (Phase A/B) — the current quiz flow ALWAYS collects
-    # name+phone+email+consent at submit time (`_validate_quiz_contact`
-    # enforces this), so contact details are present here by definition.
-    # We flip the unlock + Care-Pass-eligible flags atomically with lead
-    # creation so the result page can immediately render the full result.
+    # MVP unlock flags (Phase A/B) — determined by whether contact
+    # details arrived alongside the quiz answers:
+    #   • Phase B path (new MasterQuiz): answers-only POST → lead stays
+    #     LOCKED. Patient lands on /results/[leadId] and the
+    #     ResultUnlockGate collects contacts; that endpoint flips the
+    #     flags atomically and fires the admin notification.
+    #   • Backwards-compat (legacy API consumers): full contact set
+    #     present → unlock immediately so old integrations keep working.
+    has_full_contact = bool(
+        (data.name or "").strip()
+        and (data.phone or "").strip()
+        and data.email
+    )
     now_iso = datetime.now(timezone.utc).isoformat()
-    payload.update({
-        "contact_details_submitted": True,
-        "contact_details_submitted_at": now_iso,
-        "full_result_unlocked": True,
-        "care_pass_eligible": True,
-        # Care Pass UNLOCK is a separate gate — requires clinic confirmation.
-        "care_pass_unlocked": False,
-        "consultation_booked_through_zubite": False,
-        "clinic_confirmed_consultation": False,
-    })
+    if has_full_contact:
+        payload.update({
+            "contact_details_submitted": True,
+            "contact_details_submitted_at": now_iso,
+            "full_result_unlocked": True,
+            "care_pass_eligible": True,
+            "care_pass_unlocked": False,
+            "consultation_booked_through_zubite": False,
+            "clinic_confirmed_consultation": False,
+        })
+    else:
+        payload.update({
+            "contact_details_submitted": False,
+            "full_result_unlocked": False,
+            "care_pass_eligible": False,
+            "care_pass_unlocked": False,
+            "consultation_booked_through_zubite": False,
+            "clinic_confirmed_consultation": False,
+        })
     # `source` is not a Lead field — store it in answers so it survives.
     if data.source:
         payload.setdefault("answers", {})["source"] = data.source
