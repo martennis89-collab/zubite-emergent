@@ -681,7 +681,7 @@ function LumiVideoSection() {
                       <span className="absolute left-4 bottom-4 right-4 text-left">
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-white/85 backdrop-blur ring-1 ring-white text-[11px] font-semibold text-teal-800 px-2.5 py-1 shadow-sm">
                           <Sparkles className="w-3 h-3" />
-                          ~50 сек · с Луми
+                          30 сек · с Луми
                         </span>
                       </span>
                     </button>
