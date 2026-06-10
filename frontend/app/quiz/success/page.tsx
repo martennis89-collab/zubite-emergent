@@ -62,7 +62,10 @@ function SuccessContent() {
 
   const band = (searchParams.get('stage') || 'low') as ResultBand
   const city = searchParams.get('city') || ''
-  const name = searchParams.get('name') || ''
+  // PRIVACY (June 2026): name is no longer read from query params.
+  // The greeting falls back to the band-specific generic line
+  // (e.g. „Благодарим ти!"). If we ever need a personalised greeting,
+  // fetch the display-safe first-word name from GET /api/leads/{id}.
   const segment = (searchParams.get('segment') || 'adult') as Segment
   const leadId = searchParams.get('leadId') || ''
 
@@ -116,7 +119,7 @@ function SuccessContent() {
           <CheckCircle className={`w-8 h-8 ${bandCfg.color}`} />
         </div>
         <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-slate-900 mb-2">
-          {summaryCfg.thanks}{name ? `, ${name}` : ''}!
+          {summaryCfg.thanks}!
         </h1>
         <p className="text-slate-500 text-sm">Данните са получени успешно</p>
       </div>
@@ -288,7 +291,6 @@ function SuccessContent() {
           onClose={() => setSaveModalOpen(false)}
           leadId={leadId}
           defaultEmail={prefillEmail}
-          defaultName={name}
         />
       )}
     </div>

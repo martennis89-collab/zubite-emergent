@@ -59,9 +59,13 @@ export default function ResultsPage() {
 
   // After the unlock gate successfully submits, redirect to
   // /quiz/success?leadId=... to preserve Manual Recommendation Mode.
-  // The success page reads stage/city/name/segment/leadId from query
+  // The success page reads stage/city/segment/leadId from query
   // params and shows the segment-aware "thanks + manual review" UI.
-  const handleUnlocked = (updated: { name: string }) => {
+  // PRIVACY (June 2026): `name` is NOT passed in the URL — neither as a
+  // first-word nor full string. The success page either uses a generic
+  // greeting or, if a personalised one is needed, fetches the
+  // display-safe first-word name from GET /api/leads/{id}.
+  const handleUnlocked = (_updated: { name: string }) => {
     const stage = BAND_TO_STAGE[lead?.band || 'GREEN'] || 'low'
     const city = lead?.city_slug || ''
     const rawSegment = (lead?.answers as Record<string, unknown> | undefined)?.['segment']
@@ -70,7 +74,6 @@ export default function ResultsPage() {
       leadId: leadId,
       stage,
       city,
-      name: updated.name,
       segment,
     })
     router.push(`/quiz/success?${params.toString()}`)
