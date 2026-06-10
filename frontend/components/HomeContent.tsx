@@ -618,7 +618,7 @@ function LumiVideoSection() {
                 Запознай се с Луми
               </span>
               <h2 className="mt-5 font-serif text-[1.85rem] sm:text-4xl lg:text-[2.6rem] font-semibold text-slate-900 leading-[1.1]">
-                Виж как работи <span className="text-teal-700">Зъбите.bg</span> за по-малко от минута
+                Виж как работи <span className="text-teal-700">zubite.bg</span> за по-малко от минута
               </h2>
               <p className="mt-5 text-slate-600 text-base sm:text-lg leading-relaxed max-w-xl">
                 Луми обяснява как платформата ти помага да се ориентираш,
@@ -1764,4 +1764,6 @@ function MotionStyles() {
       }
     `}</style>
   )
+}
+ )
 }
