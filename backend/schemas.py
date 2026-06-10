@@ -161,6 +161,24 @@ class SaveCarePassEmailBody(BaseModel):
     name: Optional[str] = Field(default=None, max_length=200)
 
 
+# ─── MVP unlock-mechanic (June 2026, Phase B) ────────────────────
+# Body for POST /api/leads/{lead_id}/unlock-result.
+#
+# Defensive lead-capture gate for any lead that was created WITHOUT
+# contact details (e.g. anonymous quiz path or a future split between
+# quiz answers and contact collection). Existing quiz POSTs already
+# include name/phone/email/consent, so this endpoint is idempotent —
+# if the lead already has contacts, we simply re-confirm the unlock
+# flags without overwriting the original values.
+class UnlockResultBody(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    name: str = Field(min_length=1, max_length=200)
+    phone: str = Field(min_length=4, max_length=50)
+    email: EmailStr
+    consent: bool
+    consultation_type: Optional[str] = Field(default=None, max_length=40)
+
+
 class Lead(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -244,6 +262,41 @@ class Lead(BaseModel):
     is_potential_duplicate: bool = False
     duplicate_reason: Optional[str] = None
     possible_duplicate_lead_id: Optional[str] = None
+
+    # ─── MVP unlock-mechanic foundation (June 2026, Phase A) ────
+    # These fields gate the full result + Care Pass behind a clinic-
+    # confirmed consultation. See lead-flow doc + emails.py.
+    #
+    # State machine (canonical):
+    #   1. Lead created (no contact)   → all False
+    #   2. Contact details submitted   → contact_details_submitted=True,
+    #                                    full_result_unlocked=True,
+    #                                    care_pass_eligible=True
+    #   3. Consultation requested      → consultation_booked_through_zubite=True
+    #                                    (set when patient submits a
+    #                                    booking/request via Zubite.bg)
+    #   4. Clinic confirms it          → clinic_confirmed_consultation=True
+    #                                    care_pass_unlocked=True
+    #
+    # Care Pass UNLOCK rule (single source of truth):
+    #   care_pass_unlocked := contact_details_submitted
+    #                       AND consultation_booked_through_zubite
+    #                       AND clinic_confirmed_consultation
+    #
+    # `consultation_type` records WHICH path confirmed Care Pass so we
+    # can attribute future analytics cleanly.
+    contact_details_submitted: bool = False
+    full_result_unlocked: bool = False
+    care_pass_eligible: bool = False
+    care_pass_unlocked: bool = False
+    consultation_booked_through_zubite: bool = False
+    clinic_confirmed_consultation: bool = False
+    clinic_confirmed_consultation_at: Optional[str] = None
+    consultation_type: Optional[str] = None   # online_orientation | offline_in_person | request_call
+    # 90-day no-show block — used by future online-orientation eligibility checks.
+    patient_free_orientation_blocked_until: Optional[str] = None
+    # Audit trail for the explicit "unlock" event.
+    contact_details_submitted_at: Optional[str] = None
 
 
 # ─── Admin Models ──────────────────────────────────────────

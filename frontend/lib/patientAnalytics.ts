@@ -43,6 +43,14 @@ export type PatientAnalyticsEvent =
   | 'assisted_choice_submitted'
   | 'assisted_choice_failed'
   | 'matching_choice_blocked'
+  // ─── MVP unlock-mechanic events (Phase B/C, June 2026) ─────────
+  | 'post_quiz_lead_capture_viewed'
+  | 'post_quiz_lead_submitted'
+  | 'full_result_unlocked'
+  | 'homepage_unlock_benefits_viewed'
+  | 'homepage_unlock_benefits_cta_clicked'
+  | 'homepage_care_pass_benefit_clicked'
+  | 'homepage_free_orientation_benefit_clicked'
 
 /** Allowed payload shape. Privacy-safe by construction — no PII. */
 export interface PatientAnalyticsPayload {
@@ -57,6 +65,7 @@ export interface PatientAnalyticsPayload {
   band?: string | null
   segment?: string | null
   has_lead_id?: boolean | null
+  lead_id_present?: boolean | null
   clinic_count?: number | null
   has_premium?: boolean | null
   has_featured?: boolean | null

@@ -34,7 +34,17 @@ JWT_EXPIRATION_HOURS = 24
 # Resend Email
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
-ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'martennis89@gmail.com')
+# Zubite admin notification mailbox — single source of truth for any
+# "new lead / new booking / Care Pass unlocked" alert sent to the
+# Zubite team. Priority order:
+#   1. ZUBITE_ADMIN_NOTIFICATION_EMAIL (canonical, added June 2026)
+#   2. ADMIN_EMAIL (legacy)
+#   3. info@zubite.bg (safe default; never a personal address)
+ADMIN_EMAIL = (
+    os.environ.get('ZUBITE_ADMIN_NOTIFICATION_EMAIL')
+    or os.environ.get('ADMIN_EMAIL')
+    or 'info@zubite.bg'
+)
 
 # Revalidation for Next.js ISR - fail fast if missing
 REVALIDATE_SECRET = os.environ.get('REVALIDATE_SECRET')

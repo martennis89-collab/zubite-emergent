@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
+import { ResultUnlockGate } from '@/components/patient/ResultUnlockGate'
 import { getLead } from '@/lib/api'
 import { CheckCircle2, Loader2, Home, ShieldCheck, ArrowRight, Gift, Sparkles } from 'lucide-react'
 
@@ -15,8 +16,13 @@ interface Lead {
   band: string
   score_total: number
   name?: string
-  phone?: string
-  email?: string
+  // MVP unlock-mechanic flags (Phase A) — returned by GET /api/leads/{id}
+  contact_details_submitted?: boolean
+  full_result_unlocked?: boolean
+  care_pass_eligible?: boolean
+  care_pass_unlocked?: boolean
+  consultation_booked_through_zubite?: boolean
+  clinic_confirmed_consultation?: boolean
 }
 
 export default function ResultsPage() {
@@ -40,6 +46,12 @@ export default function ResultsPage() {
     }
     fetchLead()
   }, [leadId])
+
+  // After the unlock gate successfully submits we refetch the lead so
+  // the full result panel below picks up the new flags.
+  const handleUnlocked = (updated: Partial<Lead>) => {
+    setLead((prev) => (prev ? { ...prev, ...updated, full_result_unlocked: true, care_pass_eligible: true } : prev))
+  }
 
   if (loading) {
     return (
@@ -86,7 +98,19 @@ export default function ResultsPage() {
 
       <section className="relative pt-28 pb-12 md:pt-36 md:pb-20">
         <div className="max-w-2xl mx-auto px-4 sm:px-6">
+          {/* MVP unlock gate — if contact details aren't recorded yet,
+              show the lead-capture screen instead of the full result. */}
+          {!lead.full_result_unlocked && (
+            <ResultUnlockGate
+              leadId={lead.id}
+              defaultName={lead.name}
+              onUnlocked={(d) => handleUnlocked({ name: d.name })}
+            />
+          )}
+
           {/* Primary result glass panel */}
+          {lead.full_result_unlocked && (
+          <>
           <div className="relative rounded-[1.75rem] bg-white/75 backdrop-blur-2xl ring-1 ring-white/80 shadow-[0_24px_60px_-22px_rgba(15,23,42,0.22),inset_0_1px_0_rgba(255,255,255,0.95)] p-8 sm:p-10 text-center">
             {/* Inner top gloss */}
             <div aria-hidden className="absolute inset-x-8 top-0.5 h-1/3 rounded-full bg-gradient-to-b from-white/55 to-transparent pointer-events-none opacity-70" />
@@ -112,8 +136,6 @@ export default function ResultsPage() {
               <div className="relative bg-slate-50/80 ring-1 ring-slate-200/50 rounded-xl p-4 mb-8 text-left max-w-sm mx-auto">
                 <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400 font-semibold mb-2">Твоите данни</p>
                 <p className="text-slate-900 font-medium">{lead.name}</p>
-                {lead.phone && <p className="text-sm text-slate-600 mt-0.5">{lead.phone}</p>}
-                {lead.email && <p className="text-sm text-slate-600 mt-0.5">{lead.email}</p>}
               </div>
             )}
 
@@ -162,6 +184,8 @@ export default function ResultsPage() {
             <span aria-hidden>·</span>
             <span>Не заменя професионален преглед</span>
           </div>
+          </>
+          )}
         </div>
       </section>
 

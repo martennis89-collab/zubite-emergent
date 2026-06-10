@@ -22,6 +22,7 @@ import Image from 'next/image'
 import { ClinicStandardSection } from '@/components/patient/ClinicStandardSection'
 import { Footer } from '@/components/Footer'
 import { resolveImageUrl } from '@/lib/imageUrl'
+import { trackPatientEvent } from '@/lib/patientAnalytics'
 import {
   ShieldCheck, Sparkles, Building2, Stethoscope, ChevronDown,
   CheckCircle2, ArrowRight, MoveRight, Heart, Smile, Activity,
@@ -405,6 +406,11 @@ function Hero() {
                 <span className="relative">Виж как работи</span>
               </Link>
             </div>
+            {/* Unlock-mechanic microcopy under hero CTAs */}
+            <p className="mt-4 text-[12px] text-slate-500 leading-relaxed max-w-xl" data-testid="hero-unlock-microcopy">
+              Попълни оценката и можеш да отключиш безплатна онлайн ориентация
+              и Care Pass след потвърдена консултация.
+            </p>
           </Reveal>
           <Reveal delay={260}>
             <div className="mt-6 flex flex-wrap gap-2">
@@ -1580,6 +1586,132 @@ function FAQItem({ q, a, idx }: { q: string; a: string; idx: number }) {
 }
 
 // ─── 13. Final CTA + disclaimer ──────────────────────────────────
+// ─── 9.5 Unlock benefits — explains what quiz completion unlocks ──
+// Sits between How-it-works and FinalCTA. Per product spec:
+//   • Communicates that the questionnaire UNLOCKS personal result,
+//     suitable clinics, free online orientation slots when available,
+//     and Care Pass after a clinic-confirmed consultation.
+//   • All CTAs send users to the QUIZ, never to direct booking.
+//   • Care Pass card never claims "instant unlock" — wording is
+//     deliberately conditional.
+//   • Analytics: section view fires `homepage_unlock_benefits_viewed`;
+//     primary CTA fires `homepage_unlock_benefits_cta_clicked`;
+//     the optional Care Pass / orientation chips fire dedicated events.
+function UnlockBenefits() {
+  const ref = useRef<HTMLElement | null>(null)
+  useEffect(() => {
+    if (!ref.current || typeof IntersectionObserver === 'undefined') return
+    let fired = false
+    const io = new IntersectionObserver((entries) => {
+      if (!fired && entries.some((e) => e.isIntersecting)) {
+        fired = true
+        try { trackPatientEvent('homepage_unlock_benefits_viewed') } catch { /* noop */ }
+        io.disconnect()
+      }
+    }, { rootMargin: '0px 0px -10% 0px' })
+    io.observe(ref.current)
+    return () => io.disconnect()
+  }, [])
+
+  const benefits = [
+    {
+      title: 'Персонален резултат',
+      text: 'Виж какъв тип консултация може да е подходяща според отговорите ти.',
+      icon: <ShieldCheck className="w-5 h-5 text-teal-700" />,
+    },
+    {
+      title: 'Безплатна онлайн ориентация',
+      text: 'При избрани партньорски клиники можеш да отключиш свободни безплатни онлайн часове след попълнен въпросник.',
+      icon: <Sparkles className="w-5 h-5 text-teal-700" />,
+      onClick: () => { try { trackPatientEvent('homepage_free_orientation_benefit_clicked') } catch { /* noop */ } },
+    },
+    {
+      title: 'Zubite Care Pass',
+      text: 'След запазена и потвърдена от клиниката онлайн или присъствена консултация през Zubite.bg отключваш Care Pass с партньорски предложения за продукти за орална хигиена.',
+      icon: <Gift className="w-5 h-5 text-teal-700" />,
+      onClick: () => { try { trackPatientEvent('homepage_care_pass_benefit_clicked') } catch { /* noop */ } },
+    },
+  ]
+
+  return (
+    <section
+      ref={ref}
+      className="relative py-20 sm:py-28 overflow-hidden"
+      data-testid="home-unlock-benefits"
+    >
+      <div aria-hidden className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse 55% 45% at 18% 30%, rgba(94,234,212,0.16) 0%, transparent 65%),' +
+            'radial-gradient(ellipse 50% 40% at 82% 75%, rgba(165,243,252,0.20) 0%, transparent 65%),' +
+            'linear-gradient(180deg, #FCFAF8 0%, #F8FAF9 100%)',
+        }}
+      />
+      <div aria-hidden className="absolute -top-32 right-0 w-[28rem] h-[28rem] rounded-full bg-teal-100/30 blur-3xl pointer-events-none" />
+
+      <div className="relative max-w-6xl mx-auto px-5 sm:px-8">
+        <Reveal>
+          <div className="text-center max-w-3xl mx-auto">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/65 backdrop-blur-md ring-1 ring-white/80 text-[11px] uppercase tracking-[0.18em] text-teal-700 font-semibold px-3 py-1.5">
+              <Sparkles className="w-3.5 h-3.5" />
+              Какво отключваш
+            </span>
+            <h2 className="mt-5 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08]">
+              Попълни оценката и отключи следващата стъпка
+            </h2>
+            <p className="mt-5 text-slate-600 text-base sm:text-lg leading-relaxed">
+              След краткия въпросник Zubite.bg ти показва персонален резултат,
+              подходящи партньорски клиники и, когато има свободни слотове,
+              възможност за безплатна онлайн ориентация преди посещение.
+            </p>
+          </div>
+        </Reveal>
+
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6" data-testid="home-unlock-benefits-grid">
+          {benefits.map((b, i) => (
+            <Reveal key={b.title} delay={80 * i}>
+              <div
+                onClick={b.onClick}
+                className="relative h-full rounded-2xl bg-white/75 backdrop-blur-xl ring-1 ring-white/80 shadow-[0_18px_44px_-22px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.92)] p-6 sm:p-7 cursor-default"
+                data-testid={`home-unlock-benefit-${i}`}
+              >
+                <div className="w-11 h-11 rounded-xl bg-teal-50 ring-1 ring-teal-100 flex items-center justify-center mb-4">
+                  {b.icon}
+                </div>
+                <h3 className="font-serif text-lg font-semibold text-slate-900 mb-2">{b.title}</h3>
+                <p className="text-[14px] text-slate-600 leading-relaxed">{b.text}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+
+        <div className="mt-10 sm:mt-12 flex flex-col items-center text-center">
+          <Link
+            href={QUIZ_URL}
+            onClick={() => { try { trackPatientEvent('homepage_unlock_benefits_cta_clicked') } catch { /* noop */ } }}
+            className="group relative inline-flex items-center gap-1.5 rounded-full text-white text-sm font-medium px-6 py-3.5 transition-all hover:-translate-y-0.5 shadow-[0_18px_40px_-12px_rgba(13,148,136,0.55)] overflow-hidden"
+            style={{ backgroundImage: 'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)' }}
+            data-testid="home-unlock-benefits-cta"
+          >
+            <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
+            <span className="relative inline-flex items-center gap-1.5">
+              Започни оценката
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+            </span>
+          </Link>
+          <p className="mt-5 text-[11px] text-slate-400 leading-relaxed max-w-2xl">
+            Безплатните онлайн часове са налични при избрани партньорски клиники
+            и според свободните им слотове. Онлайн ориентацията не замества
+            физически преглед, диагноза или лечебен план.
+          </p>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+
+
 function FinalCTA() {
   return (
     <section className="py-24 sm:py-32 relative overflow-hidden" data-testid="home-final-cta">
@@ -1618,11 +1750,12 @@ function FinalCTA() {
               <Clock className="w-3 h-3" /> ~60 секунди
             </span>
             <h2 className="mt-5 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08]">
-              Не отлагай само защото<br className="hidden sm:block" /> не знаеш от къде да започнеш.
+              Разбери каква е следващата правилна стъпка.
             </h2>
             <p className="mt-4 text-slate-600 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
-              Започни с кратък въпросник и получи ориентир за следващата
-              стъпка.
+              Попълни кратката оценка, виж персонален резултат и
+              отключи възможност за безплатна онлайн ориентация с
+              партньорска клиника, когато има свободни часове.
             </p>
             <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
               <Link
@@ -1633,7 +1766,7 @@ function FinalCTA() {
               >
                 <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
                 <span className="relative inline-flex items-center gap-1.5">
-                  Започни анализа
+                  Започни оценката
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                 </span>
               </Link>
@@ -1694,7 +1827,9 @@ export function HomeContent({ recentPosts = [] }: { recentPosts?: HomeBlogPost[]
       <SymptomChips />
       {/* 4. How it works (5 steps) */}
       <HowItWorks />
-      {/* 4.5 Zubite Clinic Standard — trust pillars */}
+      {/* 4.5 Unlock benefits — what completing the quiz unlocks */}
+      <UnlockBenefits />
+      {/* 4.6 Zubite Clinic Standard — trust pillars */}
       <ClinicStandardSection />
       {/* 5. Product / result preview */}
       <DecisionPreview />

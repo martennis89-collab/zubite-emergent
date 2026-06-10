@@ -6,7 +6,7 @@ import uuid
 
 from database import db
 from aligner_brands import public_aligner_brand_chips
-from schemas import Clinic, LeadCreate, LeadContactUpdate, Lead, RequestCallBody, RequestZubiteHelpBody, SaveCarePassEmailBody
+from schemas import Clinic, LeadCreate, LeadContactUpdate, Lead, RequestCallBody, RequestZubiteHelpBody, SaveCarePassEmailBody, UnlockResultBody
 from auth import hash_password
 from config import CITIES, logger
 from scoring import calculate_score
@@ -219,6 +219,22 @@ async def create_lead(data: LeadCreate):
         "duplicate_reason": dup_reason,
         "possible_duplicate_lead_id": dup_lead_id,
     })
+    # MVP unlock flags (Phase A/B) — the current quiz flow ALWAYS collects
+    # name+phone+email+consent at submit time (`_validate_quiz_contact`
+    # enforces this), so contact details are present here by definition.
+    # We flip the unlock + Care-Pass-eligible flags atomically with lead
+    # creation so the result page can immediately render the full result.
+    now_iso = datetime.now(timezone.utc).isoformat()
+    payload.update({
+        "contact_details_submitted": True,
+        "contact_details_submitted_at": now_iso,
+        "full_result_unlocked": True,
+        "care_pass_eligible": True,
+        # Care Pass UNLOCK is a separate gate — requires clinic confirmation.
+        "care_pass_unlocked": False,
+        "consultation_booked_through_zubite": False,
+        "clinic_confirmed_consultation": False,
+    })
     # `source` is not a Lead field — store it in answers so it survives.
     if data.source:
         payload.setdefault("answers", {})["source"] = data.source
@@ -245,17 +261,119 @@ async def create_lead(data: LeadCreate):
 
 @router.get("/leads/{lead_id}")
 async def get_lead(lead_id: str):
-    """Public lead lookup. Returns only minimal, non-PII fields (used by quiz success page)."""
+    """Public lead lookup. Returns only minimal, non-PII fields (used by
+    quiz success / result-unlock pages). The MVP unlock-mechanic flags
+    are included so the frontend can decide whether to render the
+    lead-capture gate or the full result."""
     lead = await db.leads.find_one(
         {"id": lead_id},
         {"_id": 0, "id": 1, "city_slug": 1, "treatment_type": 1, "band": 1,
-         "score_total": 1, "created_at": 1, "answers": 1}
+         "score_total": 1, "created_at": 1, "answers": 1,
+         # Unlock-mechanic flags (Phase A) — safe to expose, no PII.
+         "contact_details_submitted": 1, "full_result_unlocked": 1,
+         "care_pass_eligible": 1, "care_pass_unlocked": 1,
+         "consultation_booked_through_zubite": 1,
+         "clinic_confirmed_consultation": 1, "consultation_type": 1,
+         # Echo a partial name only — first word, never phone/email,
+         # so result page can greet the patient if they're returning.
+         "name": 1}
     )
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
     if isinstance(lead.get('created_at'), str):
         lead['created_at'] = datetime.fromisoformat(lead['created_at'])
+    # Trim name to first word for safety.
+    if lead.get("name"):
+        first = (lead["name"] or "").strip().split(" ")[0]
+        lead["name"] = first[:30] if first else None
     return lead
+
+
+# ─── MVP unlock-mechanic (Phase B) ────────────────────────────────
+#
+# POST /leads/{lead_id}/unlock-result
+#
+# Defensive lead-capture gate. The existing quiz POST /api/leads already
+# requires name+phone+email+consent, so /unlock-result is effectively a
+# safety net for:
+#   • Leads created without contacts (future flows where quiz answers
+#     and contact details are split apart).
+#   • Re-confirmation calls when the user lands on the result page from
+#     an old/cached link.
+#
+# Behavior:
+#   • Idempotent — re-applying flips no real data when fields already
+#     match. Never overwrites a non-empty name/phone/email.
+#   • Sets contact_details_submitted, contact_details_submitted_at,
+#     full_result_unlocked, care_pass_eligible (NOT care_pass_unlocked).
+#   • Triggers admin + patient notifications when this is the first
+#     time contact details arrive (i.e. transition False→True).
+#   • Rate-limited like other lead writes.
+@router.post(
+    "/leads/{lead_id}/unlock-result",
+    dependencies=[Depends(rate_limit("unlock_result", 5, 300))],
+)
+async def unlock_result(lead_id: str, body: UnlockResultBody):
+    if not body.consent:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "success": False,
+                "code": "consent_required",
+                "message": (
+                    "Необходимо е съгласие за обработка на данните, "
+                    "за да отключим резултата."
+                ),
+            },
+        )
+
+    lead = await db.leads.find_one(
+        {"id": lead_id},
+        {"_id": 0, "id": 1, "name": 1, "phone": 1, "email": 1,
+         "contact_details_submitted": 1, "consent": 1},
+    )
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    was_first_time = not lead.get("contact_details_submitted", False)
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    # Preserve any existing contact values — never overwrite. Only fill
+    # in when missing (handles the future split-flow case cleanly).
+    update: Dict[str, Any] = {
+        "contact_details_submitted": True,
+        "contact_details_submitted_at": now_iso,
+        "full_result_unlocked": True,
+        "care_pass_eligible": True,
+        "consent": True,
+    }
+    if not (lead.get("name") or "").strip():
+        update["name"] = body.name.strip()
+    if not (lead.get("phone") or "").strip():
+        update["phone"] = body.phone.strip()
+    if not (lead.get("email") or "").strip():
+        update["email"] = body.email
+    if body.consultation_type:
+        update["consultation_type"] = body.consultation_type
+
+    await db.leads.update_one({"id": lead_id}, {"$set": update})
+
+    # On the transition False→True we send the admin/patient notifications,
+    # mirroring what create_lead does. Best-effort, non-blocking.
+    if was_first_time:
+        full_lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+        if full_lead and full_lead.get("consent"):
+            asyncio.create_task(send_lead_notification_email(full_lead))
+            if full_lead.get("email"):
+                asyncio.create_task(send_lead_confirmation_email(full_lead))
+
+    return {
+        "success": True,
+        "message": "Резултатът е отключен.",
+        "full_result_unlocked": True,
+        "care_pass_eligible": True,
+        "care_pass_unlocked": False,
+    }
 
 
 @router.patch("/leads/{lead_id}/contact", dependencies=[Depends(rate_limit("update_contact", 10, 300))])
