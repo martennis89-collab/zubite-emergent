@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { ClinicShell } from '@/components/ClinicShell'
 import { WeeklyTrendChart, type TrendPoint } from '@/components/clinic/WeeklyTrendChart'
+import { ClinicOrientationStatusCard } from '@/components/clinic/ClinicOrientationStatusCard'
 import {
   statusBadge, timeSince, formatDuration, TREATMENT_LABELS,
 } from '@/lib/consultationLabels'
@@ -111,6 +112,9 @@ export default function ClinicOverviewPage() {
                 tone="emerald"
               />
             </div>
+
+            {/* Phase D — Online Orientation status (read-only) */}
+            <ClinicOrientationStatusCard />
 
             {/* CHART + TOP REQUESTS */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

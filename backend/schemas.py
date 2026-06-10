@@ -892,3 +892,220 @@ class ClinicAppointmentPatch(BaseModel):
     end_time: Optional[str] = None
     status: Optional[str] = None
     notes: Optional[str] = Field(default=None, max_length=2000)
+
+
+# ─── Phase D — Online Orientation Settings (June 2026) ───────────────
+# Operational/admin foundation for Free Online Orientation. This is
+# settings + availability ONLY — no booking requests, no slot locks,
+# no patient-facing UI. Patient eligibility lives in Phase E.
+
+ORIENTATION_DAY_OF_WEEK_VALUES = (
+    "monday", "tuesday", "wednesday", "thursday",
+    "friday", "saturday", "sunday",
+)
+
+# Treatment categories the patient could be routed to for an
+# orientation. Kept tier-agnostic and treatment-category-only — no
+# clinical brand/marketing terms. Admin can extend later by editing the
+# constant; the frontend Picker reads `ORIENTATION_TREATMENT_CATEGORIES`.
+ORIENTATION_TREATMENT_CATEGORIES = (
+    "orthodontics",
+    "aligners",
+    "implants",
+    "cosmetic_dentistry",
+    "general_orientation",
+)
+
+# Access-status enum returned by `orientation_access.get_online_orientation_access_status`.
+# Phase E will branch on these values to compute patient-facing
+# eligibility on the result page.
+ORIENTATION_ACCESS_STATUS_VALUES = (
+    "included_in_plan",
+    "addon_enabled",
+    "disabled_by_admin",
+    "not_available",
+    "clinic_inactive",
+)
+
+# Sensible operational defaults — surfaced to the admin UI and used
+# when no settings doc exists yet for a clinic.
+ORIENTATION_DEFAULTS = {
+    "monthly_free_slot_limit": 10,
+    "slot_duration_minutes": 20,
+    "max_bookings_per_day": 2,
+    "booking_buffer_minutes": 15,
+    "eligible_treatment_categories": [
+        "orthodontics", "aligners", "implants",
+        "cosmetic_dentistry", "general_orientation",
+    ],
+}
+
+
+def _validate_hhmm(v: str) -> str:
+    """Allow HH:MM (24h). Raises ValueError on malformed input.
+    Used for availability rows."""
+    if not isinstance(v, str):
+        raise ValueError("time must be a string HH:MM")
+    parts = v.strip().split(":")
+    if len(parts) != 2:
+        raise ValueError("time must be HH:MM")
+    try:
+        h, m = int(parts[0]), int(parts[1])
+    except ValueError:
+        raise ValueError("time must be HH:MM with integer parts")
+    if not (0 <= h <= 23 and 0 <= m <= 59):
+        raise ValueError("time must be 00:00–23:59")
+    return f"{h:02d}:{m:02d}"
+
+
+class ClinicOnlineOrientationAvailability(BaseModel):
+    """A single weekly availability window for a clinic's online
+    orientation. Used to draw the per-day timeline in admin UI; Phase E
+    will turn these into actual slot candidates."""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    clinic_id: str
+    day_of_week: str
+    start_time: str
+    end_time: str
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    @field_validator("day_of_week")
+    @classmethod
+    def _v_dow(cls, v: str) -> str:
+        v = v.strip().lower()
+        if v not in ORIENTATION_DAY_OF_WEEK_VALUES:
+            raise ValueError(f"day_of_week must be one of {ORIENTATION_DAY_OF_WEEK_VALUES}")
+        return v
+
+    @field_validator("start_time", "end_time")
+    @classmethod
+    def _v_time(cls, v: str) -> str:
+        return _validate_hhmm(v)
+
+
+class ClinicOnlineOrientationAvailabilityCreate(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    day_of_week: str
+    start_time: str
+    end_time: str
+    is_active: bool = True
+
+    @field_validator("day_of_week")
+    @classmethod
+    def _v_dow(cls, v: str) -> str:
+        v = v.strip().lower()
+        if v not in ORIENTATION_DAY_OF_WEEK_VALUES:
+            raise ValueError(f"day_of_week must be one of {ORIENTATION_DAY_OF_WEEK_VALUES}")
+        return v
+
+    @field_validator("start_time", "end_time")
+    @classmethod
+    def _v_time(cls, v: str) -> str:
+        return _validate_hhmm(v)
+
+
+class ClinicOnlineOrientationAvailabilityUpdate(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    day_of_week: Optional[str] = None
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    is_active: Optional[bool] = None
+
+    @field_validator("day_of_week")
+    @classmethod
+    def _v_dow(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        v = v.strip().lower()
+        if v not in ORIENTATION_DAY_OF_WEEK_VALUES:
+            raise ValueError(f"day_of_week must be one of {ORIENTATION_DAY_OF_WEEK_VALUES}")
+        return v
+
+    @field_validator("start_time", "end_time")
+    @classmethod
+    def _v_time(cls, v: Optional[str]) -> Optional[str]:
+        return _validate_hhmm(v) if v is not None else None
+
+
+class ClinicOnlineOrientationSettings(BaseModel):
+    """Per-clinic Online Orientation configuration. Stored in
+    `clinic_online_orientation_settings`, keyed by `clinic_id` (one
+    doc per clinic). All flags default to operationally-OFF — even
+    Premium plans require explicit admin enablement before patient
+    funnels can route to this clinic."""
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    clinic_id: str
+
+    # Operational on/off (admin toggle). Even Premium clinics need this
+    # to be true before the patient funnel routes to them.
+    enabled: bool = False
+
+    # Basic tier add-on. Only meaningful for `standard` / `featured`
+    # tiers; ignored for Premium (Premium is always included-in-plan).
+    addon_enabled_for_basic: bool = False
+
+    # Funnel rules.
+    requires_quiz_completion: bool = True
+    requires_contact_details: bool = True
+
+    monthly_free_slot_limit: int = Field(default=10, ge=0, le=1000)
+    slot_duration_minutes: int = Field(default=20, ge=5, le=240)
+    max_bookings_per_day: int = Field(default=2, ge=0, le=100)
+    booking_buffer_minutes: int = Field(default=15, ge=0, le=240)
+
+    eligible_treatment_categories: List[str] = Field(
+        default_factory=lambda: list(ORIENTATION_DEFAULTS["eligible_treatment_categories"])
+    )
+
+    public_description: Optional[str] = Field(default=None, max_length=600)
+    disclaimer_text: Optional[str] = Field(default=None, max_length=600)
+    internal_admin_notes: Optional[str] = Field(default=None, max_length=1500)
+
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    @field_validator("eligible_treatment_categories")
+    @classmethod
+    def _v_cats(cls, v: List[str]) -> List[str]:
+        if not isinstance(v, list):
+            raise ValueError("eligible_treatment_categories must be a list")
+        out: List[str] = []
+        for c in v:
+            if not isinstance(c, str):
+                raise ValueError("category must be a string")
+            cs = c.strip().lower()
+            if cs not in ORIENTATION_TREATMENT_CATEGORIES:
+                raise ValueError(
+                    f"category '{c}' is not allowed; pick from {ORIENTATION_TREATMENT_CATEGORIES}"
+                )
+            if cs not in out:
+                out.append(cs)
+        return out
+
+
+class ClinicOnlineOrientationSettingsUpdate(BaseModel):
+    """Admin PATCH payload. All optional so partial updates work."""
+    model_config = ConfigDict(extra="ignore")
+    enabled: Optional[bool] = None
+    addon_enabled_for_basic: Optional[bool] = None
+    requires_quiz_completion: Optional[bool] = None
+    requires_contact_details: Optional[bool] = None
+    monthly_free_slot_limit: Optional[int] = Field(default=None, ge=0, le=1000)
+    slot_duration_minutes: Optional[int] = Field(default=None, ge=5, le=240)
+    max_bookings_per_day: Optional[int] = Field(default=None, ge=0, le=100)
+    booking_buffer_minutes: Optional[int] = Field(default=None, ge=0, le=240)
+    eligible_treatment_categories: Optional[List[str]] = None
+    public_description: Optional[str] = Field(default=None, max_length=600)
+    disclaimer_text: Optional[str] = Field(default=None, max_length=600)
+    internal_admin_notes: Optional[str] = Field(default=None, max_length=1500)
+
+    @field_validator("eligible_treatment_categories")
+    @classmethod
+    def _v_cats(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        if v is None:
+            return v
+        return ClinicOnlineOrientationSettings._v_cats(v)  # type: ignore[attr-defined]

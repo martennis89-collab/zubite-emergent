@@ -278,6 +278,13 @@ export default function AdminClinicEditPage() {
         backLabel="Към списъка"
       />
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-end gap-3">
+        <Link
+          href={`/admin/clinics/${clinicId}/orientation`}
+          className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-sm font-medium"
+          data-testid="admin-clinic-orientation-link"
+        >
+          Онлайн ориентация
+        </Link>
         <button
           type="button"
           onClick={save}
