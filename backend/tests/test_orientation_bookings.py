@@ -237,7 +237,9 @@ def run_all():
             assert lead.get("consultation_booked_through_zubite") is True
             print("  care_pass invariant PASS")
 
-            # 4. Same slot re-booked → 409
+            # 4. Same slot re-booked → 409 — duplicate-prevention (Phase H)
+            # now triggers FIRST because the same lead already has an
+            # active pending booking, before we even check slot lock.
             r = requests.post(
                 f"{API_URL}/api/leads/{lead_id}/online-orientation-bookings",
                 json={
@@ -248,8 +250,8 @@ def run_all():
                 timeout=10,
             )
             assert r.status_code == 409, r.text
-            assert r.json()["detail"]["code"] == "slot_already_locked"
-            print("  step4 PASS — slot lock holds")
+            assert r.json()["detail"]["code"] in ("active_booking_exists", "slot_already_locked"), r.json()
+            print("  step4 PASS — duplicate active booking blocked")
 
             # 5. Slot no longer in patient list (re-fetch)
             r = requests.get(f"{API_URL}/api/leads/{lead_id}/eligible-orientation-clinics", timeout=10)

@@ -145,6 +145,9 @@ def _public_booking(b: Dict[str, Any], *, audience: str) -> Dict[str, Any]:
     })
     if audience == "admin":
         out["clinic_name"] = b.get("_clinic_name")
+        # Phase H — expose history + notification log for admin only.
+        out["status_history"] = b.get("status_history") or []
+        out["notifications_sent"] = b.get("notifications_sent") or []
     return out
 
 
@@ -161,6 +164,42 @@ async def _enrich_with_clinic_name(rows: List[Dict[str, Any]]) -> List[Dict[str,
 
 # ─── Patient: eligible clinics + slots ────────────────────
 
+async def _expire_and_notify(clinic_id: Optional[str] = None) -> int:
+    """Wrapper around `expire_pending_bookings` that, for each booking
+    we just expired, sends the patient notification (idempotent) and
+    appends a status-history row. Used by every read-side endpoint."""
+    # Find pending-past-expiry rows BEFORE we update them, so we can
+    # send the notifications + record the history row with the original
+    # `previous_status="pending_clinic_confirmation"` context.
+    q: Dict[str, Any] = {
+        "status": "pending_clinic_confirmation",
+        "expires_at": {"$lte": _now_utc_iso()},
+    }
+    if clinic_id:
+        q["clinic_id"] = clinic_id
+    rows = await db.get_collection(BOOKING_COL).find(q, {"_id": 0}).to_list(500)
+    n = await expire_pending_bookings(db, clinic_id=clinic_id)
+    for r in rows:
+        new_status = "expired_pending_confirmation"
+        history = _append_status_history(
+            r, action="lazy_expire", new_status=new_status,
+            actor_type="system", actor_id=None, note=None,
+        )
+        try:
+            await db.get_collection(BOOKING_COL).update_one(
+                {"id": r["id"]}, {"$set": {"status_history": history}},
+            )
+        except Exception as exc:
+            logger.warning(f"expire history append failed: {exc}")
+        r["status"] = new_status
+        r["status_history"] = history
+        try:
+            await _send_patient_status_email(r)
+        except Exception as exc:
+            logger.warning(f"expire notification failed: {exc}")
+    return n
+
+
 @router.get("/leads/{lead_id}/eligible-orientation-clinics")
 async def patient_list_eligible_clinics(lead_id: str, request: Request):
     """Return every patient-routable clinic with available slots in the
@@ -168,7 +207,7 @@ async def patient_list_eligible_clinics(lead_id: str, request: Request):
     pending bookings before recomputing slot availability."""
     lead = await _load_lead_or_404(lead_id)
     await _guard_lead_unlocked(lead)
-    await expire_pending_bookings(db)  # global sweep — cheap
+    await _expire_and_notify()  # global sweep + notifications
 
     # All clinics that have a settings doc with `enabled=True` are
     # candidates. We then filter by Phase D access helper.
@@ -225,7 +264,7 @@ async def patient_list_eligible_clinics(lead_id: str, request: Request):
 
 @router.post(
     "/leads/{lead_id}/online-orientation-bookings",
-    dependencies=[Depends(rate_limit("orient_book_create", 6, 600))],
+    dependencies=[Depends(rate_limit("orient_book_create", 30, 600))],
 )
 async def patient_create_booking(
     lead_id: str,
@@ -248,6 +287,28 @@ async def patient_create_booking(
             status_code=422,
             detail={"code": "disclaimer_required",
                     "message": "Моля, потвърди, че онлайн ориентацията не замества физически преглед."},
+        )
+
+    # Phase H — soft duplicate prevention. A lead can only hold ONE
+    # active orientation booking at a time. "Active" = `pending` /
+    # `confirmed` / `scheduled` per `ORIENTATION_BOOKING_ACTIVE_LOCK_STATUSES`.
+    # Once a booking transitions to ANY terminal status (rejected /
+    # cancelled / expired / completed / no_show / converted / not_suitable),
+    # the lead is free to request another slot. This is NOT a penalty
+    # block — it's only to stop accidental double-submits.
+    await _expire_and_notify()
+    existing_active = await db.get_collection(BOOKING_COL).find_one(
+        {"lead_id": lead_id,
+         "status": {"$in": list(ORIENTATION_BOOKING_ACTIVE_LOCK_STATUSES)}},
+        {"_id": 0, "id": 1, "status": 1},
+    )
+    if existing_active:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "active_booking_exists",
+                    "active_booking_id": existing_active.get("id"),
+                    "active_status": existing_active.get("status"),
+                    "message": "Вече имаш активна заявка за онлайн ориентация. Можеш да изчакаш потвърждение или да отмениш текущата заявка."},
         )
 
     clinic = await db.clinics.find_one(
@@ -275,7 +336,7 @@ async def patient_create_booking(
 
     slot_iso = slot_dt.astimezone(timezone.utc).isoformat()
     # Lazy expiry so the "still locked?" check sees current truth.
-    await expire_pending_bookings(db, clinic_id=clinic["id"])
+    await _expire_and_notify(clinic_id=clinic["id"])
     locked = await db.get_collection(BOOKING_COL).find_one({
         "clinic_id": clinic["id"],
         "scheduled_at": slot_iso,
@@ -374,12 +435,23 @@ async def patient_cancel_booking(lead_id: str, booking_id: str, request: Request
     if b["status"] not in ORIENTATION_BOOKING_ACTIVE_LOCK_STATUSES:
         return {"booking": _public_booking(b, audience="patient")}
     now = _now_utc_iso()
+    history = _append_status_history(
+        b, action="patient_cancel", new_status="cancelled_by_patient",
+        actor_type="patient", actor_id=lead_id, note=None,
+    )
     await db.get_collection(BOOKING_COL).update_one(
         {"id": booking_id},
-        {"$set": {"status": "cancelled_by_patient", "updated_at": now}},
+        {"$set": {"status": "cancelled_by_patient",
+                  "status_history": history, "updated_at": now}},
     )
     b["status"] = "cancelled_by_patient"
+    b["status_history"] = history
     b["updated_at"] = now
+    # Phase H — patient notification on self-cancel (idempotent).
+    try:
+        await _send_patient_status_email(b)
+    except Exception as exc:
+        logger.warning(f"patient cancel notification failed: {exc}")
     return {"booking": _public_booking(b, audience="patient")}
 
 
@@ -390,7 +462,7 @@ async def clinic_list_bookings(
     request: Request,
     clinic: Dict[str, Any] = Depends(get_current_clinic),
 ):
-    await expire_pending_bookings(db, clinic_id=clinic["id"])
+    await _expire_and_notify(clinic_id=clinic["id"])
     cur = db.get_collection(BOOKING_COL).find(
         {"clinic_id": clinic["id"]}, {"_id": 0},
     ).sort("scheduled_at", 1)
@@ -410,15 +482,94 @@ _ACTION_TRANSITIONS: Dict[str, str] = {
     "mark_not_suitable": "not_suitable",
 }
 
+# Patient-facing status notifications (Phase H, June 2026).
+# Subject + a small HTML body. The booking dict + clinic dict are
+# templated in for context. Idempotency is tracked on the booking doc
+# in `notifications_sent` (array of status keys already emailed).
+_PATIENT_NOTIFICATIONS = {
+    "confirmed_by_clinic": (
+        "Онлайн часът ти е потвърден",
+        "Клиниката потвърди заявката ти за безплатна онлайн ориентация. "
+        "Запази часа в календара си. Онлайн ориентацията не замества "
+        "физически преглед, диагноза или лечебен план.",
+    ),
+    "rejected_by_clinic": (
+        "Клиниката не можа да потвърди онлайн часа",
+        "За съжаление избраният час не може да бъде потвърден. Можеш да "
+        "избереш друг свободен слот или да продължиш с ръчна препоръка от "
+        "екипа на Zubite.bg.",
+    ),
+    "cancelled_by_clinic": (
+        "Онлайн часът беше отменен от клиниката",
+        "Клиниката отмени потвърдения час. Можеш да избереш друг свободен "
+        "слот или да продължиш с ръчна препоръка от екипа на Zubite.bg.",
+    ),
+    "cancelled_by_patient": (
+        "Онлайн заявката ти е отменена",
+        "Потвърдихме отмяната на твоята заявка. Винаги можеш да заявиш нов "
+        "свободен слот, ако има наличност.",
+    ),
+    "expired_pending_confirmation": (
+        "Онлайн часът не беше потвърден навреме",
+        "Клиниката не потвърди заявката в рамките на 24 часа. Можеш да "
+        "избереш друг свободен слот или да продължиш с ръчна препоръка от "
+        "екипа на Zubite.bg.",
+    ),
+    "completed": (
+        "Онлайн ориентацията е отбелязана като проведена",
+        "Благодарим ти за отделеното време. Ако клиниката препоръча "
+        "продължение, ще се свържат с теб. Care Pass отстъпките остават "
+        "налични, ако са били отключени.",
+    ),
+    "no_show": (
+        "Онлайн часът беше отбелязан като пропуснат",
+        "Клиниката отбеляза часа като неприсъствен. Винаги можеш да "
+        "заявиш нов слот, ако има наличност.",
+    ),
+    "converted_to_in_clinic": (
+        "Следваща стъпка: присъствена консултация",
+        "Клиниката отбеляза, че случаят преминава към присъствена "
+        "консултация. Care Pass отстъпките остават налични, ако са били "
+        "отключени.",
+    ),
+    "not_suitable": (
+        "Онлайн ориентацията е отбелязана като неподходяща за този случай",
+        "Клиниката счита, че онлайн форматът не е подходящ за конкретния "
+        "случай. Можеш да продължиш с ръчна препоръка от екипа на Zubite.bg.",
+    ),
+}
 
-def _apply_action(b: Dict[str, Any], action: str, *, actor_id: Optional[str], note: Optional[str]) -> Dict[str, Any]:
-    """Pure update-builder. Returns the `$set` dict; never mutates `b`."""
+
+def _append_status_history(b: Dict[str, Any], *, action: str, new_status: str,
+                           actor_type: str, actor_id: Optional[str], note: Optional[str]) -> List[Dict[str, Any]]:
+    """Append a status-history row. Returns the FULL history list ready
+    to be persisted on the booking doc."""
+    history = list(b.get("status_history") or [])
+    history.append({
+        "previous_status": b.get("status"),
+        "new_status": new_status,
+        "action": action,
+        "actor_type": actor_type,
+        "actor_id": actor_id,
+        "note": note,
+        "created_at": _now_utc_iso(),
+    })
+    return history
+
+
+def _apply_action(b: Dict[str, Any], action: str, *, actor_type: str, actor_id: Optional[str], note: Optional[str]) -> Dict[str, Any]:
+    """Pure update-builder. Returns the `$set` dict; never mutates `b`.
+    Always appends a status-history row (even for `add_note`)."""
     now = _now_utc_iso()
     upd: Dict[str, Any] = {"updated_at": now}
     if action == "add_note":
         if note is None:
             return upd
         upd["internal_clinic_note"] = note
+        upd["status_history"] = _append_status_history(
+            b, action=action, new_status=b.get("status") or "",
+            actor_type=actor_type, actor_id=actor_id, note=note,
+        )
         return upd
     new_status = _ACTION_TRANSITIONS.get(action)
     if not new_status:
@@ -430,6 +581,10 @@ def _apply_action(b: Dict[str, Any], action: str, *, actor_id: Optional[str], no
             upd["confirmed_by_clinic_user_id"] = actor_id
     if note is not None:
         upd["internal_clinic_note"] = note
+    upd["status_history"] = _append_status_history(
+        b, action=action, new_status=new_status,
+        actor_type=actor_type, actor_id=actor_id, note=note,
+    )
     return upd
 
 
@@ -453,7 +608,7 @@ async def clinic_booking_action(
                 detail={"code": "terminal_status",
                         "message": "Заявката е във финален статус и не може да бъде променяна."},
             )
-    upd = _apply_action(b, payload.action, actor_id=clinic.get("id"), note=payload.note)
+    upd = _apply_action(b, payload.action, actor_type="clinic", actor_id=clinic.get("id"), note=payload.note)
     await db.get_collection(BOOKING_COL).update_one(
         {"id": booking_id}, {"$set": upd},
     )
@@ -478,8 +633,8 @@ async def clinic_booking_action(
         except Exception as exc:
             logger.warning(f"care_pass unlock failed: {exc}")
 
-    # Patient-side notifications on key transitions.
-    if RESEND_API_KEY and payload.action in {"confirm", "reject", "cancel"}:
+    # Phase H — patient notification on every status transition.
+    if "status" in upd and upd["status"] != b.get("status"):
         try:
             await _send_patient_status_email(new_doc)
         except Exception as exc:
@@ -508,7 +663,7 @@ async def admin_list_bookings(
     clinic_id: Optional[str] = None,
     user: AdminUser = Depends(get_current_user),
 ):
-    await expire_pending_bookings(db)
+    await _expire_and_notify()
     q: Dict[str, Any] = {}
     if status:
         if status not in ORIENTATION_BOOKING_STATUS_VALUES:
@@ -536,10 +691,14 @@ async def admin_booking_action(
     )
     if not b:
         raise HTTPException(status_code=404, detail="Booking not found")
-    upd = _apply_action(b, payload.action, actor_id=None, note=payload.note)
+    upd = _apply_action(b, payload.action, actor_type="admin", actor_id=getattr(user, "id", None), note=payload.note)
     # Admin-only manual slot release (e.g. stuck pending).
     if payload.release_slot and b.get("status") in ORIENTATION_BOOKING_ACTIVE_LOCK_STATUSES:
         upd["status"] = "cancelled_by_clinic"  # treat as released
+        upd["status_history"] = _append_status_history(
+            b, action="admin_release_slot", new_status="cancelled_by_clinic",
+            actor_type="admin", actor_id=getattr(user, "id", None), note=payload.note,
+        )
     await db.get_collection(BOOKING_COL).update_one(
         {"id": booking_id}, {"$set": upd},
     )
@@ -557,6 +716,12 @@ async def admin_booking_action(
             )
         except Exception as exc:
             logger.warning(f"care_pass unlock (admin) failed: {exc}")
+    # Phase H — patient notification on every status transition.
+    if "status" in upd and upd["status"] != b.get("status"):
+        try:
+            await _send_patient_status_email(new_doc)
+        except Exception as exc:
+            logger.warning(f"patient status email (admin) failed: {exc}")
     try:
         await audit_log(
             f"admin_orientation_booking_{payload.action}",
@@ -612,18 +777,63 @@ async def _send_patient_booking_received_email(lead: Dict[str, Any], clinic: Dic
     await _send_email(to, "Заявка за онлайн ориентация изпратена — Zubite.bg", html, sender=SENDER_EMAIL)
 
 
-async def _send_patient_status_email(booking: Dict[str, Any]) -> None:
+async def _send_patient_status_email(booking: Dict[str, Any]) -> bool:
+    """Send the patient notification for the booking's CURRENT status,
+    if we haven't already. Returns True iff an email was attempted.
+    Idempotent via the `notifications_sent` array on the booking doc."""
     to = booking.get("patient_email")
-    if not to:
-        return
     status = booking.get("status")
-    subject = {
-        "confirmed_by_clinic": "Заявката ти е потвърдена — Zubite.bg",
-        "rejected_by_clinic": "Заявката ти не може да бъде приета — Zubite.bg",
-        "cancelled_by_clinic": "Заявката ти беше отменена — Zubite.bg",
-    }.get(status, "Промяна по заявката — Zubite.bg")
-    html = f"<p>Статусът на твоята заявка е обновен: <strong>{status}</strong>.</p>"
-    await _send_email(to, subject, html, sender=SENDER_EMAIL)
+    if not status or status not in _PATIENT_NOTIFICATIONS:
+        return False
+    already = set(booking.get("notifications_sent") or [])
+    if status in already:
+        return False
+    subject, body_text = _PATIENT_NOTIFICATIONS[status]
+    if not to or not RESEND_API_KEY:
+        # Still mark as "sent" so we don't retry forever in dev/preview
+        # where RESEND_API_KEY may be unset — but only persist that
+        # marker for missing-key path, NOT for missing patient email
+        # (the email may be added later by admin).
+        if not RESEND_API_KEY and to:
+            try:
+                await db.online_orientation_bookings.update_one(
+                    {"id": booking.get("id")},
+                    {"$addToSet": {"notifications_sent": status},
+                     "$set": {"updated_at": _now_utc_iso()}},
+                )
+            except Exception:
+                pass
+        return False
+    html = (
+        f"<p>Здравей,</p>"
+        f"<p>{body_text}</p>"
+        f"<p>—<br/>Екипът на Zubite.bg</p>"
+    )
+    ok = False
+    try:
+        await _send_email(to, subject, html, sender=SENDER_EMAIL)
+        ok = True
+    except Exception as exc:
+        logger.warning(f"patient status email failed for {status}: {exc}")
+    # Mark notification as sent regardless of provider success so we
+    # don't spam the patient on retries. The send attempt is audited via
+    # `_log_notification_attempt` below.
+    try:
+        await db.online_orientation_bookings.update_one(
+            {"id": booking.get("id")},
+            {"$addToSet": {"notifications_sent": status},
+             "$set": {"updated_at": _now_utc_iso()}},
+        )
+        await audit_log(
+            "booking_status_notification_sent" if ok else "booking_status_notification_failed",
+            actor_type="system",
+            target_type="online_orientation_booking", target_id=booking.get("id"),
+            after_state={"status": status, "to_present": bool(to)},
+            severity="info",
+        )
+    except Exception as exc:
+        logger.warning(f"notification audit failed: {exc}")
+    return ok
 
 
 async def _send_admin_booking_email(clinic: Dict[str, Any], booking: Dict[str, Any]) -> None:

@@ -14,6 +14,16 @@ import { AdminHeader } from '@/components/admin/AdminHeader'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
+interface StatusHistoryRow {
+  previous_status?: string | null
+  new_status: string
+  action: string
+  actor_type: string
+  actor_id?: string | null
+  note?: string | null
+  created_at: string
+}
+
 interface Booking {
   id: string
   clinic_id: string
@@ -32,6 +42,8 @@ interface Booking {
   expires_at: string | null
   created_at: string
   clinic_confirmed_at: string | null
+  status_history?: StatusHistoryRow[]
+  notifications_sent?: string[]
 }
 
 const STATUS_LABELS_BG: Record<string, string> = {
@@ -202,6 +214,31 @@ export default function AdminOrientationBookingsPage() {
                     data-testid={`admin-orient-note-${b.id}`}
                   >Бележка</button>
                 </div>
+
+                {/* Phase H — status history + notifications */}
+                {Array.isArray(b.status_history) && b.status_history.length > 0 && (
+                  <details className="mt-3 text-[11px] text-slate-600" data-testid={`admin-orient-history-${b.id}`}>
+                    <summary className="cursor-pointer hover:text-slate-900">
+                      История на статуса ({b.status_history.length})
+                    </summary>
+                    <ul className="mt-2 ml-3 space-y-1 list-disc">
+                      {b.status_history.map((h, i) => (
+                        <li key={i}>
+                          <span className="font-mono">{new Date(h.created_at).toLocaleString('bg-BG')}</span>{' · '}
+                          {h.previous_status ? `${STATUS_LABELS_BG[h.previous_status] || h.previous_status} → ` : ''}
+                          <strong>{STATUS_LABELS_BG[h.new_status] || h.new_status}</strong>{' '}
+                          <span className="text-slate-400">(от {h.actor_type}{h.action ? ` · ${h.action}` : ''})</span>
+                          {h.note && <div className="ml-4 text-slate-500 italic">„{h.note}"</div>}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+                {Array.isArray(b.notifications_sent) && b.notifications_sent.length > 0 && (
+                  <p className="mt-2 text-[11px] text-slate-500" data-testid={`admin-orient-notifs-${b.id}`}>
+                    Изпратени уведомления: {b.notifications_sent.length}
+                  </p>
+                )}
               </li>
             ))}
           </ul>

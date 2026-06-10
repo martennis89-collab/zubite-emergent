@@ -295,6 +295,14 @@ function BookingCard({
             <ActionBtn label="Премина в клиниката" testid={`act-converted-${booking.id}`} action="mark_converted_to_in_clinic" run={run} working={working} accent="teal" />
             <ActionBtn label="Не е подходяща" testid={`act-not-suitable-${booking.id}`} action="mark_not_suitable" run={run} working={working} accent="slate" />
             <ActionBtn label="Отмени" testid={`act-cancel-${booking.id}`} action="cancel" run={run} working={working} accent="rose" />
+            <p
+              className="basis-full text-[11px] text-slate-500 mt-1"
+              data-testid={`status-hint-${booking.id}`}
+            >
+              Завърши, „не се яви", „премина в клиниката" и „не е подходяща" са
+              само статусни маркировки — изпращат уведомление до пациента, но
+              НЕ блокират бъдещи заявки.
+            </p>
           </>
         )}
       </div>

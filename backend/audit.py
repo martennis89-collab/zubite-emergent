@@ -134,6 +134,9 @@ ACTION_KEYS: frozenset[str] = frozenset({
     "care_pass_unlock_skipped_already_unlocked",
     "care_pass_unlock_failed_missing_contact_details",
     "care_pass_unlock_failed_missing_lead",
+    # Phase H — patient notifications
+    "booking_status_notification_sent",
+    "booking_status_notification_failed",
 })
 
 
