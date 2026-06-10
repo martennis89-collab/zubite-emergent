@@ -9,6 +9,7 @@ import { trackPageView } from '@/components/MetaPixel'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
 import { SaveCarePassModal } from '@/components/patient/SaveCarePassModal'
 import { FreeOnlineOrientationSection } from '@/components/patient/FreeOnlineOrientationSection'
+import { CarePassLiveStatus } from '@/components/patient/CarePassLiveStatus'
 
 type ResultBand = 'low' | 'moderate' | 'high'
 type Segment = 'adult' | 'teen' | 'child'
@@ -244,6 +245,7 @@ function SuccessContent() {
                 </li>
               ))}
             </ul>
+            {leadId && <CarePassLiveStatus leadId={leadId} />}
           </div>
         </div>
 

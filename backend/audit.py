@@ -103,6 +103,37 @@ ACTION_KEYS: frozenset[str] = frozenset({
     "seed.blocked_production",
     "seed.rejected_weak_password",
     "seed.executed",
+    # Phase D — Online Orientation Settings
+    "admin_online_orientation_enabled",
+    "admin_online_orientation_disabled",
+    "admin_online_orientation_addon_enabled",
+    "admin_online_orientation_addon_disabled",
+    "admin_online_orientation_settings_updated",
+    "admin_online_orientation_availability_created",
+    "admin_online_orientation_availability_updated",
+    "admin_online_orientation_availability_deleted",
+    # Phase E — Online Orientation Bookings
+    "orientation_booking_confirm",
+    "orientation_booking_reject",
+    "orientation_booking_cancel",
+    "orientation_booking_mark_completed",
+    "orientation_booking_mark_no_show",
+    "orientation_booking_mark_converted_to_in_clinic",
+    "orientation_booking_mark_not_suitable",
+    "orientation_booking_add_note",
+    "admin_orientation_booking_confirm",
+    "admin_orientation_booking_reject",
+    "admin_orientation_booking_cancel",
+    "admin_orientation_booking_mark_completed",
+    "admin_orientation_booking_mark_no_show",
+    "admin_orientation_booking_mark_converted_to_in_clinic",
+    "admin_orientation_booking_mark_not_suitable",
+    "admin_orientation_booking_add_note",
+    # Phase F — Care Pass unlock
+    "care_pass_unlocked",
+    "care_pass_unlock_skipped_already_unlocked",
+    "care_pass_unlock_failed_missing_contact_details",
+    "care_pass_unlock_failed_missing_lead",
 })
 
 

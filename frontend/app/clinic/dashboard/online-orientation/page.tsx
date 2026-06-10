@@ -280,6 +280,14 @@ function BookingCard({
             <ActionBtn label="Отмени" testid={`act-cancel-${booking.id}`} action="cancel" run={run} working={working} accent="slate" />
           </>
         )}
+        {variant === 'pending' && (
+          <p
+            className="basis-full text-[11px] text-slate-500 mt-1"
+            data-testid={`care-pass-helper-${booking.id}`}
+          >
+            След потвърждение пациентът ще отключи Zubite Care Pass.
+          </p>
+        )}
         {variant === 'confirmed' && (
           <>
             <ActionBtn label="Завърши" testid={`act-completed-${booking.id}`} action="mark_completed" run={run} working={working} accent="teal" />

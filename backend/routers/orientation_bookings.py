@@ -53,6 +53,7 @@ from orientation_slots import (
     expire_pending_bookings, generate_slots_for_clinic,
     SLOT_HORIZON_DAYS, SOFIA_TZ,
 )
+from care_pass import unlock_care_pass_for_lead
 from emails import _send_email
 from config import RESEND_API_KEY, ADMIN_EMAIL, PRODUCTION_URL, SENDER_EMAIL
 from rate_limit import rate_limit
@@ -458,6 +459,25 @@ async def clinic_booking_action(
     )
     new_doc = {**b, **upd}
 
+    # Phase F — Care Pass unlock trigger.
+    # On the FIRST clinic `confirm` we unlock Care Pass via the
+    # centralised helper. Helper is idempotent: a repeated confirm
+    # (e.g. clinic double-click, admin override re-confirm) returns
+    # `already_unlocked` without sending duplicate emails or moving
+    # the original `care_pass_unlocked_at` timestamp.
+    if payload.action == "confirm" and b.get("lead_id"):
+        try:
+            await unlock_care_pass_for_lead(
+                b["lead_id"],
+                consultation_type="online_orientation",
+                clinic_id=clinic.get("id"),
+                source_booking_id=booking_id,
+                actor_type="clinic", actor_id=clinic.get("id"),
+                request=request,
+            )
+        except Exception as exc:
+            logger.warning(f"care_pass unlock failed: {exc}")
+
     # Patient-side notifications on key transitions.
     if RESEND_API_KEY and payload.action in {"confirm", "reject", "cancel"}:
         try:
@@ -524,6 +544,19 @@ async def admin_booking_action(
         {"id": booking_id}, {"$set": upd},
     )
     new_doc = {**b, **upd}
+    # Phase F — admin override confirm also unlocks Care Pass (idempotent).
+    if payload.action == "confirm" and b.get("lead_id"):
+        try:
+            await unlock_care_pass_for_lead(
+                b["lead_id"],
+                consultation_type="online_orientation",
+                clinic_id=b.get("clinic_id"),
+                source_booking_id=booking_id,
+                actor_type="admin", actor_id=getattr(user, "id", None),
+                request=request,
+            )
+        except Exception as exc:
+            logger.warning(f"care_pass unlock (admin) failed: {exc}")
     try:
         await audit_log(
             f"admin_orientation_booking_{payload.action}",

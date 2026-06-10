@@ -1272,6 +1272,26 @@ async def clinic_perform_action(
     )
 
     refreshed = await db.consultation_requests.find_one({"id": req_id}, {"_id": 0})
+
+    # Phase F — Care Pass unlock on first clinic appointment booking.
+    # `book_consultation` is the canonical "clinic accepted + booked"
+    # action in the existing offline/in-person workflow. The unlock
+    # helper is idempotent: reschedule / repeated book_consultation
+    # will not duplicate emails or reset the original
+    # `care_pass_unlocked_at`.
+    if body.action_type == "book_consultation" and refreshed and refreshed.get("lead_id"):
+        try:
+            from care_pass import unlock_care_pass_for_lead
+            await unlock_care_pass_for_lead(
+                refreshed["lead_id"],
+                consultation_type="offline_in_person",
+                clinic_id=clinic.get("id"),
+                source_request_id=req_id,
+                actor_type="clinic", actor_id=clinic.get("id"),
+            )
+        except Exception as exc:
+            logger.warning(f"care_pass unlock (offline) failed: {exc}")
+
     return {"request": refreshed, "appointment": appointment_doc}
 
 
