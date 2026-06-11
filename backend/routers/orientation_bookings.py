@@ -739,15 +739,70 @@ async def admin_booking_action(
 
 # ─── Email helpers (best-effort) ──────────────────────────
 
-def _booking_summary_html(booking: Dict[str, Any], clinic: Dict[str, Any]) -> str:
+def _format_local_time_bg(iso_utc: Optional[str]) -> str:
+    """Render a UTC ISO timestamp as a patient-friendly Sofia local
+    label, e.g. „Петък, 12 юни 2026, 12:40 (час София)"."""
+    if not iso_utc:
+        return "—"
+    try:
+        from orientation_slots import SOFIA_TZ
+        dt = datetime.fromisoformat(iso_utc.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        local = dt.astimezone(SOFIA_TZ)
+        days = ["Понеделник", "Вторник", "Сряда", "Четвъртък", "Петък", "Събота", "Неделя"]
+        months = ["", "януари", "февруари", "март", "април", "май", "юни",
+                  "юли", "август", "септември", "октомври", "ноември", "декември"]
+        return (f"{days[local.weekday()]}, {local.day} {months[local.month]} {local.year}, "
+                f"{local.hour:02d}:{local.minute:02d} (часово време София)")
+    except Exception:
+        return iso_utc
+
+
+def _patient_safe_booking_summary(booking: Dict[str, Any], clinic: Dict[str, Any]) -> str:
+    """Patient-facing summary — Sofia local time + safety disclaimer.
+    NEVER includes phone / email / quiz_summary / internal note."""
     return f"""
     <ul>
       <li><strong>Клиника:</strong> {clinic.get('clinic_name') or clinic.get('name') or '—'}</li>
       <li><strong>Тема:</strong> {ORIENTATION_TOPIC_LABELS_BG.get(booking.get('topic') or '', booking.get('topic'))}</li>
-      <li><strong>Час (UTC):</strong> {booking.get('scheduled_at')}</li>
+      <li><strong>Час:</strong> {_format_local_time_bg(booking.get('scheduled_at'))}</li>
+      <li><strong>Продължителност:</strong> {booking.get('duration_minutes') or 20} мин</li>
+    </ul>
+    <p style="color:#94a3b8;font-size:12px">
+      Това е първи онлайн разговор за насочване — не замества физически
+      преглед, диагноза или лечебен план.
+    </p>
+    """
+
+
+def _operational_booking_summary(booking: Dict[str, Any], clinic: Dict[str, Any]) -> str:
+    """Internal (clinic + admin) summary — includes patient PII and a
+    one-line quiz-summary so the receiving party can act."""
+    qs = booking.get("quiz_summary") or {}
+    quiz_line = (
+        f"band={qs.get('band','—')} · segment={qs.get('segment','—')} · "
+        f"score={qs.get('score_total','—')}"
+    )
+    return f"""
+    <ul>
+      <li><strong>Клиника:</strong> {clinic.get('clinic_name') or clinic.get('name') or '—'}</li>
+      <li><strong>Пациент:</strong> {booking.get('patient_name') or '—'}</li>
+      <li><strong>Телефон:</strong> {booking.get('patient_phone') or '—'}</li>
+      <li><strong>Email:</strong> {booking.get('patient_email') or '—'}</li>
+      <li><strong>Тема:</strong> {ORIENTATION_TOPIC_LABELS_BG.get(booking.get('topic') or '', booking.get('topic'))}</li>
+      <li><strong>Час (София):</strong> {_format_local_time_bg(booking.get('scheduled_at'))}</li>
+      <li><strong>Продължителност:</strong> {booking.get('duration_minutes') or 20} мин</li>
       <li><strong>Статус:</strong> {booking.get('status')}</li>
+      <li><strong>Куиз:</strong> {quiz_line}</li>
     </ul>
     """
+
+
+# Legacy alias kept for any out-of-tree callers; both paths use the
+# patient-safe summary now.
+def _booking_summary_html(booking: Dict[str, Any], clinic: Dict[str, Any]) -> str:
+    return _patient_safe_booking_summary(booking, clinic)
 
 
 async def _send_clinic_new_booking_email(clinic: Dict[str, Any], booking: Dict[str, Any]) -> None:
@@ -758,7 +813,7 @@ async def _send_clinic_new_booking_email(clinic: Dict[str, Any], booking: Dict[s
     html = f"""
     <p>Здравейте,</p>
     <p>Получихте нова заявка за безплатна онлайн ориентация чрез Zubite.bg.</p>
-    {_booking_summary_html(booking, clinic)}
+    {_operational_booking_summary(booking, clinic)}
     <p><a href="{base}/clinic/dashboard/online-orientation">Отвори таблото</a></p>
     """
     await _send_email(to, "Нова заявка за онлайн ориентация — Zubite.bg", html, sender=SENDER_EMAIL)
@@ -770,8 +825,8 @@ async def _send_patient_booking_received_email(lead: Dict[str, Any], clinic: Dic
         return
     html = f"""
     <p>Здравей,</p>
-    <p>Получихме твоята заявка за безплатна онлайн ориентация. Клиниката ще я прегледа и потвърди.</p>
-    {_booking_summary_html(booking, clinic)}
+    <p>Получихме твоята заявка за безплатна онлайн ориентация. Клиниката ще я прегледа и потвърди в рамките на 24 часа.</p>
+    {_patient_safe_booking_summary(booking, clinic)}
     <p>—<br/>Екипът на Zubite.bg</p>
     """
     await _send_email(to, "Заявка за онлайн ориентация изпратена — Zubite.bg", html, sender=SENDER_EMAIL)
@@ -839,5 +894,5 @@ async def _send_patient_status_email(booking: Dict[str, Any]) -> bool:
 async def _send_admin_booking_email(clinic: Dict[str, Any], booking: Dict[str, Any]) -> None:
     if not ADMIN_EMAIL:
         return
-    html = f"<p>Нова заявка за онлайн ориентация.</p>{_booking_summary_html(booking, clinic)}"
+    html = f"<p>Нова заявка за онлайн ориентация.</p>{_operational_booking_summary(booking, clinic)}"
     await _send_email(ADMIN_EMAIL, "Нова заявка за онлайн ориентация (admin)", html, sender=SENDER_EMAIL)
