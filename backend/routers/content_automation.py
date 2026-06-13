@@ -109,8 +109,13 @@ async def start_next(
         "jobId": job_id,
     }
     try:
+        # Optional `x-make-apikey` header (read from env; never logged).
+        headers = {}
+        api_key = os.environ.get("MAKE_CONTENT_AUTOMATION_API_KEY") or ""
+        if api_key:
+            headers["x-make-apikey"] = api_key
         async with httpx.AsyncClient(timeout=15) as client:
-            r = await client.post(webhook, json=payload)
+            r = await client.post(webhook, json=payload, headers=headers or None)
         ok = 200 <= r.status_code < 300
     except Exception as exc:
         await db.get_collection(JOBS_COL).update_one(
