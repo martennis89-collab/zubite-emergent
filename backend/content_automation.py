@@ -1,0 +1,345 @@
+"""ZUBITE_ARTICLE_PACKAGE parser (Phase 1 — content automation).
+
+Pure helper: takes raw Markdown and returns a structured dict + a
+validation report. NO Mongo / FastAPI imports here.
+
+Required sections (fatal if missing): ARTICLE_META, ARTICLE_BODY_START,
+ARTICLE_BODY_END, FAQ, CTA_BLOCK; plus Title + Slug inside ARTICLE_META.
+
+Non-fatal warnings: GEO_SUMMARY, ENTITY_POSITIONING_BLOCK,
+EXTRACTABLE_ANSWER_BLOCKS, SOURCE_BACKED_CLAIMS, DECISION_FRAMEWORK,
+IMAGE_ASSETS, IMAGE_PROMPT_PACK, EXTERNAL_SOURCES, INTERNAL_LINKS.
+
+Escaped-marker detection rejects pre-escaped Markdown like
+`\\# ZUBITE\\_ARTICLE\\_PACKAGE` or `\\<\\!-- ARTICLE\\_META \\-->`.
+"""
+
+from __future__ import annotations
+import re
+import json
+from typing import Any, Dict, List, Optional, Tuple
+
+REQUIRED_HEADER = "# ZUBITE_ARTICLE_PACKAGE"
+
+FATAL_SECTIONS = ("ARTICLE_META", "ARTICLE_BODY_START", "ARTICLE_BODY_END", "FAQ", "CTA_BLOCK")
+WARN_SECTIONS = (
+    "GEO_SUMMARY", "ENTITY_POSITIONING_BLOCK", "EXTRACTABLE_ANSWER_BLOCKS",
+    "SOURCE_BACKED_CLAIMS", "DECISION_FRAMEWORK", "IMAGE_ASSETS",
+    "IMAGE_PROMPT_PACK", "EXTERNAL_SOURCES", "INTERNAL_LINKS",
+    "IMAGE_ALT_TEXTS", "FAQ_SCHEMA_JSON_LD", "ARTICLE_SCHEMA_JSON_LD",
+)
+ALL_SECTIONS = FATAL_SECTIONS + WARN_SECTIONS
+
+# Detect escaped Markdown markers — Make.com / chat clients sometimes
+# pre-escape `_` `#` `<` `>` etc. We reject these aggressively because
+# silent acceptance would store unparseable bodies.
+ESCAPED_PATTERNS = (
+    r"\\#\s*ZUBITE",
+    r"\\<\\!--",
+    r"ZUBITE\\_ARTICLE\\_PACKAGE",
+    r"ARTICLE\\_META",
+    r"ARTICLE\\_BODY\\_START",
+)
+
+
+class PackageParseError(ValueError):
+    """Raised for any fatal parse failure. The `code` attribute is a
+    machine-readable identifier for the FastAPI layer to map to a
+    consistent HTTP error code."""
+    def __init__(self, message: str, code: str):
+        super().__init__(message)
+        self.code = code
+
+
+# Placeholder pattern in body — supports any name/index, e.g.
+# {{image:support_1}}, {{image:diagram_3}}, {{image:comparison_table}}.
+PLACEHOLDER_RE = re.compile(r"\{\{image:([a-zA-Z0-9_\-]+)\}\}")
+
+
+def _check_escaped_markers(md: str) -> None:
+    for pat in ESCAPED_PATTERNS:
+        if re.search(pat, md):
+            raise PackageParseError(
+                "Escaped Markdown markers detected. Please provide raw Markdown package.",
+                code="escaped_markers",
+            )
+
+
+def _extract_section(md: str, name: str) -> Optional[str]:
+    """Return the text after `<!-- {name} -->` and before the next
+    `<!-- SECTION -->` marker. None if the marker isn't present."""
+    open_marker = f"<!-- {name} -->"
+    if open_marker not in md:
+        return None
+    start = md.index(open_marker) + len(open_marker)
+    # Find next any-section marker; ARTICLE_BODY_END is a sibling, not a wrapper
+    next_marker_re = re.compile(r"<!--\s*[A-Z_]+\s*-->")
+    m = next_marker_re.search(md, pos=start)
+    end = m.start() if m else len(md)
+    return md[start:end].strip()
+
+
+def _extract_body(md: str) -> Optional[str]:
+    s = md.find("<!-- ARTICLE_BODY_START -->")
+    e = md.find("<!-- ARTICLE_BODY_END -->")
+    if s < 0 or e < 0 or e <= s:
+        return None
+    return md[s + len("<!-- ARTICLE_BODY_START -->"):e].strip()
+
+
+def _kv_block(text: str) -> Dict[str, str]:
+    """Parse a `Key: value` block into a dict (case-preserving keys).
+    Values may span multiple lines until the next `Key:` line."""
+    out: Dict[str, List[str]] = {}
+    cur: Optional[str] = None
+    for raw in text.splitlines():
+        line = raw.rstrip()
+        m = re.match(r"^([A-Za-z][A-Za-z _\-]+?)\s*:\s*(.*)$", line)
+        if m and not line.startswith(" ") and not line.startswith("\t"):
+            cur = m.group(1).strip()
+            out.setdefault(cur, []).append(m.group(2).strip())
+        elif cur and line.strip():
+            out[cur].append(line.strip())
+    return {k: "\n".join(v).strip() for k, v in out.items()}
+
+
+def _list_of_dicts(text: str) -> List[Dict[str, str]]:
+    """Parse a section that contains bullet-style `* Key: value` records
+    separated by blank lines. Each `* Key:` starts a new record."""
+    items: List[Dict[str, str]] = []
+    cur: Optional[Dict[str, str]] = None
+    last_key: Optional[str] = None
+    for raw in text.splitlines():
+        line = raw.rstrip()
+        # New item starts with "* Key: value" (markdown bullet)
+        m = re.match(r"^\*\s+([A-Za-z][A-Za-z _\-]+?)\s*:\s*(.*)$", line)
+        if m:
+            # If this looks like the *first* key of a record (Type/Title/Question/Claim/Label),
+            # start a new item.
+            key = m.group(1).strip()
+            first_keys = {"Type", "Question", "Claim", "Label", "Title", "Image number"}
+            if cur is None or key in first_keys:
+                cur = {}
+                items.append(cur)
+            cur[key] = m.group(2).strip()
+            last_key = key
+            continue
+        # Continuation line "  Sub: value" (indented OR not)
+        m2 = re.match(r"^\s*([A-Za-z][A-Za-z _\-]+?)\s*:\s*(.*)$", line)
+        if m2 and cur is not None:
+            cur[m2.group(1).strip()] = m2.group(2).strip()
+            last_key = m2.group(1).strip()
+            continue
+        # Free continuation of last key
+        if cur is not None and last_key and line.strip():
+            cur[last_key] = (cur.get(last_key, "") + " " + line.strip()).strip()
+    return [it for it in items if it]
+
+
+def _parse_jsonld(text: Optional[str]) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+    if not text:
+        return None, None
+    # Strip ```json fences if present.
+    cleaned = re.sub(r"^```(?:json)?\s*", "", text.strip())
+    cleaned = re.sub(r"\s*```$", "", cleaned)
+    try:
+        return json.loads(cleaned), None
+    except Exception as exc:
+        return None, str(exc)
+
+
+def parse_zubite_article_package(markdown: str) -> Tuple[Dict[str, Any], List[str], List[str]]:
+    """Returns `(parsed, warnings, errors)`. Raises `PackageParseError`
+    on fatal issues so the caller can map to a 4xx with a stable code."""
+    if not isinstance(markdown, str) or not markdown.strip():
+        raise PackageParseError("Missing markdown.", code="missing_markdown")
+    _check_escaped_markers(markdown)
+    if REQUIRED_HEADER not in markdown:
+        raise PackageParseError(
+            "Missing required header: # ZUBITE_ARTICLE_PACKAGE.",
+            code="missing_header",
+        )
+
+    warnings: List[str] = []
+    errors: List[str] = []
+
+    # Fatal sections presence
+    for sec in FATAL_SECTIONS:
+        if f"<!-- {sec} -->" not in markdown:
+            raise PackageParseError(
+                f"Missing required section: {sec}.",
+                code=f"missing_section:{sec}",
+            )
+    for sec in WARN_SECTIONS:
+        if f"<!-- {sec} -->" not in markdown:
+            warnings.append(f"Missing optional section: {sec}.")
+
+    # ── ARTICLE_META ──
+    meta_text = _extract_section(markdown, "ARTICLE_META") or ""
+    meta = _kv_block(meta_text)
+    title = meta.get("Title", "").strip()
+    slug = meta.get("Slug", "").strip()
+    if not title:
+        raise PackageParseError("Missing required field: Title.", code="missing_title")
+    if not slug:
+        raise PackageParseError("Missing required field: Slug.", code="missing_slug")
+
+    # ── BODY ──
+    body = _extract_body(markdown)
+    if body is None or not body.strip():
+        raise PackageParseError(
+            "Missing required section: ARTICLE_BODY_START / ARTICLE_BODY_END.",
+            code="missing_body",
+        )
+    placeholders = sorted(set(PLACEHOLDER_RE.findall(body)))
+
+    # ── FAQ ──
+    faq_text = _extract_section(markdown, "FAQ") or ""
+    faq_items: List[Dict[str, str]] = []
+    cur_q: Optional[str] = None
+    for raw in faq_text.splitlines():
+        line = raw.strip()
+        if line.startswith("Q:"):
+            cur_q = line[2:].strip()
+        elif line.startswith("A:") and cur_q:
+            faq_items.append({"question": cur_q, "answer": line[2:].strip()})
+            cur_q = None
+
+    # ── CTA_BLOCK ──
+    cta_text = _extract_section(markdown, "CTA_BLOCK") or ""
+    cta_kv = _kv_block(cta_text)
+    cta = {
+        "title": cta_kv.get("Title", ""),
+        "text": cta_kv.get("Text", ""),
+        "button": cta_kv.get("Button", ""),
+        "url": cta_kv.get("URL", ""),
+        "type": cta_kv.get("Type", ""),
+    } if cta_kv else None
+
+    # ── Optional structured blocks ──
+    internal_links = [
+        {"label": x.get("Label", ""), "url": x.get("URL", ""), "context": x.get("Context", "")}
+        for x in _list_of_dicts(_extract_section(markdown, "INTERNAL_LINKS") or "")
+    ]
+    external_sources = [
+        {"title": x.get("Title", ""), "url": x.get("URL", ""), "context": x.get("Context", "")}
+        for x in _list_of_dicts(_extract_section(markdown, "EXTERNAL_SOURCES") or "")
+    ]
+    image_assets = _list_of_dicts(_extract_section(markdown, "IMAGE_ASSETS") or "")
+    image_alt_texts = _kv_block(_extract_section(markdown, "IMAGE_ALT_TEXTS") or "")
+    image_prompts = _list_of_dicts(_extract_section(markdown, "IMAGE_PROMPT_PACK") or "")
+    extractable = _list_of_dicts(_extract_section(markdown, "EXTRACTABLE_ANSWER_BLOCKS") or "")
+    claims = _list_of_dicts(_extract_section(markdown, "SOURCE_BACKED_CLAIMS") or "")
+    geo_summary = _extract_section(markdown, "GEO_SUMMARY")
+    entity_block = _extract_section(markdown, "ENTITY_POSITIONING_BLOCK")
+    decision_fw = _extract_section(markdown, "DECISION_FRAMEWORK")
+
+    # ── JSON-LD ──
+    faq_ld, faq_err = _parse_jsonld(_extract_section(markdown, "FAQ_SCHEMA_JSON_LD"))
+    art_ld, art_err = _parse_jsonld(_extract_section(markdown, "ARTICLE_SCHEMA_JSON_LD"))
+    if faq_err:
+        errors.append(f"Invalid JSON-LD in FAQ_SCHEMA_JSON_LD: {faq_err}")
+    if art_err:
+        errors.append(f"Invalid JSON-LD in ARTICLE_SCHEMA_JSON_LD: {art_err}")
+
+    # ── Image-asset / placeholder consistency warnings ──
+    asset_placeholders = {a.get("Placeholder", "").strip() for a in image_assets if a.get("Placeholder")}
+    body_placeholder_tokens = {f"{{{{image:{p}}}}}" for p in placeholders}
+    for p in body_placeholder_tokens - asset_placeholders:
+        warnings.append(f"Placeholder {p} exists in body but no image asset is defined.")
+    for p in asset_placeholders - body_placeholder_tokens:
+        if p:
+            warnings.append(f"IMAGE_ASSETS defines {p} but body does not contain it.")
+
+    parsed = {
+        "header_detected": True,
+        "meta": meta,
+        "title": title,
+        "slug": slug,
+        "seo_title": meta.get("SEO Title") or None,
+        "meta_description": meta.get("Meta Description") or None,
+        "excerpt": meta.get("Excerpt") or "",
+        "category": (meta.get("Category") or "orthodontics").strip(),
+        "tags": [t.strip() for t in (meta.get("Tags") or "").split(",") if t.strip()],
+        "language": meta.get("Language") or "bg",
+        "reviewed_by": meta.get("Reviewed By") or None,
+        "last_reviewed": meta.get("Last Reviewed") or None,
+        "focus_keyword": meta.get("Focus Keyword") or None,
+        "secondary_keywords": [k.strip() for k in (meta.get("Secondary Keywords") or "").split(",") if k.strip()],
+        "reading_time": meta.get("Reading Time") or None,
+        "body": body,
+        "placeholders_in_body": placeholders,
+        "faq": faq_items,
+        "cta": cta,
+        "internal_links": internal_links,
+        "external_sources": external_sources,
+        "image_assets": image_assets,
+        "image_alt_texts": image_alt_texts,
+        "image_prompts": image_prompts,
+        "extractable_answer_blocks": extractable,
+        "source_backed_claims": claims,
+        "geo_summary": geo_summary,
+        "entity_positioning_block": entity_block,
+        "decision_framework": decision_fw,
+        "faq_schema": faq_ld,
+        "article_schema": art_ld,
+    }
+    return parsed, warnings, errors
+
+
+def build_image_requirements(article_id: str, image_assets: List[Dict[str, str]],
+                             placeholders_in_body: List[str]) -> List[Dict[str, Any]]:
+    """Translate parsed IMAGE_ASSETS into image-requirement records.
+    Also generates implicit support requirements for body placeholders
+    that have no matching IMAGE_ASSETS entry — admin can fill these in
+    manually later."""
+    from datetime import datetime, timezone
+    import uuid as _uuid
+    now = datetime.now(timezone.utc).isoformat()
+    out: List[Dict[str, Any]] = []
+    asset_placeholder_tokens = set()
+    for a in image_assets or []:
+        ph = (a.get("Placeholder") or "").strip()
+        if ph:
+            asset_placeholder_tokens.add(ph)
+        out.append({
+            "id": str(_uuid.uuid4()),
+            "article_id": article_id,
+            "type": (a.get("Type") or "support").strip().lower(),
+            "expected_filename": (a.get("File Name") or "").strip(),
+            "alt": a.get("Alt") or "",
+            "title": a.get("Title") or "",
+            "caption": a.get("Caption") or "",
+            "placement": (a.get("Placement") or "").strip(),
+            "placeholder": ph or None,
+            "uploaded_file_url": None,
+            "uploaded_file_name": None,
+            "upload_status": "missing",
+            "matched_by": None,
+            "created_at": now,
+            "updated_at": now,
+        })
+    # Implicit slots for placeholders present in body without an asset entry
+    for p in placeholders_in_body or []:
+        token = f"{{{{image:{p}}}}}"
+        if token in asset_placeholder_tokens:
+            continue
+        out.append({
+            "id": str(_uuid.uuid4()),
+            "article_id": article_id,
+            "type": "support",
+            "expected_filename": "",
+            "alt": "",
+            "title": "",
+            "caption": "",
+            "placement": "inline",
+            "placeholder": token,
+            "uploaded_file_url": None,
+            "uploaded_file_name": None,
+            "upload_status": "missing",
+            "matched_by": None,
+            "implicit": True,
+            "created_at": now,
+            "updated_at": now,
+        })
+    return out
