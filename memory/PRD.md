@@ -101,6 +101,12 @@ Build and optimize **Zubite.bg**, an educational orthodontic platform for the Bu
 ### P2 — Localization
 - English version under `/en/...`.
 
+### Content Automation Roadmap
+- ✅ Phase 1 — Backend foundation (parser + Make.com webhooks + jobs collection) — Feb 2026
+- ✅ Phase 2 — Admin Content Automation page (`/admin/content-automation`) — Feb 2026
+- ⏳ Phase 3 (P1) — Image requirements panel + manual image upload with filename matching
+- ⏳ Phase 4 (P2) — Render-time `{{image:x}}` placeholder replacement, publish protection warnings, ZIP importer fallback
+
 ### P3 — Admin CMS
 - Inline editing for homepage text, treatment details.
 

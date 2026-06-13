@@ -11,6 +11,7 @@ import {
   TrendingUp,
   Newspaper,
   Star,
+  Sparkles,
   LogOut,
 } from 'lucide-react'
 
@@ -94,6 +95,13 @@ export const ADMIN_NAV: AdminNavItem[] = [
     icon: Newspaper,
     testId: 'admin-nav-blog',
     matchPrefix: '/admin/blog',
+  },
+  {
+    href: '/admin/content-automation',
+    label: 'Автоматизация',
+    icon: Sparkles,
+    testId: 'admin-nav-content-automation',
+    matchPrefix: '/admin/content-automation',
   },
 ]
 
