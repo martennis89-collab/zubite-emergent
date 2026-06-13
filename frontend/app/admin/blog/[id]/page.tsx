@@ -334,14 +334,15 @@ export default function EditBlogPostPage() {
           </div>
         )}
 
+        {/* Image Requirements (only rendered when article has them, or
+            warning shown when an automation article has none). */}
+        <div className="mb-6">
+          <ImageRequirementsPanel articleId={postId} />
+        </div>
+
         {/* SEO Indexing Status */}
         <div className="mb-6">
           <SeoStatusPanel postId={postId} autoFetch={formData.is_published} />
-        </div>
-
-        {/* Image Requirements (only rendered when article has them) */}
-        <div className="mb-6">
-          <ImageRequirementsPanel articleId={postId} />
         </div>
 
         <form onSubmit={(e) => handleSubmit(e)} className="space-y-6">

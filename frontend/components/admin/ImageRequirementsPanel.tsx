@@ -56,6 +56,7 @@ interface PanelData {
   article_title: string | null
   article_slug: string | null
   article_is_published: boolean
+  automation_source: string | null
   featured_image: string | null
   requirements: ImageRequirement[]
   warnings: string[]
@@ -291,7 +292,40 @@ export function ImageRequirementsPanel({ articleId }: Props) {
   }
 
   if (!data || data.requirements.length === 0) {
-    // Hide panel when there are no requirements (regular manual articles)
+    // For automation-imported articles (Make), make this explicit instead of
+    // hiding the panel — admin needs to know why nothing is showing.
+    if (data?.automation_source === 'make') {
+      return (
+        <div
+          data-testid="image-requirements-empty-automation"
+          className="bg-white rounded-xl border border-slate-200 p-6"
+        >
+          <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2 mb-2">
+            <ImageIcon className="w-5 h-5 text-teal-600" />
+            Изисквания за изображения
+          </h2>
+          <div className="px-3 py-2 rounded-md text-sm bg-amber-50 ring-1 ring-amber-200 text-amber-900 flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <span>
+              За тази статия не са намерени image requirements. Markdown-ът от
+              Make най-вероятно не съдържа секция{' '}
+              <code className="bg-white px-1 py-0.5 rounded ring-1 ring-amber-200">
+                &lt;!-- IMAGE_ASSETS --&gt;
+              </code>{' '}
+              или{' '}
+              <code className="bg-white px-1 py-0.5 rounded ring-1 ring-amber-200">
+                {'{{image:...}}'}
+              </code>{' '}
+              placeholder-и в тялото. За да качиш изображения автоматично през
+              този панел, попитай Make scenario-то да включва IMAGE_ASSETS
+              секция при следващата генерация. Засега използвай полето{' '}
+              <strong>Featured image</strong> по-горе за главното изображение.
+            </span>
+          </div>
+        </div>
+      )
+    }
+    // Manual blog posts without requirements → hide silently (no noise).
     return null
   }
 

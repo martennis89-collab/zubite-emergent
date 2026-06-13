@@ -475,6 +475,7 @@ async def list_image_requirements(
         "article_title": article.get("title"),
         "article_slug": article.get("slug"),
         "article_is_published": bool(article.get("is_published")),
+        "automation_source": article.get("automation_source"),
         "featured_image": article.get("featured_image"),
         "requirements": reqs,
         "warnings": _build_warnings(article, reqs),
