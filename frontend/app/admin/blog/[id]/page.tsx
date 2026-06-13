@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { SeoStatusPanel } from '@/components/SeoStatusPanel'
 import { AdminHeader } from '@/components/admin/AdminHeader'
+import { ImageRequirementsPanel } from '@/components/admin/ImageRequirementsPanel'
 
 export default function EditBlogPostPage() {
   const [isLoading, setIsLoading] = useState(true)
@@ -322,6 +323,11 @@ export default function EditBlogPostPage() {
         {/* SEO Indexing Status */}
         <div className="mb-6">
           <SeoStatusPanel postId={postId} autoFetch={formData.is_published} />
+        </div>
+
+        {/* Image Requirements (only rendered when article has them) */}
+        <div className="mb-6">
+          <ImageRequirementsPanel articleId={postId} />
         </div>
 
         <form onSubmit={(e) => handleSubmit(e)} className="space-y-6">

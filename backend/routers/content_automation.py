@@ -11,16 +11,21 @@ keeps working unchanged.
 """
 
 from __future__ import annotations
-import os, uuid, logging
+import os
+import uuid
+import logging
+import re
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
-from fastapi import APIRouter, Depends, HTTPException, Request
+from typing import Any, Dict, List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from pydantic import BaseModel, Field, ConfigDict
 import httpx
 
 from database import db
 from auth import get_current_user
 from schemas import AdminUser
+from storage import put_object, ALLOWED_IMAGE_TYPES
+from config import APP_NAME
 from content_automation import (
     parse_zubite_article_package, build_image_requirements, PackageParseError,
 )
@@ -279,3 +284,333 @@ async def import_from_make(body: ImportFromMakeBody, request: Request):
 async def list_jobs(user: AdminUser = Depends(get_current_user)):
     rows = await db.get_collection(JOBS_COL).find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
     return {"jobs": rows}
+
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Phase 3 — Image Requirements
+# ═══════════════════════════════════════════════════════════════════════
+
+MAX_IMAGE_BYTES = 5 * 1024 * 1024  # 5 MB
+
+
+def _normalize_filename(name: str) -> str:
+    """Lowercase, trim, collapse whitespace → hyphens. Preserves extension."""
+    if not name:
+        return ""
+    name = name.strip().lower()
+    # split extension off so we don't mangle the dot
+    m = re.match(r"^(.*?)(\.[a-z0-9]+)?$", name)
+    base, ext = (m.group(1) or "", m.group(2) or "") if m else (name, "")
+    base = re.sub(r"\s+", "-", base.strip())
+    base = re.sub(r"-+", "-", base).strip("-")
+    return f"{base}{ext}"
+
+
+def _build_warnings(article: Dict[str, Any], requirements: List[Dict[str, Any]]) -> List[str]:
+    """UI-only warnings (no public-side enforcement in Phase 3)."""
+    warnings: List[str] = []
+    body = (article or {}).get("content") or ""
+    body_placeholders = set(re.findall(r"\{\{image:([a-zA-Z0-9_\-]+)\}\}", body))
+    req_placeholder_names = set()
+    has_featured_req = False
+    for r in requirements:
+        ph = (r.get("placeholder") or "").strip()
+        # Stored as "{{image:x}}" for implicit, or "x" for explicit. Normalize.
+        m = re.match(r"^\{\{image:([a-zA-Z0-9_\-]+)\}\}$", ph) if ph else None
+        if m:
+            req_placeholder_names.add(m.group(1))
+        elif ph:
+            req_placeholder_names.add(ph)
+        if (r.get("type") or "").lower() == "featured":
+            has_featured_req = True
+            if r.get("upload_status") != "attached":
+                warnings.append("Featured image is missing.")
+        elif r.get("upload_status") != "attached":
+            label = ph or r.get("expected_filename") or r.get("id")
+            warnings.append(f"Support image is missing: {label}.")
+    # Placeholder ↔ requirement consistency
+    for p in body_placeholders - req_placeholder_names:
+        warnings.append(
+            f"Body contains placeholder {{{{image:{p}}}}} but no image requirement exists."
+        )
+    for p in req_placeholder_names - body_placeholders:
+        # Skip featured (no placeholder expected in body)
+        warnings.append(
+            f"Image requirement {{{{image:{p}}}}} exists but body does not contain it."
+        )
+    if not has_featured_req and any((r.get("type") or "").lower() == "featured" for r in requirements):
+        pass  # noop
+    # Duplicate file-url conflict
+    seen_urls: Dict[str, int] = {}
+    for r in requirements:
+        url = r.get("uploaded_file_url")
+        if not url:
+            continue
+        seen_urls[url] = seen_urls.get(url, 0) + 1
+    for url, cnt in seen_urls.items():
+        if cnt > 1:
+            warnings.append(f"Duplicate assignment: {url} is attached to {cnt} requirements.")
+    return warnings
+
+
+async def _fetch_article_and_reqs(article_id: str):
+    article = await db.blog_posts.find_one({"id": article_id}, {"_id": 0})
+    if not article:
+        raise HTTPException(status_code=404, detail={"code": "article_not_found",
+                                                     "message": "Article not found."})
+    reqs = await db.get_collection(IMG_REQ_COL).find(
+        {"article_id": article_id}, {"_id": 0}
+    ).sort("created_at", 1).to_list(200)
+    return article, reqs
+
+
+async def _update_job_if_all_attached(article_id: str, all_attached: bool) -> None:
+    """Bump the job status to `ready_for_review` once every requirement is
+    attached. Reverts to `needs_images` if a later edit leaves some unset."""
+    new_status = "ready_for_review" if all_attached else "needs_images"
+    await db.get_collection(JOBS_COL).update_many(
+        {"created_article_id": article_id,
+         "status": {"$in": ["needs_images", "ready_for_review"]}},
+        {"$set": {"status": new_status, "updated_at": _now()}},
+    )
+
+
+async def _attach_uploaded_file_to_req(
+    article_id: str, req_id: str, file_url: str, file_name: str, matched_by: str,
+) -> Dict[str, Any]:
+    """Attach a stored file to a requirement and mirror featured image
+    onto the blog_posts document. Returns the updated requirement."""
+    now = _now()
+    req = await db.get_collection(IMG_REQ_COL).find_one_and_update(
+        {"id": req_id, "article_id": article_id},
+        {"$set": {
+            "uploaded_file_url": file_url,
+            "uploaded_file_name": file_name,
+            "upload_status": "attached",
+            "matched_by": matched_by,
+            "updated_at": now,
+        }},
+        return_document=True, projection={"_id": 0},
+    )
+    if not req:
+        raise HTTPException(status_code=404, detail={"code": "requirement_not_found",
+                                                     "message": "Image requirement not found."})
+    # Mirror featured image onto the article (do NOT touch body)
+    if (req.get("type") or "").lower() == "featured":
+        update = {"featured_image": file_url, "updated_at": now}
+        if req.get("alt"):
+            update["featured_image_alt"] = req["alt"]
+        await db.blog_posts.update_one({"id": article_id}, {"$set": update})
+    return req
+
+
+async def _all_attached(article_id: str) -> bool:
+    remaining = await db.get_collection(IMG_REQ_COL).count_documents(
+        {"article_id": article_id, "upload_status": {"$ne": "attached"}}
+    )
+    return remaining == 0
+
+
+def _check_image(file: UploadFile, data: bytes) -> str:
+    """Validate content-type + size. Returns the file extension."""
+    ct = (file.content_type or "").lower()
+    if ct not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail={
+            "code": "invalid_content_type",
+            "message": f"Unsupported content-type: {ct or 'unknown'}. Allowed: png/jpeg/webp.",
+        })
+    if len(data) > MAX_IMAGE_BYTES:
+        raise HTTPException(status_code=400, detail={
+            "code": "file_too_large",
+            "message": "File too large. Max 5 MB.",
+        })
+    return ALLOWED_IMAGE_TYPES[ct]
+
+
+async def _store_image(file: UploadFile, data: bytes, ext: str, user_id: Optional[str]) -> Dict[str, Any]:
+    """Persist the bytes via the existing storage layer and create an
+    `uploaded_files` row. Returns `{file_id, url, filename}`."""
+    file_id = str(uuid.uuid4())
+    storage_path = f"{APP_NAME}/blog/{file_id}.{ext}"
+    result = put_object(storage_path, data, file.content_type or "image/png")
+    rec = {
+        "id": file_id, "storage_path": result["path"], "original_filename": file.filename,
+        "content_type": file.content_type, "size": result["size"],
+        "uploaded_by": user_id, "is_deleted": False,
+        "created_at": _now(),
+    }
+    await db.uploaded_files.insert_one(rec)
+    return {"file_id": file_id, "url": f"/api/files/{file_id}", "filename": file.filename or f"{file_id}.{ext}"}
+
+
+# ───── 1. List image requirements for an article ─────────────────────
+
+@router.get("/admin/blog/{article_id}/image-requirements")
+async def list_image_requirements(
+    article_id: str, user: AdminUser = Depends(get_current_user),
+):
+    article, reqs = await _fetch_article_and_reqs(article_id)
+    return {
+        "article_id": article_id,
+        "article_title": article.get("title"),
+        "article_slug": article.get("slug"),
+        "article_is_published": bool(article.get("is_published")),
+        "featured_image": article.get("featured_image"),
+        "requirements": reqs,
+        "warnings": _build_warnings(article, reqs),
+        "all_attached": all((r.get("upload_status") == "attached") for r in reqs) if reqs else True,
+    }
+
+
+# ───── 2. Upload an image to a specific requirement slot ─────────────
+
+@router.post("/admin/blog/{article_id}/image-requirements/{requirement_id}/upload")
+async def upload_image_for_requirement(
+    article_id: str,
+    requirement_id: str,
+    file: UploadFile = File(...),
+    user: AdminUser = Depends(get_current_user),
+):
+    article, _ = await _fetch_article_and_reqs(article_id)
+    req = await db.get_collection(IMG_REQ_COL).find_one(
+        {"id": requirement_id, "article_id": article_id}, {"_id": 0},
+    )
+    if not req:
+        raise HTTPException(status_code=404, detail={"code": "requirement_not_found",
+                                                     "message": "Image requirement not found."})
+    data = await file.read()
+    ext = _check_image(file, data)
+    stored = await _store_image(file, data, ext, getattr(user, "id", None))
+    updated = await _attach_uploaded_file_to_req(
+        article_id, requirement_id, stored["url"], stored["filename"], matched_by="manual",
+    )
+    await _update_job_if_all_attached(article_id, await _all_attached(article_id))
+    return {"success": True, "requirement": updated, "file": stored}
+
+
+# ───── 3. Bulk upload with auto-matching ─────────────────────────────
+
+@router.post("/admin/blog/{article_id}/image-requirements/bulk-upload")
+async def bulk_upload_images(
+    article_id: str,
+    files: List[UploadFile] = File(...),
+    user: AdminUser = Depends(get_current_user),
+):
+    article, reqs = await _fetch_article_and_reqs(article_id)
+
+    # Pre-build matching tables (only across requirements that are still
+    # missing, so re-uploads don't silently overwrite already-attached slots).
+    open_reqs = [r for r in reqs if r.get("upload_status") != "attached"]
+    by_exact: Dict[str, List[Dict[str, Any]]] = {}
+    by_norm: Dict[str, List[Dict[str, Any]]] = {}
+    for r in open_reqs:
+        ef = (r.get("expected_filename") or "").strip()
+        if ef:
+            by_exact.setdefault(ef, []).append(r)
+            by_norm.setdefault(_normalize_filename(ef), []).append(r)
+
+    attached: List[Dict[str, Any]] = []
+    unmatched: List[Dict[str, Any]] = []
+    conflicts: List[Dict[str, Any]] = []
+    user_id = getattr(user, "id", None)
+
+    for f in files:
+        data = await f.read()
+        try:
+            ext = _check_image(f, data)
+        except HTTPException as exc:
+            unmatched.append({
+                "filename": f.filename,
+                "reason": (exc.detail or {}).get("code", "invalid_file") if isinstance(exc.detail, dict) else "invalid_file",
+                "message": (exc.detail or {}).get("message") if isinstance(exc.detail, dict) else str(exc.detail),
+            })
+            continue
+
+        fname = f.filename or ""
+        # Exact match first
+        candidates = list(by_exact.get(fname, []))
+        match_kind = "filename"
+        if not candidates:
+            candidates = list(by_norm.get(_normalize_filename(fname), []))
+            match_kind = "normalized_filename"
+
+        if len(candidates) == 0:
+            # Persist the file so admin can still manually assign it.
+            stored = await _store_image(f, data, ext, user_id)
+            unmatched.append({
+                "filename": fname,
+                "uploaded_file_url": stored["url"],
+                "uploaded_file_name": stored["filename"],
+                "reason": "no_matching_requirement",
+            })
+            continue
+
+        if len(candidates) > 1:
+            stored = await _store_image(f, data, ext, user_id)
+            conflicts.append({
+                "filename": fname,
+                "uploaded_file_url": stored["url"],
+                "uploaded_file_name": stored["filename"],
+                "reason": "multiple_requirements_match",
+                "candidate_requirement_ids": [c["id"] for c in candidates],
+            })
+            continue
+
+        # Exactly one candidate → attach
+        target = candidates[0]
+        stored = await _store_image(f, data, ext, user_id)
+        updated = await _attach_uploaded_file_to_req(
+            article_id, target["id"], stored["url"], stored["filename"], matched_by=match_kind,
+        )
+        attached.append({
+            "requirement_id": target["id"],
+            "filename": fname,
+            "matched_by": match_kind,
+            "requirement": updated,
+        })
+        # Remove this requirement from open pools so subsequent files in
+        # the SAME bulk batch don't double-match it.
+        ef = (target.get("expected_filename") or "").strip()
+        for table, key in ((by_exact, ef), (by_norm, _normalize_filename(ef))):
+            if key and target in table.get(key, []):
+                table[key] = [r for r in table[key] if r["id"] != target["id"]]
+                if not table[key]:
+                    table.pop(key, None)
+
+    # Refresh requirements snapshot for the response
+    _, fresh_reqs = await _fetch_article_and_reqs(article_id)
+    await _update_job_if_all_attached(article_id, await _all_attached(article_id))
+    return {
+        "attached": attached,
+        "unmatched": unmatched,
+        "conflicts": conflicts,
+        "requirements": fresh_reqs,
+        "warnings": _build_warnings(article, fresh_reqs),
+        "all_attached": all((r.get("upload_status") == "attached") for r in fresh_reqs) if fresh_reqs else True,
+    }
+
+
+# ───── 4. Manual assign an already-uploaded file to a requirement ────
+
+class AssignBody(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    uploaded_file_url: str = Field(..., min_length=1, max_length=500)
+    uploaded_file_name: Optional[str] = Field(default=None, max_length=300)
+
+
+@router.post("/admin/blog/{article_id}/image-requirements/{requirement_id}/assign")
+async def assign_image_to_requirement(
+    article_id: str,
+    requirement_id: str,
+    body: AssignBody,
+    user: AdminUser = Depends(get_current_user),
+):
+    article, _ = await _fetch_article_and_reqs(article_id)
+    updated = await _attach_uploaded_file_to_req(
+        article_id, requirement_id,
+        body.uploaded_file_url, body.uploaded_file_name or body.uploaded_file_url,
+        matched_by="manual",
+    )
+    await _update_job_if_all_attached(article_id, await _all_attached(article_id))
+    return {"success": True, "requirement": updated}
