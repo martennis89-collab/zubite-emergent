@@ -105,10 +105,12 @@ Build and optimize **Zubite.bg**, an educational orthodontic platform for the Bu
 - ✅ Phase 1 — Backend foundation (parser + Make.com webhooks + jobs collection) — Feb 2026
 - ✅ Phase 2 — Admin Content Automation page (`/admin/content-automation`) — Feb 2026
 - ✅ Phase 3 — Image Requirements panel + manual + bulk + matching — Feb 2026
-- ⏳ Phase 4 (P2) — Render-time `{{image:x}}` placeholder replacement, publish protection warnings, ZIP importer fallback
+- ✅ Phase 4 — Public render-time placeholder replacement + publish protection — Feb 2026
 
 ### Backlog (Content Automation P3+)
 - Top statistics cards above jobs table (count this month, avg time-to-draft, % needing images)
+- Image-completion mini-badge on "Open Draft" link (e.g. `2/3 images`)
+- ZIP importer fallback (`POST /api/admin/content-automation/import-from-zip`)
 
 ### P3 — Admin CMS
 - Inline editing for homepage text, treatment details.

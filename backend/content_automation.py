@@ -202,7 +202,7 @@ def parse_zubite_article_package(markdown: str) -> Tuple[Dict[str, Any], List[st
         if line.startswith("Q:"):
             cur_q = line[2:].strip()
         elif line.startswith("A:") and cur_q:
-            faq_items.append({"question": cur_q, "answer": line[2:].strip()})
+            faq_items.append({"q": cur_q, "a": line[2:].strip()})
             cur_q = None
 
     # ── CTA_BLOCK ──
@@ -343,3 +343,92 @@ def build_image_requirements(article_id: str, image_assets: List[Dict[str, str]]
             "updated_at": now,
         })
     return out
+
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Phase 4 — Render-time placeholder replacement & publish protection
+# ═══════════════════════════════════════════════════════════════════════
+
+PLACEHOLDER_REGEX = re.compile(r"\{\{image:([a-zA-Z0-9_\-]+)\}\}")
+
+
+def _markdown_escape(text: str) -> str:
+    """Escape characters that would break inside a markdown image alt/title."""
+    if not text:
+        return ""
+    return (text.replace("\\", "\\\\").replace('"', '\\"')
+                .replace("[", "\\[").replace("]", "\\]"))
+
+
+def _req_placeholder_name(req: Dict[str, Any]) -> Optional[str]:
+    """Return the placeholder *name* part (e.g. ``support_1``) for a
+    requirement, regardless of whether it stores the bare name or the full
+    ``{{image:x}}`` token."""
+    ph = (req.get("placeholder") or "").strip()
+    if not ph:
+        return None
+    m = PLACEHOLDER_REGEX.match(ph)
+    if m:
+        return m.group(1)
+    return ph
+
+
+def find_unresolved_placeholders(content: str, attached_names: set[str]) -> List[str]:
+    """Return placeholder names present in body but not in the attached set."""
+    if not content:
+        return []
+    found = set(PLACEHOLDER_REGEX.findall(content))
+    return sorted(found - attached_names)
+
+
+def render_content_with_images(content: str, requirements: List[Dict[str, Any]]) -> str:
+    """Replace ``{{image:x}}`` in ``content`` with Markdown image syntax
+    using ``requirements`` whose ``upload_status == "attached"``.
+
+    Featured-type requirements are NEVER inserted into the body (they are
+    rendered via the article's ``featured_image`` field).
+
+    Unresolved placeholders are removed (replaced with the empty string),
+    so public pages never display raw ``{{image:x}}`` tokens.
+
+    The original ``content`` is not mutated; a new string is returned.
+    """
+    if not content:
+        return content
+    attached_by_name: Dict[str, Dict[str, Any]] = {}
+    for r in requirements or []:
+        if (r.get("type") or "").lower() == "featured":
+            continue
+        if r.get("upload_status") != "attached":
+            continue
+        if not r.get("uploaded_file_url"):
+            continue
+        name = _req_placeholder_name(r)
+        if not name:
+            continue
+        # Last writer wins (admin-attached duplicates are a UI warning, not
+        # a renderer concern).
+        attached_by_name[name] = r
+
+    def _sub(match: re.Match) -> str:
+        name = match.group(1)
+        req = attached_by_name.get(name)
+        if not req:
+            return ""
+        url = req["uploaded_file_url"]
+        alt = _markdown_escape(req.get("alt") or req.get("title") or "")
+        title = _markdown_escape(req.get("title") or "")
+        caption = (req.get("caption") or "").strip()
+        # Markdown figure on its own paragraph
+        img = f'![{alt}]({url}'
+        if title:
+            img += f' "{title}"'
+        img += ")"
+        if caption:
+            # parseMarkdown will keep the image and the italic line together
+            # in the same paragraph; force separation with a double newline.
+            return f"\n\n{img}\n\n*{caption}*\n\n"
+        return f"\n\n{img}\n\n"
+
+    return PLACEHOLDER_REGEX.sub(_sub, content)

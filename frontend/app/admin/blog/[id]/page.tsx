@@ -188,8 +188,22 @@ export default function EditBlogPostPage() {
         body: JSON.stringify(updateData), credentials: 'include' as RequestCredentials,})
 
       if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.detail || 'Failed to update post')
+        const data = await response.json().catch(() => ({}))
+        const d = data?.detail
+        if (typeof d === 'object' && d && d.code === 'publish_blocked_missing_images') {
+          const missing = d.details?.missing_images?.length || 0
+          const unresolved = d.details?.unresolved_placeholders?.length || 0
+          const parts: string[] = []
+          if (missing) parts.push(`${missing} липсващи изображения`)
+          if (unresolved)
+            parts.push(`${unresolved} нерезолвнати placeholder-а`)
+          throw new Error(
+            `Статията не може да бъде публикувана — ${parts.join(' и ')}. Качи изображенията в панела по-долу и опитай отново.`
+          )
+        }
+        throw new Error(
+          (typeof d === 'string' ? d : d?.message) || 'Failed to update post'
+        )
       }
 
       // Update local state if publish status changed

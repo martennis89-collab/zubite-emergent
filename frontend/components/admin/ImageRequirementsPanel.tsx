@@ -487,8 +487,7 @@ export function ImageRequirementsPanel({ articleId }: Props) {
             <AlertTriangle className="w-3.5 h-3.5" />
             Чакат се изображения
           </span>
-        )}
-        <button
+        )}<button
           type="button"
           onClick={() => bulkInputRef.current?.click()}
           disabled={bulkUploading}
@@ -514,6 +513,20 @@ export function ImageRequirementsPanel({ articleId }: Props) {
 
       {!collapsed && (
         <>
+          {/* Publish protection warning */}
+          {!data.all_attached && (
+            <div
+              data-testid="image-req-publish-blocked"
+              className="mb-3 px-3 py-2 rounded-md text-xs bg-red-50 ring-1 ring-red-200 text-red-800 flex items-start gap-2"
+            >
+              <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              <span>
+                Тази статия не може да бъде публикувана, докато всички image
+                placeholders не са свързани с качени изображения.
+              </span>
+            </div>
+          )}
+
           {/* Warnings */}
           {data.warnings.length > 0 && (
             <div

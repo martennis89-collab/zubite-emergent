@@ -16,6 +16,12 @@ from auth import get_current_user
 from storage import put_object, get_object, ALLOWED_IMAGE_TYPES
 from config import APP_NAME, FRONTEND_URL, REVALIDATE_SECRET, logger
 from audit import audit_log, diff_fields
+from content_automation import (
+    render_content_with_images,
+    find_unresolved_placeholders,
+)
+
+IMG_REQ_COL = "article_image_requirements"
 
 router = APIRouter()
 
@@ -60,6 +66,17 @@ async def get_post_by_slug(slug: str):
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
     await db.blog_posts.update_one({"slug": slug}, {"$inc": {"view_count": 1}})
+    # Phase 4: render {{image:x}} placeholders for automation articles. Original
+    # `content` in the DB is left untouched; only the response body is processed.
+    # Unresolved placeholders are stripped so public pages never display raw
+    # `{{image:x}}` tokens, even if the article slipped through publish
+    # protection somehow (defense in depth).
+    content = post.get("content") or ""
+    if "{{image:" in content:
+        reqs = await db.get_collection(IMG_REQ_COL).find(
+            {"article_id": post.get("id")}, {"_id": 0}
+        ).to_list(200)
+        post["content"] = render_content_with_images(content, reqs)
     return post
 
 
@@ -289,6 +306,55 @@ async def admin_update_post(post_id: str, post_data: BlogPostUpdate, request: Re
                 status_code=400,
                 detail=f"Cannot publish without: {', '.join(missing)}. Saved as draft instead.",
             )
+
+        # Phase 4: image requirements gate. Hard-block publish if any of the
+        # article's image requirements is unattached, if the featured-type
+        # requirement exists without a `featured_image`, or if the body
+        # still contains unresolved `{{image:x}}` placeholders.
+        body = final_state.get("content") or ""
+        reqs = await db.get_collection(IMG_REQ_COL).find(
+            {"article_id": post_id}, {"_id": 0}
+        ).to_list(200)
+        missing_images: list[dict] = []
+        featured_req_present = False
+        attached_names: set[str] = set()
+        for r in reqs:
+            rtype = (r.get("type") or "").lower()
+            attached = r.get("upload_status") == "attached"
+            if rtype == "featured":
+                featured_req_present = True
+            if attached:
+                ph = (r.get("placeholder") or "").strip()
+                if ph.startswith("{{image:") and ph.endswith("}}"):
+                    attached_names.add(ph[len("{{image:"):-2])
+                elif ph:
+                    attached_names.add(ph)
+                continue
+            missing_images.append({
+                "requirement_id": r.get("id"),
+                "type": rtype,
+                "expected_filename": r.get("expected_filename"),
+                "placeholder": r.get("placeholder"),
+            })
+        unresolved = []
+        if "{{image:" in body:
+            unresolved = find_unresolved_placeholders(body, attached_names)
+        if featured_req_present and not (final_state.get("featured_image") or "").strip():
+            missing_images.append({
+                "requirement_id": None,
+                "type": "featured",
+                "reason": "featured_image_field_empty",
+            })
+        if missing_images or unresolved:
+            raise HTTPException(status_code=400, detail={
+                "code": "publish_blocked_missing_images",
+                "message": ("Article cannot be published because required "
+                            "images are missing or placeholders are unresolved."),
+                "details": {
+                    "missing_images": missing_images,
+                    "unresolved_placeholders": unresolved,
+                },
+            })
 
     update_data["updated_at"] = datetime.now(timezone.utc)
     if post_data.is_published and not existing.get("published_at"):
