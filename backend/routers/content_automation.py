@@ -292,6 +292,20 @@ async def list_jobs(user: AdminUser = Depends(get_current_user)):
 
 
 
+@router.delete("/admin/content-automation/jobs/{job_id}")
+async def delete_job(job_id: str, user: AdminUser = Depends(get_current_user)):
+    """Delete a failed or stuck automation job entry. This removes only the
+    job tracking row — the associated draft article (if any) is left
+    untouched and remains accessible via the regular blog admin."""
+    res = await db.get_collection(JOBS_COL).delete_one({"id": job_id})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail={
+            "code": "job_not_found", "message": "Job not found."
+        })
+    return {"success": True, "deleted_id": job_id}
+
+
+
 # ═══════════════════════════════════════════════════════════════════════
 # Phase 3 — Image Requirements
 # ═══════════════════════════════════════════════════════════════════════

@@ -15,6 +15,7 @@ import {
   ChevronUp,
   FileText,
   XCircle,
+  Trash2,
 } from 'lucide-react'
 import { AdminHeader } from '@/components/admin/AdminHeader'
 
@@ -121,6 +122,7 @@ export default function ContentAutomationPage() {
   const [generating, setGenerating] = useState(false)
   const [toast, setToast] = useState<Toast>(null)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const showToast = useCallback((t: Toast) => {
@@ -250,6 +252,45 @@ export default function ContentAutomationPage() {
       else next.add(id)
       return next
     })
+  }
+
+  const handleDelete = async (job: AutomationJob) => {
+    const label = job.title || job.slug || job.id.slice(0, 8)
+    if (
+      !window.confirm(
+        `Сигурен ли си, че искаш да изтриеш този запис?\n\n"${label}"\n\nДраfta статия (ако има) НЕ се изтрива — само jobs записът от тази таблица.`
+      )
+    ) {
+      return
+    }
+    setDeletingId(job.id)
+    try {
+      const res = await fetch(
+        `${API_URL}/api/admin/content-automation/jobs/${job.id}`,
+        {
+          method: 'DELETE',
+          credentials: 'include' as RequestCredentials,
+        }
+      )
+      if (res.ok) {
+        setJobs((prev) => prev.filter((j) => j.id !== job.id))
+        showToast({ kind: 'success', text: 'Записът е изтрит.' })
+      } else if (res.status === 401 || res.status === 403) {
+        router.push('/admin')
+      } else {
+        const body = await res.json().catch(() => ({}))
+        showToast({
+          kind: 'error',
+          text:
+            body?.detail?.message ||
+            `Грешка при изтриване (HTTP ${res.status}).`,
+        })
+      }
+    } catch (e) {
+      showToast({ kind: 'error', text: 'Мрежова грешка при изтриване.' })
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   return (
@@ -447,6 +488,21 @@ export default function ContentAutomationPage() {
                                   Детайли
                                 </button>
                               )}
+                              <button
+                                type="button"
+                                onClick={() => handleDelete(job)}
+                                disabled={deletingId === job.id}
+                                data-testid={`delete-job-${job.id}`}
+                                title="Изтрий запис от таблицата (драфта остава)"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-red-700 bg-red-50 ring-1 ring-red-200 hover:bg-red-100 disabled:opacity-50 transition-colors"
+                              >
+                                {deletingId === job.id ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                )}
+                                Изтрий
+                              </button>
                             </div>
                           </td>
                         </tr>
