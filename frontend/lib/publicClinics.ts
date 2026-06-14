@@ -12,11 +12,13 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
  *  the clinic doc. No parallel schema. */
 export type PartnerTier = 'standard' | 'featured' | 'premium'
 
-/** Public-facing tier label (never the raw internal tier name). */
+/** Public-facing tier label (never the raw internal tier name).
+ *  Per Feb 2026 product brief these are package-richness labels, NOT
+ *  clinical superiority signals. */
 export const PUBLIC_STATUS_LABEL: Record<PartnerTier, string> = {
-  standard: 'Zubite Listed',
-  featured: 'Zubite Partner',
-  premium: 'Zubite Featured Partner',
+  standard: 'Verified Profile',
+  featured: 'Premium Partner',
+  premium: 'Authority Partner',
 }
 
 export type ReviewSummary = {

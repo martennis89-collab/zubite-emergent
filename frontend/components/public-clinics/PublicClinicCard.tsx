@@ -39,13 +39,14 @@ export default function PublicClinicCard({
   const why = clinic.why_this_clinic_appears.slice(0, 4)
   const trustBadges: { icon: React.ComponentType<{ className?: string }>; label: string; key: string }[] =
     []
-  if (clinic.partner_tier !== 'standard') {
-    trustBadges.push({
-      icon: Sparkles,
-      label: clinic.public_status_label,
-      key: 'tier',
-    })
-  }
+  // All clinics get a public_status_label badge — soft signal of package
+  // richness. Standard tier renders the badge in a neutral slate style;
+  // Premium / Authority tiers use the amber accent.
+  trustBadges.push({
+    icon: Sparkles,
+    label: clinic.public_status_label,
+    key: 'tier',
+  })
   if (clinic.online_consultation) {
     trustBadges.push({ icon: Video, label: 'Онлайн консултация', key: 'online' })
   }
@@ -82,15 +83,18 @@ export default function PublicClinicCard({
       )}
       <div className="relative pt-32 -mt-3">
         {/* Tier badge top-left */}
-        {clinic.partner_tier !== 'standard' && (
-          <span
-            className="absolute -top-28 left-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/90 backdrop-blur ring-1 ring-amber-100 text-amber-800 text-[10.5px] font-medium"
-            data-testid={`card-tier-${clinic.id}`}
-          >
-            <Sparkles className="w-3 h-3" />
-            {clinic.public_status_label}
-          </span>
-        )}
+        <span
+          className={
+            'absolute -top-28 left-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full backdrop-blur text-[10.5px] font-medium ring-1 ' +
+            (clinic.partner_tier !== 'standard'
+              ? 'bg-white/90 ring-amber-100 text-amber-800'
+              : 'bg-white/90 ring-slate-200 text-slate-700')
+          }
+          data-testid={`card-tier-${clinic.id}`}
+        >
+          <Sparkles className="w-3 h-3" />
+          {clinic.public_status_label}
+        </span>
 
         {/* Name + city */}
         <h3

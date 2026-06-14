@@ -84,12 +84,18 @@ export default function ClinicProfileView({ clinic }: Props) {
                   <Building2 className="w-6 h-6 text-teal-700" />
                 </div>
                 <div className="min-w-0">
-                  {tierIsPartner && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 ring-1 ring-amber-100 text-[11px] font-medium mb-1">
-                      <Sparkles className="w-3 h-3" />
-                      {clinic.public_status_label}
-                    </span>
-                  )}
+                  <span
+                    className={
+                      'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium mb-1 ring-1 ' +
+                      (tierIsPartner
+                        ? 'bg-amber-50 text-amber-800 ring-amber-100'
+                        : 'bg-slate-50 text-slate-700 ring-slate-200')
+                    }
+                    data-testid="profile-tier-label"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    {clinic.public_status_label}
+                  </span>
                   <h1
                     className="font-serif text-2xl sm:text-3xl font-semibold text-slate-900 leading-tight"
                     data-testid="profile-name"

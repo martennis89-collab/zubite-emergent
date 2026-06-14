@@ -13,6 +13,7 @@ modal POSTs to the existing `POST /api/leads` with `source="clinic_card"`
 or `"clinic_profile"` so the admin lead pipeline stays unified.
 """
 from __future__ import annotations
+import os
 import re
 from typing import Any, Optional
 from fastapi import APIRouter, HTTPException, Query
@@ -21,11 +22,23 @@ from database import db
 
 router = APIRouter()
 
+
+def _demo_clinics_enabled() -> bool:
+    """Demo/seed clinics are visible only when `ZUBITE_INCLUDE_DEMO_CLINICS`
+    is explicitly set to a truthy value in the backend env. Production
+    deployments leave this unset, so demo records stay hidden from real
+    patient traffic and from Google crawls."""
+    v = (os.environ.get("ZUBITE_INCLUDE_DEMO_CLINICS") or "").lower()
+    return v in ("1", "true", "yes", "on")
+
 # Mirror the existing tier mapping (no parallel schema introduced).
+# Patient-facing labels per Feb 2026 product brief: "Verified Profile" /
+# "Premium Partner" / "Authority Partner". These are package-richness
+# labels, NOT clinical superiority signals.
 _PUBLIC_STATUS_LABEL = {
-    "standard": "Zubite Listed",
-    "featured": "Zubite Partner",
-    "premium": "Zubite Featured Partner",
+    "standard": "Verified Profile",
+    "featured": "Premium Partner",
+    "premium": "Authority Partner",
 }
 
 # Statuses considered safe for public display. `active_partner` is a fully
@@ -186,6 +199,11 @@ async def list_public_clinics(
         "name": {"$ne": None, "$exists": True},
         "city_slug": {"$ne": None, "$exists": True},
     }
+    # Production environments don't set ZUBITE_INCLUDE_DEMO_CLINICS, so any
+    # clinic flagged `is_demo: true` stays out of the public list. Preview
+    # / dev enables the env var so QA can exercise the tier-aware UI.
+    if not _demo_clinics_enabled():
+        query["is_demo"] = {"$ne": True}
     if city:
         query["city_slug"] = city.lower()
     if specialty:
@@ -221,6 +239,9 @@ async def get_public_clinic(slug_or_id: str):
         "clinic_status": {"$in": list(_PUBLIC_STATUSES)},
         "name": {"$ne": None},
     }
+    # Hide demo records from production lookups (same gate as the list).
+    if not _demo_clinics_enabled():
+        base["is_demo"] = {"$ne": True}
     # Try id match first (fast index).
     doc = await db.clinics.find_one({**base, "id": slug_or_id}, {"_id": 0})
     if not doc:
