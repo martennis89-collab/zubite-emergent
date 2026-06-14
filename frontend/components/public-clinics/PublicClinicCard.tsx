@@ -195,14 +195,18 @@ export default function PublicClinicCard({
           </div>
         )}
 
-        {/* Review — only when both rating AND count exist */}
+        {/* Review — only when both rating AND count exist. Source-labelled
+            visually; never promoted into JSON-LD unless source==='zubite'. */}
         {clinic.review && (
           <div
             className="mt-2 text-[11px] text-slate-500"
             data-testid={`card-review-${clinic.id}`}
           >
-            ★ {clinic.review.rating.toFixed(1)} · {clinic.review.count} отзива ·{' '}
-            <span className="capitalize">{clinic.review.source}</span>
+            {clinic.review.source === 'google'
+              ? `Google рейтинг: ${clinic.review.rating.toFixed(1)} от ${clinic.review.count} отзива`
+              : clinic.review.source === 'superdoc'
+              ? `Superdoc рейтинг: ${clinic.review.rating.toFixed(1)} от ${clinic.review.count} отзива`
+              : `Zubite рейтинг: ${clinic.review.rating.toFixed(1)} от ${clinic.review.count} отзива`}
           </div>
         )}
 

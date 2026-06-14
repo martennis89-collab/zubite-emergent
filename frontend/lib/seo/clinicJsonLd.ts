@@ -57,10 +57,17 @@ export function buildClinicProfileJsonLd(c: PublicClinic): Record<string, unknow
       name: 'Онлайн консултация',
     }
   }
-  // Only when BOTH rating AND count are present from a real review source.
-  // The PublicClinic shape already enforces this constraint at the API
-  // layer (`review` is null otherwise), but we double-check defensively.
-  if (c.review && typeof c.review.rating === 'number' && c.review.count > 0) {
+  // Per Feb 2026 product policy: emit `aggregateRating` ONLY when the
+  // review data was collected DIRECTLY by Zubite (`source === "zubite"`).
+  // Google / external reviews are surfaced visually with an explicit
+  // source label in the UI, but NEVER promoted into schema.org so the
+  // structured data accurately represents Zubite-owned signals only.
+  const canEmitAggregateRating =
+    !!c.review &&
+    c.review.source === 'zubite' &&
+    typeof c.review.rating === 'number' &&
+    c.review.count > 0
+  if (canEmitAggregateRating && c.review) {
     out.aggregateRating = {
       '@type': 'AggregateRating',
       ratingValue: c.review.rating,
