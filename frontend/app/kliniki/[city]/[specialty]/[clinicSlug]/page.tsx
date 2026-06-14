@@ -4,6 +4,9 @@ import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import ClinicProfileView from '@/components/public-clinics/ClinicProfileView'
 import { getPublicClinic, cityDisplay } from '@/lib/publicClinics'
+import {
+  buildClinicProfileJsonLd, buildClinicBreadcrumbJsonLd, safeJsonLd,
+} from '@/lib/seo/clinicJsonLd'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,11 +35,22 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function KlinikiProfilePage({ params }: PageProps) {
-  const { clinicSlug } = await params
+  const { city, specialty, clinicSlug } = await params
   try {
     const clinic = await getPublicClinic(clinicSlug)
+    const jsonLd = [
+      buildClinicProfileJsonLd(clinic),
+      buildClinicBreadcrumbJsonLd({ city, specialty, clinic }),
+    ]
     return (
       <>
+        {jsonLd.map((node, i) => (
+          <script
+            key={i}
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: safeJsonLd(node) }}
+          />
+        ))}
         <Header />
         <ClinicProfileView clinic={clinic} />
         <Footer />

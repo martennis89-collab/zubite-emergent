@@ -4,7 +4,11 @@ import { Footer } from '@/components/Footer'
 import ClinicListingPage from '@/components/public-clinics/ClinicListingPage'
 import {
   cityDisplay, resolveSpecialtySlug, specialtyCityHeading, specialtyCityMetaTitle,
+  listPublicClinics,
 } from '@/lib/publicClinics'
+import {
+  buildClinicListingJsonLd, buildClinicBreadcrumbJsonLd, safeJsonLd,
+} from '@/lib/seo/clinicJsonLd'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,15 +32,38 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function KlinikiByCitySpecialty({ params }: PageProps) {
   const { city, specialty } = await params
-  // Normalise the URL specialty slug to a backend treatment key. Unknown
-  // slugs simply pass through and yield an empty result set, which the
-  // listing page already handles with a friendly empty state.
   const canonicalSpecialty = resolveSpecialtySlug(specialty) || specialty
   const cityName = cityDisplay(city)
   const heading = specialtyCityHeading(specialty, cityName)
-
+  let clinics: Awaited<ReturnType<typeof listPublicClinics>>['clinics'] = []
+  try {
+    const data = await listPublicClinics({
+      city,
+      specialty: canonicalSpecialty,
+    })
+    clinics = data.clinics
+  } catch {
+    /* non-fatal */
+  }
+  const jsonLd = [
+    ...buildClinicListingJsonLd({
+      clinics,
+      city,
+      specialty,
+      canonicalPath: `/kliniki/${city}/${specialty}`,
+      pageName: heading,
+    }),
+    buildClinicBreadcrumbJsonLd({ city, specialty }),
+  ]
   return (
     <>
+      {jsonLd.map((node, i) => (
+        <script
+          key={i}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(node) }}
+        />
+      ))}
       <Header />
       <ClinicListingPage
         initialCity={city}

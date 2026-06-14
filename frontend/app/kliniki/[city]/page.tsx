@@ -2,7 +2,10 @@ import { Metadata } from 'next'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import ClinicListingPage from '@/components/public-clinics/ClinicListingPage'
-import { cityDisplay } from '@/lib/publicClinics'
+import { cityDisplay, listPublicClinics } from '@/lib/publicClinics'
+import {
+  buildClinicListingJsonLd, buildClinicBreadcrumbJsonLd, safeJsonLd,
+} from '@/lib/seo/clinicJsonLd'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,8 +26,32 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function KlinikiByCity({ params }: PageProps) {
   const { city } = await params
+  const cityName = cityDisplay(city)
+  let clinics: Awaited<ReturnType<typeof listPublicClinics>>['clinics'] = []
+  try {
+    const data = await listPublicClinics({ city })
+    clinics = data.clinics
+  } catch {
+    /* non-fatal */
+  }
+  const jsonLd = [
+    ...buildClinicListingJsonLd({
+      clinics,
+      city,
+      canonicalPath: `/kliniki/${city}`,
+      pageName: `Дентални клиники в ${cityName}`,
+    }),
+    buildClinicBreadcrumbJsonLd({ city }),
+  ]
   return (
     <>
+      {jsonLd.map((node, i) => (
+        <script
+          key={i}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(node) }}
+        />
+      ))}
       <Header />
       <ClinicListingPage
         initialCity={city}
