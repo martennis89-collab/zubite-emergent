@@ -12,7 +12,7 @@ from database import db, client
 from storage import init_storage
 from emails import send_verification_email
 
-from routers import public, admin, blog, analytics, clinics, calls, verification, seo, consultations, audit_logs, orientation_settings, orientation_bookings, content_automation
+from routers import public, admin, blog, analytics, clinics, calls, verification, seo, consultations, audit_logs, orientation_settings, orientation_bookings, content_automation, public_clinics
 
 # Root-level health endpoint
 app = FastAPI(title="Zubite.bg API")
@@ -40,6 +40,7 @@ api_router.include_router(audit_logs.router)
 api_router.include_router(orientation_settings.router)
 api_router.include_router(orientation_bookings.router)
 api_router.include_router(content_automation.router)
+api_router.include_router(public_clinics.router)
 
 app.include_router(api_router)
 
