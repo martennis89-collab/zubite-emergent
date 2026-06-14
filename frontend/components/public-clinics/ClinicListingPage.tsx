@@ -18,6 +18,9 @@ interface Props {
   initialCity?: string
   // When the route already binds a specialty (future), pre-apply it.
   initialSpecialty?: string
+  // Override the auto-generated heading. Used by `/kliniki/[city]/[specialty]`
+  // so the SEO-friendly Bulgarian phrasing wins over the generic fallback.
+  headingOverride?: string
   // Pass `{ basePath: '/kliniki' }` so picking a city in the filter
   // rewrites the URL to `/kliniki/[city]`.
   syncToUrl?: { basePath: string }
@@ -31,6 +34,7 @@ interface Props {
 export default function ClinicListingPage({
   initialCity,
   initialSpecialty,
+  headingOverride,
   syncToUrl,
 }: Props) {
   const [filters, setFilters] = useState<PublicClinicFilters>(() => ({
@@ -92,13 +96,14 @@ export default function ClinicListingPage({
   }
 
   const heading = useMemo(() => {
+    if (headingOverride) return headingOverride
     const city = filters.city ? cityDisplay(filters.city) : null
     const treatment = filters.specialty ? treatmentLabel(filters.specialty) : null
     if (city && treatment) return `${treatment} клиники в ${city}`
     if (city) return `Дентални клиники в ${city}`
     if (treatment) return `${treatment} клиники`
     return 'Намерете подходяща дентална клиника'
-  }, [filters.city, filters.specialty])
+  }, [filters.city, filters.specialty, headingOverride])
 
   return (
     <main
@@ -202,9 +207,31 @@ export default function ClinicListingPage({
               <p className="text-slate-700 font-medium">
                 Няма клиники, които съвпадат с филтрите.
               </p>
-              <p className="text-sm text-slate-500 mt-1">
-                Опитай да изчистиш някои от филтрите или промени локацията.
+              <p className="text-sm text-slate-500 mt-1 max-w-md mx-auto">
+                Можеш да опиташ с друг град или да попълниш бърза оценка,
+                за да получиш персонализирани препоръки.
               </p>
+              <div className="mt-5 flex flex-col sm:flex-row gap-2 justify-center">
+                <a
+                  href="/quiz"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-white text-sm font-medium hover:-translate-y-0.5 transition-all shadow-[0_14px_30px_-12px_rgba(13,148,136,0.50)]"
+                  style={{
+                    backgroundImage:
+                      'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)',
+                  }}
+                  data-testid="kliniki-empty-cta-quiz"
+                >
+                  <Compass className="w-4 h-4" />
+                  Попълни оценка
+                </a>
+                <a
+                  href="/kliniki"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-white ring-1 ring-slate-300 text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors"
+                  data-testid="kliniki-empty-cta-clear"
+                >
+                  Виж всички клиники
+                </a>
+              </div>
             </div>
           ) : (
             <div

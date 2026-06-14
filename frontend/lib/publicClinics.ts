@@ -119,10 +119,71 @@ export const TREATMENT_LABELS: Record<string, string> = {
   orthodontics: 'Ортодонтия',
   implants: 'Импланти',
   implantologia: 'Импланти',
+  dentalni_implanti: 'Дентални импланти',
   full_mouth: 'Цялостно лечение',
   cosmetic: 'Естетична стоматология',
+  estetichna_stomatologia: 'Естетична стоматология',
   endodontics: 'Ендодонтия',
   pediatric: 'Детска стоматология',
+}
+
+/** URL specialty slug → canonical backend treatment key. The backend stores
+ *  only a small set of treatment slugs (`invisalign`, `aligners`, `implants`,
+ *  `full_mouth`, etc.); the URLs use SEO-friendly Bulgarian phrases. This
+ *  map normalises one to the other. URL slugs use hyphens (Next.js convention),
+ *  so we also accept the hyphenated form. */
+export const SPECIALTY_URL_MAP: Record<string, string> = {
+  // direct backend matches
+  invisalign: 'invisalign',
+  aligners: 'aligners',
+  implants: 'implants',
+  full_mouth: 'full_mouth',
+  cosmetic: 'cosmetic',
+  // SEO Bulgarian aliases (hyphenated form used in URLs)
+  ortodontia: 'orthodontics',
+  ortodontiya: 'orthodontics',
+  orthodontics: 'orthodontics',
+  implantologia: 'implants',
+  'dentalni-implanti': 'implants',
+  dentalni_implanti: 'implants',
+  'estetichna-stomatologia': 'cosmetic',
+  estetichna_stomatologia: 'cosmetic',
+  'detska-stomatologia': 'pediatric',
+  pediatric: 'pediatric',
+}
+
+/** Convert a URL specialty slug into the backend filter value. Returns
+ *  `null` when the slug is unknown so callers can show a 404/empty
+ *  state instead of silently fetching all clinics. */
+export function resolveSpecialtySlug(urlSlug: string): string | null {
+  if (!urlSlug) return null
+  const k = urlSlug.toLowerCase()
+  return SPECIALTY_URL_MAP[k] || null
+}
+
+/** Specialty-aware page heading for `/kliniki/[city]/[specialty]`.
+ *  Hand-crafted so SEO/intent matches natural Bulgarian search phrases. */
+export function specialtyCityHeading(specialtySlug: string, cityName: string): string {
+  const k = specialtySlug.toLowerCase()
+  const inCity = cityName ? ` в ${cityName}` : ''
+  if (k === 'invisalign') return `Invisalign клиники${inCity}`
+  if (k === 'ortodontia' || k === 'ortodontiya' || k === 'orthodontics')
+    return `Ортодонтски клиники${inCity}`
+  if (k === 'implants' || k === 'implantologia' || k === 'dentalni-implanti' || k === 'dentalni_implanti')
+    return `Клиники за импланти${inCity}`
+  if (k === 'aligners') return `Клиники за алайнери${inCity}`
+  if (k === 'cosmetic' || k === 'estetichna-stomatologia' || k === 'estetichna_stomatologia')
+    return `Естетична стоматология${inCity}`
+  if (k === 'full_mouth') return `Цялостно дентално лечение${inCity}`
+  if (k === 'pediatric' || k === 'detska-stomatologia')
+    return `Детска стоматология${inCity}`
+  // Fallback — generic but never wrong.
+  return `${treatmentLabel(k)} клиники${inCity}`
+}
+
+/** Specialty-aware SEO meta title. */
+export function specialtyCityMetaTitle(specialtySlug: string, cityName: string): string {
+  return `${specialtyCityHeading(specialtySlug, cityName)} | Zubite.bg`
 }
 
 /** Returns a human label for a treatment slug, falling back to the slug
