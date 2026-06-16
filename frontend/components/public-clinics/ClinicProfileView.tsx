@@ -120,6 +120,9 @@ export default function ClinicProfileView({ clinic }: Props) {
 
   const hasRealZubiteFeedback = false  // Reserved — never faked.
 
+  const anchorIds = useMemo(() => visibleAnchors.map((a) => a.id), [visibleAnchors])
+  const activeAnchor = useActiveSection(anchorIds)
+
   return (
     <main
       className="min-h-screen bg-[#FCFAF8] overflow-x-hidden relative pb-24"
@@ -151,167 +154,205 @@ export default function ClinicProfileView({ clinic }: Props) {
           </Link>
 
           {/* ═══════════ Compact Hero ═══════════ */}
-          <header
-            id="overview"
-            className="rounded-2xl bg-white/70 backdrop-blur-xl ring-1 ring-white/75 shadow-[0_18px_50px_-22px_rgba(15,23,42,0.18)] overflow-hidden"
-            data-testid="profile-hero"
-          >
-            <div className="grid sm:grid-cols-[1fr,260px] lg:grid-cols-[1fr,320px]">
-              <div className="p-5 sm:p-6 order-2 sm:order-1">
-                <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
-                  <span
-                    className={
-                      'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ring-1 ' +
-                      tierBadgeStyle
-                    }
-                    data-testid="profile-tier-label"
-                  >
-                    <Sparkles className="w-3 h-3" />
-                    {clinic.public_status_label}
-                  </span>
-                  {clinic.is_sponsored && (
+          <Reveal as="header">
+            <div
+              id="overview"
+              className="relative rounded-2xl overflow-hidden ring-1 ring-white/75 shadow-[0_24px_60px_-28px_rgba(13,148,136,0.40)] scroll-mt-20"
+              data-testid="profile-hero"
+            >
+              {/* Branded gradient wash behind hero */}
+              <div
+                aria-hidden
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background:
+                    'linear-gradient(135deg, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.78) 60%, rgba(245,252,250,0.75) 100%)',
+                  backdropFilter: 'blur(20px)',
+                }}
+              />
+              <div
+                aria-hidden
+                className="absolute -top-16 -right-24 w-72 h-72 pointer-events-none"
+                style={{
+                  background:
+                    'radial-gradient(circle, rgba(94,234,212,0.40) 0%, rgba(94,234,212,0) 70%)',
+                }}
+              />
+              <div className="relative grid sm:grid-cols-[1fr,260px] lg:grid-cols-[1fr,320px]">
+                <div className="p-5 sm:p-6 order-2 sm:order-1">
+                  <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
                     <span
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-700 ring-1 ring-slate-200"
-                      data-testid="profile-sponsored-label"
-                      title="Спонсорираната видимост е обозначена отделно и не влияе на органичното подреждане."
+                      className={
+                        'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ring-1 ' +
+                        tierBadgeStyle
+                      }
+                      data-testid="profile-tier-label"
                     >
-                      <Megaphone className="w-3 h-3" />
-                      Спонсорирано
+                      <Sparkles className="w-3 h-3" />
+                      {clinic.public_status_label}
                     </span>
+                    {clinic.is_sponsored && (
+                      <span
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-700 ring-1 ring-slate-200"
+                        data-testid="profile-sponsored-label"
+                        title="Спонсорираната видимост е обозначена отделно и не влияе на органичното подреждане."
+                      >
+                        <Megaphone className="w-3 h-3" />
+                        Спонсорирано
+                      </span>
+                    )}
+                  </div>
+                  {clinic.is_sponsored && (
+                    <p
+                      className="mt-0.5 text-[10px] text-slate-500 leading-snug"
+                      data-testid="profile-sponsored-helper"
+                    >
+                      Спонсорираната видимост е обозначена отделно и не влияе на органичното подреждане.
+                    </p>
                   )}
-                </div>
-                {clinic.is_sponsored && (
-                  <p
-                    className="mt-0.5 text-[10px] text-slate-500 leading-snug"
-                    data-testid="profile-sponsored-helper"
+                  <h1
+                    className="font-serif text-xl sm:text-2xl lg:text-[34px] font-semibold text-slate-900 leading-[1.1] tracking-tight"
+                    data-testid="profile-name"
                   >
-                    Спонсорираната видимост е обозначена отделно и не влияе на органичното подреждане.
+                    {clinic.name}
+                  </h1>
+                  <p className="mt-1.5 text-sm text-slate-500 inline-flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5" />
+                    {clinic.city_name || cityDisplay(clinic.city_slug || '')}
+                    {clinic.area && ` · ${clinic.area}`}
                   </p>
-                )}
-                <h1
-                  className="font-serif text-xl sm:text-2xl lg:text-3xl font-semibold text-slate-900 leading-tight"
-                  data-testid="profile-name"
-                >
-                  {clinic.name}
-                </h1>
-                <p className="mt-1 text-sm text-slate-500 inline-flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5" />
-                  {clinic.city_name || cityDisplay(clinic.city_slug || '')}
-                  {clinic.area && ` · ${clinic.area}`}
-                </p>
 
-                {clinic.short_description && (
-                  <p
-                    className="mt-3 text-sm text-slate-700 leading-relaxed line-clamp-3"
-                    data-testid="profile-short-description"
-                  >
-                    {clinic.short_description}
-                  </p>
-                )}
+                  {clinic.short_description && (
+                    <p
+                      className="mt-3 text-sm text-slate-700 leading-relaxed line-clamp-3"
+                      data-testid="profile-short-description"
+                    >
+                      {clinic.short_description}
+                    </p>
+                  )}
 
-                <ul className="mt-3 flex flex-wrap gap-1" data-testid="profile-trust-chips">
-                  {clinic.online_consultation && (
-                    <BadgePill icon={<Video className="w-2.5 h-2.5" />} label="Онлайн консултация" />
-                  )}
-                  {clinic.care_pass_partner && (
-                    <BadgePill icon={<Heart className="w-2.5 h-2.5 text-rose-500" />} label="Care Pass" />
-                  )}
-                  {clinic.profile_information_reviewed && (
-                    <BadgePill
-                      icon={<ShieldCheck className="w-2.5 h-2.5 text-teal-600" />}
-                      label="Профил прегледан"
-                    />
-                  )}
-                </ul>
+                  <ul className="mt-3 flex flex-wrap gap-1" data-testid="profile-trust-chips">
+                    {clinic.online_consultation && (
+                      <BadgePill icon={<Video className="w-2.5 h-2.5" />} label="Онлайн консултация" />
+                    )}
+                    {clinic.care_pass_partner && (
+                      <BadgePill icon={<Heart className="w-2.5 h-2.5 text-rose-500" />} label="Care Pass" />
+                    )}
+                    {clinic.profile_information_reviewed && (
+                      <BadgePill
+                        icon={<ShieldCheck className="w-2.5 h-2.5 text-teal-600" />}
+                        label="Профил прегледан"
+                      />
+                    )}
+                  </ul>
 
-                <div className="mt-4 flex flex-col sm:flex-row gap-2">
-                  <button
-                    type="button"
-                    onClick={heroPrimary.onClick}
-                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full text-white text-sm font-medium hover:-translate-y-0.5 transition-all shadow-[0_12px_28px_-12px_rgba(13,148,136,0.50)]"
-                    style={{
-                      backgroundImage:
-                        'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)',
-                    }}
-                    data-testid="profile-cta-primary"
-                  >
-                    {schedulerState === 'available'
-                      ? <CalendarClock className="w-4 h-4" />
-                      : <Phone className="w-4 h-4" />}
-                    {heroPrimary.label}
-                  </button>
-                  {heroSecondary && (
+                  <div className="mt-4 flex flex-col sm:flex-row gap-2">
                     <button
                       type="button"
-                      onClick={heroSecondary.onClick}
-                      className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-white ring-1 ring-slate-300 text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors"
-                      data-testid="profile-cta-secondary"
+                      onClick={heroPrimary.onClick}
+                      className="group inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-white text-sm font-medium hover:-translate-y-0.5 transition-all shadow-[0_14px_30px_-12px_rgba(13,148,136,0.55)] hover:shadow-[0_18px_40px_-12px_rgba(13,148,136,0.75)]"
+                      style={{
+                        backgroundImage:
+                          'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)',
+                      }}
+                      data-testid="profile-cta-primary"
                     >
-                      <Phone className="w-3.5 h-3.5" />
-                      {heroSecondary.label}
+                      {schedulerState === 'available'
+                        ? <CalendarClock className="w-4 h-4 group-hover:rotate-[-4deg] transition-transform" />
+                        : <Phone className="w-4 h-4" />}
+                      {heroPrimary.label}
                     </button>
+                    {heroSecondary && (
+                      <button
+                        type="button"
+                        onClick={heroSecondary.onClick}
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-white/85 ring-1 ring-slate-300 text-slate-700 text-sm font-medium hover:bg-white hover:ring-slate-400 transition-colors"
+                        data-testid="profile-cta-secondary"
+                      >
+                        <Phone className="w-3.5 h-3.5" />
+                        {heroSecondary.label}
+                      </button>
+                    )}
+                  </div>
+                  {heroNote && (
+                    <p
+                      className="mt-2 text-[11px] text-amber-800 leading-snug"
+                      data-testid="profile-cta-note"
+                    >
+                      {heroNote}
+                    </p>
                   )}
                 </div>
-                {heroNote && (
-                  <p
-                    className="mt-2 text-[11px] text-amber-800 leading-snug"
-                    data-testid="profile-cta-note"
-                  >
-                    {heroNote}
-                  </p>
-                )}
-              </div>
 
-              {/* Hero image — right-side panel on desktop, top on mobile */}
-              <div className="order-1 sm:order-2 relative">
-                {clinic.hero_image_url ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={clinic.hero_image_url}
-                    alt={clinic.name}
-                    className="w-full h-32 sm:h-full sm:min-h-[200px] object-cover"
+                <div className="order-1 sm:order-2 relative">
+                  {clinic.hero_image_url ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={clinic.hero_image_url}
+                      alt={clinic.name}
+                      className="w-full h-40 sm:h-full sm:min-h-[220px] object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-40 sm:h-full sm:min-h-[220px] bg-gradient-to-br from-teal-100/60 via-cyan-50/40 to-white grid place-items-center">
+                      <Building2 className="w-10 h-10 text-teal-200" />
+                    </div>
+                  )}
+                  <div
+                    aria-hidden
+                    className="absolute inset-0 ring-1 ring-inset ring-white/30 pointer-events-none"
                   />
-                ) : (
-                  <div className="w-full h-32 sm:h-full sm:min-h-[200px] bg-gradient-to-br from-teal-100/60 via-cyan-50/40 to-white grid place-items-center">
-                    <Building2 className="w-10 h-10 text-teal-200" />
-                  </div>
-                )}
+                </div>
               </div>
             </div>
-          </header>
+          </Reveal>
 
           {/* ═══════════ Overview cards ═══════════ */}
-          <OverviewGrid
-            clinic={clinic}
-            schedulerState={schedulerState}
-            onJumpConsultation={() => scrollTo('consultation')}
-            onJumpServices={() => scrollTo('services')}
-            onJumpFit={() => scrollTo('suitability')}
-            onOpenContact={openContact}
-          />
+          <Reveal delay={80}>
+            <OverviewGrid
+              clinic={clinic}
+              schedulerState={schedulerState}
+              onJumpConsultation={() => scrollTo('consultation')}
+              onJumpServices={() => scrollTo('services')}
+              onJumpFit={() => scrollTo('suitability')}
+              onOpenContact={openContact}
+            />
+          </Reveal>
 
-          {/* ═══════════ Showcase-only: listing-card preview ═══════════ */}
-          {clinic.is_addons_showcase && <ShowcaseListingCardPreview clinic={clinic} />}
+          {/* Showcase-only listing-card preview */}
+          {clinic.is_addons_showcase && (
+            <Reveal delay={120}>
+              <ShowcaseListingCardPreview clinic={clinic} />
+            </Reveal>
+          )}
 
-          {/* ═══════════ Anchor nav ═══════════ */}
+          {/* ═══════════ Anchor nav (sticky glass + active highlight) ═══════════ */}
           <nav
-            className="mt-5 -mx-4 sm:mx-0 px-4 sm:px-0 overflow-x-auto"
+            className="mt-5 sticky top-2 z-20 -mx-4 sm:mx-0 px-4 sm:px-0 overflow-x-auto"
             data-testid="profile-anchor-nav"
             aria-label="Навигация в профила"
           >
-            <ul className="inline-flex gap-1 py-1">
-              {visibleAnchors.map((a) => (
-                <li key={a.id}>
-                  <button
-                    type="button"
-                    onClick={() => scrollTo(a.id)}
-                    className="px-3 py-1.5 rounded-full bg-white/70 ring-1 ring-slate-200/70 text-[12px] text-slate-700 hover:bg-white hover:ring-teal-300 hover:text-teal-700 transition-colors whitespace-nowrap"
-                    data-testid={`anchor-${a.id}`}
-                  >
-                    {a.label}
-                  </button>
-                </li>
-              ))}
+            <ul className="inline-flex gap-1 py-1 rounded-full bg-white/75 backdrop-blur-xl ring-1 ring-white/80 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.25)] px-1">
+              {visibleAnchors.map((a) => {
+                const isActive = activeAnchor === a.id
+                return (
+                  <li key={a.id}>
+                    <button
+                      type="button"
+                      onClick={() => scrollTo(a.id)}
+                      className={
+                        'px-3 py-1.5 rounded-full text-[12px] transition-colors whitespace-nowrap ' +
+                        (isActive
+                          ? 'bg-slate-900 text-white shadow-[0_8px_18px_-10px_rgba(15,23,42,0.45)]'
+                          : 'text-slate-600 hover:text-teal-700 hover:bg-white/80')
+                      }
+                      data-testid={`anchor-${a.id}`}
+                      data-active={isActive ? 'true' : 'false'}
+                    >
+                      {a.label}
+                    </button>
+                  </li>
+                )
+              })}
             </ul>
           </nav>
 
@@ -319,46 +360,42 @@ export default function ClinicProfileView({ clinic }: Props) {
           <div className="mt-5 grid lg:grid-cols-[1fr,300px] gap-5">
             {/* ── Left main column ── */}
             <div className="space-y-4 min-w-0">
-              {/* Suitability */}
+              {/* Suitability — dark decision section (Premium+) */}
               {isPremium && (
-                <SectionShell id="suitability" testid="profile-section-fit" title="Подходяща ли е тази клиника за вас?" icon={<Check className="w-4 h-4 text-teal-700" />}>
-                  {(clinic.best_for.length > 0 || clinic.not_ideal_for.length > 0) ? (
-                    <div className="grid sm:grid-cols-2 gap-3">
-                      {clinic.best_for.length > 0 && (
-                        <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700 mb-1.5">
-                            Подходяща за
-                          </p>
-                          <ul className="space-y-1 text-[13px] text-slate-700">
-                            {clinic.best_for.map((b, i) => (
-                              <li key={i} className="flex items-start gap-1.5">
-                                <Check className="w-3.5 h-3.5 text-emerald-600 mt-0.5 flex-shrink-0" />
-                                <span>{b}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                      {clinic.not_ideal_for.length > 0 && (
-                        <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-700 mb-1.5">
-                            Може да не е идеална за
-                          </p>
-                          <ul className="space-y-1 text-[13px] text-slate-700">
-                            {clinic.not_ideal_for.map((n, i) => (
-                              <li key={i} className="flex items-start gap-1.5">
-                                <X className="w-3.5 h-3.5 text-amber-600 mt-0.5 flex-shrink-0" />
-                                <span>{n}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <EmptyStateCard testid="empty-fit" />
-                  )}
-                </SectionShell>
+                <Reveal>
+                  <DarkSectionShell
+                    id="suitability"
+                    testid="profile-section-fit"
+                    title="Подходяща ли е тази клиника за вас?"
+                    subtitle={'Zubite не определя „най-добра“ клиника — представяме сигналите, които сме събрали.'}
+                    icon={<Check className="w-3.5 h-3.5 text-teal-300" />}
+                  >
+                    {(clinic.best_for.length > 0 || clinic.not_ideal_for.length > 0 || clinic.why_this_clinic_appears.length > 0) ? (
+                      <div className="grid sm:grid-cols-3 gap-3">
+                        <DarkDecisionColumn
+                          tone="ok"
+                          label="Подходяща за"
+                          items={clinic.best_for}
+                          emptyMsg="Все още няма споделени сигнали."
+                        />
+                        <DarkDecisionColumn
+                          tone="warn"
+                          label="Може да не е идеална"
+                          items={clinic.not_ideal_for}
+                          emptyMsg="Клиниката още не е добавила ограничения."
+                        />
+                        <DarkDecisionColumn
+                          tone="why"
+                          label="Защо я виждаш"
+                          items={clinic.why_this_clinic_appears}
+                          emptyMsg="Контекстът на препоръката се изчислява автоматично."
+                        />
+                      </div>
+                    ) : (
+                      <EmptyStateCard dark testid="empty-fit" />
+                    )}
+                  </DarkSectionShell>
+                </Reveal>
               )}
 
               {/* Services accordion (services anchor) */}
@@ -401,16 +438,47 @@ export default function ClinicProfileView({ clinic }: Props) {
               {/* Premium block */}
               {isPremium && (
                 <>
-                  {/* Approach */}
-                  <SectionShell id="approach" testid="profile-section-approach" title="Подход и първа консултация" icon={<BookOpenCheck className="w-4 h-4 text-teal-700" />}>
-                    {clinic.patient_intro ? (
-                      <p className="text-[13px] text-slate-700 leading-relaxed whitespace-pre-line">
-                        {clinic.patient_intro}
-                      </p>
-                    ) : (
-                      <EmptyStateCard testid="empty-patient-intro" />
-                    )}
-                  </SectionShell>
+                  {/* Approach — dark split feature band */}
+                  <Reveal>
+                    <DarkSectionShell
+                      id="approach"
+                      testid="profile-section-approach"
+                      title="Подходът на клиниката"
+                      icon={<BookOpenCheck className="w-3.5 h-3.5 text-teal-300" />}
+                      accent="midnight"
+                    >
+                      {clinic.patient_intro || clinic.philosophy ? (
+                        <div className="grid md:grid-cols-[1.4fr,1fr] gap-4 items-start">
+                          <div>
+                            {clinic.patient_intro && (
+                              <p className="text-[14px] text-slate-100 leading-relaxed whitespace-pre-line">
+                                {clinic.patient_intro}
+                              </p>
+                            )}
+                          </div>
+                          <div className="rounded-xl bg-white/[0.06] ring-1 ring-white/15 backdrop-blur p-4">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-teal-300/90 mb-1.5">
+                              Първа консултация
+                            </p>
+                            {clinic.philosophy ? (
+                              <blockquote className="text-[13px] text-slate-100 italic leading-relaxed border-l-2 border-teal-400/60 pl-3">
+                                „{clinic.philosophy}"
+                              </blockquote>
+                            ) : (
+                              <p className="text-[12px] text-slate-300/80 italic leading-snug">
+                                Клиниката още не е добавила обобщение на философията си.
+                              </p>
+                            )}
+                            <p className="mt-3 text-[11px] text-slate-300/70 leading-snug">
+                              Заявката не е автоматично потвърждение. Клиниката следва своя процес за първичен преглед.
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <EmptyStateCard dark testid="empty-patient-intro" />
+                      )}
+                    </DarkSectionShell>
+                  </Reveal>
 
                   {/* Consultation process — accordion */}
                   <SectionShell testid="profile-section-process" title="Как протича консултацията" icon={<Sparkles className="w-4 h-4 text-teal-700" />}>
@@ -628,6 +696,16 @@ export default function ClinicProfileView({ clinic }: Props) {
                   Заяви контакт
                 </button>
               </SectionShell>
+
+              {/* Final dark CTA band — bottom of left column */}
+              <Reveal>
+                <BottomCTABand
+                  primaryLabel={heroPrimary.label}
+                  onPrimary={heroPrimary.onClick}
+                  schedulerState={schedulerState}
+                  onContact={openContact}
+                />
+              </Reveal>
             </div>
 
             {/* ── Right sticky action panel (desktop only) ── */}
@@ -710,12 +788,13 @@ function OverviewGrid({
         icon={<CalendarClock className="w-3.5 h-3.5" />}
         title="Консултация"
         testid="overview-consultation"
+        dark
       >
-        <p className="text-[12px] text-slate-600 leading-snug mb-2">{consultationBody.line}</p>
+        <p className="text-[12px] text-slate-200/90 leading-snug mb-2">{consultationBody.line}</p>
         <button
           type="button"
           onClick={consultationBody.onCta}
-          className="text-[12px] font-medium text-teal-700 hover:text-teal-800 inline-flex items-center gap-1"
+          className="text-[12px] font-semibold text-teal-300 hover:text-teal-200 inline-flex items-center gap-1 transition-colors"
           data-testid="overview-consultation-cta"
         >
           {consultationBody.cta} →
@@ -801,25 +880,45 @@ function OverviewGrid({
 }
 
 function OverviewCard({
-  icon, title, testid, children,
+  icon, title, testid, children, dark = false,
 }: {
   icon: React.ReactNode
   title: string
   testid: string
   children: React.ReactNode
+  dark?: boolean
 }) {
+  const surface = dark
+    ? 'bg-gradient-to-br from-[#0e1a32] via-[#10243e] to-[#0c1c34] ring-1 ring-white/10 shadow-[0_14px_30px_-18px_rgba(13,148,136,0.45)]'
+    : 'bg-white/75 backdrop-blur-xl ring-1 ring-white/80 shadow-[0_8px_24px_-18px_rgba(15,23,42,0.20)]'
+  const titleColor = dark ? 'text-teal-300/95' : 'text-slate-500'
+  const iconBg = dark ? 'bg-white/10 ring-1 ring-white/15' : 'bg-teal-50 ring-1 ring-teal-100'
   return (
     <li
-      className="rounded-xl bg-white/75 backdrop-blur-xl ring-1 ring-white/80 shadow-[0_8px_24px_-18px_rgba(15,23,42,0.20)] p-3.5"
+      className={
+        'relative rounded-xl p-3.5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-18px_rgba(13,148,136,0.45)] ' +
+        surface
+      }
       data-testid={testid}
+      data-dark={dark ? 'true' : 'false'}
     >
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 inline-flex items-center gap-1.5 mb-1.5">
-        <span className="w-5 h-5 rounded-md bg-teal-50 ring-1 ring-teal-100 grid place-items-center">
+      {dark && (
+        <div
+          aria-hidden
+          className="absolute -top-4 -right-4 w-20 h-20 pointer-events-none"
+          style={{
+            background:
+              'radial-gradient(circle, rgba(45,212,191,0.25) 0%, rgba(45,212,191,0) 70%)',
+          }}
+        />
+      )}
+      <p className={'relative text-[10px] font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 mb-1.5 ' + titleColor}>
+        <span className={'w-5 h-5 rounded-md grid place-items-center ' + iconBg}>
           {icon}
         </span>
         {title}
       </p>
-      {children}
+      <div className="relative">{children}</div>
     </li>
   )
 }
@@ -841,68 +940,131 @@ function StickyActionPanel({
       className="sticky top-20 space-y-3"
       data-testid="profile-sticky-panel"
     >
-      <div className="rounded-2xl bg-white/85 backdrop-blur-xl ring-1 ring-white/80 shadow-[0_18px_40px_-22px_rgba(15,23,42,0.18)] p-4">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
-          Следваща стъпка
-        </p>
-        <button
-          type="button"
-          onClick={onPrimary}
-          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full text-white text-sm font-medium hover:-translate-y-0.5 transition-all shadow-[0_12px_28px_-12px_rgba(13,148,136,0.50)]"
+      <div className="relative rounded-2xl overflow-hidden ring-1 ring-white/12 shadow-[0_22px_50px_-26px_rgba(13,148,136,0.45)] bg-gradient-to-br from-[#0b1426] via-[#0e2138] to-[#0a1a2a]">
+        <div
+          aria-hidden
+          className="absolute -top-12 -right-10 w-44 h-44 pointer-events-none"
           style={{
-            backgroundImage:
-              'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)',
+            background:
+              'radial-gradient(circle, rgba(45,212,191,0.32) 0%, rgba(45,212,191,0) 65%)',
           }}
-          data-testid="sticky-cta-primary"
-        >
-          {primaryIsSchedule ? <CalendarClock className="w-4 h-4" /> : <Phone className="w-4 h-4" />}
-          {primaryLabel}
-        </button>
-
-        {schedulerState === 'available' && (
-          <p className="mt-2 text-[11px] text-slate-500 leading-snug">
-            Свободни часове за дистанционна консултация
-            <span className="text-slate-400"> · телефонен разговор</span>
+        />
+        <div className="relative p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-teal-300/90 mb-2">
+            Следваща стъпка
           </p>
-        )}
-        {schedulerState === 'enabled_no_slots' && (
-          <p className="mt-2 text-[11px] text-amber-700 leading-snug">
-            Клиниката приема заявки за онлайн консултация, но няма
-            публикувани свободни часове.
-          </p>
-        )}
-
-        {primaryIsSchedule && (
           <button
             type="button"
-            onClick={onContact}
-            className="mt-2 w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-full bg-slate-50 ring-1 ring-slate-200 text-slate-700 text-xs font-medium hover:bg-slate-100 transition-colors"
-            data-testid="sticky-cta-secondary"
+            onClick={onPrimary}
+            className="group w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full text-slate-900 text-sm font-semibold transition-all hover:-translate-y-0.5 shadow-[0_16px_36px_-12px_rgba(94,234,212,0.55)] bg-gradient-to-br from-teal-300 to-teal-400 hover:from-teal-200 hover:to-teal-300"
+            data-testid="sticky-cta-primary"
           >
-            <Phone className="w-3 h-3" />
-            или заяви контакт
+            {primaryIsSchedule
+              ? <CalendarClock className="w-4 h-4 group-hover:rotate-[-4deg] transition-transform" />
+              : <Phone className="w-4 h-4" />}
+            {primaryLabel}
           </button>
-        )}
 
-        {clinic.care_pass_partner && (
-          <div className="mt-3 pt-3 border-t border-slate-100">
-            <p className="inline-flex items-center gap-1 text-[12px] text-slate-700 font-medium">
-              <Heart className="w-3 h-3 text-rose-500" />
-              Care Pass партньор
+          {schedulerState === 'available' && (
+            <p className="mt-2 text-[11px] text-slate-300/80 leading-snug">
+              Телефонна консултация · клиниката потвърждава ръчно
             </p>
-            <Link
-              href="/care-pass"
-              className="mt-0.5 block text-[11px] text-teal-700 hover:text-teal-800"
+          )}
+          {schedulerState === 'enabled_no_slots' && (
+            <p className="mt-2 text-[11px] text-amber-200/90 leading-snug">
+              Клиниката приема заявки, но няма публикувани свободни часове.
+            </p>
+          )}
+
+          {primaryIsSchedule && (
+            <button
+              type="button"
+              onClick={onContact}
+              className="mt-2 w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-full bg-white/[0.06] ring-1 ring-white/15 text-slate-100 text-xs font-medium hover:bg-white/10 transition-colors"
+              data-testid="sticky-cta-secondary"
             >
-              Виж как работи →
-            </Link>
-          </div>
-        )}
+              <Phone className="w-3 h-3" />
+              или заяви контакт
+            </button>
+          )}
+
+          {/* Progress microcopy */}
+          <ol
+            className="mt-4 pt-3 border-t border-white/10 space-y-1.5"
+            data-testid="sticky-progress-steps"
+            aria-label="Стъпки за свързване с клиниката"
+          >
+            <ProgressStep n={1} label="Избери час или изпрати заявка" />
+            <ProgressStep n={2} label="Клиниката потвърждава" />
+            <ProgressStep n={3} label="Получаваш насока за следваща стъпка" />
+          </ol>
+
+          {clinic.care_pass_partner && (
+            <div className="mt-3 pt-3 border-t border-white/10">
+              <p className="inline-flex items-center gap-1 text-[12px] text-slate-100 font-medium">
+                <Heart className="w-3 h-3 text-rose-300" />
+                Care Pass партньор
+              </p>
+              <Link
+                href="/care-pass"
+                className="mt-0.5 block text-[11px] text-teal-300 hover:text-teal-200"
+              >
+                Виж как работи →
+              </Link>
+            </div>
+          )}
+        </div>
       </div>
 
-      <p className="text-[10px] text-slate-400 leading-snug px-1">
+      <p className="text-[10px] text-slate-500 leading-snug px-1">
         Заявката се изпраща към клиниката. Zubite не потвърждава автоматично записване.
       </p>
+    </div>
+  )
+}
+
+function ProgressStep({ n, label }: { n: number; label: string }) {
+  return (
+    <li className="flex items-center gap-2 text-[11px] text-slate-200/90">
+      <span className="w-4 h-4 rounded-full bg-white/[0.08] ring-1 ring-white/20 text-[9px] grid place-items-center text-teal-300 font-semibold">
+        {n}
+      </span>
+      <span>{label}</span>
+    </li>
+  )
+}
+
+function DarkDecisionColumn({
+  tone, label, items, emptyMsg,
+}: {
+  tone: 'ok' | 'warn' | 'why'
+  label: string
+  items: string[]
+  emptyMsg: string
+}) {
+  const accent = tone === 'ok'
+    ? 'text-emerald-300'
+    : tone === 'warn'
+      ? 'text-amber-300'
+      : 'text-teal-300'
+  const Icon = tone === 'ok' ? Check : tone === 'warn' ? X : Sparkles
+  return (
+    <div className="rounded-xl bg-white/[0.04] ring-1 ring-white/12 backdrop-blur p-3">
+      <p className={'text-[10px] font-semibold uppercase tracking-[0.14em] mb-1.5 ' + accent}>
+        {label}
+      </p>
+      {items.length > 0 ? (
+        <ul className="space-y-1 text-[12.5px] text-slate-100">
+          {items.map((it, i) => (
+            <li key={i} className="flex items-start gap-1.5">
+              <Icon className={'w-3.5 h-3.5 mt-0.5 flex-shrink-0 ' + accent} />
+              <span>{it}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-[11px] text-slate-400 italic leading-snug">{emptyMsg}</p>
+      )}
     </div>
   )
 }
@@ -1119,6 +1281,224 @@ function TreatmentAccordion({
         )}
       </div>
     </details>
+  )
+}
+
+// ─── Phase C1.2 — motion + scroll-aware helpers ─────────────────
+
+/** Intersection-observer wrapper that fades + slides children in.
+ *  Respects `prefers-reduced-motion`. CSS-only, no extra deps. */
+function Reveal({
+  children, delay = 0, as: As = 'div',
+}: {
+  children: React.ReactNode
+  delay?: number
+  as?: 'div' | 'section' | 'header' | 'aside' | 'nav'
+}) {
+  const ref = useRef<HTMLDivElement | null>(null)
+  const [visible, setVisible] = useState(false)
+  const reducedMotion = useReducedMotion()
+
+  useEffect(() => {
+    if (reducedMotion) { setVisible(true); return }
+    if (!ref.current) return
+    const obs = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            setVisible(true)
+            obs.disconnect()
+          }
+        }
+      },
+      { threshold: 0.08, rootMargin: '0px 0px -40px 0px' },
+    )
+    obs.observe(ref.current)
+    return () => obs.disconnect()
+  }, [reducedMotion])
+
+  const Tag = As as React.ElementType
+  return (
+    <Tag
+      ref={ref as React.Ref<HTMLDivElement>}
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(12px)',
+        transition: reducedMotion
+          ? 'none'
+          : `opacity .55s ease ${delay}ms, transform .55s cubic-bezier(.2,.7,.2,1) ${delay}ms`,
+        willChange: 'opacity, transform',
+      }}
+    >
+      {children}
+    </Tag>
+  )
+}
+
+function useReducedMotion(): boolean {
+  const [v, setV] = useState(false)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    setV(mq.matches)
+    const h = (e: MediaQueryListEvent) => setV(e.matches)
+    mq.addEventListener?.('change', h)
+    return () => mq.removeEventListener?.('change', h)
+  }, [])
+  return v
+}
+
+/** Tracks which anchor section is currently in view (top half of viewport).
+ *  Used for the sticky-nav active highlight. */
+function useActiveSection(ids: string[]): string | null {
+  const [active, setActive] = useState<string | null>(ids[0] || null)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const observers: IntersectionObserver[] = []
+    const visible = new Set<string>()
+    for (const id of ids) {
+      const el = document.getElementById(id)
+      if (!el) continue
+      const obs = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            visible.add(id)
+          } else {
+            visible.delete(id)
+          }
+          // Pick the topmost id that's currently visible (closest to top of viewport).
+          let best: { id: string; top: number } | null = null
+          for (const vid of visible) {
+            const node = document.getElementById(vid)
+            if (!node) continue
+            const top = node.getBoundingClientRect().top
+            if (best === null || top < best.top) best = { id: vid, top }
+          }
+          if (best) setActive(best.id)
+        },
+        { rootMargin: '-25% 0px -55% 0px', threshold: 0 },
+      )
+      obs.observe(el)
+      observers.push(obs)
+    }
+    return () => { for (const o of observers) o.disconnect() }
+  }, [ids])
+  return active
+}
+
+/** Dark navy/midnight section with subtle turquoise glow. Used as
+ *  contrast moments inside an otherwise light profile. */
+function DarkSectionShell({
+  id, testid, title, subtitle, icon, children, accent = 'navy',
+}: {
+  id?: string
+  testid: string
+  title: string
+  subtitle?: string
+  icon: React.ReactNode
+  children: React.ReactNode
+  accent?: 'navy' | 'midnight'
+}) {
+  const bg = accent === 'midnight'
+    ? 'bg-gradient-to-br from-[#0b1224] via-[#0e1730] to-[#0a1a2a]'
+    : 'bg-gradient-to-br from-[#0e1a32] via-[#10243e] to-[#0c1c34]'
+  return (
+    <section
+      id={id}
+      className={
+        'relative rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-[0_20px_50px_-30px_rgba(13,148,136,0.45)] scroll-mt-20 ' + bg
+      }
+      data-testid={testid}
+    >
+      {/* Soft turquoise glow */}
+      <div
+        aria-hidden
+        className="absolute -inset-x-10 -top-20 h-60 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse 60% 100% at 50% 0%, rgba(45,212,191,0.20) 0%, rgba(45,212,191,0) 60%)',
+        }}
+      />
+      <div className="relative p-5 sm:p-6">
+        <div className="mb-3">
+          <h2 className="font-serif text-[16px] sm:text-lg font-semibold text-slate-50 inline-flex items-center gap-2">
+            <span className="w-7 h-7 rounded-md bg-white/10 ring-1 ring-white/15 backdrop-blur grid place-items-center">
+              {icon}
+            </span>
+            {title}
+          </h2>
+          {subtitle && (
+            <p className="mt-0.5 ml-9 text-[11px] text-slate-300/80 leading-snug">
+              {subtitle}
+            </p>
+          )}
+        </div>
+        {children}
+      </div>
+    </section>
+  )
+}
+
+/** Final dark-navy CTA band. */
+function BottomCTABand({
+  primaryLabel, onPrimary, schedulerState, onContact,
+}: {
+  primaryLabel: string
+  onPrimary: () => void
+  schedulerState: SchedulerState
+  onContact: () => void
+}) {
+  const isSchedule = schedulerState === 'available'
+  return (
+    <section
+      className="relative mt-8 rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-[0_22px_50px_-28px_rgba(13,148,136,0.40)] bg-gradient-to-br from-[#0b1426] via-[#0e2138] to-[#0a1a2a]"
+      data-testid="profile-bottom-cta"
+    >
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse 60% 60% at 100% 100%, rgba(45,212,191,0.18) 0%, rgba(45,212,191,0) 60%)',
+        }}
+      />
+      <div className="relative p-6 sm:p-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5">
+        <div className="max-w-xl">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-teal-300/90 mb-1.5">
+            Следваща стъпка
+          </p>
+          <h2 className="font-serif text-xl sm:text-2xl font-semibold text-slate-50 leading-tight">
+            Готови ли сте да направите следващата стъпка?
+          </h2>
+          <p className="mt-2 text-[13px] text-slate-300/85 leading-relaxed">
+            Изпратете заявка и клиниката ще потвърди възможните часове
+            или ще се свърже с вас.
+          </p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+          <button
+            type="button"
+            onClick={onPrimary}
+            data-testid="profile-bottom-cta-primary"
+            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full text-slate-900 text-sm font-semibold transition-all hover:-translate-y-0.5 shadow-[0_18px_40px_-12px_rgba(94,234,212,0.6)] bg-gradient-to-br from-teal-300 to-teal-400 hover:from-teal-200 hover:to-teal-300"
+          >
+            {isSchedule ? <CalendarClock className="w-4 h-4" /> : <Phone className="w-4 h-4" />}
+            {primaryLabel}
+          </button>
+          {isSchedule && (
+            <button
+              type="button"
+              onClick={onContact}
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-slate-100 text-xs font-medium ring-1 ring-white/15 hover:bg-white/5 transition-colors"
+              data-testid="profile-bottom-cta-secondary"
+            >
+              <Phone className="w-3 h-3" />
+              или заяви контакт
+            </button>
+          )}
+        </div>
+      </div>
+    </section>
   )
 }
 
