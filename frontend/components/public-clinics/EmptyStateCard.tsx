@@ -3,8 +3,8 @@
 /**
  * <EmptyStateCard />
  * ------------------------------------------------------------------
- * Phase C1 — shared polished empty state used inside tier-included
- * profile sections when the clinic has not (yet) filled in content.
+ * Phase C1 — shared polished empty state.
+ * Phase C1.1 — compact variant + reduced default vertical weight.
  *
  * Looks intentional and premium, not broken or unfinished. NEVER use
  * for tier-excluded sections — those should not render at all.
@@ -19,31 +19,41 @@ interface Props {
   hint?: string
   /** Tag for test/data-testid. */
   testid?: string
+  /** Compact variant — tighter padding, smaller glyph, single line copy. */
+  compact?: boolean
 }
 
 const DEFAULT_MESSAGE =
   'Тази секция е включена в профила, но клиниката все още не е добавила съдържание.'
 
-export default function EmptyStateCard({ message, hint, testid }: Props) {
+export default function EmptyStateCard({
+  message, hint, testid, compact = true,
+}: Props) {
   return (
     <div
-      className="rounded-2xl bg-white/55 ring-1 ring-slate-200/70 px-5 py-6 sm:px-6 sm:py-7 text-slate-600 leading-relaxed"
+      className={
+        'rounded-xl bg-slate-50/60 ring-1 ring-slate-200/60 text-slate-600 leading-relaxed ' +
+        (compact ? 'px-3.5 py-3 text-[13px]' : 'px-5 py-5 text-sm')
+      }
       data-testid={testid || 'empty-state-card'}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-2.5">
         <span
           aria-hidden
-          className="mt-0.5 w-9 h-9 rounded-xl bg-slate-50 ring-1 ring-slate-200/70 grid place-items-center flex-shrink-0"
+          className={
+            'mt-0.5 rounded-md bg-white ring-1 ring-slate-200/70 grid place-items-center flex-shrink-0 ' +
+            (compact ? 'w-6 h-6' : 'w-8 h-8')
+          }
         >
-          <Sparkles className="w-4 h-4 text-slate-400" />
+          <Sparkles className={compact ? 'w-3 h-3 text-slate-400' : 'w-3.5 h-3.5 text-slate-400'} />
         </span>
         <div className="flex-1">
           {hint && (
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-0.5">
               {hint}
             </p>
           )}
-          <p className="text-sm">{message || DEFAULT_MESSAGE}</p>
+          <p>{message || DEFAULT_MESSAGE}</p>
         </div>
       </div>
     </div>

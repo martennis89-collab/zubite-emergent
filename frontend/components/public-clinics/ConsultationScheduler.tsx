@@ -136,22 +136,34 @@ export default function ConsultationScheduler({ clinic, sourcePath, onStateResol
     return null
   }
 
+  // Phase C1.1 — compact rendering for `enabled_no_slots`: a tight
+  // single card instead of a giant titled section.
+  const compactNoSlots = state.kind === 'ready' && state.data.state === 'enabled_no_slots'
+
   return (
     <section
-      className="mt-6 rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-5 sm:p-6"
+      className={
+        compactNoSlots
+          ? 'mt-5 rounded-xl bg-amber-50/55 ring-1 ring-amber-100/80 p-4'
+          : 'mt-6 rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-5 sm:p-6'
+      }
       data-testid="consultation-scheduler"
       data-state={state.kind === 'ready' ? state.data.state : state.kind}
     >
-      <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 mb-1 inline-flex items-center gap-2">
-        <span className="w-8 h-8 rounded-lg bg-teal-50 ring-1 ring-teal-100 grid place-items-center">
-          <CalendarClock className="w-5 h-5 text-teal-700" />
-        </span>
-        Свободни часове за дистанционна консултация
-      </h2>
-      <p className="text-sm text-slate-600 leading-relaxed mb-4">
-        Кратък телефонен разговор с екипа на клиниката, за да обсъдиш
-        целите си и възможните стъпки. Това не е диагноза.
-      </p>
+      {!compactNoSlots && (
+        <>
+          <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 mb-1 inline-flex items-center gap-2">
+            <span className="w-8 h-8 rounded-lg bg-teal-50 ring-1 ring-teal-100 grid place-items-center">
+              <CalendarClock className="w-5 h-5 text-teal-700" />
+            </span>
+            Свободни часове за дистанционна консултация
+          </h2>
+          <p className="text-sm text-slate-600 leading-relaxed mb-4">
+            Кратък телефонен разговор с екипа на клиниката, за да обсъдиш
+            целите си и възможните стъпки. Това не е диагноза.
+          </p>
+        </>
+      )}
 
       {state.kind === 'loading' && (
         <div
@@ -298,27 +310,33 @@ function AvailableSlots({
 function NoSlotsPanel({ onFallback }: { onFallback: () => void }) {
   return (
     <div
-      className="rounded-lg bg-amber-50/60 ring-1 ring-amber-100 p-4"
+      className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3"
       data-testid="scheduler-no-slots"
     >
-      <p className="text-sm text-amber-900 leading-relaxed">
-        В момента няма публикувани свободни часове за дистанционна
-        консултация.
-      </p>
-      <p className="mt-1 text-xs text-amber-900/80 leading-snug">
-        Можеш да изпратиш стандартна заявка за контакт и клиниката ще
-        се свърже с теб.
-      </p>
+      <div className="flex items-start gap-2.5 flex-1 min-w-0">
+        <span className="w-7 h-7 rounded-md bg-amber-100/80 ring-1 ring-amber-200 grid place-items-center flex-shrink-0">
+          <CalendarClock className="w-4 h-4 text-amber-700" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-[13px] font-medium text-amber-900 leading-snug">
+            Онлайн консултация
+          </p>
+          <p className="text-xs text-amber-900/80 leading-snug mt-0.5">
+            Клиниката приема заявки за онлайн консултация, но все още
+            не е публикувала свободни часове.
+          </p>
+        </div>
+      </div>
       <button
         type="button"
         onClick={onFallback}
         data-testid="scheduler-fallback-contact"
-        className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-full text-white text-sm font-medium hover:-translate-y-0.5 transition-all shadow-[0_14px_30px_-12px_rgba(13,148,136,0.50)]"
+        className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-full text-white text-xs font-medium hover:-translate-y-0.5 transition-all flex-shrink-0 shadow-[0_8px_18px_-8px_rgba(13,148,136,0.45)]"
         style={{
           backgroundImage: 'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)',
         }}
       >
-        <Phone className="w-4 h-4" />
+        <Phone className="w-3 h-3" />
         Заяви контакт
       </button>
     </div>
