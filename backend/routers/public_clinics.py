@@ -173,6 +173,8 @@ def _public_clinic_payload(clinic: dict) -> dict:
         # Optional rich profile (for the public profile page).
         "long_description": profile.get("clinic_story"),
         "consultation_process": profile.get("consultation_process"),
+        "environment_description": profile.get("environment_description"),
+        "philosophy": profile.get("philosophy"),
         "doctor_spotlight": (
             {
                 "name": profile.get("doctor_spotlight_name"),
@@ -182,7 +184,30 @@ def _public_clinic_payload(clinic: dict) -> dict:
             if profile.get("doctor_spotlight_name")
             else None
         ),
-        "case_library": profile.get("case_library") or [],
+        "team_note": profile.get("team_note"),
+        "clinic_video_url": profile.get("clinic_video_url"),
+        "doctor_video_url": profile.get("doctor_video_url"),
+        # Phase C1 — Authority-tier enrichment fields. Always returned
+        # (possibly empty); the frontend tier gate decides what to show.
+        "technology_section": profile.get("technology_section") or [],
+        "expert_qa": profile.get("expert_qa") or [],
+        "faq": profile.get("faq") or [],
+        "category_authority": profile.get("category_authority"),
+        "price_ranges": profile.get("price_ranges") or [],
+        "treatment_details": profile.get("treatment_details") or {},
+        "case_library": [
+            c for c in (profile.get("case_library") or [])
+            # Only consent-confirmed cases reach the public payload.
+            if c.get("consent_confirmed") and c.get("status") == "published"
+        ],
+        "profile_published_at": profile.get("published_at"),
+        # Phase C1 — sponsorship + demo flags (FE consumes them
+        # respectively for the "Спонсорирано" badge and the demo
+        # banner + noindex meta).
+        "is_sponsored": bool(clinic.get("is_sponsored")),
+        "sponsored_label": clinic.get("sponsored_label") or None,
+        "is_demo": bool(clinic.get("is_demo")),
+        "is_addons_showcase": bool(clinic.get("is_addons_showcase")),
     }
     return out
 

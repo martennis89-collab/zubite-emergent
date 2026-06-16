@@ -52,6 +52,11 @@ interface Props {
   clinic: PublicClinic
   /** Canonical profile URL to log on the lead. */
   sourcePath: string
+  /** Parent observer — receives the resolved availability state so it
+   *  can render adjacent tier-included content (Phase C1). The callback
+   *  is invoked once whenever the state changes; never with intermediate
+   *  loading/error so the parent gets stable values. */
+  onStateResolved?: (state: AvailabilityResponse['state'] | null) => void
 }
 
 type LoadState =
@@ -98,7 +103,7 @@ function groupSlotsByDate(slots: Slot[]): Array<{ key: string; label: string; sl
     }))
 }
 
-export default function ConsultationScheduler({ clinic, sourcePath }: Props) {
+export default function ConsultationScheduler({ clinic, sourcePath, onStateResolved }: Props) {
   const [state, setState] = useState<LoadState>({ kind: 'loading' })
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
   const [contactFallbackOpen, setContactFallbackOpen] = useState(false)
@@ -112,14 +117,17 @@ export default function ConsultationScheduler({ clinic, sourcePath }: Props) {
       )
       if (!r.ok) {
         setState({ kind: 'error', message: 'Не успяхме да заредим часовете. Опитай отново.' })
+        onStateResolved?.(null)
         return
       }
       const data: AvailabilityResponse = await r.json()
       setState({ kind: 'ready', data })
+      onStateResolved?.(data.state)
     } catch {
       setState({ kind: 'error', message: 'Мрежова грешка. Опитай отново.' })
+      onStateResolved?.(null)
     }
-  }, [clinic.id])
+  }, [clinic.id, onStateResolved])
 
   useEffect(() => { void loadAvailability() }, [loadAvailability])
 

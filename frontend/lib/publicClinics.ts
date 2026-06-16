@@ -33,6 +33,22 @@ export type DoctorSpotlight = {
   bio: string | null
 }
 
+export type ProfileQA = { question: string; answer: string }
+
+export type ProfilePriceRange = {
+  treatment: string
+  price_from: number | null
+  price_to: number | null
+  currency: string
+  note: string | null
+}
+
+export type ProfileTreatmentDetail = {
+  who_for: string | null
+  remote_start_possible: boolean | null
+  note: string | null
+}
+
 export type PublicClinic = {
   id: string
   slug: string
@@ -60,8 +76,26 @@ export type PublicClinic = {
   review: ReviewSummary | null
   long_description: string | null
   consultation_process: string | null
+  environment_description: string | null
+  philosophy: string | null
   doctor_spotlight: DoctorSpotlight | null
+  team_note: string | null
+  clinic_video_url: string | null
+  doctor_video_url: string | null
+  // Phase C1 — Premium/Authority enrichment (always present; may be empty)
+  technology_section: string[]
+  expert_qa: ProfileQA[]
+  faq: ProfileQA[]
+  category_authority: string | null
+  price_ranges: ProfilePriceRange[]
+  treatment_details: Record<string, ProfileTreatmentDetail>
   case_library: Array<{ id?: string; title: string; category?: string; summary: string }>
+  profile_published_at: string | null
+  // Phase C1 — sponsorship + demo flags
+  is_sponsored: boolean
+  sponsored_label: string | null
+  is_demo: boolean
+  is_addons_showcase: boolean
 }
 
 export type ListResponse = {

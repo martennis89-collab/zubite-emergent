@@ -949,6 +949,8 @@ def _is_clinic_visible(clinic: dict) -> bool:
       • is_active == False
       • clinic_status in {applicant, suspended, churned, paused}
       • status in {suspended, churned, paused, applicant}
+      • is_demo == True (Phase C1 — demo / showcase clinics MUST never
+        reach quiz-driven recommendations regardless of preview env)
 
     Positive signals (need at least one -> visible):
       • is_active == True
@@ -957,6 +959,9 @@ def _is_clinic_visible(clinic: dict) -> bool:
     """
     # Hard negatives.
     if clinic.get("is_active") is False:
+        return False
+    # Demo / showcase clinics never compete for real recommendations.
+    if clinic.get("is_demo") is True:
         return False
     cs = (clinic.get("clinic_status") or "").lower()
     if cs and cs in {"applicant", "suspended", "churned", "paused"}:
@@ -1253,6 +1258,7 @@ async def recommended_clinics(lead_id: str, limit: int = 3):
             "city_slug": 1, "city_name": 1, "city": 1,
             "treatments_supported": 1, "treatments_offered": 1,
             "is_active": 1, "clinic_status": 1, "status": 1,
+            "is_demo": 1,
             "created_at": 1,
             # Partner placement (optional; missing => safe defaults).
             "partner_tier": 1, "is_featured": 1, "is_premium": 1,

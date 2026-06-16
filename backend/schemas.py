@@ -722,6 +722,39 @@ class ClinicProfileCase(BaseModel):
     consent_confirmed: bool = False
 
 
+class ClinicProfileQA(BaseModel):
+    """A single Q&A pair (Expert Q&A or FAQ module). Both modules share
+    the shape so admin tooling and frontend rendering stays uniform."""
+    model_config = ConfigDict(extra="ignore")
+
+    question: str = Field(min_length=1, max_length=300)
+    answer: str = Field(min_length=1, max_length=1500)
+
+
+class ClinicProfilePriceRange(BaseModel):
+    """Honest price range. `price_from` / `price_to` are inclusive bounds
+    in the same currency. The optional `note` is intentionally non-binding
+    ("ориентировъчно", "след преглед", etc.) so we never imply a
+    contractual price."""
+    model_config = ConfigDict(extra="ignore")
+
+    treatment: str = Field(min_length=1, max_length=80)
+    price_from: Optional[float] = Field(default=None, ge=0)
+    price_to: Optional[float] = Field(default=None, ge=0)
+    currency: str = Field(default="BGN", min_length=3, max_length=4)
+    note: Optional[str] = Field(default=None, max_length=300)
+
+
+class ClinicProfileTreatmentDetail(BaseModel):
+    """Per-treatment expanded copy. Lives in `treatment_details[slug]`.
+    All fields optional so admin can fill incrementally."""
+    model_config = ConfigDict(extra="ignore")
+
+    who_for: Optional[str] = Field(default=None, max_length=500)
+    remote_start_possible: Optional[bool] = None
+    note: Optional[str] = Field(default=None, max_length=500)
+
+
 class ClinicReviewSources(BaseModel):
     """Nested mirror of the flat top-level review fields. The flat
     fields remain canonical for `_build_review_signals` compatibility;
@@ -771,6 +804,21 @@ class ClinicProfile(BaseModel):
     review_sources: Optional[ClinicReviewSources] = None
     case_library: Optional[List[ClinicProfileCase]] = None
 
+    # ── Phase C1 — Premium / Authority enrichment fields ───────────
+    # Additive; missing on existing clinics → rendered as polished
+    # empty states ("Тази секция е включена в профила, но клиниката
+    # все още не е добавила съдържание."). NEVER seeded with mock
+    # data on real clinics.
+    technology_section: Optional[List[str]] = None  # Authority: bullets
+    expert_qa: Optional[List[ClinicProfileQA]] = None  # Authority
+    philosophy: Optional[str] = Field(default=None, max_length=800)  # Premium+
+    faq: Optional[List[ClinicProfileQA]] = None  # Premium+
+    category_authority: Optional[str] = Field(default=None, max_length=300)  # Authority
+    price_ranges: Optional[List[ClinicProfilePriceRange]] = None  # Authority
+    # Per-treatment expansion. Key is the treatment slug
+    # (e.g. "invisalign", "implants").
+    treatment_details: Optional[Dict[str, ClinicProfileTreatmentDetail]] = None
+
     updated_at: Optional[str] = None
     published_at: Optional[str] = None
 
@@ -798,6 +846,19 @@ class ClinicAdminUpdate(BaseModel):
     # ── Rich Profile Editor R1 ───────────────────────────────────────
     partner_tier: Optional[str] = None
     clinic_profile: Optional[ClinicProfile] = None
+
+    # ── Phase C1 — sponsorship & showcase flags ──────────────────────
+    # `is_sponsored` toggles a visually-separated "Спонсорирано" badge
+    # on the profile/listing. Per product rule it MUST NOT change
+    # ranking. `sponsored_label` is reserved for future per-campaign
+    # variations; for now the public render forces the literal string
+    # "Спонсорирано" regardless of stored value.
+    # `is_addons_showcase` flags the dedicated demo clinic that renders
+    # every paid visual add-on; combined with `is_demo=True` it stays
+    # excluded from listings / recommendations / sitemap.
+    is_sponsored: Optional[bool] = None
+    sponsored_label: Optional[str] = Field(default=None, max_length=80)
+    is_addons_showcase: Optional[bool] = None
 
     # ── External review signals (display-only, admin-gated) ──────────
     # All fields are optional. Bounds match the publish gate in

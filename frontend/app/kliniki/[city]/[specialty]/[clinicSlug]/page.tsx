@@ -28,6 +28,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       alternates: {
         canonical: `https://zubite.bg/kliniki/${city}/${(await params).specialty}/${clinicSlug}`,
       },
+      // Phase C1 — demo/showcase clinic profiles must never be indexed.
+      // Real clinics still inherit the global robots config (indexable).
+      ...(c.is_demo
+        ? { robots: { index: false, follow: false, googleBot: { index: false, follow: false } } }
+        : {}),
     }
   } catch {
     return { title: 'Клиника | Zubite.bg' }
