@@ -250,17 +250,20 @@ export default function ClinicProfileView({ clinic }: Props) {
                     <button
                       type="button"
                       onClick={heroPrimary.onClick}
-                      className="group inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-white text-sm font-medium hover:-translate-y-0.5 transition-all shadow-[0_14px_30px_-12px_rgba(13,148,136,0.55)] hover:shadow-[0_18px_40px_-12px_rgba(13,148,136,0.75)]"
+          className="group relative inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-slate-900 text-sm font-medium overflow-hidden hover:-translate-y-0.5 transition-all shadow-[0_18px_40px_-12px_rgba(94,234,212,0.45)]"
                       style={{
                         backgroundImage:
-                          'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)',
+                          'linear-gradient(135deg,#5eead4 0%,#2dd4bf 60%,#14b8a6 100%)',
                       }}
                       data-testid="profile-cta-primary"
                     >
+                      <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/40 blur-sm pointer-events-none" />
+                      <span className="relative inline-flex items-center gap-2">
                       {schedulerState === 'available'
                         ? <CalendarClock className="w-4 h-4 group-hover:rotate-[-4deg] transition-transform" />
                         : <Phone className="w-4 h-4" />}
                       {heroPrimary.label}
+                      </span>
                     </button>
                     {heroSecondary && (
                       <button
@@ -366,6 +369,7 @@ export default function ClinicProfileView({ clinic }: Props) {
                   <DarkSectionShell
                     id="suitability"
                     testid="profile-section-fit"
+                    eyebrow="Подходящост"
                     title="Подходяща ли е тази клиника за вас?"
                     subtitle={'Zubite не определя „най-добра“ клиника — представяме сигналите, които сме събрали.'}
                     icon={<Check className="w-3.5 h-3.5 text-teal-300" />}
@@ -956,13 +960,17 @@ function StickyActionPanel({
           <button
             type="button"
             onClick={onPrimary}
-            className="group w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full text-slate-900 text-sm font-semibold transition-all hover:-translate-y-0.5 shadow-[0_16px_36px_-12px_rgba(94,234,212,0.55)] bg-gradient-to-br from-teal-300 to-teal-400 hover:from-teal-200 hover:to-teal-300"
+            className="group relative w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full text-slate-900 text-sm font-semibold transition-all hover:-translate-y-0.5 shadow-[0_18px_40px_-12px_rgba(94,234,212,0.55)] overflow-hidden"
+            style={{ backgroundImage: 'linear-gradient(135deg,#5eead4 0%,#2dd4bf 60%,#14b8a6 100%)' }}
             data-testid="sticky-cta-primary"
           >
+            <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/40 blur-sm pointer-events-none" />
+            <span className="relative inline-flex items-center gap-2">
             {primaryIsSchedule
               ? <CalendarClock className="w-4 h-4 group-hover:rotate-[-4deg] transition-transform" />
               : <Phone className="w-4 h-4" />}
             {primaryLabel}
+            </span>
           </button>
 
           {schedulerState === 'available' && (
@@ -1389,7 +1397,7 @@ function useActiveSection(ids: string[]): string | null {
 /** Dark navy/midnight section with subtle turquoise glow. Used as
  *  contrast moments inside an otherwise light profile. */
 function DarkSectionShell({
-  id, testid, title, subtitle, icon, children, accent = 'navy',
+  id, testid, title, subtitle, icon, children, eyebrow,
 }: {
   id?: string
   testid: string
@@ -1397,38 +1405,40 @@ function DarkSectionShell({
   subtitle?: string
   icon: React.ReactNode
   children: React.ReactNode
+  /** Optional uppercase eyebrow above the title (matches za-kliniki). */
+  eyebrow?: string
+  /** @deprecated kept for API compatibility; ignored. */
   accent?: 'navy' | 'midnight'
 }) {
-  const bg = accent === 'midnight'
-    ? 'bg-gradient-to-br from-[#0b1224] via-[#0e1730] to-[#0a1a2a]'
-    : 'bg-gradient-to-br from-[#0e1a32] via-[#10243e] to-[#0c1c34]'
   return (
     <section
       id={id}
-      className={
-        'relative rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-[0_20px_50px_-30px_rgba(13,148,136,0.45)] scroll-mt-20 ' + bg
-      }
+      className="relative rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-[0_30px_60px_-20px_rgba(0,0,0,0.55)] scroll-mt-20"
       data-testid={testid}
+      style={{
+        background:
+          'radial-gradient(ellipse 70% 60% at 100% 0%, rgba(20,184,166,0.22) 0%, transparent 60%),' +
+          'radial-gradient(ellipse 50% 50% at 0% 100%, rgba(94,234,212,0.10) 0%, transparent 60%),' +
+          'linear-gradient(135deg, #0B1620 0%, #0E1A24 50%, #112832 100%)',
+      }}
     >
-      {/* Soft turquoise glow */}
-      <div
-        aria-hidden
-        className="absolute -inset-x-10 -top-20 h-60 pointer-events-none"
-        style={{
-          background:
-            'radial-gradient(ellipse 60% 100% at 50% 0%, rgba(45,212,191,0.20) 0%, rgba(45,212,191,0) 60%)',
-        }}
-      />
-      <div className="relative p-5 sm:p-6">
-        <div className="mb-3">
-          <h2 className="font-serif text-[16px] sm:text-lg font-semibold text-slate-50 inline-flex items-center gap-2">
-            <span className="w-7 h-7 rounded-md bg-white/10 ring-1 ring-white/15 backdrop-blur grid place-items-center">
+      <div aria-hidden className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-teal-300/30 to-transparent" />
+      <div aria-hidden className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-teal-300/20 to-transparent" />
+      <div className="relative p-5 sm:p-7">
+        <div className="mb-4">
+          {eyebrow && (
+            <p className="text-[10px] uppercase tracking-[0.2em] text-teal-300 font-semibold mb-2">
+              {eyebrow}
+            </p>
+          )}
+          <h2 className="font-serif text-xl sm:text-2xl font-semibold text-white leading-[1.1] tracking-tight inline-flex items-center gap-2">
+            <span className="w-7 h-7 rounded-md bg-white/[0.08] ring-1 ring-white/15 backdrop-blur grid place-items-center">
               {icon}
             </span>
             {title}
           </h2>
           {subtitle && (
-            <p className="mt-0.5 ml-9 text-[11px] text-slate-300/80 leading-snug">
+            <p className="mt-1 ml-9 text-[12px] text-slate-300/80 leading-snug">
               {subtitle}
             </p>
           )}
@@ -1439,7 +1449,7 @@ function DarkSectionShell({
   )
 }
 
-/** Final dark-navy CTA band. */
+/** Final dark CTA band — matches /za-kliniki final partnership block. */
 function BottomCTABand({
   primaryLabel, onPrimary, schedulerState, onContact,
 }: {
@@ -1451,26 +1461,25 @@ function BottomCTABand({
   const isSchedule = schedulerState === 'available'
   return (
     <section
-      className="relative mt-8 rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-[0_22px_50px_-28px_rgba(13,148,136,0.40)] bg-gradient-to-br from-[#0b1426] via-[#0e2138] to-[#0a1a2a]"
+      className="relative mt-8 rounded-3xl overflow-hidden ring-1 ring-white/10 shadow-[0_30px_80px_-30px_rgba(15,23,42,0.5)]"
       data-testid="profile-bottom-cta"
+      style={{
+        background:
+          'radial-gradient(ellipse 60% 60% at 100% 100%, rgba(20,184,166,0.22) 0%, transparent 60%),' +
+          'linear-gradient(135deg, #0B1620 0%, #0E1A24 50%, #112832 100%)',
+      }}
     >
-      <div
-        aria-hidden
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            'radial-gradient(ellipse 60% 60% at 100% 100%, rgba(45,212,191,0.18) 0%, rgba(45,212,191,0) 60%)',
-        }}
-      />
-      <div className="relative p-6 sm:p-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5">
+      <div aria-hidden className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-teal-300/30 to-transparent" />
+      <div aria-hidden className="absolute -inset-6 rounded-[2rem] bg-teal-400/8 blur-3xl pointer-events-none" />
+      <div className="relative p-7 sm:p-10 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5">
         <div className="max-w-xl">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-teal-300/90 mb-1.5">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-400/10 ring-1 ring-teal-300/30 text-teal-200 text-[11px] font-medium px-3 py-1 uppercase tracking-[0.18em]">
             Следваща стъпка
-          </p>
-          <h2 className="font-serif text-xl sm:text-2xl font-semibold text-slate-50 leading-tight">
+          </span>
+          <h2 className="mt-3 font-serif text-2xl sm:text-3xl font-semibold text-white leading-[1.08] tracking-tight text-balance">
             Готови ли сте да направите следващата стъпка?
           </h2>
-          <p className="mt-2 text-[13px] text-slate-300/85 leading-relaxed">
+          <p className="mt-2.5 text-[14px] text-slate-300/85 leading-relaxed">
             Изпратете заявка и клиниката ще потвърди възможните часове
             или ще се свърже с вас.
           </p>
@@ -1480,16 +1489,20 @@ function BottomCTABand({
             type="button"
             onClick={onPrimary}
             data-testid="profile-bottom-cta-primary"
-            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full text-slate-900 text-sm font-semibold transition-all hover:-translate-y-0.5 shadow-[0_18px_40px_-12px_rgba(94,234,212,0.6)] bg-gradient-to-br from-teal-300 to-teal-400 hover:from-teal-200 hover:to-teal-300"
+            className="group relative inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full text-slate-900 text-sm font-semibold transition-all hover:-translate-y-0.5 shadow-[0_18px_40px_-12px_rgba(94,234,212,0.55)] overflow-hidden"
+            style={{ backgroundImage: 'linear-gradient(135deg,#5eead4 0%,#2dd4bf 60%,#14b8a6 100%)' }}
           >
+            <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/40 blur-sm pointer-events-none" />
+            <span className="relative inline-flex items-center gap-2">
             {isSchedule ? <CalendarClock className="w-4 h-4" /> : <Phone className="w-4 h-4" />}
             {primaryLabel}
+            </span>
           </button>
           {isSchedule && (
             <button
               type="button"
               onClick={onContact}
-              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-slate-100 text-xs font-medium ring-1 ring-white/15 hover:bg-white/5 transition-colors"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-white/[0.08] backdrop-blur-xl text-white text-xs font-medium ring-1 ring-white/15 hover:bg-white/[0.14] transition-colors"
               data-testid="profile-bottom-cta-secondary"
             >
               <Phone className="w-3 h-3" />
