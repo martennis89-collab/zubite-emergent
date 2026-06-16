@@ -1219,3 +1219,48 @@ class OnlineOrientationBookingAdminAction(BaseModel):
         if v not in ORIENTATION_BOOKING_ACTION_VALUES:
             raise ValueError(f"action must be one of {ORIENTATION_BOOKING_ACTION_VALUES}")
         return v
+
+
+
+# ─── Public Clinic Profile Scheduler (Phase A — clinic homepage) ─────
+# A patient on /kliniki/<slug> (or any public clinic profile) can book a
+# phone consultation directly without going through the quiz funnel.
+# We auto-create a minimal lead with strict labels so admin / clinic
+# can distinguish this source from quiz-qualified leads, then reuse the
+# existing `online_orientation_bookings` collection + state machine.
+PUBLIC_CONSULTATION_TYPE_VALUES = ("phone_consultation",)
+
+
+class PublicConsultationBookingCreate(BaseModel):
+    """Public payload from clinic profile scheduler. Carries the patient
+    contact directly (no `lead_id` because no quiz happened). Server
+    creates a minimal lead and links the booking back."""
+    model_config = ConfigDict(extra="ignore")
+    clinic_id: str = Field(min_length=1, max_length=100)
+    scheduled_at: str = Field(min_length=10, max_length=40)  # ISO 8601 UTC
+    consultation_type: str = Field(default="phone_consultation", max_length=40)
+    name: str = Field(min_length=1, max_length=200)
+    phone: str = Field(min_length=4, max_length=50)
+    email: EmailStr
+    patient_note: Optional[str] = Field(default=None, max_length=500)
+    consent: bool = False
+    disclaimer_acknowledged: bool = False
+    source_path: Optional[str] = Field(default=None, max_length=500)
+    utm_source: Optional[str] = Field(default=None, max_length=300)
+    utm_campaign: Optional[str] = Field(default=None, max_length=300)
+
+    @field_validator("consultation_type")
+    @classmethod
+    def _v_type(cls, v: str) -> str:
+        if v not in PUBLIC_CONSULTATION_TYPE_VALUES:
+            raise ValueError(
+                f"consultation_type must be one of {PUBLIC_CONSULTATION_TYPE_VALUES}"
+            )
+        return v
+
+    @field_validator("name", "phone", mode="before")
+    @classmethod
+    def _strip_required(cls, v):
+        if isinstance(v, str):
+            return v.strip()
+        return v

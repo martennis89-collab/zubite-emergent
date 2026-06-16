@@ -15,12 +15,33 @@ or `"clinic_profile"` so the admin lead pipeline stays unified.
 from __future__ import annotations
 import os
 import re
+import uuid
+import logging
+from datetime import datetime, timezone, timedelta
 from typing import Any, Optional
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from database import db
+from schemas import (
+    PublicConsultationBookingCreate,
+    ORIENTATION_BOOKING_ACTIVE_LOCK_STATUSES,
+)
+from orientation_access import get_online_orientation_access_status
+from orientation_slots import (
+    expire_pending_bookings,
+    generate_slots_for_clinic,
+    SLOT_HORIZON_DAYS,
+)
+from rate_limit import rate_limit
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# Online-orientation collections (reused — single source of truth).
+SETTINGS_COL = "clinic_online_orientation_settings"
+AVAIL_COL = "clinic_online_orientation_availability"
+BOOKING_COL = "online_orientation_bookings"
 
 
 def _demo_clinics_enabled() -> bool:
@@ -257,3 +278,269 @@ async def get_public_clinic(slug_or_id: str):
             "message": "Clinic not found or not publicly listed.",
         })
     return _public_clinic_payload(doc)
+
+
+
+# ─── Public Consultation Scheduler (Phase A — clinic profile) ─────
+# Lets a patient on the public clinic profile request a phone
+# consultation directly, without going through the quiz funnel. Reuses
+# the existing slot engine + booking state machine; auto-creates a
+# minimal lead with strict labels so admin / clinic can filter
+# scheduler-originated traffic away from quiz-qualified leads.
+
+_PUBLIC_SCHEDULER_LEAD_LABELS = {
+    "lead_source": "clinic_profile_scheduler",
+    "lead_type": "phone_consultation_booking",
+    "qualification_source": "public_profile",
+    "is_quiz_qualified": False,
+    "consultation_type": "phone_consultation",
+}
+
+
+async def _load_clinic_for_public_scheduler(clinic_id: str) -> dict:
+    base = {
+        "is_active": True,
+        "clinic_status": {"$in": list(_PUBLIC_STATUSES)},
+        "id": clinic_id,
+    }
+    if not _demo_clinics_enabled():
+        base["is_demo"] = {"$ne": True}
+    doc = await db.clinics.find_one(base, {"_id": 0, "password_hash": 0})
+    if not doc:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "clinic_not_found",
+                    "message": "Clinic not found or not publicly listed."},
+        )
+    return doc
+
+
+async def _scheduler_state_for_clinic(clinic: dict) -> tuple[str, Optional[dict], list[dict]]:
+    """Return (state, settings_doc, availability_rows).
+
+    state ∈ {"disabled", "enabled_no_slots", "available"} — slots are NOT
+    generated here for the "disabled" case to keep the path cheap.
+    """
+    settings = await db.get_collection(SETTINGS_COL).find_one(
+        {"clinic_id": clinic["id"]}, {"_id": 0},
+    )
+    access = get_online_orientation_access_status(clinic, settings or {})
+    if access["status"] not in ("included_in_plan", "addon_enabled"):
+        return ("disabled", settings, [])
+    avail = await db.get_collection(AVAIL_COL).find(
+        {"clinic_id": clinic["id"]}, {"_id": 0},
+    ).to_list(200)
+    return ("available", settings, avail)
+
+
+@router.get("/public/clinics/{clinic_id}/availability")
+async def public_clinic_availability(
+    clinic_id: str,
+    type: str = Query(default="phone_consultation", max_length=40),
+):
+    """Public availability for a single clinic. Currently only
+    `type=phone_consultation` is supported. Returns one of three
+    states so the frontend can render the matching UI without
+    leaking internal booking data."""
+    if type != "phone_consultation":
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "unsupported_type",
+                    "message": "Only `phone_consultation` is supported."},
+        )
+    clinic = await _load_clinic_for_public_scheduler(clinic_id)
+    state, settings, avail = await _scheduler_state_for_clinic(clinic)
+    base_resp: dict[str, Any] = {
+        "clinic_id": clinic_id,
+        "consultation_type": "phone_consultation",
+        "state": state,
+        "slots": [],
+        "slot_duration_minutes": int((settings or {}).get("slot_duration_minutes") or 20),
+        "disclaimer_text": (settings or {}).get("disclaimer_text") or None,
+        "public_description": (settings or {}).get("public_description") or None,
+    }
+    if state == "disabled":
+        return base_resp
+    slots = await generate_slots_for_clinic(
+        db, clinic_id, settings or {}, avail,
+        horizon_days=SLOT_HORIZON_DAYS, max_slots=24,
+    )
+    if not slots:
+        base_resp["state"] = "enabled_no_slots"
+        return base_resp
+    # Strip the engine-internal `clinic_id` echo from each slot to keep
+    # the public payload small (caller already has clinic_id).
+    base_resp["slots"] = [
+        {k: v for k, v in s.items() if k != "clinic_id"} for s in slots
+    ]
+    return base_resp
+
+
+@router.post(
+    "/public/consultation-bookings",
+    dependencies=[Depends(rate_limit("public_consult_book", 10, 600))],
+)
+async def public_create_consultation_booking(
+    payload: PublicConsultationBookingCreate,
+    request: Request,
+):
+    """Auto-create a minimal lead and a phone-consultation booking on a
+    public clinic profile. NEVER claims the slot is confirmed — the
+    booking starts in `pending_clinic_confirmation` and the clinic must
+    confirm it just like any other orientation booking."""
+    if not payload.consent:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "consent_required",
+                    "message": "Моля, потвърди съгласието си преди да изпратиш заявката."},
+        )
+    if not payload.disclaimer_acknowledged:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "disclaimer_required",
+                    "message": "Моля, потвърди, че телефонният разговор е насочваща стъпка, не диагноза."},
+        )
+
+    clinic = await _load_clinic_for_public_scheduler(payload.clinic_id)
+    state, settings, _avail = await _scheduler_state_for_clinic(clinic)
+    if state == "disabled":
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "clinic_scheduler_disabled",
+                    "message": "Тази клиника не приема онлайн заявки в момента."},
+        )
+
+    # Parse + normalise scheduled_at to UTC ISO so the active-lock check
+    # uses the exact same key the slot engine emits.
+    try:
+        slot_dt = datetime.fromisoformat(payload.scheduled_at.replace("Z", "+00:00"))
+        if slot_dt.tzinfo is None:
+            slot_dt = slot_dt.replace(tzinfo=timezone.utc)
+    except Exception:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "invalid_scheduled_at",
+                    "message": "Невалиден формат на избрания час."},
+        )
+    slot_iso = slot_dt.astimezone(timezone.utc).isoformat()
+
+    # Lazy-expire stale pending bookings for this clinic so the lock
+    # check below sees the current truth.
+    await expire_pending_bookings(db, clinic_id=clinic["id"])
+    locked = await db.get_collection(BOOKING_COL).find_one({
+        "clinic_id": clinic["id"],
+        "scheduled_at": slot_iso,
+        "status": {"$in": list(ORIENTATION_BOOKING_ACTIVE_LOCK_STATUSES)},
+    }, {"_id": 0, "id": 1})
+    if locked:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "slot_already_locked",
+                    "message": "Този час е вече зает. Моля, избери друг."},
+        )
+
+    # ─── Auto-create minimal lead with strict scheduler labels ─────
+    now = datetime.now(timezone.utc)
+    now_iso = now.isoformat()
+    treatments = clinic.get("treatments_supported") or []
+    lead_id = str(uuid.uuid4())
+    lead_doc: dict[str, Any] = {
+        "id": lead_id,
+        "created_at": now_iso,
+        "updated_at": now_iso,
+        "city_slug": clinic.get("city_slug") or "unknown",
+        "treatment_type": (treatments[0] if treatments else "general_orientation"),
+        "answers": {},
+        "score_total": 0,
+        "band": "UNKNOWN",
+        "status": "NEW",
+        "name": payload.name,
+        "phone": payload.phone,
+        "email": payload.email,
+        "consent": True,
+        # MVP unlock flags — contact submitted → result unlocked. Care
+        # Pass stays locked until the clinic confirms the consultation
+        # (same invariant as quiz-driven leads).
+        "contact_details_submitted": True,
+        "contact_details_submitted_at": now_iso,
+        "full_result_unlocked": True,
+        "care_pass_eligible": True,
+        "care_pass_unlocked": False,
+        "consultation_booked_through_zubite": True,
+        # Strict labels — see _PUBLIC_SCHEDULER_LEAD_LABELS.
+        **_PUBLIC_SCHEDULER_LEAD_LABELS,
+        "clinic_id": clinic["id"],
+        "source": "clinic_profile_scheduler",
+        "source_path": payload.source_path,
+        # Attribution (best-effort).
+        "utm_source": payload.utm_source,
+        "utm_campaign": payload.utm_campaign,
+        "first_utm_source": payload.utm_source,
+        "first_utm_campaign": payload.utm_campaign,
+        "first_lead_source_type": "clinic_profile_scheduler",
+        "latest_utm_source": payload.utm_source,
+        "latest_utm_campaign": payload.utm_campaign,
+        "latest_lead_source_type": "clinic_profile_scheduler",
+    }
+    try:
+        await db.leads.insert_one({**lead_doc})
+    except Exception as exc:
+        logger.exception(f"public scheduler lead insert failed: {exc}")
+        raise HTTPException(
+            status_code=500,
+            detail={"code": "lead_create_failed",
+                    "message": "Неуспешно създаване на заявката. Опитай отново."},
+        )
+
+    # ─── Insert booking row in the existing collection ─────────────
+    duration = int((settings or {}).get("slot_duration_minutes") or 20)
+    booking_id = str(uuid.uuid4())
+    expires_at = (now + timedelta(hours=24)).isoformat()
+    booking_doc: dict[str, Any] = {
+        "id": booking_id,
+        "clinic_id": clinic["id"],
+        "lead_id": lead_id,
+        "patient_name": payload.name,
+        "patient_phone": payload.phone,
+        "patient_email": payload.email,
+        # Topic isn't asked on the public profile — record the
+        # consultation_type so admin can distinguish phone-scheduler
+        # bookings from quiz-driven orientation bookings.
+        "topic": "not_sure",
+        "consultation_type": "phone_consultation",
+        "treatment_category": None,
+        "scheduled_at": slot_iso,
+        "duration_minutes": duration,
+        "status": "pending_clinic_confirmation",
+        "quiz_summary": None,
+        "internal_clinic_note": None,
+        "patient_note": payload.patient_note,
+        "clinic_confirmed_at": None,
+        "confirmed_by_clinic_user_id": None,
+        "expires_at": expires_at,
+        "expired_at": None,
+        "created_at": now_iso,
+        "updated_at": now_iso,
+        # Source labels — mirror the lead's strict tags on the booking
+        # so clinic dashboard / admin queue can filter without joining.
+        "lead_source": "clinic_profile_scheduler",
+        "qualification_source": "public_profile",
+        "is_quiz_qualified": False,
+        "source_path": payload.source_path,
+    }
+    await db.get_collection(BOOKING_COL).insert_one({**booking_doc})
+
+    return {
+        "booking": {
+            "id": booking_id,
+            "clinic_id": clinic["id"],
+            "lead_id": lead_id,
+            "status": "pending_clinic_confirmation",
+            "consultation_type": "phone_consultation",
+            "scheduled_at": slot_iso,
+            "duration_minutes": duration,
+            "expires_at": expires_at,
+            "created_at": now_iso,
+        },
+        "message": "Заявката е изпратена. Клиниката ще потвърди часа.",
+    }
