@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
   ArrowLeft, Building2, MapPin, ShieldCheck, Sparkles, Video, Heart,
@@ -10,6 +10,7 @@ import {
   type PublicClinic, treatmentLabel, cityDisplay,
 } from '@/lib/publicClinics'
 import PublicContactModal from './PublicContactModal'
+import ConsultationScheduler from './ConsultationScheduler'
 
 const SUGGESTED_QUESTIONS_GENERIC = [
   'Какво включва първоначалната консултация при вас?',
@@ -31,6 +32,15 @@ export default function ClinicProfileView({ clinic }: Props) {
     | { consultationType: 'general' | 'online' }
     | null
   >(null)
+  // Canonical profile URL — captured client-side so analytics + the
+  // public scheduler lead carry the exact `/kliniki/[city]/[specialty]/[slug]`
+  // path the user is viewing.
+  const [sourcePath, setSourcePath] = useState<string>('')
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setSourcePath(window.location.pathname || '')
+    }
+  }, [])
 
   const tierIsPartner = clinic.partner_tier !== 'standard'
 
@@ -161,6 +171,10 @@ export default function ClinicProfileView({ clinic }: Props) {
               </div>
             </div>
           </header>
+
+          {/* Phase B — Public phone-consultation scheduler.
+              Renders nothing when scheduler is disabled. */}
+          <ConsultationScheduler clinic={clinic} sourcePath={sourcePath} />
 
           {/* Online consultation section — only when offered */}
           {clinic.online_consultation && (

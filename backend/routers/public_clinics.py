@@ -464,7 +464,11 @@ async def public_create_consultation_booking(
         "contact_details_submitted": True,
         "contact_details_submitted_at": now_iso,
         "full_result_unlocked": True,
-        "care_pass_eligible": True,
+        # Care Pass eligibility mirrors the clinic's actual Care Pass
+        # partner status — never auto-True for clinics that don't run
+        # the program. Care Pass still stays LOCKED until the clinic
+        # confirms the consultation (Phase F invariant).
+        "care_pass_eligible": bool(clinic.get("care_pass_partner")),
         "care_pass_unlocked": False,
         "consultation_booked_through_zubite": True,
         # Strict labels — see _PUBLIC_SCHEDULER_LEAD_LABELS.

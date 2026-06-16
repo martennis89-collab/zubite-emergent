@@ -54,7 +54,7 @@ def _admin_token() -> str:
 
 
 async def _make_clinic(db, *, with_settings: bool, with_availability: bool,
-                       enabled: bool = True) -> dict:
+                       enabled: bool = True, care_pass_partner: bool = False) -> dict:
     cid = str(uuid.uuid4())
     now_iso = datetime.now(timezone.utc).isoformat()
     clinic_doc = {
@@ -75,6 +75,7 @@ async def _make_clinic(db, *, with_settings: bool, with_availability: bool,
         "created_at": now_iso,
         "updated_at": now_iso,
         "is_active": True,
+        "care_pass_partner": care_pass_partner,
     }
     await db.clinics.insert_one(clinic_doc)
     if with_settings:
@@ -145,8 +146,15 @@ def run_all():
 
             ok_clinic = await _make_clinic(
                 db, with_settings=True, with_availability=True, enabled=True,
+                care_pass_partner=False,
             )
             clinic_ids.append(ok_clinic["id"])
+
+            care_pass_clinic = await _make_clinic(
+                db, with_settings=True, with_availability=True, enabled=True,
+                care_pass_partner=True,
+            )
+            clinic_ids.append(care_pass_clinic["id"])
 
             # 1. Disabled (settings.enabled=False) → state="disabled".
             r = requests.get(
@@ -297,7 +305,7 @@ def run_all():
                     "patient_note": "Звънни ми след 18:00",
                     "consent": True,
                     "disclaimer_acknowledged": True,
-                    "source_path": f"/kliniki/sofia/{ok_clinic['id']}",
+                    "source_path": f"/kliniki/sofia/orthodontics/pcs-{ok_clinic['id'][:6]}",
                     "utm_source": "organic",
                     "utm_campaign": "clinic_profile",
                 },
@@ -323,8 +331,9 @@ def run_all():
             assert lead.get("clinic_id") == ok_clinic["id"]
             assert lead.get("name") == "Тест Пациент"
             assert lead.get("contact_details_submitted") is True
+            assert lead.get("care_pass_eligible") is False  # clinic is NOT Care Pass partner
             assert lead.get("care_pass_unlocked") is False
-            assert lead.get("source_path") == f"/kliniki/sofia/{ok_clinic['id']}"
+            assert lead.get("source_path") == f"/kliniki/sofia/orthodontics/pcs-{ok_clinic['id'][:6]}"
 
             booking = await db.online_orientation_bookings.find_one(
                 {"id": booking_id}, {"_id": 0},
@@ -369,6 +378,35 @@ def run_all():
             new_slots = [s["scheduled_at"] for s in r.json()["slots"]]
             assert slot["scheduled_at"] not in new_slots
             print("  step12 PASS — locked slot filtered out from /availability")
+
+            # 12b. Care Pass partner clinic — auto-created lead should have
+            # care_pass_eligible=True (mirrors clinic flag).
+            r = requests.get(
+                f"{API_URL}/api/public/clinics/{care_pass_clinic['id']}/availability",
+                params={"type": "phone_consultation"}, timeout=10,
+            )
+            cp_slot = r.json()["slots"][0]
+            r = requests.post(
+                f"{API_URL}/api/public/consultation-bookings",
+                json={
+                    "clinic_id": care_pass_clinic["id"],
+                    "scheduled_at": cp_slot["scheduled_at"],
+                    "consultation_type": "phone_consultation",
+                    "name": "CP Пациент",
+                    "phone": "+359888000333",
+                    "email": f"cp-{uuid.uuid4().hex[:6]}@example.bg",
+                    "consent": True,
+                    "disclaimer_acknowledged": True,
+                },
+                timeout=10,
+            )
+            assert r.status_code == 200, r.text
+            cp_lead_id = r.json()["booking"]["lead_id"]
+            lead_ids.append(cp_lead_id)
+            cp_lead = await db.leads.find_one({"id": cp_lead_id}, {"_id": 0})
+            assert cp_lead.get("care_pass_eligible") is True, cp_lead.get("care_pass_eligible")
+            assert cp_lead.get("care_pass_unlocked") is False  # invariant — still locked
+            print("  step12b PASS — Care Pass partner clinic → lead.care_pass_eligible=True (unlocked stays False)")
 
             # 13. Quiz flow untouched — POST /api/leads still works for
             # a normal quiz-driven lead. (Source != clinic_profile_scheduler.)
