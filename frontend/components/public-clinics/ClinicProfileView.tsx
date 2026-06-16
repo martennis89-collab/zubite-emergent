@@ -173,13 +173,21 @@ export default function ClinicProfileView({ clinic }: Props) {
                     <span
                       className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-700 ring-1 ring-slate-200"
                       data-testid="profile-sponsored-label"
-                      title="Видимостта е спонсорирана. Не влияе на ранкирането."
+                      title="Спонсорираната видимост е обозначена отделно и не влияе на органичното подреждане."
                     >
                       <Megaphone className="w-3 h-3" />
                       Спонсорирано
                     </span>
                   )}
                 </div>
+                {clinic.is_sponsored && (
+                  <p
+                    className="mt-0.5 text-[10px] text-slate-500 leading-snug"
+                    data-testid="profile-sponsored-helper"
+                  >
+                    Спонсорираната видимост е обозначена отделно и не влияе на органичното подреждане.
+                  </p>
+                )}
                 <h1
                   className="font-serif text-xl sm:text-2xl lg:text-3xl font-semibold text-slate-900 leading-tight"
                   data-testid="profile-name"
@@ -281,6 +289,9 @@ export default function ClinicProfileView({ clinic }: Props) {
             onJumpFit={() => scrollTo('suitability')}
             onOpenContact={openContact}
           />
+
+          {/* ═══════════ Showcase-only: listing-card preview ═══════════ */}
+          {clinic.is_addons_showcase && <ShowcaseListingCardPreview clinic={clinic} />}
 
           {/* ═══════════ Anchor nav ═══════════ */}
           <nav
@@ -1108,6 +1119,137 @@ function TreatmentAccordion({
         )}
       </div>
     </details>
+  )
+}
+
+// ─── Showcase-only: enhanced listing card preview ────────────────
+// Renders inside the addons-showcase profile only (`is_addons_showcase`
+// flag). Purpose: give sales / QA / partners a visual reference of all
+// possible listing-tile add-on chips WITHOUT modifying the real
+// `PublicClinicCard` component or polluting `/kliniki` listings.
+
+function ShowcaseListingCardPreview({ clinic }: { clinic: PublicClinic }) {
+  return (
+    <section
+      className="mt-5 rounded-2xl bg-white/70 backdrop-blur-xl ring-1 ring-white/80 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.18)] p-4 sm:p-5"
+      data-testid="showcase-listing-card-preview-section"
+    >
+      <header className="mb-3">
+        <h2 className="font-serif text-[15px] sm:text-base font-semibold text-slate-900 inline-flex items-center gap-2">
+          <span className="w-6 h-6 rounded-md bg-amber-50 ring-1 ring-amber-100 grid place-items-center">
+            <Megaphone className="w-3.5 h-3.5 text-amber-700" />
+          </span>
+          Как изглежда картата в списъка
+        </h2>
+        <p className="mt-0.5 ml-8 text-[11px] text-slate-500 leading-snug">
+          Визуализация на разширената listing-карта за партньори. Този
+          модул се показва само в showcase профила и не променя реалните
+          `/kliniki` карти.
+        </p>
+      </header>
+
+      {/* Mock listing card (kept self-contained — does not import
+          PublicClinicCard so the real component stays untouched). */}
+      <article
+        className="max-w-md rounded-2xl bg-white ring-1 ring-slate-200/80 shadow-[0_8px_24px_-18px_rgba(15,23,42,0.20)] overflow-hidden"
+        data-testid="showcase-listing-card-mock"
+      >
+        <div className="relative h-40 w-full overflow-hidden">
+          {clinic.hero_image_url ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={clinic.hero_image_url}
+              alt=""
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-teal-100 via-cyan-50 to-white" />
+          )}
+          <div
+            aria-hidden
+            className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-slate-900/40 to-transparent pointer-events-none"
+          />
+          <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-white/95 ring-1 ring-amber-200 text-amber-800 backdrop-blur-sm">
+            <Sparkles className="w-3 h-3" />
+            Authority Partner
+          </span>
+          {/* Sponsored — visually separated from tier badge, on right */}
+          <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-900/80 text-white ring-1 ring-white/20">
+            <Megaphone className="w-3 h-3" />
+            Спонсорирано
+          </span>
+        </div>
+
+        <div className="p-4">
+          {/* Add-on chips row */}
+          <ul className="flex flex-wrap gap-1 mb-2.5">
+            <ListingChip icon={<Video className="w-2.5 h-2.5" />} label="Онлайн консултация" />
+            <ListingChip icon={<CalendarClock className="w-2.5 h-2.5" />} label="Свободни часове" tone="teal-strong" />
+            <ListingChip icon={<Heart className="w-2.5 h-2.5 text-rose-500" />} label="Care Pass" />
+            <ListingChip icon={<ShieldCheck className="w-2.5 h-2.5 text-teal-600" />} label="Профил прегледан" />
+            <ListingChip icon={<FileText className="w-2.5 h-2.5" />} label="Реални случаи" />
+            <ListingChip icon={<Quote className="w-2.5 h-2.5" />} label="Експертни отговори" />
+            <ListingChip icon={<Video className="w-2.5 h-2.5" />} label="Видео представяне" />
+          </ul>
+
+          <h3 className="font-serif text-[18px] font-semibold text-slate-900 leading-snug">
+            {clinic.name}
+          </h3>
+          <p className="mt-1 text-[12px] text-slate-500 inline-flex items-center gap-1">
+            <MapPin className="w-3 h-3" />
+            {clinic.city_name}
+            {clinic.area && ` · ${clinic.area}`}
+          </p>
+          <p className="mt-2 text-[12px] text-slate-600 leading-snug line-clamp-2">
+            {clinic.short_description}
+          </p>
+
+          <div className="mt-3 flex items-center gap-2">
+            <button
+              type="button"
+              disabled
+              className="px-3 py-1.5 rounded-full text-white text-[12px] font-medium opacity-90 cursor-default"
+              style={{
+                backgroundImage:
+                  'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)',
+              }}
+              data-testid="showcase-listing-card-cta"
+            >
+              Виж клиниката
+            </button>
+            <span className="text-[11px] text-slate-400">
+              (визуализация)
+            </span>
+          </div>
+        </div>
+      </article>
+
+      <p className="mt-3 text-[11px] text-slate-500 leading-snug">
+        Add-on chip-овете се показват само когато реални данни ги
+        поддържат. „Спонсорирано“ е винаги визуално отделена от tier
+        badge и не променя органичното подреждане.
+      </p>
+    </section>
+  )
+}
+
+function ListingChip({
+  icon, label, tone = 'neutral',
+}: {
+  icon: React.ReactNode
+  label: string
+  tone?: 'neutral' | 'teal-strong'
+}) {
+  const cls = tone === 'teal-strong'
+    ? 'bg-teal-600 text-white ring-teal-600'
+    : 'bg-teal-50/70 text-teal-800 ring-teal-100'
+  return (
+    <li
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ring-1 text-[10px] ${cls}`}
+    >
+      {icon}
+      {label}
+    </li>
   )
 }
 

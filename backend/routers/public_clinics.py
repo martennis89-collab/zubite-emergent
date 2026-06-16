@@ -250,6 +250,9 @@ async def list_public_clinics(
     # / dev enables the env var so QA can exercise the tier-aware UI.
     if not _demo_clinics_enabled():
         query["is_demo"] = {"$ne": True}
+    # Phase C2 — the dedicated visual add-ons showcase clinic is ALWAYS
+    # hidden from listings (direct URL only), regardless of demo gate.
+    query["is_addons_showcase"] = {"$ne": True}
     if city:
         query["city_slug"] = city.lower()
     if specialty:
