@@ -1,7 +1,11 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Loader2, Building2, AlertCircle, ShieldCheck, Compass } from 'lucide-react'
+import Link from 'next/link'
+import {
+  Loader2, Building2, AlertCircle, ShieldCheck, Compass,
+  Sparkles, Stethoscope, Heart, Activity, RefreshCw, MessagesSquare,
+} from 'lucide-react'
 import {
   listPublicClinics, cityDisplay, treatmentLabel,
   type PublicClinic, type PublicClinicFilters,
@@ -12,6 +16,34 @@ import CompareTray from './CompareTray'
 import PublicContactModal from './PublicContactModal'
 
 const MAX_COMPARE = 3
+
+/** Premium-but-calm treatment discovery tiles shown above the filters.
+ *  Each tile links to either the city-scoped listing (when a city filter
+ *  is active) or a treatment-prefiltered listing. Order is intentional —
+ *  Invisalign/aligners get visual priority since orthodontic exploration
+ *  is the strongest patient-decision entry point on Zubite. */
+const TREATMENT_TILES: Array<{
+  slug: string
+  label: string
+  helper: string
+  Icon: React.ComponentType<{ className?: string }>
+}> = [
+  { slug: 'invisalign', label: 'Invisalign / алайнери',
+    helper: 'Изправяне на захапката със снемащи се алайнери', Icon: Sparkles },
+  { slug: 'ortodontia', label: 'Брекети', helper: 'Класически и съвременни брекети', Icon: Activity },
+  { slug: 'implantologia', label: 'Импланти', helper: 'Възстановяване на липсващи зъби', Icon: Stethoscope },
+  { slug: 'estetichna-stomatologia', label: 'Естетична стоматология',
+    helper: 'Фасети, бондинг, избелване', Icon: Sparkles },
+  { slug: 'aligners', label: 'Орална хигиена',
+    helper: 'Профилактика и здраве на венците', Icon: Heart },
+  { slug: 'full_mouth', label: 'Второ мнение',
+    helper: 'Сравни план на лечение от друга клиника', Icon: MessagesSquare },
+]
+
+// Note: backend treatment vocabulary currently covers ortho/aligners/implants/
+// full_mouth. Tiles like "Орална хигиена" or "Второ мнение" may resolve to an
+// empty result set on the linked page — the listing already handles that
+// with a friendly empty state + CTAs, so this is acceptable for V1.
 
 interface Props {
   // When the route already binds a city, the filter bar shows it as fixed.
@@ -123,44 +155,114 @@ export default function ClinicListingPage({
       <div aria-hidden className="absolute -top-32 -left-32 w-[36rem] h-[36rem] rounded-full bg-teal-200/25 blur-3xl pointer-events-none" />
       <div aria-hidden className="absolute -bottom-40 right-0 w-[40rem] h-[40rem] rounded-full bg-cyan-100/35 blur-3xl pointer-events-none" />
 
-      <section className="relative pt-16 sm:pt-20 pb-8 md:pb-12">
+      <section className="relative pt-24 sm:pt-28 pb-10 md:pb-14">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Title */}
-          <div className="mb-7 max-w-3xl">
-            <p className="font-sans text-[11px] font-semibold tracking-[0.22em] uppercase text-teal-700 mb-2">
+          {/* ── Hero ─────────────────────────────────────────────── */}
+          <div className="mb-10 sm:mb-12 max-w-3xl">
+            <p className="font-sans text-[11px] font-semibold tracking-[0.22em] uppercase text-teal-700 mb-3">
               Публичен каталог
             </p>
             <h1
-              className="font-serif text-2xl sm:text-3xl md:text-4xl font-semibold text-slate-900 leading-tight"
+              className="font-serif text-3xl sm:text-4xl md:text-5xl font-semibold text-slate-900 leading-[1.1] tracking-tight"
               data-testid="kliniki-heading"
             >
               {heading}
             </h1>
-            <p className="text-slate-600 mt-3 text-base leading-relaxed">
-              Сравнете клиники според локация, специализация, онлайн консултация,
-              профилна информация и Zubite доверителни сигнали.
+            <p className="text-slate-600 mt-5 text-base sm:text-lg leading-relaxed max-w-2xl">
+              Сравнете клиники според локация, специализация, онлайн
+              консултация, профилна информация и Zubite доверителни сигнали.
             </p>
 
             <div
-              className="mt-4 rounded-xl bg-white/55 backdrop-blur-md ring-1 ring-white/70 p-3 text-[12px] text-slate-600 leading-snug flex items-start gap-2"
+              className="mt-6 inline-flex items-start gap-2.5 rounded-xl bg-white/55 backdrop-blur-md ring-1 ring-white/70 shadow-[0_4px_18px_-12px_rgba(15,23,42,0.20)] px-3.5 py-2.5 text-[12.5px] text-slate-600 leading-relaxed max-w-2xl"
               data-testid="kliniki-ranking-note"
             >
               <ShieldCheck className="w-4 h-4 text-teal-600 mt-0.5 flex-shrink-0" />
               <span>
                 Клиниките се подреждат според релевантност към избраната
                 категория, локация, профилна пълнота и Zubite доверителни
-                сигнали. <strong>Спонсорираното позициониране не влияе на
-                органичното подреждане.</strong>
+                сигнали. <strong className="text-slate-700">Спонсорираното
+                позициониране не влияе на органичното подреждане.</strong>
               </span>
             </div>
           </div>
 
-          {/* Filters */}
+          {/* ── Treatment discovery (above filters) ──────────────── */}
+          <section className="mb-10" data-testid="treatment-discovery">
+            <div className="mb-4">
+              <h2 className="font-serif text-xl sm:text-2xl font-semibold text-slate-900">
+                Популярни дентални направления
+              </h2>
+              <p className="text-sm text-slate-600 mt-1 max-w-2xl">
+                Започни от лечението, което обмисляш, и сравни клиники според
+                релевантност, локация и Zubite доверителни сигнали.
+              </p>
+            </div>
+            <ul
+              className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3"
+              data-testid="treatment-tiles"
+            >
+              {TREATMENT_TILES.map(({ slug, label, helper, Icon }) => {
+                const href = filters.city
+                  ? `/kliniki/${filters.city}/${slug}`
+                  : `/kliniki?specialty=${slug}`
+                return (
+                  <li key={slug}>
+                    <Link
+                      href={href}
+                      className="group flex flex-col h-full p-3.5 rounded-xl bg-white/65 backdrop-blur-md ring-1 ring-white/70 hover:ring-teal-200 hover:bg-white/85 transition-all"
+                      data-testid={`treatment-tile-${slug}`}
+                    >
+                      <span className="w-8 h-8 rounded-lg bg-teal-50 ring-1 ring-teal-100 grid place-items-center mb-2 group-hover:bg-teal-100 transition-colors">
+                        <Icon className="w-4 h-4 text-teal-700" />
+                      </span>
+                      <p className="text-[13px] font-semibold text-slate-900 leading-tight">
+                        {label}
+                      </p>
+                      <p className="text-[11px] text-slate-500 mt-0.5 leading-snug line-clamp-2">
+                        {helper}
+                      </p>
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </section>
+
+          {/* ── Filters ──────────────────────────────────────────── */}
           <PublicClinicFiltersBar
             value={filters}
             onChange={setFilters}
             syncToUrl={syncToUrl}
           />
+
+          {/* ── Results summary ─────────────────────────────────── */}
+          {!loading && !err && clinics.length > 0 && (
+            <div
+              className="mt-1 mb-5 flex items-center justify-between text-sm"
+              data-testid="kliniki-results-summary"
+            >
+              <p className="text-slate-700">
+                <span className="font-semibold">
+                  Показани {clinics.length}{' '}
+                  {clinics.length === 1 ? 'клиника' : 'клиники'}
+                </span>{' '}
+                <span className="text-slate-500 hidden sm:inline">
+                  · подредени според релевантност и Zubite доверителни сигнали
+                </span>
+              </p>
+              <button
+                type="button"
+                onClick={fetchClinics}
+                className="hidden sm:inline-flex items-center gap-1.5 text-[12px] text-slate-500 hover:text-slate-800 transition-colors"
+                data-testid="kliniki-refresh"
+                aria-label="Обнови списъка"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Обнови
+              </button>
+            </div>
+          )}
 
           {/* Content */}
           {loading ? (
@@ -235,7 +337,7 @@ export default function ClinicListingPage({
             </div>
           ) : (
             <div
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6"
               data-testid="kliniki-grid"
             >
               {clinics.map((c) => (
