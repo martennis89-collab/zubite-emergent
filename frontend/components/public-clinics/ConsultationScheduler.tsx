@@ -468,6 +468,14 @@ function BookingFormModal({
               Часът е резервиран временно за теб. Ще получиш потвърждение,
               когато клиниката го прегледа.
             </p>
+            {/* Care Pass guardrail — explicit reminder that online/phone
+                consultation does NOT unlock Care Pass. (Feb 2026 brief.) */}
+            <p
+              className="mt-2 text-[11px] text-slate-500 leading-snug"
+              data-testid="scheduler-booking-success-care-pass-note"
+            >
+              Care Pass може да се отключи само след физическа консултация в участваща клиника.
+            </p>
             <div className="mt-4 rounded-lg bg-slate-50 ring-1 ring-slate-100 p-3 text-left text-sm">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
                 Заявен час

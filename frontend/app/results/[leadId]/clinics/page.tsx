@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import axios from 'axios'
 import {
@@ -11,6 +11,7 @@ import {
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import {
+  getLead,
   getRecommendedClinics,
   getSelectionState,
   type RecommendedClinicsResponse,
@@ -27,6 +28,7 @@ type ErrKind = 'not_found' | 'expired' | 'rate_limited' | 'generic' | null
 
 export default function ClinicMatchPage() {
   const params = useParams()
+  const router = useRouter()
   const leadId = params.leadId as string
 
   const [data, setData] = useState<RecommendedClinicsResponse | null>(null)
@@ -34,6 +36,9 @@ export default function ClinicMatchPage() {
   const [loading, setLoading] = useState(true)
   const [errKind, setErrKind] = useState<ErrKind>(null)
   const [assistedModalOpen, setAssistedModalOpen] = useState(false)
+  // Gate state: until we verify the lead is unlocked, we don't render
+  // any clinic data. If not unlocked → redirect to /results/[leadId].
+  const [gateChecked, setGateChecked] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -61,6 +66,36 @@ export default function ClinicMatchPage() {
     }
   }, [leadId])
 
+  // ─── Access gate (Feb 2026) ──────────────────────────────────
+  // Recommendations may only be viewed when the lead has unlocked the
+  // full result (contact details submitted). If the lead is locked or
+  // missing → redirect to /results/[leadId]?notice=locked so the user
+  // sees the contact-capture form with a calm explanation.
+  useEffect(() => {
+    if (!leadId) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const lead = await getLead(leadId)
+        if (cancelled) return
+        const unlocked = lead?.full_result_unlocked === true && lead?.contact_details_submitted === true
+        if (!unlocked) {
+          router.replace(`/results/${leadId}?notice=locked`)
+          return
+        }
+        setGateChecked(true)
+        // After gate passes, load recommendations.
+        load()
+      } catch {
+        if (cancelled) return
+        // Lead lookup failed → bounce back to the partial result, which
+        // shows its own error state.
+        router.replace(`/results/${leadId}?notice=locked`)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [leadId, load, router])
+
   // Called by a card when its modal submits successfully — patches local
   // selection state immediately so all sibling cards reflect "Вече избрахте
   // клиника" without a refetch round-trip.
@@ -85,10 +120,6 @@ export default function ClinicMatchPage() {
     [leadId],
   )
 
-  useEffect(() => {
-    if (leadId) load()
-  }, [leadId, load])
-
   // Fire `clinic_recommendations_viewed` once, after a successful fetch.
   const recosViewedRef = useRef(false)
   useEffect(() => {
@@ -104,6 +135,16 @@ export default function ClinicMatchPage() {
       has_standard: tiers.includes('standard'),
     })
   }, [data, errKind, leadId])
+
+  // While the access gate is verifying the lead, show a calm loader so
+  // the locked-redirect transition isn't a flash of clinic content.
+  if (!gateChecked) {
+    return (
+      <main className="min-h-screen bg-[#FCFAF8] flex items-center justify-center" data-testid="clinic-match-gate-loading">
+        <Loader2 className="w-8 h-8 text-teal-600 animate-spin" />
+      </main>
+    )
+  }
 
   return (
     <main className="min-h-screen bg-[#FCFAF8] overflow-x-hidden relative" data-testid="clinic-match-page">
@@ -134,23 +175,26 @@ export default function ClinicMatchPage() {
             Към резултата
           </Link>
 
-          {/* Title block */}
-          <div className="mb-8 max-w-3xl">
-            <p className="font-sans text-[11px] font-semibold tracking-[0.22em] uppercase text-teal-700 mb-3">
-              Препоръчани клиники
+          {/* Title block — `/za-kliniki` brand tokens applied */}
+          <div className="mb-6 max-w-3xl">
+            <p className="font-sans text-[11px] font-semibold tracking-[0.2em] uppercase text-teal-700 mb-3" data-testid="match-eyebrow">
+              Clinic match
             </p>
-            <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl font-semibold text-slate-900 leading-tight">
-              Подходящи следващи стъпки според отговорите ти
+            <h1
+              className="font-serif text-xl sm:text-2xl font-semibold text-slate-900 leading-tight"
+              data-testid="match-title"
+            >
+              Подбрани клиники за твоята заявка
             </h1>
-            <p className="text-slate-600 mt-3 text-base sm:text-lg leading-relaxed">
-              Виж клиники, които може да са релевантни според описания случай, града и избраната категория.
+            <p className="text-slate-600 mt-3 text-[15px] sm:text-base leading-relaxed" data-testid="match-subtitle">
+              Показваме ограничен брой клиники според локация, релевантност към избраната категория, налична информация в профила и Zubite доверителни сигнали. Това не е диагноза и не означава, че една клиника е клинично „най-добра" за всеки случай.
             </p>
-            {/* Title trust chips — replace longer guidance with scannable chips */}
+            {/* Title trust chips */}
             <ul className="mt-5 flex flex-wrap gap-2" data-testid="match-title-chips">
               {[
                 { l: 'Ориентир, не диагноза', icon: ShieldCheck },
                 { l: 'Насочване според случая', icon: Compass },
-                { l: 'Care Pass след консултация', icon: Sparkles },
+                { l: 'Care Pass след физическа консултация', icon: Sparkles },
                 { l: 'Без задължение', icon: CheckCircle2 },
               ].map(({ l, icon: I }) => (
                 <li
@@ -164,13 +208,24 @@ export default function ClinicMatchPage() {
             </ul>
           </div>
 
+          {/* Care Pass clarification banner — visible ABOVE the cards */}
+          <div
+            className="mb-6 rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_8px_24px_-16px_rgba(15,23,42,0.18)] px-4 py-3 flex items-start gap-3 text-[13px] text-slate-700"
+            data-testid="care-pass-recommendation-banner"
+          >
+            <Sparkles className="w-4 h-4 text-teal-600 flex-shrink-0 mt-0.5" />
+            <p className="leading-snug">
+              <strong className="text-slate-900">Care Pass:</strong> при клиники, които участват, ползите могат да се отключат след физическа консултация. Онлайн разговор или изпратена заявка сами по себе си не активират Care Pass.
+            </p>
+          </div>
+
           {/* Body */}
           {loading ? (
             <CardSkeletons />
           ) : errKind ? (
             <ErrorPanel kind={errKind} onRetry={load} leadId={leadId} />
           ) : data && data.clinic_count === 0 ? (
-            <ClinicMatchEmptyState message={data.message} leadId={leadId} />
+            <ClinicMatchEmptyState message={data.message} leadId={leadId} citySlug={data.city_slug} />
           ) : data ? (
             <>
               {/* Selection-rule banner — compact 1-liner with inline tabular numbers */}
@@ -187,9 +242,7 @@ export default function ClinicMatchPage() {
                 </p>
               </div>
 
-              {/* Transparency note for partner placement. Rendered only when at
-                  least one card actually carries a placement label. Wording is
-                  conservative and never implies ranking. */}
+              {/* Transparency note for partner placement. */}
               {data.clinics.some((c) => !!c.placement_label) && (
                 <p
                   className="text-xs text-slate-500 mb-6 leading-relaxed"
@@ -201,8 +254,7 @@ export default function ClinicMatchPage() {
                 </p>
               )}
 
-              {/* Already-selected banner (P4) — visible whenever the lead
-                  has previously submitted a request. */}
+              {/* Already-selected banner */}
               {selection?.has_selected_clinic && selection?.clinic && (
                 <div
                   className="mb-6 rounded-2xl ring-1 ring-emerald-200/70 bg-emerald-50/85 backdrop-blur-xl p-4 sm:p-5 flex items-start gap-3 shadow-[0_10px_30px_-18px_rgba(5,150,105,0.35)]"
@@ -222,8 +274,7 @@ export default function ClinicMatchPage() {
                 </div>
               )}
 
-              {/* Zubite-help banner (P5) — mutually exclusive with the
-                  selected-clinic banner. */}
+              {/* Zubite-help banner */}
               {selection?.has_requested_zubite_help && (
                 <div
                   className="mb-6 rounded-2xl ring-1 ring-teal-200/70 bg-teal-50/85 backdrop-blur-xl p-4 sm:p-5 flex items-start gap-3 shadow-[0_10px_30px_-18px_rgba(13,148,136,0.35)]"
@@ -242,8 +293,7 @@ export default function ClinicMatchPage() {
                 </div>
               )}
 
-              {/* Why-you-see-these-clinics explainer — patient-facing trust
-                  block above the grid (Zubite Clinic Standard layer). */}
+              {/* Why-you-see-these-clinics explainer */}
               <div
                 className="mb-6 rounded-2xl bg-white/60 backdrop-blur-md ring-1 ring-white/70 shadow-[0_14px_32px_-22px_rgba(15,23,42,0.18)] p-5 sm:p-6"
                 data-testid="why-these-clinics"
@@ -264,29 +314,11 @@ export default function ClinicMatchPage() {
                       класация „най-добри клиники" и не е диагноза — а
                       ориентир за по-смислен първи разговор.
                     </p>
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {[
-                        'Според случая',
-                        'Според локацията',
-                        'Партньорска клиника',
-                        'Ориентир, не диагноза',
-                        'Care Pass след консултация',
-                      ].map((c) => (
-                        <span
-                          key={c}
-                          className="inline-flex items-center gap-1 rounded-full bg-teal-50/80 text-teal-700 text-[11px] font-medium px-2.5 py-1 ring-1 ring-teal-100"
-                        >
-                          {c}
-                        </span>
-                      ))}
-                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Care Pass benefit strip — premium dark navy-teal panel
-                  matching the homepage. Renders above the grid so patients
-                  see the after-visit benefit before they pick a clinic. */}
+              {/* Care Pass benefit strip — premium dark navy-teal panel */}
               <div className="mb-6" data-testid="care-pass-benefit-strip">
                 <CarePassPanel
                   variant="compact"
@@ -319,7 +351,14 @@ export default function ClinicMatchPage() {
                 ))}
               </div>
 
-              {/* Assisted choice panel — compact */}
+              {/* Public catalog fallback link — secondary, after the cards */}
+              <p className="mt-6 text-center text-[12px] text-slate-500" data-testid="public-catalog-link-row">
+                <Link href="/kliniki" className="text-teal-700 hover:text-teal-800 hover:underline font-medium">
+                  Виж още клиники в публичния каталог
+                </Link>
+              </p>
+
+              {/* Assisted choice panel */}
               <section
                 className="mt-10 rounded-3xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_18px_50px_-22px_rgba(15,23,42,0.20)] p-5 sm:p-6 max-w-3xl mx-auto"
                 data-testid="assisted-choice-panel"
@@ -379,7 +418,7 @@ export default function ClinicMatchPage() {
             </>
           ) : null}
 
-          {/* Trust note — footnote style, single line, safety preserved */}
+          {/* Trust note */}
           <p
             className="mt-12 text-[11px] text-slate-400 text-center leading-snug max-w-2xl mx-auto"
             data-testid="match-trust-note"
@@ -396,7 +435,6 @@ export default function ClinicMatchPage() {
           initialContact={getStoredLeadContact(leadId)}
           onClose={() => setAssistedModalOpen(false)}
           onSuccess={() => {
-            // Refetch canonical state so banners and button switch.
             getSelectionState(leadId).then(setSelection).catch(() => {})
           }}
         />
@@ -406,7 +444,6 @@ export default function ClinicMatchPage() {
     </main>
   )
 }
-
 /* ──────────────────── subcomponents ──────────────────── */
 
 function CardSkeletons() {

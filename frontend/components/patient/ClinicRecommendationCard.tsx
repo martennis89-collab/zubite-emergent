@@ -133,18 +133,32 @@ export function ClinicRecommendationCard({
         </span>
       </div>
 
-      {/* Treatments + Care Pass chip row — always renders the Care Pass chip
-          so the after-visit benefit is visible on every card, regardless of
-          whether the clinic has treatment tags published. */}
+      {/* Treatments + city/Care Pass chip row.
+
+          The Care Pass chip renders ONLY when `clinic.care_pass_partner === true`
+          (Feb 2026 brief): we never imply that every clinic participates.
+          A separate "В твоя град" chip surfaces when the backend has confirmed
+          the same-city match (all recommended clinics pass this filter today,
+          but we gate on the explicit flag in case the contract evolves). */}
       <div className="flex flex-wrap gap-1.5 mb-3">
+        {clinic.same_city === true && (
+          <span
+            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-800 ring-1 ring-teal-200 text-[11px] font-medium"
+            data-testid={`clinic-card-same-city-${clinic.id}`}
+          >
+            <MapPin className="w-3 h-3" /> В твоя град
+          </span>
+        )}
         {treatmentBadges}
-        <span
-          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-700 ring-1 ring-teal-100 text-[11px] font-medium"
-          data-testid={`clinic-card-carepass-chip-${clinic.id}`}
-          title="След проведена консултация чрез Zubite.bg, клиниката ти предоставя Care Pass с отстъпки за продукти за орална хигиена."
-        >
-          <Gift className="w-3 h-3" /> Care Pass след консултация
-        </span>
+        {clinic.care_pass_partner === true && (
+          <span
+            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-700 ring-1 ring-teal-100 text-[11px] font-medium"
+            data-testid={`clinic-card-carepass-chip-${clinic.id}`}
+            title="Възможни ползи след физическа консултация."
+          >
+            <Gift className="w-3 h-3" /> Care Pass
+          </span>
+        )}
       </div>
 
       {/* Aligner brand chips — compact form, omitted when no brands. */}
@@ -192,7 +206,9 @@ export function ClinicRecommendationCard({
               <li className="flex items-start gap-1.5"><span className="text-teal-500 mt-1">•</span><span>Работи с тази категория случаи</span></li>
               <li className="flex items-start gap-1.5"><span className="text-teal-500 mt-1">•</span><span>Релевантна е спрямо посоката от въпросника</span></li>
               <li className="flex items-start gap-1.5"><span className="text-teal-500 mt-1">•</span><span>В твоя град / близо до избраната локация</span></li>
-              <li className="flex items-start gap-1.5"><span className="text-teal-500 mt-1">•</span><span>Предоставя Care Pass след проведена консултация чрез Zubite.bg</span></li>
+              {clinic.care_pass_partner === true && (
+                <li className="flex items-start gap-1.5"><span className="text-teal-500 mt-1">•</span><span>Участваща в Care Pass — ползи може да се отключат след физическа консултация</span></li>
+              )}
             </ul>
           </div>
         </div>

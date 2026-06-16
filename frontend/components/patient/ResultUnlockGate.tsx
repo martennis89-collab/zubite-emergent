@@ -197,6 +197,16 @@ export function ResultUnlockGate({ leadId, defaultName, onUnlocked }: ResultUnlo
             </span>
           </label>
 
+          {/* Care Pass clarification — placed near the consent area so the
+              expectation is set BEFORE submit. Wording is calm, not a legal
+              wall, and explicitly reverses common patient assumptions. */}
+          <p
+            className="text-[11.5px] text-slate-500 leading-relaxed bg-slate-50/80 ring-1 ring-slate-200/60 rounded-lg px-3 py-2.5"
+            data-testid="care-pass-contact-clarification"
+          >
+            Оставянето на контакт не отключва Care Pass автоматично. Care Pass може да стане активен след реално проведена физическа консултация в участваща клиника.
+          </p>
+
           {error && (
             <div role="alert" className="flex items-start gap-2 rounded-lg bg-rose-50 ring-1 ring-rose-200 px-3 py-2 text-[13px] text-rose-700" data-testid="result-unlock-error">
               <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />

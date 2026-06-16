@@ -71,6 +71,15 @@ export interface RecommendedClinic {
   is_featured?: boolean;
   placement_label?: string | null;
   placement_disclosure?: string | null;
+  // Same-city flag — backend already filters every recommended clinic to
+  // the lead's city (out-of-city clinics are excluded with score=-1),
+  // so this is always `true` on the recommendation page. Surfaced so the
+  // card can render the "В твоя град" chip without re-deriving on client.
+  same_city?: boolean;
+  // Care Pass participation. Chip renders ONLY when true. Care Pass copy
+  // rule: benefits unlock after a physical consultation at a participating
+  // clinic. Never on every clinic, never automatically.
+  care_pass_partner?: boolean;
   // External review signals (R1 — display-only, admin-gated).
   // Omitted entirely by backend when no source is publishable, so consumers
   // must `if (clinic.review_signals)` before rendering.

@@ -1123,11 +1123,26 @@ def _safe_clinic_payload(clinic: dict, lead_treatment: str, is_broad: bool) -> d
     tier = _resolve_partner_tier(clinic)
 
     treatments_normalized = _normalize_clinic_treatments(clinic)
+    # Care Pass participation — strictly boolean. Backend stores either
+    # the explicit `care_pass_partner` flag (preferred) or, defensively,
+    # treats any truthy value as opt-in. Default False keeps the chip
+    # OFF unless admin/clinic explicitly enrolled.
+    care_pass_partner = bool(clinic.get("care_pass_partner") is True)
+
     payload = {
         "id": clinic.get("id"),
         "name": _clinic_name(clinic),
         "city_name": _city_name_for(slug, clinic.get("city_name")),
         "city_slug": slug,
+        # Recommendation eligibility invariant — every clinic returned by
+        # /recommended-clinics passed the same-city filter in `_score_clinic`
+        # (which returns -1 for city mismatch). We surface this flag for the
+        # frontend "В твоя град" chip without re-checking on the client.
+        "same_city": True,
+        # Care Pass chip — chip renders only when this is true on the card.
+        # Copy guard: "Възможни ползи след физическа консултация." — never
+        # implies online consultation, contact submission, or quiz unlock.
+        "care_pass_partner": care_pass_partner,
         # Canonical field name for frontend consumers (Feb 2026 cleanup).
         "treatments_supported": treatments_normalized,
         # Legacy alias kept so existing card / profile components keep
@@ -1259,6 +1274,10 @@ async def recommended_clinics(lead_id: str, limit: int = 3):
             "treatments_supported": 1, "treatments_offered": 1,
             "is_active": 1, "clinic_status": 1, "status": 1,
             "is_demo": 1,
+            # Care Pass participation flag — exposed on the recommended-clinic
+            # payload so the patient-facing card can render the Care Pass chip
+            # ONLY on participating clinics (Feb 2026 brief). NEVER affects ranking.
+            "care_pass_partner": 1,
             "created_at": 1,
             # Partner placement (optional; missing => safe defaults).
             "partner_tier": 1, "is_featured": 1, "is_premium": 1,

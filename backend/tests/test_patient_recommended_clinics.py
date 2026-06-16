@@ -258,6 +258,17 @@ ALLOWED_CLINIC_FIELDS = {
     "placement_disclosure",
     # External review signals (R1 — display-only, admin-gated).
     "review_signals",
+    # Aligner brand chips (Feb 2026 — optional, omitted when no visible entries).
+    "aligner_brands_supported",
+    # Rich Profile (R1) — tier-gated public projection, optional.
+    "clinic_profile",
+    # Same-city flag (Feb 2026) — always True on /recommended-clinics since
+    # backend filters out city-mismatch via score=-1. Surfaced so the patient
+    # card can render the "В твоя град" chip without re-deriving on client.
+    "same_city",
+    # Care Pass participation (Feb 2026) — boolean. Drives the Care Pass chip
+    # on participating clinics only. Never on every clinic.
+    "care_pass_partner",
 }
 
 
