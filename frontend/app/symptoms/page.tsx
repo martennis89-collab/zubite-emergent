@@ -60,7 +60,49 @@ export default function SymptomsPage() {
   return (
     <main className="min-h-screen bg-white">
       <Header />
-      
+
+      {/* MedicalWebPage + ItemList schema. Educational framing only — never
+          implies Zubite diagnoses. Includes the orientation disclaimer in
+          the schema description so AI surfaces inherit it. (Feb 2026 P1.) */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@graph': [
+              {
+                '@type': 'MedicalWebPage',
+                '@id': 'https://zubite.bg/symptoms#webpage',
+                url: 'https://zubite.bg/symptoms',
+                name: 'Признаци, че може да имаш проблем със захапката (дори без болка) — Zubite.bg',
+                description:
+                  'Информацията е ориентировъчна и не замества преглед при стоматолог. Помага на пациента да разпознае ранни сигнали като струпани зъби, неравномерна захапка, щракане, напрежение и износване.',
+                inLanguage: 'bg-BG',
+                isPartOf: { '@type': 'WebSite', name: 'Zubite.bg', url: 'https://zubite.bg' },
+                lastReviewed: new Date().toISOString().slice(0, 10),
+                audience: { '@type': 'PeopleAudience', name: 'Пациенти със зъбни сигнали' },
+              },
+              {
+                '@type': 'BreadcrumbList',
+                itemListElement: [
+                  { '@type': 'ListItem', position: 1, name: 'Начало', item: 'https://zubite.bg/' },
+                  { '@type': 'ListItem', position: 2, name: 'Симптоми', item: 'https://zubite.bg/symptoms' },
+                ],
+              },
+              {
+                '@type': 'ItemList',
+                itemListElement: SYMPTOMS.map((s, i) => ({
+                  '@type': 'ListItem',
+                  position: i + 1,
+                  name: s.title,
+                  description: s.description,
+                })),
+              },
+            ],
+          }),
+        }}
+      />
+
       {/* Hero Section */}
       <section className="pt-28 pb-16 md:pt-36 md:pb-20 bg-gradient-to-b from-white to-slate-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
@@ -140,6 +182,20 @@ export default function SymptomsPage() {
             <span>Провери къде се намираш</span>
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </Link>
+
+          {/* Secondary contextual catalog link — patients with a recurring
+              symptom can jump straight to the public partner catalog. */}
+          <p className="mt-6 text-[13px] text-teal-100/95 leading-relaxed max-w-md mx-auto">
+            Ако симптомът продължава или се повтаря, можеш да{' '}
+            <Link
+              href="/kliniki"
+              className="underline underline-offset-4 hover:text-white font-medium"
+              data-testid="symptoms-catalog-link"
+            >
+              разгледаш партньорски клиники
+            </Link>{' '}
+            или да започнеш ориентация чрез Zubite.
+          </p>
         </div>
       </section>
       

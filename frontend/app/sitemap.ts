@@ -1,147 +1,207 @@
 import { MetadataRoute } from 'next'
 import { CITIES, TREATMENTS } from '@/lib/data'
 
-interface BlogSitemapEntry {
-  slug: string
-  updated_at?: string
-  published_at?: string
+interface BlogSitemapEntry { slug: string; updated_at?: string; published_at?: string }
+interface PublicClinicEntry {
+  slug?: string | null
+  city_slug?: string | null
+  treatments?: string[] | null
+  treatments_supported?: string[] | null
+  is_demo?: boolean
+  is_addons_showcase?: boolean
+  is_active?: boolean
+  clinic_status?: string | null
+  status?: string | null
 }
 
-async function fetchPublishedBlogPosts(): Promise<BlogSitemapEntry[]> {
+async function fetchJson<T>(path: string): Promise<T | null> {
   try {
     const API_URL =
       process.env.NEXT_PUBLIC_API_URL || process.env.REACT_APP_BACKEND_URL || ''
-    if (!API_URL) return []
-    const res = await fetch(`${API_URL}/api/blog/posts?limit=500`, {
-      next: { revalidate: 300 }, // refresh every 5 min
-    })
-    if (!res.ok) return []
-    const data = await res.json()
-    return (data?.posts || []) as BlogSitemapEntry[]
+    if (!API_URL) return null
+    const res = await fetch(`${API_URL}${path}`, { next: { revalidate: 300 } })
+    if (!res.ok) return null
+    return (await res.json()) as T
   } catch {
-    return []
+    return null
   }
 }
 
+const fetchPublishedBlogPosts = (): Promise<BlogSitemapEntry[]> =>
+  fetchJson<{ posts?: BlogSitemapEntry[] }>('/api/blog/posts?limit=500').then(
+    (d) => d?.posts || [],
+  )
+
+const fetchPublicClinics = (): Promise<PublicClinicEntry[]> =>
+  // Public clinics endpoint caps `limit` at 100; using 500 returns an empty
+  // payload (validation rejection) and silently drops every profile from the
+  // sitemap. 100 is sufficient until the BG market exceeds that many active
+  // partner clinics, at which point we'll paginate.
+  fetchJson<{ clinics?: PublicClinicEntry[] }>(
+    '/api/public/clinics?limit=100',
+  ).then((d) => d?.clinics || [])
+
+// Symptom-detail pages — currently only one `SYMPTOMS_DATA` slug ships. We
+// keep the list inline so the sitemap doesn't depend on running the
+// `app/symptoms/[symptomSlug]/page.tsx` import graph at build time.
+const SYMPTOM_SLUGS = ['bleeding-gums'] as const
+
+// Bulgarian-friendly specialty slugs surfaced on /kliniki/[city]/[specialty].
+// Mirrors the canonical URL forms our public listing route accepts (see
+// `SPECIALTY_URL_MAP` in lib/publicClinics.ts).
+const SPECIALTY_URL_SLUGS = [
+  'invisalign',
+  'aligners',
+  'ortodontia',
+  'implants',
+  'estetichna-stomatologia',
+  'detska-stomatologia',
+] as const
+
+export const dynamic = 'force-dynamic'
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://zubite.bg'
-  
-  // Static pages
+  const now = new Date()
+
+  // ── Static public pages ───────────────────────────────────────
   const staticPages: MetadataRoute.Sitemap = [
-    {
-      url: baseUrl,
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 1.0,
-    },
-    {
-      url: `${baseUrl}/contact`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.5,
-    },
-    {
-      url: `${baseUrl}/symptoms`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.6,
-    },
-    {
-      // Canonical trust-layer page — Zubite Clinic Standard explainer.
-      url: `${baseUrl}/standart-za-kliniki`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/privacy`,
-      lastModified: new Date(),
-      changeFrequency: 'yearly',
-      priority: 0.3,
-    },
-    {
-      url: `${baseUrl}/terms`,
-      lastModified: new Date(),
-      changeFrequency: 'yearly',
-      priority: 0.3,
-    },
+    { url: baseUrl,                              lastModified: now, changeFrequency: 'weekly',  priority: 1.0 },
+    { url: `${baseUrl}/contact`,                 lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${baseUrl}/symptoms`,                lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${baseUrl}/care-pass`,               lastModified: now, changeFrequency: 'monthly', priority: 0.75 },
+    { url: `${baseUrl}/za-kliniki`,              lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${baseUrl}/standart-za-kliniki`,     lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${baseUrl}/privacy`,                 lastModified: now, changeFrequency: 'yearly',  priority: 0.3 },
+    { url: `${baseUrl}/terms`,                   lastModified: now, changeFrequency: 'yearly',  priority: 0.3 },
   ]
-  
-  // SEO content pages (high value)
-  const seoContentPages: MetadataRoute.Sitemap = [
-    {
-      url: `${baseUrl}/aligners-comparison`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly' as const,
-      priority: 0.95,
-    },
-    {
-      url: `${baseUrl}/aligners-vs-braces`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly' as const,
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/invisalign-price`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly' as const,
-      priority: 0.95,
-    },
-    {
-      url: `${baseUrl}/invisalign-bulgaria`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly' as const,
-      priority: 0.95,
-    },
-    {
-      url: `${baseUrl}/what-is-invisalign`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly' as const,
-      priority: 0.85,
-    },
-    {
-      url: `${baseUrl}/implant-price`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly' as const,
-      priority: 0.95,
-    },
-    {
-      url: `${baseUrl}/crooked-teeth`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly' as const,
-      priority: 0.85,
-    },
-  ]
-  
-  // Treatment pages (high priority)
-  const treatmentPages: MetadataRoute.Sitemap = Object.keys(TREATMENTS).map((treatment) => ({
-    url: `${baseUrl}/${treatment}`,
-    lastModified: new Date(),
-    changeFrequency: 'weekly' as const,
-    priority: 0.9,
+
+  // ── Symptom detail pages ──────────────────────────────────────
+  const symptomDetailPages: MetadataRoute.Sitemap = SYMPTOM_SLUGS.map((s) => ({
+    url: `${baseUrl}/symptoms/${s}`,
+    lastModified: now,
+    changeFrequency: 'monthly' as const,
+    priority: 0.65,
   }))
-  
-  // City-treatment pages
+
+  // ── High-value SEO content pages ──────────────────────────────
+  const seoContentPages: MetadataRoute.Sitemap = [
+    { url: `${baseUrl}/aligners-comparison`,  priority: 0.95 },
+    { url: `${baseUrl}/aligners-vs-braces`,   priority: 0.9 },
+    { url: `${baseUrl}/invisalign-price`,     priority: 0.95 },
+    { url: `${baseUrl}/invisalign-bulgaria`,  priority: 0.95 },
+    { url: `${baseUrl}/what-is-invisalign`,   priority: 0.85 },
+    { url: `${baseUrl}/implant-price`,        priority: 0.95 },
+    { url: `${baseUrl}/crooked-teeth`,        priority: 0.85 },
+  ].map((e) => ({ ...e, lastModified: now, changeFrequency: 'weekly' as const }))
+
+  // ── Treatment hub pages ───────────────────────────────────────
+  const treatmentPages: MetadataRoute.Sitemap = Object.keys(TREATMENTS).map(
+    (treatment) => ({
+      url: `${baseUrl}/${treatment}`,
+      lastModified: now,
+      changeFrequency: 'weekly' as const,
+      priority: 0.9,
+    }),
+  )
+
+  // ── /[city]/[treatment] dynamic landing pages ────────────────
   const cityTreatmentPages: MetadataRoute.Sitemap = []
   for (const city of Object.keys(CITIES)) {
     for (const treatment of Object.keys(TREATMENTS)) {
       cityTreatmentPages.push({
         url: `${baseUrl}/${city}/${treatment}`,
-        lastModified: new Date(),
+        lastModified: now,
         changeFrequency: 'weekly' as const,
         priority: 0.7,
       })
     }
   }
-  
-  // Blog posts (published only) — pulled from API
+
+  // ── Public clinic catalog: /kliniki, /kliniki/[city], /kliniki/[city]/[specialty] ──
+  const klinikiRoot: MetadataRoute.Sitemap = [
+    {
+      url: `${baseUrl}/kliniki`,
+      lastModified: now,
+      changeFrequency: 'daily' as const,
+      priority: 0.9,
+    },
+  ]
+  const klinikiCityPages: MetadataRoute.Sitemap = Object.keys(CITIES).map(
+    (city) => ({
+      url: `${baseUrl}/kliniki/${city}`,
+      lastModified: now,
+      changeFrequency: 'weekly' as const,
+      priority: 0.75,
+    }),
+  )
+  const klinikiCitySpecialtyPages: MetadataRoute.Sitemap = []
+  for (const city of Object.keys(CITIES)) {
+    for (const specialty of SPECIALTY_URL_SLUGS) {
+      klinikiCitySpecialtyPages.push({
+        url: `${baseUrl}/kliniki/${city}/${specialty}`,
+        lastModified: now,
+        changeFrequency: 'weekly' as const,
+        priority: 0.7,
+      })
+    }
+  }
+
+  // ── Public clinic profile pages (dynamic, filtered) ──────────
+  // Visibility rules — match the `/api/public/clinics` whitelist:
+  //   • is_demo !== true (demo/showcase excluded)
+  //   • is_addons_showcase !== true
+  //   • is_active !== false
+  //   • clinic_status / status NOT in {pending, suspended, draft}
+  //   • slug + city_slug + ≥1 treatment must exist (otherwise no canonical URL)
+  const clinics = await fetchPublicClinics()
+  let skippedClinics = 0
+  const clinicProfilePages: MetadataRoute.Sitemap = []
+  for (const c of clinics) {
+    const isHidden =
+      c.is_demo === true ||
+      c.is_addons_showcase === true ||
+      c.is_active === false ||
+      ['pending', 'suspended', 'draft'].includes(
+        (c.clinic_status || c.status || '').toLowerCase(),
+      )
+    if (isHidden) { skippedClinics++; continue }
+
+    const slug = c.slug
+    const city = c.city_slug
+    const treatments = c.treatments || c.treatments_supported || []
+    if (!slug || !city || treatments.length === 0) { skippedClinics++; continue }
+
+    // The public profile route requires a specialty path segment. We use the
+    // first treatment that maps to an SEO-friendly URL slug; fall back to
+    // `klinika` to avoid inventing a slug that isn't a real specialty.
+    const firstTreatment = treatments[0]
+    const specialtySlug =
+      typeof firstTreatment === 'string' && firstTreatment.length > 0
+        ? firstTreatment
+        : 'klinika'
+
+    clinicProfilePages.push({
+      url: `${baseUrl}/kliniki/${city}/${specialtySlug}/${slug}`,
+      lastModified: now,
+      changeFrequency: 'weekly' as const,
+      priority: 0.6,
+    })
+  }
+  // Surface skip count for build-time visibility (Vercel build logs).
+  if (process.env.NODE_ENV !== 'production' && skippedClinics > 0) {
+    // eslint-disable-next-line no-console
+    console.info(`[sitemap] Skipped ${skippedClinics} clinic(s) without a publishable slug/city/specialty.`)
+  }
+
+  // ── Blog ──────────────────────────────────────────────────────
   const posts = await fetchPublishedBlogPosts()
   const blogIndex: MetadataRoute.Sitemap = [
     {
       url: `${baseUrl}/blog`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: 'daily' as const,
-      priority: 0.7,
+      priority: 0.75,
     },
   ]
   const blogPages: MetadataRoute.Sitemap = posts
@@ -153,5 +213,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     }))
 
-  return [...staticPages, ...seoContentPages, ...treatmentPages, ...cityTreatmentPages, ...blogIndex, ...blogPages]
+  return [
+    ...staticPages,
+    ...symptomDetailPages,
+    ...seoContentPages,
+    ...treatmentPages,
+    ...cityTreatmentPages,
+    ...klinikiRoot,
+    ...klinikiCityPages,
+    ...klinikiCitySpecialtyPages,
+    ...clinicProfilePages,
+    ...blogIndex,
+    ...blogPages,
+  ]
 }

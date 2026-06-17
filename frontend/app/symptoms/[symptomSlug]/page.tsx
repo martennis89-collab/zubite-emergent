@@ -154,6 +154,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: `${symptom.title} | Дентални симптоми | Zubite.bg`,
     description: symptom.description,
+    alternates: { canonical: `https://zubite.bg/symptoms/${symptomSlug}` },
   }
 }
 
@@ -168,7 +169,55 @@ export default async function SymptomDetailPage({ params }: PageProps) {
   return (
     <main className="min-h-screen bg-[#0f172a]">
       <Header />
-      
+
+      {/* MedicalWebPage + BreadcrumbList + FAQPage (only when the page has
+          a faq) schema. Description includes the orientation disclaimer
+          so AI surfaces never infer a diagnosis. (Feb 2026 P1.) */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@graph': [
+              {
+                '@type': 'MedicalWebPage',
+                '@id': `https://zubite.bg/symptoms/${symptomSlug}#webpage`,
+                url: `https://zubite.bg/symptoms/${symptomSlug}`,
+                name: `${symptom.title} | Zubite.bg`,
+                description:
+                  `${symptom.description} Информацията е ориентировъчна и не замества преглед при стоматолог.`,
+                inLanguage: 'bg-BG',
+                isPartOf: { '@type': 'WebSite', name: 'Zubite.bg', url: 'https://zubite.bg' },
+                audience: { '@type': 'PeopleAudience', name: 'Пациенти със зъбни сигнали' },
+              },
+              {
+                '@type': 'BreadcrumbList',
+                itemListElement: [
+                  { '@type': 'ListItem', position: 1, name: 'Начало',   item: 'https://zubite.bg/' },
+                  { '@type': 'ListItem', position: 2, name: 'Симптоми', item: 'https://zubite.bg/symptoms' },
+                  { '@type': 'ListItem', position: 3, name: symptom.title, item: `https://zubite.bg/symptoms/${symptomSlug}` },
+                ],
+              },
+              ...(symptom.whenToSeek && symptom.whenToSeek.length > 0 ? [{
+                '@type': 'FAQPage',
+                mainEntity: [
+                  {
+                    '@type': 'Question',
+                    name: `Кога да потърся специалист за: ${symptom.title}?`,
+                    acceptedAnswer: { '@type': 'Answer', text: symptom.whenToSeek.join(' ') },
+                  },
+                  {
+                    '@type': 'Question',
+                    name: `Какви могат да бъдат причините за: ${symptom.title}?`,
+                    acceptedAnswer: { '@type': 'Answer', text: (symptom.causes || []).join(' ') },
+                  },
+                ],
+              }] : []),
+            ],
+          }),
+        }}
+      />
+
       <section className="pt-24 pb-12 md:pt-32 md:pb-16">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <Link 
@@ -235,6 +284,20 @@ export default async function SymptomDetailPage({ params }: PageProps) {
               Научете повече за {symptom.relatedTreatment.name}
               <ArrowRight className="w-5 h-5" />
             </Link>
+
+            {/* Secondary contextual catalog link — Feb 2026 SEO/internal-
+                link pass. Calm copy, no "best clinic" framing. */}
+            <p className="mt-5 text-[13px] text-slate-500 leading-relaxed max-w-md mx-auto">
+              Можеш да{' '}
+              <Link
+                href="/kliniki"
+                className="text-teal-700 hover:text-teal-800 font-medium underline-offset-4 hover:underline"
+                data-testid="symptom-catalog-link"
+              >
+                разгледаш партньорски клиники
+              </Link>{' '}
+              или да използваш Zubite ориентацията, за да стесниш следващата стъпка.
+            </p>
           </div>
         </div>
       </section>

@@ -64,6 +64,46 @@ export default async function BlogPage() {
     <main className="min-h-screen bg-[#FCFAF8] text-slate-900 overflow-x-hidden" data-testid="blog-page">
       <Header />
 
+      {/* Blog + ItemList schema — Feb 2026 P1. Lists the visible posts on
+          this index page; full Article schema lives on each /blog/[slug]. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@graph': [
+              {
+                '@type': 'Blog',
+                '@id': 'https://zubite.bg/blog#blog',
+                name: 'Zubite.bg — Блог за ортодонтия и дентална грижа',
+                description:
+                  'Статии и съвети за ортодонтия, алайнери, брекети, импланти, естетична стоматология и ежедневна грижа за зъбите.',
+                url: 'https://zubite.bg/blog',
+                inLanguage: 'bg-BG',
+                publisher: { '@type': 'Organization', name: 'Zubite.bg', url: 'https://zubite.bg' },
+              },
+              {
+                '@type': 'ItemList',
+                itemListElement: posts.slice(0, 20).map((p, i) => ({
+                  '@type': 'ListItem',
+                  position: i + 1,
+                  url: `https://zubite.bg/blog/${p.slug}`,
+                  name: p.title,
+                })),
+              },
+              {
+                '@type': 'BreadcrumbList',
+                itemListElement: [
+                  { '@type': 'ListItem', position: 1, name: 'Начало', item: 'https://zubite.bg/' },
+                  { '@type': 'ListItem', position: 2, name: 'Блог',   item: 'https://zubite.bg/blog' },
+                ],
+              },
+            ],
+          }),
+        }}
+      />
+
+
       {/* Hero Section — premium journal */}
       <section className="relative pt-28 md:pt-36 pb-14 md:pb-20">
         <div aria-hidden className="absolute -top-32 -left-32 w-[36rem] h-[36rem] rounded-full bg-teal-200/30 blur-3xl pointer-events-none" />

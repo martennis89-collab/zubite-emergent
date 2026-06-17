@@ -10,18 +10,23 @@ import {
 } from 'lucide-react'
 
 export const metadata: Metadata = {
-  title: 'Zubite Care Pass — отстъпки за орална хигиена след консултация | Zubite.bg',
+  title: 'Zubite Care Pass след физическа консултация | Zubite.bg',
   description:
-    'Care Pass е допълнителна полза от партньорските клиники: след като посетиш консултация чрез Zubite.bg, клиниката ще ти предостави карта с отстъпки за продукти за орална хигиена.',
+    'Научи как Zubite Care Pass може да стане активен след физическа консултация в участваща партньорска клиника, когато условията са изпълнени. Не е застраховка и не е автоматична отстъпка от лечение.',
   alternates: { canonical: 'https://zubite.bg/care-pass' },
   openGraph: {
-    title: 'Zubite Care Pass — отстъпки за орална хигиена',
+    title: 'Zubite Care Pass — след физическа консултация в участваща клиника',
     description:
-      'След проведена консултация в партньорска клиника чрез Zubite.bg получаваш Care Pass с отстъпки за продукти за орална хигиена.',
+      'Care Pass може да се отключи след физическа консултация в участваща партньорска клиника, когато условията са изпълнени. Не е застраховка, не е автоматична отстъпка от лечение.',
     url: 'https://zubite.bg/care-pass',
-    siteName: 'Zubite.bg',
-    locale: 'bg_BG',
     type: 'website',
+    locale: 'bg_BG',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Zubite Care Pass — след физическа консултация',
+    description:
+      'Care Pass може да стане активен след физическа консултация в участваща партньорска клиника, когато условията са изпълнени.',
   },
   robots: { index: true, follow: true },
 }
@@ -309,7 +314,21 @@ export default function CarePassPage() {
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                 </span>
               </Link>
+              {/* Secondary catalog link — Feb 2026 SEO/internal-link pass.
+                  Surfaces partner clinics that show Care Pass on their
+                  profiles. Care Pass guardrail copy below remains primary. */}
+              <Link
+                href="/kliniki"
+                className="inline-flex items-center gap-1.5 rounded-full bg-white/65 backdrop-blur-md ring-1 ring-white/80 text-slate-700 text-sm font-medium px-4 py-2.5 hover:bg-white transition-all"
+                data-testid="care-pass-catalog-link"
+              >
+                Виж публичния каталог
+                <ArrowRight className="w-3.5 h-3.5 text-teal-600" />
+              </Link>
             </div>
+            <p className="mt-3 text-[12px] text-slate-500 leading-relaxed max-w-lg mx-auto">
+              Care Pass се показва само при участващи партньорски клиники. Можеш да разгледаш публичния каталог и да видиш кои профили показват Care Pass информация.
+            </p>
             <p className="mt-7 text-[11px] text-slate-400 leading-snug max-w-lg mx-auto">
               Care Pass се предоставя от участваща партньорска клиника след физическа консултация, когато условията са изпълнени.
               Zubite.bg не поставя диагноза и не заменя професионален стоматологичен преглед.

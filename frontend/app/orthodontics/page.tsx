@@ -556,7 +556,23 @@ export default function OrthodonticsPage() {
             <Smile className="w-5 h-5" />
             Провери ситуацията си първо
           </Link>
-          
+
+          {/* Contextual catalog link — secondary, calm. Patients who already
+              know they want to compare partner clinics with an orthodontic
+              profile can jump straight into the public catalog without
+              passing through the quiz. (Feb 2026 SEO/internal-link pass.) */}
+          <p className="mt-6 text-[13px] text-slate-500 leading-relaxed max-w-lg mx-auto">
+            Ако вече търсиш консултация, можеш да{' '}
+            <Link
+              href="/kliniki/sofia/ortodontia"
+              className="text-teal-700 hover:text-teal-800 font-medium underline-offset-4 hover:underline"
+              data-testid="orthodontics-catalog-link"
+            >
+              разгледаш партньорски клиники с ортодонтски профил
+            </Link>
+            .
+          </p>
+
           {/* Disclaimer */}
           <p className="text-xs text-slate-400 mt-8">
             {EDUCATIONAL_DISCLAIMER}

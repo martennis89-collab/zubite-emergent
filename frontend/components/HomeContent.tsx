@@ -873,14 +873,32 @@ function PatientBenefit() {
           {/* Optional in-section CTA — kept SECONDARY per brief. The header
               no longer carries a persistent „Започни анализа" CTA, so this
               soft entry remains inside the explainer section, not globally. */}
-          <Link
-            href="/quiz"
-            className="mt-6 inline-flex items-center gap-1.5 rounded-full bg-white/70 backdrop-blur-md ring-1 ring-white/80 text-slate-900 text-sm font-medium px-4 py-2 hover:bg-white hover:-translate-y-0.5 transition-all shadow-[0_8px_24px_-14px_rgba(15,23,42,0.18)]"
-            data-testid="kakvo-section-cta"
-          >
-            Започни ориентация
-            <ArrowRight className="w-3.5 h-3.5 text-teal-600" />
-          </Link>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <Link
+              href="/quiz"
+              className="inline-flex items-center gap-1.5 rounded-full bg-white/70 backdrop-blur-md ring-1 ring-white/80 text-slate-900 text-sm font-medium px-4 py-2 hover:bg-white hover:-translate-y-0.5 transition-all shadow-[0_8px_24px_-14px_rgba(15,23,42,0.18)]"
+              data-testid="kakvo-section-cta"
+            >
+              Започни ориентация
+              <ArrowRight className="w-3.5 h-3.5 text-teal-600" />
+            </Link>
+            {/* Secondary contextual catalog link — kept calm so Zubite never
+                feels like a generic clinic directory. The primary patient
+                path is quiz → result → personalised shortlist; the public
+                catalog remains a transparent fallback. */}
+            <Link
+              href="/kliniki"
+              className="inline-flex items-center gap-1.5 text-[13px] text-slate-500 hover:text-teal-700 transition-colors"
+              data-testid="kakvo-section-catalog-link"
+            >
+              Виж публичния каталог
+              <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+          <p className="mt-3 text-[12px] text-slate-400 leading-relaxed max-w-md">
+            Можеш да разгледаш и публичния каталог с партньорски клиники, но
+            персоналната ориентация започва с кратък анализ.
+          </p>
         </Reveal>
         <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
           {benefits.map((b, i) => (

@@ -99,12 +99,48 @@ export default async function HomePage() {
             '@type': 'Organization',
             name: 'Zubite.bg',
             url: 'https://zubite.bg',
+            logo: 'https://zubite.bg/og-image.png',
             description:
               'Zubite.bg помага на хората да се ориентират дали има сигнал за дентален проблем, какви решения съществуват и към какъв тип специалист има смисъл да се насочат.',
             areaServed: {
               '@type': 'Country',
               name: 'България',
             },
+            knowsAbout: [
+              'Ортодонтия',
+              'Алайнери',
+              'Брекети',
+              'Дентални импланти',
+              'Естетична стоматология',
+              'Орална хигиена',
+              'Дентални симптоми',
+              'Захапка',
+            ],
+          }),
+        }}
+      />
+      {/* Service schema — Zubite is NOT a clinical provider. We describe the
+          platform as a *dental orientation and clinic-matching* Service so
+          Google/AI surfaces understand the offering without inferring that
+          Zubite diagnoses patients or operates a clinic. Feb 2026 P1. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'Service',
+            name: 'Zubite.bg — Дентална ориентация и насочване към партньорска клиника',
+            serviceType: 'Dental orientation and clinic-matching platform',
+            provider: {
+              '@type': 'Organization',
+              name: 'Zubite.bg',
+              url: 'https://zubite.bg',
+            },
+            areaServed: { '@type': 'Country', name: 'България' },
+            audience: { '@type': 'PeopleAudience', name: 'Пациенти със зъбни въпроси и сигнали' },
+            description:
+              'Платформа за дентална ориентация. Помага на пациента да разбере какъв може да е проблемът, какви са възможните следващи стъпки и към какъв тип консултация или клиника да се насочи. Не поставя диагноза и не замества преглед при стоматолог.',
+            url: 'https://zubite.bg/',
           }),
         }}
       />
