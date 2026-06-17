@@ -69,6 +69,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: baseUrl,                              lastModified: now, changeFrequency: 'weekly',  priority: 1.0 },
     { url: `${baseUrl}/contact`,                 lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${baseUrl}/symptoms`,                lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${baseUrl}/treatments`,              lastModified: now, changeFrequency: 'weekly',  priority: 0.85 },
     { url: `${baseUrl}/care-pass`,               lastModified: now, changeFrequency: 'monthly', priority: 0.75 },
     { url: `${baseUrl}/za-kliniki`,              lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${baseUrl}/standart-za-kliniki`,     lastModified: now, changeFrequency: 'monthly', priority: 0.7 },

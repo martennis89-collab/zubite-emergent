@@ -33,7 +33,7 @@ export function Header() {
   //     which public route the header renders on.
   const navLinks = [
     { href: '/symptoms', label: 'Симптоми' },
-    { href: '/orthodontics', label: 'Лечения' },
+    { href: '/treatments', label: 'Лечения' },
     { href: '/care-pass', label: 'Care Pass' },
     { href: '/blog', label: 'Статии' },
     { href: '/za-kliniki', label: 'За клиники' },
