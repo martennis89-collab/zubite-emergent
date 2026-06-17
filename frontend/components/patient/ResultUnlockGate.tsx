@@ -20,16 +20,25 @@
  */
 
 import { useState } from 'react'
-import { Lock, ShieldCheck, Sparkles, ArrowRight, Loader2, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { Lock, ShieldCheck, Sparkles, ArrowRight, Loader2, AlertTriangle, CheckCircle2, MapPin } from 'lucide-react'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
+
+// City slug → display name map. Mirrors the labels used elsewhere across
+// the app (homepage, quiz form). Defensive default = capitalised slug.
+const CITY_LABEL: Record<string, string> = {
+  sofia: 'София', plovdiv: 'Пловдив', varna: 'Варна', burgas: 'Бургас',
+  ruse: 'Русе', stara_zagora: 'Стара Загора', pleven: 'Плевен', haskovo: 'Хасково',
+}
 
 interface ResultUnlockGateProps {
   leadId: string
   defaultName?: string
+  /** City already known from the quiz — preselected as a compact pill. */
+  citySlug?: string
   onUnlocked: (data: { name: string; phone: string; email: string }) => void
 }
 
-export function ResultUnlockGate({ leadId, defaultName, onUnlocked }: ResultUnlockGateProps) {
+export function ResultUnlockGate({ leadId, defaultName, citySlug, onUnlocked }: ResultUnlockGateProps) {
   const [name, setName] = useState(defaultName || '')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
@@ -105,18 +114,18 @@ export function ResultUnlockGate({ leadId, defaultName, onUnlocked }: ResultUnlo
           Резултатът ти е готов
         </h1>
         <p className="mt-3 text-slate-600 text-[15px] leading-relaxed">
-          Остави данни, за да видиш персоналния си резултат и
-          свободни безплатни онлайн часове с подходящи партньорски клиники.
+          Остави данни, за да видиш персоналния си резултат и подходящи
+          партньорски клиники за твоя случай.
         </p>
 
-        {/* Value stack — what unlocks */}
+        {/* Value stack — what unlocks. Wording rewritten Feb 2026 to remove
+            Care Pass auto-unlock promises and "free slots" framing. */}
         <ul className="mt-5 space-y-2.5" data-testid="result-unlock-value-stack">
           {[
             'Персонален резултат според отговорите ти',
-            'Подходящи партньорски клиники',
-            'Свободни безплатни онлайн часове, когато са налични',
-            'Възможност за онлайн или присъствена консултация',
-            'Zubite Care Pass след запазена и потвърдена от клиниката консултация през Zubite.bg',
+            'Подходящи партньорски клиники близо до теб',
+            'Възможност за онлайн ориентация, когато клиниката предлага свободни часове',
+            'Care Pass при участваща клиника след физическа консултация, когато условията са изпълнени',
           ].map((item, i) => (
             <li key={i} className="flex items-start gap-2.5" data-testid={`result-unlock-value-${i}`}>
               <CheckCircle2 className="w-4 h-4 text-teal-600 mt-0.5 flex-shrink-0" />
@@ -125,25 +134,51 @@ export function ResultUnlockGate({ leadId, defaultName, onUnlocked }: ResultUnlo
           ))}
         </ul>
 
-        {/* Care Pass incentive block */}
+        {/* Care Pass note — calm, single-paragraph framing. Replaces the
+            old "ще отключиш" promise that implied online consultation
+            unlocked benefits (Feb 2026 brief). */}
         <div className="mt-5 rounded-2xl bg-teal-50/70 ring-1 ring-teal-100 p-4">
           <div className="flex items-start gap-3">
             <Sparkles className="w-4 h-4 text-teal-700 mt-0.5 flex-shrink-0" />
             <div className="text-[13px] text-slate-700 leading-relaxed">
-              Ако запазиш онлайн или присъствена консултация през Zubite.bg
-              и клиниката я потвърди, ще отключиш <strong>Zubite Care Pass</strong> —
-              достъп до специални отстъпки и партньорски предложения за продукти за орална хигиена.
+              <strong>Care Pass</strong> може да се отключи след физическа
+              консултация в участваща партньорска клиника, когато условията
+              са изпълнени. Не е застраховка и не е автоматична отстъпка
+              от лечение.
             </div>
           </div>
         </div>
 
         <p className="mt-3 text-[11px] text-slate-400 leading-relaxed">
-          Безплатните онлайн часове са налични при избрани партньорски клиники
-          и според свободните им слотове.
+          Онлайн ориентация е налична при избрани партньорски клиники
+          и според свободните им часове.
         </p>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="mt-6 space-y-3" data-testid="result-unlock-form">
+          {/* Compact city display — preselected from the quiz/lead so the
+              patient never goes through a second "second-quiz" city step.
+              Read-only pill (Feb 2026 brief: move city into the contact
+              area; preselect if already known). */}
+          {citySlug && CITY_LABEL[citySlug] && (
+            <div
+              className="flex items-center justify-between gap-3 rounded-xl bg-teal-50/70 ring-1 ring-teal-100 px-3.5 py-2.5"
+              data-testid="result-unlock-city-pill"
+            >
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-teal-700 font-semibold">
+                  Къде търсиш консултация
+                </p>
+                <p className="text-[14px] text-slate-900 font-medium leading-tight mt-0.5 flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-teal-600" />
+                  {CITY_LABEL[citySlug]}
+                </p>
+              </div>
+              <p className="text-[10.5px] text-slate-500 leading-snug text-right max-w-[10rem]">
+                Използваме града, за да покажем релевантни клиники близо до теб.
+              </p>
+            </div>
+          )}
           <label className="block">
             <span className="text-[11px] uppercase tracking-wide text-slate-500 font-semibold">Име</span>
             <input
@@ -204,7 +239,7 @@ export function ResultUnlockGate({ leadId, defaultName, onUnlocked }: ResultUnlo
             className="text-[11.5px] text-slate-500 leading-relaxed bg-slate-50/80 ring-1 ring-slate-200/60 rounded-lg px-3 py-2.5"
             data-testid="care-pass-contact-clarification"
           >
-            Оставянето на контакт не отключва Care Pass автоматично. Care Pass може да стане активен след реално проведена физическа консултация в участваща клиника.
+            Оставянето на контакт или онлайн консултацията не отключват Care Pass автоматично. Care Pass може да се отключи след физическа консултация в участваща партньорска клиника, когато условията са изпълнени.
           </p>
 
           {error && (
@@ -224,7 +259,7 @@ export function ResultUnlockGate({ leadId, defaultName, onUnlocked }: ResultUnlo
             <span aria-hidden className="absolute inset-x-3 top-0.5 h-1/3 rounded-full bg-white/20 blur-sm pointer-events-none" />
             <span className="relative inline-flex items-center gap-2">
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-              {submitting ? 'Изпращаме…' : 'Покажи ми резултата'}
+              {submitting ? 'Изпращаме…' : 'Покажи ми подходящи клиники'}
               {!submitting && <ArrowRight className="w-4 h-4" />}
             </span>
           </button>

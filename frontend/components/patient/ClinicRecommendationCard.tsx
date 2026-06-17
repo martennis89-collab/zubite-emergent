@@ -303,7 +303,7 @@ export function ClinicRecommendationCard({
             className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-white/65 backdrop-blur-xl ring-1 ring-white/80 text-slate-800 text-sm font-medium rounded-full hover:bg-white hover:-translate-y-0.5 transition-all shadow-[0_8px_24px_-14px_rgba(15,23,42,0.18)]"
             data-testid={`clinic-card-cta-${clinic.id}`}
           >
-            Искам обаждане
+            Заяви контакт
           </button>
         )}
       </div>

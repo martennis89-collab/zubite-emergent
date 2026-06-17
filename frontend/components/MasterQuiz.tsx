@@ -373,21 +373,21 @@ const MICRO_INSIGHTS: Record<Segment, Record<number, string>> = {
 const RESULT_CONTENT: Record<Segment, Record<ResultBand, ResultContent>> = {
   adult: {
     low: {
-      bandLabel: 'Нисък риск',
+      bandLabel: 'Нисък приоритет',
       headline: 'Изглежда, че си в добра позиция.',
       explanation: 'Отговорите ти показват малко сигнали. Това не изключва напълно проблем, но е добра новина — нещата изглеждат под контрол.',
       urgency: 'Добра идея е да провериш поне веднъж при ортодонт — дори за спокойствие.',
       education: 'Дори при нисък резултат, някои проблеми се развиват бавно и незабележимо. Ранната оценка е винаги по-добрият избор.',
     },
     moderate: {
-      bandLabel: 'Умерен риск',
+      bandLabel: 'Има сигнали за внимание',
       headline: 'Има признаци, които заслужават внимание.',
       explanation: 'Отговорите ти показват модел, който често се задълбочава с времето — износване, напрежение или проблем със захапката. Не е спешно, но не е и нещо за игнориране.',
       urgency: 'Добре е да потърсиш професионална оценка скоро, за да разбереш какви са вариантите ти.',
       education: 'Този резултат не е диагноза. Той показва, че има достатъчно сигнали, за да си струва консултация със специалист — преди лечението да стане по-сложно.',
     },
     high: {
-      bandLabel: 'Висок риск',
+      bandLabel: 'Висок приоритет',
       headline: 'Отговорите ти показват сериозни сигнали.',
       explanation: 'Комбинацията от симптоми — захапка, напрежение, износване — често означава проблем, който се влошава. Колкото по-рано действаш, толкова по-леко и по-евтино е лечението.',
       urgency: 'Препоръчваме ти да потърсиш специалист възможно най-скоро.',
@@ -396,21 +396,21 @@ const RESULT_CONTENT: Record<Segment, Record<ResultBand, ResultContent>> = {
   },
   teen: {
     low: {
-      bandLabel: 'Нисък риск',
+      bandLabel: 'Нисък приоритет',
       headline: 'Засега нещата изглеждат добре.',
       explanation: 'Отговорите показват малко сигнали за проблем. Тийнейджърските години обаче са ключов период за развитие на захапката.',
       urgency: 'Профилактичен преглед при ортодонт е добра идея — особено в този период на растеж.',
       education: 'Между 12 и 17 години лечението е най-ефективно и най-бързо. Ранната оценка може да спести много време и средства по-късно.',
     },
     moderate: {
-      bandLabel: 'Умерен риск',
+      bandLabel: 'Има сигнали за внимание',
       headline: 'Има признаци, които заслужават внимание.',
       explanation: 'Отговорите показват няколко сигнала — струпани зъби, захапка или дишане. В тийнейджърска възраст тези проблеми могат да се коригират значително по-лесно.',
       urgency: 'Сега е идеалният момент за консултация — докато растежът все още работи във ваша полза.',
       education: 'Тийнейджърските години са "златният прозорец" за ортодонтска корекция. Костите все още растат, което прави лечението по-бързо и по-ефективно.',
     },
     high: {
-      bandLabel: 'Висок риск',
+      bandLabel: 'Висок приоритет',
       headline: 'Отговорите показват ясни сигнали за проблем.',
       explanation: 'Комбинацията от струпване, захапка и евентуално дишане показва, че е важно да се действа. В тази възраст корекцията все още е много по-лесна, отколкото при възрастен.',
       urgency: 'Не изпускайте този прозорец — консултацията при ортодонт е важна стъпка сега.',
@@ -419,21 +419,21 @@ const RESULT_CONTENT: Record<Segment, Record<ResultBand, ResultContent>> = {
   },
   child: {
     low: {
-      bandLabel: 'Нисък риск',
+      bandLabel: 'Нисък приоритет',
       headline: 'Засега нещата изглеждат нормално.',
       explanation: 'Отговорите показват малко сигнали. При деца под 12 г. обаче развитието тепърва предстои и е важно да се наблюдава.',
       urgency: 'Първият преглед при ортодонт се препоръчва на 7-годишна възраст — дори без видим проблем.',
       education: 'Много проблеми при деца се развиват тихо. Ранната оценка може да предотврати нуждата от по-сложно лечение по-късно.',
     },
     moderate: {
-      bandLabel: 'Умерен риск',
+      bandLabel: 'Има сигнали за внимание',
       headline: 'Забелязваме сигнали, които заслужават внимание.',
       explanation: 'Дишането през устата, тесните челюсти или ранното струпване са сигнали, че развитието може да не върви по план. При децата интервенцията е най-проста и най-ефективна.',
       urgency: 'Препоръчваме преглед при ортодонт — ранната намеса може да промени хода на развитие.',
       education: 'При деца целта не е брекети — а насочване на растежа. Малка интервенция сега може да спести голямо лечение по-късно.',
     },
     high: {
-      bandLabel: 'Висок риск',
+      bandLabel: 'Висок приоритет',
       headline: 'Отговорите показват няколко важни сигнала.',
       explanation: 'Комбинацията от дишане, навици, тясна челюст и захапка показва, че е важно да се действа навреме. При деца ранната намеса е най-ефективна.',
       urgency: 'Моля, не отлагайте — преглед при ортодонт е важна стъпка.',
@@ -923,11 +923,22 @@ export function MasterQuiz() {
 
             <div className="text-center animate-fade-in-up" style={{ animationDelay: '150ms' }}>
               <button
-                onClick={() => { trackEvent('result_to_soft_commit', { band: result.band, segment }); setStep('soft_commit') }}
+                onClick={() => {
+                  // Bypass the redundant "Искаш ли да видиш опциите?" soft-commit
+                  // screen — the patient already clicked to see options on the
+                  // result screen. We log the same `result_to_soft_commit`
+                  // analytics event (for funnel continuity), but jump straight
+                  // to the form (city + lead creation). The `soft_commit` step
+                  // remains in the state machine for backward compatibility
+                  // and is no longer reachable in normal flow (Feb 2026 brief).
+                  trackEvent('result_to_soft_commit', { band: result.band, segment, skip_soft_commit: true })
+                  trackSoftCommit(true)
+                  setStep('form')
+                }}
                 className="inline-flex items-center gap-2 px-8 py-4 bg-teal-500 text-white font-medium rounded-full hover:bg-teal-600 hover:shadow-lg hover:shadow-teal-500/25 transition-all duration-300 group"
                 data-testid="result-continue-btn"
               >
-                <span>Виж какви са опциите {segment === 'adult' ? 'ти' : ''}</span>
+                <span>Продължи към опциите</span>
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
             </div>
@@ -1005,11 +1016,10 @@ export function MasterQuiz() {
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 animate-fade-in-up">
               <div className="text-center mb-8 pb-6 border-b border-slate-100">
                 <h2 className="font-serif text-xl sm:text-2xl font-semibold text-slate-900 mb-3">
-                  Последна стъпка преди резултата
+                  Къде търсиш консултация?
                 </h2>
                 <p className="text-slate-600 text-sm sm:text-base">
-                  Избери в кой град си — данните за връзка ще въведеш на
-                  следващия екран, заедно с твоя персонален резултат.
+                  Използваме града, за да покажем първо релевантни клиники близо до теб.
                 </p>
               </div>
               <div className="space-y-5">
@@ -1029,7 +1039,7 @@ export function MasterQuiz() {
                 <button onClick={handleSubmit} disabled={isSubmitting}
                   className="w-full mt-4 px-8 py-4 bg-teal-500 text-white font-semibold rounded-full hover:bg-teal-600 hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50"
                   data-testid="submit-btn">
-                  {isSubmitting ? <><Loader2 className="w-5 h-5 animate-spin" />Изпращане...</> : <>Виж моя резултат<ArrowRight className="w-5 h-5" /></>}
+                  {isSubmitting ? <><Loader2 className="w-5 h-5 animate-spin" />Изпращане...</> : <>Продължи<ArrowRight className="w-5 h-5" /></>}
                 </button>
                 <p className="text-center text-xs text-slate-500 mt-6 leading-relaxed">{MANUAL_RECOMMENDATION_COPY.safetyNote}</p>
               </div>

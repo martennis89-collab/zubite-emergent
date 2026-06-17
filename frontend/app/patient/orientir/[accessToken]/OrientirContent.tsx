@@ -60,9 +60,9 @@ const TREATMENT_NAMES: Record<string, string> = {
 }
 
 const BAND_LABELS: Record<string, string> = {
-  GREEN: 'Нисък риск',
-  YELLOW: 'Умерен риск',
-  RED: 'Висок риск',
+  GREEN: 'Нисък приоритет',
+  YELLOW: 'Има сигнали за внимание',
+  RED: 'Висок приоритет',
 }
 
 const BAND_SUMMARIES: Record<string, string> = {

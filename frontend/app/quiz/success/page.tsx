@@ -18,9 +18,9 @@ const BAND_CONFIG: Record<
   ResultBand,
   { label: string; color: string; bg: string; border: string; iconBg: string; dot: string }
 > = {
-  low:      { label: 'Нисък риск',  color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', iconBg: 'bg-emerald-100', dot: 'bg-emerald-500' },
-  moderate: { label: 'Умерен риск', color: 'text-amber-700',   bg: 'bg-amber-50',   border: 'border-amber-200',   iconBg: 'bg-amber-100',   dot: 'bg-amber-500' },
-  high:     { label: 'Висок риск',  color: 'text-red-700',     bg: 'bg-red-50',     border: 'border-red-200',     iconBg: 'bg-red-100',     dot: 'bg-red-500' },
+  low:      { label: 'Нисък приоритет',  color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', iconBg: 'bg-emerald-100', dot: 'bg-emerald-500' },
+  moderate: { label: 'Среден приоритет', color: 'text-amber-700',   bg: 'bg-amber-50',   border: 'border-amber-200',   iconBg: 'bg-amber-100',   dot: 'bg-amber-500' },
+  high:     { label: 'Висок приоритет',  color: 'text-red-700',     bg: 'bg-red-50',     border: 'border-red-200',     iconBg: 'bg-red-100',     dot: 'bg-red-500' },
 }
 
 const CITY_NAMES: Record<string, string> = {
@@ -31,19 +31,19 @@ const CITY_NAMES: Record<string, string> = {
 // explanation lives in the dedicated profile/orientir pages, not here.
 const SEGMENT_SUMMARIES: Record<Segment, Record<ResultBand, { thanks: string; summary: string }>> = {
   adult: {
-    low:      { thanks: 'Благодарим ти', summary: 'Нисък риск — профилактичен преглед остава добра идея.' },
-    moderate: { thanks: 'Благодарим ти', summary: 'Умерен риск — има признаци, които заслужават внимание от специалист.' },
-    high:     { thanks: 'Благодарим ти', summary: 'Висок риск — комбинация от симптоми, която е важно да се оцени от специалист.' },
+    low:      { thanks: 'Благодарим ти', summary: 'Малко сигнали — профилактичен преглед остава добра идея.' },
+    moderate: { thanks: 'Благодарим ти', summary: 'Има сигнали за внимание — заслужават професионален поглед.' },
+    high:     { thanks: 'Благодарим ти', summary: 'Няколко сигнала наведнъж — важно е да се обсъди със специалист скоро.' },
   },
   teen: {
-    low:      { thanks: 'Благодарим ви', summary: 'Нисък риск — профилактичен преглед остава важен за правилното развитие.' },
-    moderate: { thanks: 'Благодарим ви', summary: 'Умерен риск — в тийнейджърска възраст корекцията е значително по-лесна.' },
-    high:     { thanks: 'Благодарим ви', summary: 'Висок риск — корекцията е по-ефективна в тази възраст и заслужава оценка от специалист.' },
+    low:      { thanks: 'Благодарим ви', summary: 'Малко сигнали — профилактичен преглед остава важен за правилното развитие.' },
+    moderate: { thanks: 'Благодарим ви', summary: 'Има сигнали за внимание — в тийнейджърска възраст корекцията е по-лесна.' },
+    high:     { thanks: 'Благодарим ви', summary: 'Няколко сигнала наведнъж — оценката от специалист е особено важна на тази възраст.' },
   },
   child: {
-    low:      { thanks: 'Благодарим ви', summary: 'Нисък риск — първи ортодонтски преглед се препоръчва около 7-годишна възраст.' },
-    moderate: { thanks: 'Благодарим ви', summary: 'Умерен риск — ранната намеса може да промени хода на развитието.' },
-    high:     { thanks: 'Благодарим ви', summary: 'Висок риск — важно е да се действа навреме. Виж клиники с опит в ранна детска интервенция.' },
+    low:      { thanks: 'Благодарим ви', summary: 'Малко сигнали — първи ортодонтски преглед се препоръчва около 7-годишна възраст.' },
+    moderate: { thanks: 'Благодарим ви', summary: 'Има сигнали за внимание — ранната оценка може да промени хода на развитието.' },
+    high:     { thanks: 'Благодарим ви', summary: 'Няколко сигнала наведнъж — добре е да се действа навреме с помощта на специалист.' },
   },
 }
 

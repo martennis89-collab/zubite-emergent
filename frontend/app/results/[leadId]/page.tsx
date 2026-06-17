@@ -238,6 +238,7 @@ export default function ResultsPage() {
               <ResultUnlockGate
                 leadId={lead.id}
                 defaultName={lead.name}
+                citySlug={lead.city_slug}
                 onUnlocked={() => handleUnlocked()}
               />
             </>

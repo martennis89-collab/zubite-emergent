@@ -179,10 +179,10 @@ function CompactVariant({ testid, className, showLearnMore }: CompactProps) {
             <Gift className="w-3 h-3" aria-hidden="true" /> Zubite Care Pass
           </span>
           <p className="mt-2.5 font-serif text-base sm:text-lg text-white leading-snug">
-            Отстъпки за продукти за орална хигиена след посетена консултация.
+            Отстъпки за продукти за орална хигиена след физическа консултация в участваща клиника.
           </p>
           <p className="mt-1.5 text-[12px] text-slate-300/90 leading-relaxed">
-            Картата се предоставя от партньорската клиника. Не е отстъпка от лечение.
+            Картата се предоставя от партньорската клиника, когато условията са изпълнени. Не е отстъпка от лечение и не е застраховка.
           </p>
           {showLearnMore && (
             <Link
@@ -218,7 +218,7 @@ function InlineVariant({ testid, className }: InlineProps) {
       </span>
       <p className="text-[11px] text-slate-200 leading-snug">
         <span className="font-semibold text-teal-200">Zubite Care Pass</span>{' '}
-        — отстъпки за орална хигиена след посетена консултация през Zubite.bg.
+        — отстъпки за орална хигиена след физическа консултация в участваща партньорска клиника.
       </p>
     </div>
   )
