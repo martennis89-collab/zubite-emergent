@@ -179,28 +179,22 @@ function Nav() {
             <span className="text-slate-900">Zubite</span>
             <span className="text-teal-600">.bg</span>
           </Link>
-          <nav className="hidden md:flex items-center gap-6 text-sm text-slate-600">
-            <Link href="#noticing"   className="hover:text-slate-900 transition-colors">Какво забелязваш</Link>
-            <Link href="#how"        className="hover:text-slate-900 transition-colors">Как работи</Link>
-            <Link href="#treatments" className="hover:text-slate-900 transition-colors">Лечения</Link>
-            <Link href="#care-pass"  className="hover:text-slate-900 transition-colors">Care Pass</Link>
-            <Link href="/blog"       className="hover:text-slate-900 transition-colors">Журнал</Link>
-            <Link href="/za-kliniki" className="hover:text-slate-900 transition-colors">За клиники</Link>
+          {/* Public homepage nav — Feb 2026 cleanup. Same labels as the
+              global `<Header />` used on /kliniki, /blog, /care-pass, etc.
+              Anchors point to in-page sections when the target lives on
+              the homepage (`#kakvo-e-zubite`, `#treatments`, `#care-pass`);
+              cross-page links use the canonical route. */}
+          <nav className="hidden md:flex items-center gap-4 lg:gap-5 text-[13px] text-slate-600">
+            <Link href="/symptoms"           className="whitespace-nowrap hover:text-slate-900 transition-colors" data-testid="home-nav-symptoms">Симптоми</Link>
+            <Link href="#treatments"         className="whitespace-nowrap hover:text-slate-900 transition-colors" data-testid="home-nav-treatments">Лечения</Link>
+            <Link href="#care-pass"          className="whitespace-nowrap hover:text-slate-900 transition-colors" data-testid="home-nav-care-pass">Care Pass</Link>
+            <Link href="/blog"               className="whitespace-nowrap hover:text-slate-900 transition-colors" data-testid="home-nav-blog">Статии</Link>
+            <Link href="/za-kliniki"         className="whitespace-nowrap hover:text-slate-900 transition-colors" data-testid="home-nav-za-kliniki">За клиники</Link>
+            <Link href="#kakvo-e-zubite"     className="whitespace-nowrap hover:text-slate-900 transition-colors" data-testid="home-nav-kakvo">Какво е Zubite.bg</Link>
           </nav>
           <div className="flex items-center gap-2">
-            <Link
-              href={QUIZ_URL}
-              className="group relative inline-flex items-center gap-1.5 rounded-full text-white text-xs sm:text-sm font-medium px-3.5 sm:px-4 py-2 transition-all hover:-translate-y-0.5 shadow-[0_6px_20px_-8px_rgba(15,23,42,0.5),inset_0_1px_0_rgba(255,255,255,0.18)] overflow-hidden"
-              style={{ backgroundImage: 'linear-gradient(135deg,#0f172a 0%,#1e293b 60%,#0f172a 100%)' }}
-              data-testid="nav-cta"
-            >
-              <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/15 blur-sm pointer-events-none" />
-              <span className="relative inline-flex items-center gap-1.5">
-                Започни анализа
-                <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
-              </span>
-            </Link>
-            {/* Mobile hamburger — visible only <md */}
+            {/* Mobile hamburger — visible only <md. Desktop persistent
+                `Започни анализа` CTA removed per Feb 2026 brief. */}
             <button
               type="button"
               className="md:hidden p-2 text-slate-700 hover:text-slate-900 transition-colors"
@@ -225,12 +219,12 @@ function Nav() {
             {/* Primary — section anchors + key pages */}
             <div className="space-y-1">
               {[
-                { href: '#noticing',    label: 'Какво забелязваш', testid: 'home-mobile-link-noticing' },
-                { href: '#how',         label: 'Как работи',        testid: 'home-mobile-link-how' },
-                { href: '#treatments',  label: 'Лечения',           testid: 'home-mobile-link-treatments' },
-                { href: '#care-pass',   label: 'Care Pass',         testid: 'home-mobile-link-care-pass' },
-                { href: '/blog',        label: 'Журнал',            testid: 'home-mobile-link-blog' },
-                { href: '/za-kliniki',  label: 'За клиники',        testid: 'home-mobile-link-za-kliniki' },
+                { href: '/symptoms',     label: 'Симптоми',         testid: 'home-mobile-link-symptoms-primary' },
+                { href: '#treatments',   label: 'Лечения',          testid: 'home-mobile-link-treatments' },
+                { href: '#care-pass',    label: 'Care Pass',        testid: 'home-mobile-link-care-pass' },
+                { href: '/blog',         label: 'Статии',           testid: 'home-mobile-link-blog' },
+                { href: '/za-kliniki',   label: 'За клиники',       testid: 'home-mobile-link-za-kliniki' },
+                { href: '#kakvo-e-zubite', label: 'Какво е Zubite.bg', testid: 'home-mobile-link-kakvo' },
               ].map((l) => (
                 <Link
                   key={l.href}
@@ -844,7 +838,11 @@ function PatientBenefit() {
     },
   ]
   return (
-    <section className="relative py-20 sm:py-28 overflow-hidden" data-testid="home-patient-benefit">
+    <section
+      id="kakvo-e-zubite"
+      className="relative py-20 sm:py-28 overflow-hidden scroll-mt-24"
+      data-testid="home-patient-benefit"
+    >
       <div aria-hidden className="absolute inset-0 pointer-events-none"
         style={{
           background:
@@ -860,14 +858,29 @@ function PatientBenefit() {
       />
       <div className="relative max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[1fr_1.3fr] gap-12 items-start">
         <Reveal>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Защо ти трябва</p>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Какво е Zubite.bg</p>
           <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08]">
-            Не започвай от реклама.<br />Започни от <em className="not-italic text-teal-600">ориентир</em>.
+            Платформа за <em className="not-italic text-teal-600">дентална ориентация</em>.
           </h2>
           <p className="mt-5 text-slate-600 text-base sm:text-lg leading-relaxed max-w-md">
-            Преди да избираш клиника или лечение, първо разбери каква
-            следваща стъпка има смисъл.
+            Zubite.bg ти помага да разбереш какъв може да е проблемът,
+            какви са възможните следващи стъпки и към какъв тип
+            консултация или клиника да се насочиш.{' '}
+            <span className="text-slate-500">
+              Не поставя диагноза и не замества преглед при стоматолог.
+            </span>
           </p>
+          {/* Optional in-section CTA — kept SECONDARY per brief. The header
+              no longer carries a persistent „Започни анализа" CTA, so this
+              soft entry remains inside the explainer section, not globally. */}
+          <Link
+            href="/quiz"
+            className="mt-6 inline-flex items-center gap-1.5 rounded-full bg-white/70 backdrop-blur-md ring-1 ring-white/80 text-slate-900 text-sm font-medium px-4 py-2 hover:bg-white hover:-translate-y-0.5 transition-all shadow-[0_8px_24px_-14px_rgba(15,23,42,0.18)]"
+            data-testid="kakvo-section-cta"
+          >
+            Започни ориентация
+            <ArrowRight className="w-3.5 h-3.5 text-teal-600" />
+          </Link>
         </Reveal>
         <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
           {benefits.map((b, i) => (
@@ -916,7 +929,7 @@ function SymptomChips() {
     { label: 'Чудиш се за брекети или алайнери',     href: '/aligners-vs-braces' },
   ]
   return (
-    <section id="noticing" className="relative py-20 sm:py-28 overflow-hidden" data-testid="home-noticing">
+    <section id="noticing" className="relative py-20 sm:py-28 overflow-hidden scroll-mt-24" data-testid="home-noticing">
       <div aria-hidden className="absolute inset-0 pointer-events-none"
         style={{
           background:
@@ -984,7 +997,7 @@ function HowItWorks() {
     { n: '05', t: 'Получаваш Care Pass',    s: 'Карта с отстъпки за продукти за орална хигиена.', accent: true },
   ]
   return (
-    <section id="how" className="relative py-20 sm:py-28 overflow-hidden" data-testid="home-how">
+    <section id="how" className="relative py-20 sm:py-28 overflow-hidden scroll-mt-24" data-testid="home-how">
       <div aria-hidden className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-gradient-to-r from-transparent via-teal-200/70 to-transparent hidden lg:block" />
       <div className="relative max-w-6xl mx-auto px-5 sm:px-8">
         <Reveal>
@@ -1040,7 +1053,7 @@ function TreatmentCategories() {
     { t: 'Детска ортодонтия',       s: 'Кога детето има нужда от ранна оценка и кои признаци не е добре да се игнорират.',    href: '/orthodontics',         icon: <Smile className="w-4 h-4" /> },
   ]
   return (
-    <section id="treatments" className="relative py-20 sm:py-28 overflow-hidden" data-testid="home-treatments">
+    <section id="treatments" className="relative py-20 sm:py-28 overflow-hidden scroll-mt-24" data-testid="home-treatments">
       <div aria-hidden className="absolute inset-0 pointer-events-none"
         style={{
           background:
@@ -1382,7 +1395,7 @@ function RecentArticles({ posts }: { posts: HomeBlogPost[] }) {
 // ─── 11. Care Pass teaser — Section 8 ────────────────────────────
 function CarePassTeaser() {
   return (
-    <section id="care-pass" className="relative py-20 sm:py-28 overflow-hidden" data-testid="home-care-pass">
+    <section id="care-pass" className="relative py-20 sm:py-28 overflow-hidden scroll-mt-24" data-testid="home-care-pass">
       {/* Soft section backdrop */}
       <div aria-hidden className="absolute inset-0 pointer-events-none"
         style={{

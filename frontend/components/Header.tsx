@@ -23,11 +23,21 @@ export function Header() {
   const isActive = (path: string) =>
     path === '/' ? pathname === '/' : pathname === path || pathname.startsWith(path + '/')
 
+  // Public header navigation (Feb 2026 cleanup):
+  //   • No `Клиники` — clinic discovery is reached contextually through
+  //     symptoms/treatments/articles/quiz, not as a dominant global nav item.
+  //   • No persistent `Започни анализа` CTA — keeps the platform feeling
+  //     like a dental decision platform, not a quiz-conversion funnel.
+  //   • `Какво е Zubite.bg` first, as the informational anchor. Links to
+  //     the homepage explainer section (`#kakvo-e-zubite`) regardless of
+  //     which public route the header renders on.
   const navLinks = [
-    { href: '/', label: 'Начало' },
     { href: '/symptoms', label: 'Симптоми' },
-    { href: '/orthodontics', label: 'Ортодонтия' },
-    { href: '/blog', label: 'Журнал' },
+    { href: '/orthodontics', label: 'Лечения' },
+    { href: '/care-pass', label: 'Care Pass' },
+    { href: '/blog', label: 'Статии' },
+    { href: '/za-kliniki', label: 'За клиники' },
+    { href: '/#kakvo-e-zubite', label: 'Какво е Zubite.bg' },
   ]
 
   return (
@@ -61,40 +71,29 @@ export function Header() {
             <span className="text-teal-600">.bg</span>
           </Link>
 
-          {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-6 text-sm">
+          {/* Desktop nav — tighter gap, smaller label size to fit 6 items
+              cleanly on a 5xl-max-w container without wrapping. */}
+          <nav className="hidden md:flex items-center gap-4 lg:gap-5 text-[13px]">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 className={
-                  'transition-colors ' +
+                  'whitespace-nowrap transition-colors ' +
                   (isActive(link.href)
                     ? 'text-teal-700 font-medium'
                     : 'text-slate-600 hover:text-slate-900')
                 }
-                data-testid={`nav-${link.label.toLowerCase()}`}
+                data-testid={`nav-${link.label.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '')}`}
               >
                 {link.label}
               </Link>
             ))}
           </nav>
 
-          {/* Right side — desktop CTA + mobile menu button */}
+          {/* Right side — mobile menu button only (Feb 2026 cleanup:
+              removed persistent `Започни анализа` desktop CTA per brief). */}
           <div className="flex items-center gap-2">
-            <Link
-              href="/quiz"
-              className="group relative hidden sm:inline-flex items-center gap-1.5 rounded-full text-white text-xs sm:text-sm font-medium px-3.5 sm:px-4 py-2 transition-all hover:-translate-y-0.5 shadow-[0_6px_20px_-8px_rgba(15,23,42,0.5),inset_0_1px_0_rgba(255,255,255,0.18)] overflow-hidden"
-              style={{ backgroundImage: 'linear-gradient(135deg,#0f172a 0%,#1e293b 60%,#0f172a 100%)' }}
-              data-testid="nav-cta"
-            >
-              <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/15 blur-sm pointer-events-none" />
-              <span className="relative inline-flex items-center gap-1.5">
-                Започни анализа
-                <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
-              </span>
-            </Link>
-
             <button
               className="md:hidden p-2 text-slate-700 hover:text-slate-900 transition-colors"
               onClick={() => setIsOpen(!isOpen)}
