@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Header } from '@/components/Header'
+import { ResultsHeader } from '@/components/ResultsHeader'
 import { Footer } from '@/components/Footer'
 import { ResultUnlockGate } from '@/components/patient/ResultUnlockGate'
 import { getLead } from '@/lib/api'
@@ -149,7 +149,7 @@ export default function ResultsPage() {
   if (error || !lead) {
     return (
       <main className="min-h-screen bg-[#FCFAF8]">
-        <Header />
+        <ResultsHeader />
         <section className="pt-32 pb-16">
           <div className="max-w-2xl mx-auto px-4 text-center">
             <p className="text-rose-700">{error || 'Резултатите не бяха намерени.'}</p>
@@ -195,7 +195,7 @@ export default function ResultsPage() {
       <div aria-hidden className="absolute -top-32 -left-32 w-[36rem] h-[36rem] rounded-full bg-teal-200/30 blur-3xl pointer-events-none" />
       <div aria-hidden className="absolute -bottom-40 right-0 w-[40rem] h-[40rem] rounded-full bg-cyan-100/40 blur-3xl pointer-events-none" />
 
-      <Header />
+      <ResultsHeader />
 
       <section className="relative pt-28 pb-12 md:pt-36 md:pb-20">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 space-y-6">

@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Building2, MapPin, ShieldCheck, Sparkle, ArrowRight, CheckCircle2, ChevronDown, Gift } from 'lucide-react'
+import Image from 'next/image'
+import { Building2, MapPin, ShieldCheck, Sparkle, Sparkles, ArrowRight, CheckCircle2, ChevronDown, Gift, Video } from 'lucide-react'
 import type { RecommendedClinic } from '@/lib/api'
 import { TREATMENT_LABELS } from '@/lib/consultationLabels'
 import { RequestCallModal } from '@/components/patient/RequestCallModal'
@@ -95,31 +96,65 @@ export function ClinicRecommendationCard({
 
   return (
     <article
-      className="group relative rounded-2xl bg-white/70 backdrop-blur-xl ring-1 ring-white/80 p-6 sm:p-7 flex flex-col h-full shadow-[0_10px_36px_-22px_rgba(15,23,42,0.22),inset_0_1px_0_rgba(255,255,255,0.85)] hover:-translate-y-1 hover:bg-white/85 hover:shadow-[0_18px_50px_-22px_rgba(13,148,136,0.28)] hover:ring-teal-200/60 transition-all"
+      className="group relative rounded-2xl bg-white/80 backdrop-blur-xl ring-1 ring-white/80 overflow-hidden flex flex-col h-full shadow-[0_10px_30px_-22px_rgba(15,23,42,0.20)] hover:-translate-y-1 hover:bg-white/90 hover:shadow-[0_22px_50px_-22px_rgba(13,148,136,0.28)] hover:ring-teal-200/60 transition-all duration-300"
       data-testid={`clinic-card-${clinic.id}`}
+      data-tier={tier || 'standard'}
       aria-label={`Препоръка ${position}: ${clinic.name}`}
     >
-      {/* Soft inner top gloss for liquid glass feel */}
-      <span aria-hidden className="pointer-events-none absolute inset-x-6 top-0.5 h-1/3 rounded-full bg-white/45 blur-md opacity-70" />
-
-      {/* Header */}
-      <div className="relative flex items-start justify-between gap-3 mb-3">
-        <div className="min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-teal-50/90 ring-1 ring-teal-100 grid place-items-center mb-3">
-            <Building2 className="w-5 h-5 text-teal-700" />
+      {/* ─── Media strip — visually aligns with PublicClinicCard.
+          Premium clinics with a published hero image show it; everyone
+          else gets the same teal-gradient placeholder as the public card
+          (consistent silhouette across the two card systems). Lead-context
+          features (position number, placement badge) overlay on top. */}
+      <div className="relative h-32 sm:h-36 w-full overflow-hidden flex-shrink-0">
+        {clinic.clinic_profile?.hero_image_url ? (
+          <Image
+            src={clinic.clinic_profile.hero_image_url}
+            alt={clinic.name}
+            width={480}
+            height={144}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+            unoptimized
+          />
+        ) : (
+          <div
+            aria-hidden
+            className="w-full h-full bg-gradient-to-br from-teal-100 via-cyan-50 to-white grid place-items-center"
+          >
+            <Sparkles className="w-9 h-9 text-teal-200" />
           </div>
+        )}
+        {/* Bottom gradient so the placement badge always reads */}
+        <div
+          aria-hidden
+          className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-slate-900/35 to-transparent pointer-events-none"
+        />
+        {/* Position pill — quiet top-right, mono numerals */}
+        <span
+          className="absolute top-3 right-3 inline-flex items-center px-2 py-0.5 rounded-full bg-white/85 backdrop-blur-md ring-1 ring-white/90 text-[10px] tracking-[0.18em] uppercase text-slate-600 font-mono"
+          data-testid={`clinic-card-position-${clinic.id}`}
+        >
+          #{String(position).padStart(2, '0')}
+        </span>
+        {/* Placement badge — overlaid bottom-left when available */}
+        {showPlacement && (
+          <div className="absolute bottom-3 left-3" data-testid="clinic-card-placement-row">
+            <PlacementBadge
+              tier={tier as 'premium' | 'featured'}
+              label={clinic.placement_label as string}
+              disclosure={clinic.placement_disclosure}
+            />
+          </div>
+        )}
+      </div>
 
-          {/* Placement badge — rendered only when backend supplied a label. */}
-          {showPlacement && (
-            <div className="mb-2" data-testid="clinic-card-placement-row">
-              <PlacementBadge
-                tier={tier as 'premium' | 'featured'}
-                label={clinic.placement_label as string}
-                disclosure={clinic.placement_disclosure}
-              />
-            </div>
-          )}
+      {/* Soft inner top gloss for liquid-glass feel (under content) */}
+      <span aria-hidden className="pointer-events-none absolute inset-x-6 top-[8.5rem] sm:top-[9.5rem] h-1/4 rounded-full bg-white/45 blur-md opacity-70" />
 
+      {/* Content area */}
+      <div className="relative p-5 sm:p-6 flex flex-col flex-1">
+        {/* Header — name + city */}
+        <div className="mb-3 min-w-0">
           <h3 className="font-serif text-lg sm:text-xl font-semibold text-slate-900 leading-snug truncate">
             {clinic.name}
           </h3>
@@ -128,10 +163,6 @@ export function ClinicRecommendationCard({
             {clinic.city_name}
           </p>
         </div>
-        <span className="text-[10px] tracking-[0.18em] uppercase text-slate-400 font-mono mt-1">
-          {String(position).padStart(2, '0')}
-        </span>
-      </div>
 
       {/* Treatments + city/Care Pass chip row.
 
@@ -306,6 +337,7 @@ export function ClinicRecommendationCard({
             Заяви контакт
           </button>
         )}
+      </div>
       </div>
 
       {modalOpen && (

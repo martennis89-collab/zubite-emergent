@@ -83,18 +83,19 @@ function FullVariant({ testid, className, showLearnMore }: FullProps) {
             <Gift className="w-3 h-3" aria-hidden="true" /> Zubite Care Pass
           </span>
           <h3 className="mt-4 font-serif text-2xl sm:text-3xl text-white leading-tight">
-            След консултацията получаваш карта с отстъпки за продукти за орална хигиена.
+            Отстъпки за продукти за орална хигиена след физическа консултация в участваща клиника.
           </h3>
           <p className="mt-3 text-sm text-slate-300 leading-relaxed max-w-md">
-            Care Pass се предоставя от партньорската клиника, след като посетиш
-            първоначална консултация, заявена през Zubite.bg.
+            Care Pass може да се отключи след физическа консултация в участваща
+            партньорска клиника, когато условията са изпълнени. Не е застраховка
+            и не е автоматична отстъпка от лечение.
           </p>
 
           {/* Benefit chips */}
           <ul className="mt-5 grid grid-cols-2 gap-2">
             {[
-              'След проведена консултация',
-              'От клиниката',
+              'След физическа консултация',
+              'От участваща клиника',
               'Орална хигиена',
               'Не е отстъпка от лечение',
             ].map((c) => (

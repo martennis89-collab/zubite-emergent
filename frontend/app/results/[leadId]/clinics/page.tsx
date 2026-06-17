@@ -8,7 +8,7 @@ import {
   AlertCircle, Compass, ArrowLeft, ShieldCheck, Sparkles,
   Loader2, CheckCircle2,
 } from 'lucide-react'
-import { Header } from '@/components/Header'
+import { ResultsHeader } from '@/components/ResultsHeader'
 import { Footer } from '@/components/Footer'
 import {
   getLead,
@@ -161,7 +161,7 @@ export default function ClinicMatchPage() {
       <div aria-hidden className="absolute -top-32 -left-32 w-[36rem] h-[36rem] rounded-full bg-teal-200/25 blur-3xl pointer-events-none" />
       <div aria-hidden className="absolute -bottom-40 right-0 w-[40rem] h-[40rem] rounded-full bg-cyan-100/35 blur-3xl pointer-events-none" />
 
-      <Header />
+      <ResultsHeader />
 
       <section className="relative pt-24 pb-12 md:pt-28 md:pb-20">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">

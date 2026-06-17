@@ -11,7 +11,7 @@ import {
   BookOpenCheck, UserCircle2, Footprints, MessagesSquare,
   CheckCircle2, ChevronDown,
 } from 'lucide-react'
-import { Header } from '@/components/Header'
+import { ResultsHeader } from '@/components/ResultsHeader'
 import { Footer } from '@/components/Footer'
 import {
   getRecommendedClinics,
@@ -158,7 +158,7 @@ export default function ClinicProfilePage() {
       <div aria-hidden className="absolute -top-32 -left-32 w-[36rem] h-[36rem] rounded-full bg-teal-200/25 blur-3xl pointer-events-none" />
       <div aria-hidden className="absolute -bottom-40 right-0 w-[40rem] h-[40rem] rounded-full bg-cyan-100/35 blur-3xl pointer-events-none" />
 
-      <Header />
+      <ResultsHeader />
 
       <section className="relative pt-24 pb-16 md:pt-28 md:pb-24">
         <div className={`${containerCls} mx-auto px-4 sm:px-6 lg:px-8`}>
@@ -629,7 +629,7 @@ function ProfileTabs({
                 Как работи Care Pass?
               </h3>
               <p className="text-sm text-slate-700 leading-relaxed">
-                След проведена консултация чрез Zubite.bg, клиниката ти предоставя Zubite Care Pass с отстъпки за продукти за орална хигиена.
+                Care Pass може да се отключи след физическа консултация в участваща партньорска клиника, когато условията са изпълнени. Не е застраховка и не е автоматична отстъпка от лечение.
               </p>
               <details className="mt-3 group/cp-faq">
                 <summary className="list-none inline-flex items-center gap-1 text-[12px] font-medium text-teal-700 cursor-pointer select-none hover:text-teal-800">
@@ -1613,9 +1613,9 @@ function ClinicDecisionSidebar({
           <p className="text-[11px] text-slate-200 leading-relaxed inline-flex items-start gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5 text-teal-300 flex-shrink-0 mt-0.5" />
             <span>
-              След посетена консултация през Zubite.bg клиниката ще ви
-              предостави <strong className="text-teal-100">Zubite Care Pass</strong>{' '}
-              — отстъпки за продукти за орална хигиена.
+              <strong className="text-teal-100">Care Pass</strong> може да се
+              отключи след физическа консултация в участваща клиника, когато
+              условията са изпълнени.
             </span>
           </p>
         </div>
@@ -1711,8 +1711,8 @@ function PostRequestTimeline() {
       body: 'Клиниката ще ви се обади според процеса си за обработка на заявки.',
     },
     {
-      title: 'Посещавате консултация',
-      body: 'След посетена консултация клиниката ви предоставя Zubite Care Pass.',
+      title: 'Посещавате физическа консултация',
+      body: 'След физическа консултация в участваща клиника Care Pass може да се отключи, когато условията са изпълнени.',
     },
   ]
   return (

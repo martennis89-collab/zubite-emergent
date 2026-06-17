@@ -71,11 +71,17 @@ export interface RecommendedClinic {
   is_featured?: boolean;
   placement_label?: string | null;
   placement_disclosure?: string | null;
-  // Same-city flag — backend already filters every recommended clinic to
+  /** Same-city flag — backend already filters every recommended clinic to
   // the lead's city (out-of-city clinics are excluded with score=-1),
   // so this is always `true` on the recommendation page. Surfaced so the
   // card can render the "В твоя град" chip without re-deriving on client.
+   */
   same_city?: boolean;
+  /** Public profile slug — exposed so a future profile unification refactor
+   *  can deep-link the lead-context route to /api/public/clinics/{slug}.
+   *  Not used for routing yet; lead-context links still go through
+   *  /results/[leadId]/clinics/[clinicId] (lead-safe noindex preserved). */
+  slug?: string;
   // Care Pass participation. Chip renders ONLY when true. Care Pass copy
   // rule: benefits unlock after a physical consultation at a participating
   // clinic. Never on every clinic, never automatically.

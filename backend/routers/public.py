@@ -1131,6 +1131,11 @@ def _safe_clinic_payload(clinic: dict, lead_treatment: str, is_broad: bool) -> d
 
     payload = {
         "id": clinic.get("id"),
+        # Public profile slug — exposed so frontend can deep-link the lead-
+        # context clinic profile route to the public /api/public/clinics/{slug}
+        # endpoint in a future profile-unification refactor. Today no UI uses
+        # it for routing; we surface it now to avoid a second backend bump.
+        "slug": clinic.get("slug"),
         "name": _clinic_name(clinic),
         "city_name": _city_name_for(slug, clinic.get("city_name")),
         "city_slug": slug,
@@ -1274,6 +1279,9 @@ async def recommended_clinics(lead_id: str, limit: int = 3):
             "treatments_supported": 1, "treatments_offered": 1,
             "is_active": 1, "clinic_status": 1, "status": 1,
             "is_demo": 1,
+            # Public profile slug — projected so it's available for the
+            # `slug` field exposed in `_safe_clinic_payload` (Feb 2026).
+            "slug": 1,
             # Care Pass participation flag — exposed on the recommended-clinic
             # payload so the patient-facing card can render the Care Pass chip
             # ONLY on participating clinics (Feb 2026 brief). NEVER affects ranking.

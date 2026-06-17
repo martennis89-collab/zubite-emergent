@@ -269,6 +269,9 @@ ALLOWED_CLINIC_FIELDS = {
     # Care Pass participation (Feb 2026) — boolean. Drives the Care Pass chip
     # on participating clinics only. Never on every clinic.
     "care_pass_partner",
+    # Public profile slug (Feb 2026) — surfaced for future profile-unification
+    # refactor; safe to expose (slug is already publicly visible on /kliniki).
+    "slug",
 }
 
 
