@@ -1130,6 +1130,22 @@ function TreatmentCategories() {
             </Reveal>
           ))}
         </div>
+
+        {/* Secondary link to full /treatments hub — visually quiet, keeps the
+            homepage rhythm intact while giving people a natural path from the
+            inline category preview into the full orientation hub. */}
+        <Reveal delay={cats.length * 60}>
+          <div className="mt-8 sm:mt-10 text-center">
+            <Link
+              href="/treatments"
+              data-testid="home-treatments-see-all"
+              className="inline-flex items-center gap-1 text-sm font-medium text-teal-700 hover:text-teal-800 transition-colors"
+            >
+              Виж всички категории
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        </Reveal>
       </div>
     </section>
   )
