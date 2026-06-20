@@ -127,17 +127,20 @@ const LIVE_CATEGORIES: LiveCategory[] = [
     href: '/sleep-airway',
     icon: <Heart className="w-4 h-4" />,
   },
-]
-
-const SOON_CATEGORIES: SoonCategory[] = [
   {
     slug: 'breketi',
     title: 'Брекети',
     short:
-      'Метални, керамични или лингвални брекети. Самостоятелна страница е в подготовка.',
+      'Метални, керамични, лингвални или само-лигиращи брекети — фиксирано ортодонтско лечение, което се планира и води от ортодонт.',
+    relevant:
+      'Когато обмисляш ортодонтско лечение и искаш да разбереш какви типове брекети има и как се сравняват с алайнери.',
+    href: '/breketi',
     icon: <AlignLeft className="w-4 h-4" />,
-    secondary: { href: '/aligners-vs-braces', label: 'Виж сравнение с алайнери' },
+    secondary: { href: '/aligners-vs-braces', label: 'Сравнение с алайнери' },
   },
+]
+
+const SOON_CATEGORIES: SoonCategory[] = [
   {
     slug: 'venci-higiena',
     title: 'Венци и орална хигиена',
