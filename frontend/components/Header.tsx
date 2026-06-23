@@ -177,14 +177,10 @@ export function Header() {
               isActive={isActive}
             />
 
-            <Link
-              href="/quiz"
-              onClick={() => setIsOpen(false)}
-              className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-full text-white text-sm font-medium px-4 py-2.5"
-              style={{ backgroundImage: 'linear-gradient(135deg,#0f172a 0%,#1e293b 60%,#0f172a 100%)' }}
-            >
-              Започни анализа <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+            {/* Mobile drawer "Започни анализа" CTA removed Feb 2026 per
+                user request — keeps the drawer focused on navigation,
+                not conversion. Quiz is reachable from in-page hero and
+                section CTAs across the site. */}
           </nav>
         )}
       </header>

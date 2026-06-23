@@ -263,15 +263,11 @@ function Nav() {
               ))}
             </div>
 
-            <Link
-              href={QUIZ_URL}
-              onClick={closeMobile}
-              className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-full text-white text-sm font-medium px-4 py-2.5"
-              style={{ backgroundImage: 'linear-gradient(135deg,#0f172a 0%,#1e293b 60%,#0f172a 100%)' }}
-              data-testid="home-mobile-link-quiz"
-            >
-              Започни анализа <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+            {/* Mobile drawer "Започни анализа" CTA removed Feb 2026 per
+                user request — the dark navy pill inside the drawer was
+                visually heavy and competed with the in-page hero CTAs.
+                Users still reach /quiz from hero, decision preview and
+                section CTAs. */}
           </nav>
         )}
       </header>
@@ -1837,22 +1833,13 @@ function FinalCTA() {
 }
 
 // ─── Mobile sticky CTA ───────────────────────────────────────────
+// Removed Feb 2026 per user request — the bottom floating "Започни
+// анализа · 60 сек" pill was visually competing with in-page CTAs on
+// iOS Safari, especially next to the browser bottom chrome. The hero
+// and decision-preview CTAs remain the primary quiz entry points.
+// Kept here only as a no-op reference; remove permanently in next cleanup.
 function MobileStickyCTA() {
-  return (
-    <div className="md:hidden fixed bottom-3 inset-x-3 z-40" data-testid="home-mobile-sticky-cta">
-      <Link
-        href={QUIZ_URL}
-        className="group relative flex items-center justify-center gap-1.5 w-full rounded-full text-white text-sm font-medium px-5 py-3 shadow-[0_18px_40px_-12px_rgba(13,148,136,0.55)] overflow-hidden"
-        style={{ backgroundImage: 'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)' }}
-      >
-        <span aria-hidden className="absolute inset-x-3 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
-        <span className="relative inline-flex items-center gap-1.5">
-          Започни анализа · 60 сек
-          <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-        </span>
-      </Link>
-    </div>
-  )
+  return null
 }
 
 // ─── Public exports ──────────────────────────────────────────────
@@ -1862,7 +1849,6 @@ export function HomeContent({ recentPosts = [] }: { recentPosts?: HomeBlogPost[]
     <>
       <MotionStyles />
       <Nav />
-      <MobileStickyCTA />
       {/* 1. Hero / Awareness */}
       <Hero />
       {/* 1.5 Lumi explainer video — immediately after hero */}
