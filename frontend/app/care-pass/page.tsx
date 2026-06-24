@@ -3,6 +3,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
+import { ClientParallaxMount } from '@/components/motion/ClientParallaxMount'
 import {
   ArrowRight, CheckCircle2, ShieldCheck, Sparkles, Gift,
   Building2, ClipboardCheck, Stethoscope, Wallet,
@@ -60,6 +61,7 @@ const FAQ = [
 export default function CarePassPage() {
   return (
     <main className="min-h-screen bg-[#FCFAF8] text-slate-900 overflow-x-hidden" data-testid="care-pass-page">
+      <ClientParallaxMount />
       <Header />
 
       {/* ─── Hero ─────────────────────────────────────── */}
@@ -74,8 +76,8 @@ export default function CarePassPage() {
               'linear-gradient(180deg, #FCFAF8 0%, #F4FAF9 100%)',
           }}
         />
-        <div aria-hidden className="absolute -top-32 -left-32 w-[36rem] h-[36rem] rounded-full bg-teal-200/30 blur-3xl pointer-events-none" />
-        <div aria-hidden className="absolute -bottom-40 right-0 w-[40rem] h-[40rem] rounded-full bg-cyan-100/40 blur-3xl pointer-events-none" />
+        <div aria-hidden className="absolute -top-32 -left-32 w-[36rem] h-[36rem] rounded-full bg-teal-200/30 blur-3xl pointer-events-none parallax-bg-slow" />
+        <div aria-hidden className="absolute -bottom-40 right-0 w-[40rem] h-[40rem] rounded-full bg-cyan-100/40 blur-3xl pointer-events-none parallax-bg-medium" />
 
         <div className="relative max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[1fr_1fr] gap-10 lg:gap-16 items-center">
           <div>
@@ -286,8 +288,8 @@ export default function CarePassPage() {
       {/* ─── Final CTA ────────────────────────────────── */}
       <section className="relative py-24 sm:py-32 overflow-hidden" data-testid="care-pass-final-cta">
         <div aria-hidden className="absolute inset-0 bg-gradient-to-br from-teal-50 to-white" />
-        <div aria-hidden className="absolute -top-40 left-1/2 -translate-x-1/2 w-[40rem] h-[40rem] rounded-full bg-teal-200/30 blur-3xl pointer-events-none" />
-        <div aria-hidden className="absolute bottom-10 left-10 w-72 h-72 rounded-full bg-cyan-100/40 blur-3xl pointer-events-none" />
+        <div aria-hidden className="absolute -top-40 left-1/2 -translate-x-1/2 w-[40rem] h-[40rem] rounded-full bg-teal-200/30 blur-3xl pointer-events-none parallax-bg-slow" />
+        <div aria-hidden className="absolute bottom-10 left-10 w-72 h-72 rounded-full bg-cyan-100/40 blur-3xl pointer-events-none parallax-bg-fast" />
 
         <div className="relative max-w-4xl mx-auto px-5 sm:px-8">
           <div className="relative rounded-[2rem] bg-white/55 backdrop-blur-2xl ring-1 ring-white/70 shadow-[0_20px_60px_-20px_rgba(15,23,42,0.18)] px-6 sm:px-12 py-12 sm:py-16 text-center">

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
+import { ClientParallaxMount } from '@/components/motion/ClientParallaxMount'
 import {
   ArrowRight, CheckCircle2, Smile, Stethoscope, Sparkles,
   Activity, Heart, AlignLeft, Baby, Brush, ShieldCheck, HelpCircle,
@@ -232,6 +233,7 @@ export default function TreatmentsPage() {
       className="min-h-screen bg-[#FCFAF8] text-slate-900 overflow-x-hidden"
       data-testid="treatments-page"
     >
+      <ClientParallaxMount />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(collectionPageLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(itemListLd) }} />
@@ -253,8 +255,8 @@ export default function TreatmentsPage() {
               'linear-gradient(180deg, #FCFAF8 0%, #F4FAF9 100%)',
           }}
         />
-        <div aria-hidden className="absolute -top-32 -left-32 w-[36rem] h-[36rem] rounded-full bg-teal-200/25 blur-3xl pointer-events-none" />
-        <div aria-hidden className="absolute -bottom-40 right-0 w-[40rem] h-[40rem] rounded-full bg-cyan-100/35 blur-3xl pointer-events-none" />
+        <div aria-hidden className="absolute -top-32 -left-32 w-[36rem] h-[36rem] rounded-full bg-teal-200/25 blur-3xl pointer-events-none parallax-bg-slow" />
+        <div aria-hidden className="absolute -bottom-40 right-0 w-[40rem] h-[40rem] rounded-full bg-cyan-100/35 blur-3xl pointer-events-none parallax-bg-medium" />
 
         <div className="relative max-w-4xl mx-auto px-5 sm:px-8">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white/50 backdrop-blur-md ring-1 ring-white/70 text-[11px] uppercase tracking-[0.18em] text-teal-700 font-semibold px-3 py-1.5">

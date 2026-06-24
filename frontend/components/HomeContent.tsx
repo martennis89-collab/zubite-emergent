@@ -21,6 +21,9 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { ClinicStandardSection } from '@/components/patient/ClinicStandardSection'
 import { Footer } from '@/components/Footer'
+import { WordMorph } from '@/components/motion/WordMorph'
+import { CountUp } from '@/components/motion/CountUp'
+import { ParallaxFloat } from '@/components/motion/ParallaxFloat'
 import { resolveImageUrl } from '@/lib/imageUrl'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
 import {
@@ -347,7 +350,7 @@ function Hero() {
           <Reveal>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/80 ring-1 ring-teal-100 text-teal-700 text-[11px] font-medium px-3 py-1 uppercase tracking-[0.16em]">
               <ShieldCheck className="w-3 h-3" />
-              Първо яснота. После избор.
+              Първо <WordMorph words={['яснота', 'ориентир', 'насока', 'спокойствие']} className="text-teal-700" />. После избор.
             </span>
           </Reveal>
           <Reveal delay={80}>
@@ -398,27 +401,29 @@ function Hero() {
             </div>
             {/* Unlock-mechanic microcopy under hero CTAs */}
             <p className="mt-4 text-[12px] text-slate-500 leading-relaxed max-w-xl" data-testid="hero-unlock-microcopy">
-              Попълни оценката и можеш да отключиш безплатна онлайн ориентация
-              и Care Pass след потвърдена консултация.
+              Попълни оценката и можеш да получиш безплатна онлайн ориентация.
+              Care Pass е включен във всяка партньорска клиника.
             </p>
           </Reveal>
           <Reveal delay={260}>
-            <div className="mt-6 flex flex-wrap gap-2">
-              {[
-                '60 секунди',
-                'Без регистрация',
-                'Ориентир, не диагноза',
-                'Care Pass след консултация',
-              ].map((c) => (
-                <span
-                  key={c}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-white/50 backdrop-blur-md ring-1 ring-white/70 text-[11px] text-slate-700 font-medium px-3 py-1.5 shadow-[0_4px_12px_-6px_rgba(15,23,42,0.1)]"
-                >
-                  <CheckCircle2 className="w-3 h-3 text-teal-500" />
-                  {c}
-                </span>
-              ))}
-            </div>
+            <ParallaxFloat strength={4} mobileFactor={0.012}>
+              <div className="mt-6 flex flex-wrap gap-2">
+                {[
+                  '60 секунди',
+                  'Без регистрация',
+                  'Ориентир, не диагноза',
+                  'Care Pass в партньорската мрежа',
+                ].map((c) => (
+                  <span
+                    key={c}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-white/50 backdrop-blur-md ring-1 ring-white/70 text-[11px] text-slate-700 font-medium px-3 py-1.5 shadow-[0_4px_12px_-6px_rgba(15,23,42,0.1)]"
+                  >
+                    <CheckCircle2 className="w-3 h-3 text-teal-500" />
+                    {c}
+                  </span>
+                ))}
+              </div>
+            </ParallaxFloat>
           </Reveal>
         </div>
 
@@ -756,7 +761,7 @@ function TrustStrip() {
     'Без задължение',
     'Ориентир за цена и срок',
     'Насочване според случая',
-    'Care Pass след консултация',
+    'Care Pass в партньорската мрежа',
     'Не заменя преглед',
   ]
   // Duplicate the list so the loop is seamless: the second copy slides in

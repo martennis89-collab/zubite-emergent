@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
+import { ClientParallaxMount } from '@/components/motion/ClientParallaxMount'
 import { TREATMENT_PRICES } from '@/lib/pricing'
 import {
   ArrowRight, CheckCircle2, ShieldCheck, HelpCircle, Stethoscope,
@@ -300,6 +301,7 @@ export default function BreketiPage() {
       className="min-h-screen bg-[#FCFAF8] text-slate-900 overflow-x-hidden"
       data-testid="breketi-page"
     >
+      <ClientParallaxMount />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(medicalWebPageLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(faqPageLd) }} />
@@ -321,8 +323,8 @@ export default function BreketiPage() {
               'linear-gradient(180deg, #FCFAF8 0%, #F4FAF9 100%)',
           }}
         />
-        <div aria-hidden className="absolute -top-32 -left-32 w-[36rem] h-[36rem] rounded-full bg-teal-200/25 blur-3xl pointer-events-none" />
-        <div aria-hidden className="absolute -bottom-40 right-0 w-[40rem] h-[40rem] rounded-full bg-cyan-100/35 blur-3xl pointer-events-none" />
+        <div aria-hidden className="absolute -top-32 -left-32 w-[36rem] h-[36rem] rounded-full bg-teal-200/25 blur-3xl pointer-events-none parallax-bg-slow" />
+        <div aria-hidden className="absolute -bottom-40 right-0 w-[40rem] h-[40rem] rounded-full bg-cyan-100/35 blur-3xl pointer-events-none parallax-bg-medium" />
 
         <div className="relative max-w-4xl mx-auto px-5 sm:px-8">
           <nav aria-label="Breadcrumb" className="text-xs text-slate-500 mb-5">

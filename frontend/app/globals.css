@@ -20,6 +20,42 @@
        (handled per-link with `behavior: 'smooth'` in JS where needed). */
     scroll-behavior: auto;
   }
+
+  /* ─── Parallax helpers ────────────────────────────────────────────
+     Pages that include <ClientParallaxMount /> publish the current
+     scrollY value on <html> as `--py`. These helper classes consume
+     that variable to drift decorative blobs / shapes at different
+     speeds, creating depth without re-renders. All values are tiny
+     so the effect stays "almost subliminal" on long pages.
+
+     `prefers-reduced-motion` is handled at the source — the hook
+     never sets --py if the user opts out, so transform stays at
+     translate3d(0,0,0) and these classes become inert.
+  ───────────────────────────────────────────────────────────────── */
+  .parallax-bg-slow {
+    transform: translate3d(0, calc(var(--py, 0) * -0.05px), 0);
+    will-change: transform;
+  }
+  .parallax-bg-medium {
+    transform: translate3d(0, calc(var(--py, 0) * -0.09px), 0);
+    will-change: transform;
+  }
+  .parallax-bg-fast {
+    transform: translate3d(0, calc(var(--py, 0) * -0.14px), 0);
+    will-change: transform;
+  }
+  @media (max-width: 640px) {
+    /* On mobile we cut the drift in half — the smaller viewport means
+       even small offsets are perceptible, and we want to spare GPU. */
+    .parallax-bg-slow   { transform: translate3d(0, calc(var(--py, 0) * -0.025px), 0); }
+    .parallax-bg-medium { transform: translate3d(0, calc(var(--py, 0) * -0.045px), 0); }
+    .parallax-bg-fast   { transform: translate3d(0, calc(var(--py, 0) * -0.07px), 0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .parallax-bg-slow, .parallax-bg-medium, .parallax-bg-fast {
+      transform: none !important;
+    }
+  }
   
   body {
     @apply bg-white text-slate-900 antialiased;
