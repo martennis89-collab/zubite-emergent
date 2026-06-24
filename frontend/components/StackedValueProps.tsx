@@ -115,50 +115,19 @@ const palettes: Palette[] = [
 ]
 
 // Alternative palette set used when the PARENT section background is the
-// dark brand green. All 4 cards become light so they pop off the dark
-// surrounding context (the section itself supplies the brand green).
-const palettesInverted: Palette[] = [
-  {
-    bg: '#FCFAF8',
-    text: 'text-slate-900',
-    sub: 'text-slate-600',
-    iconBg: 'bg-teal-50 text-teal-700 ring-teal-100',
-    numCol: 'text-teal-700/15',
-    divider: 'border-slate-200/70',
-    eyebrow: 'text-teal-700',
-    ringClass: 'ring-white/40',
-  },
-  {
-    bg: '#E6F4F2',
-    text: 'text-slate-900',
-    sub: 'text-slate-700',
-    iconBg: 'bg-white text-teal-700 ring-teal-100',
-    numCol: 'text-teal-700/20',
-    divider: 'border-teal-700/15',
-    eyebrow: 'text-teal-700',
-    ringClass: 'ring-teal-200/60',
-  },
-  {
-    bg: '#F5EFE6',
-    text: 'text-slate-900',
-    sub: 'text-slate-600',
-    iconBg: 'bg-white text-teal-700 ring-teal-100',
-    numCol: 'text-teal-700/15',
-    divider: 'border-stone-300/60',
-    eyebrow: 'text-teal-700',
-    ringClass: 'ring-stone-200/70',
-  },
-  {
-    bg: '#EAF4F6',
-    text: 'text-slate-900',
-    sub: 'text-slate-700',
-    iconBg: 'bg-white text-teal-700 ring-teal-100',
-    numCol: 'text-teal-700/15',
-    divider: 'border-teal-700/15',
-    eyebrow: 'text-teal-700',
-    ringClass: 'ring-teal-200/50',
-  },
-]
+// dark brand green. All 4 cards share the SAME cream tone so the stack
+// reads as one cohesive editorial column rather than 4 mismatched tiles.
+// Visual variety comes from the number badges + content, not the surface.
+const palettesInverted: Palette[] = Array(4).fill({
+  bg: '#FCFAF8',
+  text: 'text-slate-900',
+  sub: 'text-slate-600',
+  iconBg: 'bg-teal-50 text-teal-700 ring-teal-100',
+  numCol: 'text-teal-700/15',
+  divider: 'border-slate-200/70',
+  eyebrow: 'text-teal-700',
+  ringClass: 'ring-white/40',
+})
 
 function CardBody({ card, palette, index }: { card: ValueCard; palette: Palette; index: number }) {
   return (
