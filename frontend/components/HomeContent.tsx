@@ -185,12 +185,12 @@ function Nav() {
               the homepage (`#kakvo-e-zubite`, `#treatments`, `#care-pass`);
               cross-page links use the canonical route. */}
           <nav className="hidden md:flex items-center gap-4 lg:gap-5 text-[13px] text-slate-600">
-            <Link href="/symptoms"           className="whitespace-nowrap hover:text-slate-900 transition-colors" data-testid="home-nav-symptoms">Симптоми</Link>
-            <Link href="#treatments"         className="whitespace-nowrap hover:text-slate-900 transition-colors" data-testid="home-nav-treatments">Лечения</Link>
-            <Link href="#care-pass"          className="whitespace-nowrap hover:text-slate-900 transition-colors" data-testid="home-nav-care-pass">Care Pass</Link>
-            <Link href="/blog"               className="whitespace-nowrap hover:text-slate-900 transition-colors" data-testid="home-nav-blog">Статии</Link>
-            <Link href="/za-kliniki"         className="whitespace-nowrap hover:text-slate-900 transition-colors" data-testid="home-nav-za-kliniki">За клиники</Link>
-            <Link href="#kakvo-e-zubite"     className="whitespace-nowrap hover:text-slate-900 transition-colors" data-testid="home-nav-kakvo">Какво е Zubite.bg</Link>
+            <Link href="/symptoms"           className="group/nav relative whitespace-nowrap hover:text-slate-900 transition-colors" data-testid="home-nav-symptoms"><span>Симптоми</span><span aria-hidden="true" className="absolute left-0 -bottom-1 h-px w-full origin-left scale-x-0 bg-teal-600 transition-transform duration-300 ease-out group-hover/nav:scale-x-100" /></Link>
+            <Link href="#treatments"         className="group/nav relative whitespace-nowrap hover:text-slate-900 transition-colors" data-testid="home-nav-treatments"><span>Лечения</span><span aria-hidden="true" className="absolute left-0 -bottom-1 h-px w-full origin-left scale-x-0 bg-teal-600 transition-transform duration-300 ease-out group-hover/nav:scale-x-100" /></Link>
+            <Link href="#care-pass"          className="group/nav relative whitespace-nowrap hover:text-slate-900 transition-colors" data-testid="home-nav-care-pass"><span>Care Pass</span><span aria-hidden="true" className="absolute left-0 -bottom-1 h-px w-full origin-left scale-x-0 bg-teal-600 transition-transform duration-300 ease-out group-hover/nav:scale-x-100" /></Link>
+            <Link href="/blog"               className="group/nav relative whitespace-nowrap hover:text-slate-900 transition-colors" data-testid="home-nav-blog"><span>Статии</span><span aria-hidden="true" className="absolute left-0 -bottom-1 h-px w-full origin-left scale-x-0 bg-teal-600 transition-transform duration-300 ease-out group-hover/nav:scale-x-100" /></Link>
+            <Link href="/za-kliniki"         className="group/nav relative whitespace-nowrap hover:text-slate-900 transition-colors" data-testid="home-nav-za-kliniki"><span>За клиники</span><span aria-hidden="true" className="absolute left-0 -bottom-1 h-px w-full origin-left scale-x-0 bg-teal-600 transition-transform duration-300 ease-out group-hover/nav:scale-x-100" /></Link>
+            <Link href="#kakvo-e-zubite"     className="group/nav relative whitespace-nowrap hover:text-slate-900 transition-colors" data-testid="home-nav-kakvo"><span>Какво е Zubite.bg</span><span aria-hidden="true" className="absolute left-0 -bottom-1 h-px w-full origin-left scale-x-0 bg-teal-600 transition-transform duration-300 ease-out group-hover/nav:scale-x-100" /></Link>
           </nav>
           <div className="flex items-center gap-2">
             {/* Mobile hamburger — visible only <md. Desktop persistent

@@ -230,7 +230,7 @@ export default function ResultsPage() {
                     {explanation}
                   </p>
                   <p className="mt-4 text-[12px] text-slate-500 leading-relaxed" data-testid="partial-locked-teaser">
-                    Намерени са клиники, които може да са релевантни за твоя случай. Ще видиш кои от препоръчаните клиники участват в Care Pass, ако тази информация е налична.
+                    Намерени са клиники, които може да са релевантни за твоя случай. Care Pass е включен във всяка партньорска клиника — повече детайли в /care-pass.
                   </p>
                 </div>
               </article>

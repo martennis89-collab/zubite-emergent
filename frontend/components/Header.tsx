@@ -79,14 +79,23 @@ export function Header() {
                 key={link.href}
                 href={link.href}
                 className={
-                  'whitespace-nowrap transition-colors ' +
+                  'group/nav relative whitespace-nowrap transition-colors ' +
                   (isActive(link.href)
                     ? 'text-teal-700 font-medium'
                     : 'text-slate-600 hover:text-slate-900')
                 }
                 data-testid={`nav-${link.label.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '')}`}
               >
-                {link.label}
+                <span>{link.label}</span>
+                {/* Animated underline — grows from the left on hover.
+                    Hidden when the link is the active route (active
+                    state is conveyed by colour). */}
+                {!isActive(link.href) && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute left-0 -bottom-1 h-px w-full origin-left scale-x-0 bg-teal-600 transition-transform duration-300 ease-out group-hover/nav:scale-x-100"
+                  />
+                )}
               </Link>
             ))}
           </nav>

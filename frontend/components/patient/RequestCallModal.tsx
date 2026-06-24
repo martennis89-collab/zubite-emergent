@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import axios from 'axios'
 import { X, ShieldCheck, CheckCircle2, AlertTriangle } from 'lucide-react'
 import {
@@ -171,11 +172,18 @@ export function RequestCallModal({
   }
 
   return (
+    // Render the modal in a portal attached to <body> so its
+    // `position: fixed` stays viewport-relative even when the trigger
+    // lives inside a transformed/clipped ancestor (e.g. a clinic card
+    // with hover:-translate-y, overflow-hidden, or backdrop-blur).
+    // The mounted-flag avoids hydration mismatches during SSR.
+    typeof document !== 'undefined'
+      ? createPortal(
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="request-call-title"
-      className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-sm flex items-center justify-center px-4 py-6"
+      className="fixed inset-0 z-[100] bg-slate-950/40 backdrop-blur-sm flex items-center justify-center px-4 py-6 overflow-y-auto"
       onClick={() => phase !== 'submitting' && onClose()}
       data-testid="request-call-modal"
     >
@@ -237,7 +245,10 @@ export function RequestCallModal({
           />
         )}
       </div>
-    </div>
+    </div>,
+          document.body,
+        )
+      : null
   )
 }
 

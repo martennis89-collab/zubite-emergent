@@ -12,7 +12,13 @@
   }
   
   html {
-    scroll-behavior: smooth;
+    /* `scroll-behavior: smooth` previously applied to all scroll
+       events caused noticeable "scroll-twice" jank on long pages like
+       /kliniki and /results — the browser would queue smooth-scrolling
+       and require a second wheel input to start. Smooth scrolling now
+       only applies when a user explicitly invokes anchor navigation
+       (handled per-link with `behavior: 'smooth'` in JS where needed). */
+    scroll-behavior: auto;
   }
   
   body {

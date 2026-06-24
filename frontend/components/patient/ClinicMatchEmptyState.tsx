@@ -48,13 +48,15 @@ export function ClinicMatchEmptyState({
         {message || MANUAL_RECOMMENDATION_COPY.submittedBody}
       </p>
 
-      {/* Optional helper — only the brief-approved Care Pass note (no
-          forced Care Pass message when there are no clinics). */}
+      {/* Care Pass helper — Feb 2026 wording: Care Pass is now universal
+          in our partner network, so we simply remind the patient that
+          it lives inside every partner clinic, without conditional
+          framing. */}
       <p
         className="text-[11.5px] text-slate-500 leading-relaxed max-w-md mx-auto mb-6 bg-slate-50/80 ring-1 ring-slate-200/60 rounded-lg px-3 py-2"
         data-testid="match-empty-care-pass-helper"
       >
-        Care Pass се показва само при участващи партньорски клиники.
+        Care Pass е включен в партньорската ни мрежа. Получаваш го при посещение в партньорска клиника.
       </p>
 
       <div className="flex flex-col sm:flex-row items-center justify-center gap-3">

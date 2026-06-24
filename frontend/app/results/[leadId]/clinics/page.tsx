@@ -189,12 +189,14 @@ export default function ClinicMatchPage() {
             <p className="text-slate-600 mt-3 text-[15px] sm:text-base leading-relaxed" data-testid="match-subtitle">
               Показваме ограничен брой клиники според локация, релевантност към избраната категория, налична информация в профила и Zubite доверителни сигнали. Това не е диагноза и не означава, че една клиника е клинично „най-добра" за всеки случай.
             </p>
-            {/* Title trust chips */}
+            {/* Title trust chips — Feb 2026: Care Pass chip removed
+                (Care Pass is universal in our partner network — repeating
+                it here adds noise next to the dedicated Care Pass strip
+                further down the page). */}
             <ul className="mt-5 flex flex-wrap gap-2" data-testid="match-title-chips">
               {[
                 { l: 'Ориентир, не диагноза', icon: ShieldCheck },
                 { l: 'Насочване според случая', icon: Compass },
-                { l: 'Care Pass след физическа консултация', icon: Sparkles },
                 { l: 'Без задължение', icon: CheckCircle2 },
               ].map(({ l, icon: I }) => (
                 <li
@@ -208,16 +210,10 @@ export default function ClinicMatchPage() {
             </ul>
           </div>
 
-          {/* Care Pass clarification banner — visible ABOVE the cards */}
-          <div
-            className="mb-6 rounded-2xl bg-white/65 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_8px_24px_-16px_rgba(15,23,42,0.18)] px-4 py-3 flex items-start gap-3 text-[13px] text-slate-700"
-            data-testid="care-pass-recommendation-banner"
-          >
-            <Sparkles className="w-4 h-4 text-teal-600 flex-shrink-0 mt-0.5" />
-            <p className="leading-snug">
-              <strong className="text-slate-900">Care Pass:</strong> при клиники, които участват, ползите могат да се отключат след физическа консултация. Онлайн разговор или изпратена заявка сами по себе си не активират Care Pass.
-            </p>
-          </div>
+          {/* Care Pass clarification banner removed Feb 2026 —
+              `<CarePassPanel variant="compact" />` further down covers
+              the Care Pass story with the new universal-benefit copy,
+              so a separate banner here was duplicate noise. */}
 
           {/* Body */}
           {loading ? (
