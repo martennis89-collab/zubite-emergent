@@ -474,7 +474,7 @@ function BookingFormModal({
               className="mt-2 text-[11px] text-slate-500 leading-snug"
               data-testid="scheduler-booking-success-care-pass-note"
             >
-              Care Pass може да се отключи само след физическа консултация в участваща клиника.
+              Care Pass е включен в партньорската ни мрежа. Всеки Zubite пациент получава Care Pass при посещение в партньорска клиника.
             </p>
             <div className="mt-4 rounded-lg bg-slate-50 ring-1 ring-slate-100 p-3 text-left text-sm">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">

@@ -343,10 +343,10 @@ export default function ResultsPage() {
                   Care Pass
                 </p>
                 <p className="mt-1.5 font-serif text-base sm:text-lg text-white leading-snug" data-testid="care-pass-reminder-headline">
-                  След физическа консултация в участваща партньорска клиника може да отключиш Zubite Care Pass.
+                  Zubite Care Pass е включен за всеки наш пациент при посещение в партньорска клиника.
                 </p>
                 <p className="mt-2 text-[12px] text-slate-300/90 leading-relaxed">
-                  Допълнителни насоки и ползи за грижа за зъбите, когато са приложими. Не е застраховка и не е отстъпка от лечение.
+                  Допълнителни ползи за грижа за зъбите. Не е застраховка и не е автоматична отстъпка от лечение.
                 </p>
               </div>
             </div>

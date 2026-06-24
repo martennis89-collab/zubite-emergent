@@ -1,15 +1,17 @@
 'use client'
 
 /**
- * Care Pass live state badge (Phase F — June 2026).
+ * Care Pass live state badge (Phase F — June 2026; updated Feb 2026).
  *
- * Fetches the lead's current unlock state from /api/leads/{id} and
- * renders one of three lines:
- *   - locked / not-eligible: nothing extra (just the base strip copy)
- *   - eligible but not unlocked: "Care Pass ще се отключи след
- *     потвърдена от клиниката онлайн или присъствена консултация."
- *   - unlocked: "Care Pass е отключен. Вече имаш достъп до партньорски
- *     предложения и отстъпки за продукти за орална хигиена."
+ * Care Pass is now a standard benefit at every partner clinic — every
+ * Zubite patient receives Care Pass at their partner clinic visit.
+ * We therefore no longer render a "locked" UI ("ще се отключи след…");
+ * the `unlocked` flag is kept on the backend purely to mark which
+ * patients have already collected their Pass at a partner clinic.
+ *
+ *   - unlocked: green badge — "Care Pass е отключен. Вече имаш достъп…"
+ *   - everything else: positive reassurance — "Care Pass те очаква
+ *     при посещението ти в партньорска клиника."
  *
  * Refreshes on `visibilitychange` so a patient who left the tab open
  * sees the unlocked state without a manual page reload after the
@@ -17,7 +19,7 @@
  */
 
 import { useEffect, useState, useCallback } from 'react'
-import { Lock, Sparkles } from 'lucide-react'
+import { Gift, Sparkles } from 'lucide-react'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -62,19 +64,16 @@ export function CarePassLiveStatus({ leadId }: { leadId: string }) {
     )
   }
 
-  if (lead.care_pass_eligible) {
-    return (
-      <div
-        className="mt-3 inline-flex items-center gap-2 rounded-full bg-amber-500/10 ring-1 ring-amber-400/30 text-amber-200 text-[11px] font-medium px-3 py-1"
-        data-testid="care-pass-eligible-locked"
-      >
-        <Lock className="w-3.5 h-3.5" />
-        Care Pass ще се отключи след потвърдена от клиниката онлайн или
-        присъствена консултация.
-      </div>
-    )
-  }
-
-  // care_pass_eligible=false → base strip already explains the rules.
-  return null
+  // Positive "awaiting your visit" framing — Care Pass is standard for
+  // every Zubite patient at every partner clinic, so the previous
+  // "locked / will unlock" UI was retired Feb 2026.
+  return (
+    <div
+      className="mt-3 inline-flex items-center gap-2 rounded-full bg-teal-500/15 ring-1 ring-teal-400/40 text-teal-200 text-[11px] font-medium px-3 py-1"
+      data-testid="care-pass-awaiting-visit"
+    >
+      <Gift className="w-3.5 h-3.5" />
+      Zubite Care Pass те очаква при посещението ти в партньорска клиника.
+    </div>
+  )
 }

@@ -166,7 +166,7 @@ export function ClinicStandardMiniNote({ testId = 'clinic-standard-mini' }: { te
               <li className="flex items-start gap-1.5"><span className="text-teal-500 mt-1.5">•</span><span>Получава пациентски контекст само ако заявиш контакт.</span></li>
               <li className="flex items-start gap-1.5"><span className="text-teal-500 mt-1.5">•</span><span>Отговорите от въпросника са ориентир, не диагноза.</span></li>
               <li className="flex items-start gap-1.5"><span className="text-teal-500 mt-1.5">•</span><span>Zubite.bg не гарантира резултат от лечение.</span></li>
-              <li className="flex items-start gap-1.5"><span className="text-teal-500 mt-1.5">•</span><span>След проведена консултация чрез Zubite.bg клиниката предоставя Care Pass, когато е приложимо.</span></li>
+              <li className="flex items-start gap-1.5"><span className="text-teal-500 mt-1.5">•</span><span>Care Pass е стандартна полза в партньорската ни мрежа — всеки наш пациент го получава при посещение в партньорска клиника.</span></li>
             </ul>
             <Link
               href="/standart-za-kliniki"

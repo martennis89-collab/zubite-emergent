@@ -83,19 +83,19 @@ function FullVariant({ testid, className, showLearnMore }: FullProps) {
             <Gift className="w-3 h-3" aria-hidden="true" /> Zubite Care Pass
           </span>
           <h3 className="mt-4 font-serif text-2xl sm:text-3xl text-white leading-tight">
-            Отстъпки за продукти за орална хигиена след физическа консултация в участваща клиника.
+            Отстъпки за продукти за орална хигиена — включени за всеки наш пациент.
           </h3>
           <p className="mt-3 text-sm text-slate-300 leading-relaxed max-w-md">
-            Care Pass може да се отключи след физическа консултация в участваща
-            партньорска клиника, когато условията са изпълнени. Не е застраховка
-            и не е автоматична отстъпка от лечение.
+            Care Pass е включен в партньорската ни мрежа. Всеки Zubite пациент
+            получава Care Pass при посещение в партньорска клиника. Не е
+            застраховка и не е автоматична отстъпка от лечение.
           </p>
 
           {/* Benefit chips */}
           <ul className="mt-5 grid grid-cols-2 gap-2">
             {[
-              'След физическа консултация',
-              'От участваща клиника',
+              'Включен за всеки наш пациент',
+              'От партньорска клиника',
               'Орална хигиена',
               'Не е отстъпка от лечение',
             ].map((c) => (
@@ -180,10 +180,10 @@ function CompactVariant({ testid, className, showLearnMore }: CompactProps) {
             <Gift className="w-3 h-3" aria-hidden="true" /> Zubite Care Pass
           </span>
           <p className="mt-2.5 font-serif text-base sm:text-lg text-white leading-snug">
-            Отстъпки за продукти за орална хигиена след физическа консултация в участваща клиника.
+            Отстъпки за продукти за орална хигиена — включени за всеки наш пациент.
           </p>
           <p className="mt-1.5 text-[12px] text-slate-300/90 leading-relaxed">
-            Картата се предоставя от партньорската клиника, когато условията са изпълнени. Не е отстъпка от лечение и не е застраховка.
+            Care Pass е включен в партньорската ни мрежа. Получаваш го при посещение в партньорска клиника. Не е застраховка и не е автоматична отстъпка от лечение.
           </p>
           {showLearnMore && (
             <Link
@@ -219,7 +219,7 @@ function InlineVariant({ testid, className }: InlineProps) {
       </span>
       <p className="text-[11px] text-slate-200 leading-snug">
         <span className="font-semibold text-teal-200">Zubite Care Pass</span>{' '}
-        — отстъпки за орална хигиена след физическа консултация в участваща партньорска клиника.
+        — отстъпки за орална хигиена. Включен за всеки наш пациент при посещение в партньорска клиника.
       </p>
     </div>
   )

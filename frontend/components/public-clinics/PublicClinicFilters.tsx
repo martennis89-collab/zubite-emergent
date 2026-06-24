@@ -31,7 +31,10 @@ export default function PublicClinicFilters({ value, onChange, syncToUrl }: Prop
       const sp = new URLSearchParams()
       if (next.specialty) sp.set('specialty', next.specialty)
       if (next.online_consultation) sp.set('online', '1')
-      if (next.care_pass) sp.set('care_pass', '1')
+      // care_pass filter removed Feb 2026: Care Pass is now a standard
+      // benefit at every partner clinic, so the filter no longer adds
+      // signal. The URL key is still tolerated on read for backwards
+      // compatibility but it is never written.
       if (next.accepts_adults) sp.set('adults', '1')
       if (next.accepts_children) sp.set('children', '1')
       const target = next.city
@@ -50,7 +53,6 @@ export default function PublicClinicFilters({ value, onChange, syncToUrl }: Prop
     !!value.city ||
     !!value.specialty ||
     value.online_consultation ||
-    value.care_pass ||
     value.accepts_adults ||
     value.accepts_children
 
@@ -119,7 +121,10 @@ export default function PublicClinicFilters({ value, onChange, syncToUrl }: Prop
         <div className="sm:col-span-2 lg:col-span-2 flex flex-wrap gap-2 sm:items-end">
           {[
             { key: 'online_consultation' as const, label: 'Онлайн консултация' },
-            { key: 'care_pass' as const, label: 'Care Pass партньор' },
+            // 'care_pass' filter removed Feb 2026 — Care Pass is now a
+            // standard benefit at every partner clinic, so the filter
+            // doesn't add signal anymore. The chip remains on each card
+            // as a positive reassurance.
             { key: 'accepts_adults' as const, label: 'Възрастни' },
             { key: 'accepts_children' as const, label: 'Деца' },
           ].map(({ key, label }) => {

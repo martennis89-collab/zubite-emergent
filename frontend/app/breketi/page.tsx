@@ -700,8 +700,8 @@ export default function BreketiPage() {
             </div>
             <p className="flex-1 text-sm sm:text-[15px] text-slate-700 leading-relaxed">
               <span className="font-medium text-slate-900">Care Pass</span>{' '}
-              може да се отключи след физическа консултация в участваща
-              партньорска клиника, когато условията са изпълнени. Не е
+              е включен в партньорската ни мрежа. Всеки Zubite пациент
+              получава Care Pass при посещение в партньорска клиника. Не е
               застраховка и не е автоматична отстъпка от лечение.
             </p>
             <Link

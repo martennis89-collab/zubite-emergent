@@ -125,7 +125,7 @@ export function ResultUnlockGate({ leadId, defaultName, citySlug, onUnlocked }: 
             'Персонален резултат според отговорите ти',
             'Подходящи партньорски клиники близо до теб',
             'Възможност за онлайн ориентация, когато клиниката предлага свободни часове',
-            'Care Pass при участваща клиника след физическа консултация, когато условията са изпълнени',
+            'Zubite Care Pass — включен за всеки наш пациент при посещение в партньорска клиника',
           ].map((item, i) => (
             <li key={i} className="flex items-start gap-2.5" data-testid={`result-unlock-value-${i}`}>
               <CheckCircle2 className="w-4 h-4 text-teal-600 mt-0.5 flex-shrink-0" />
@@ -141,9 +141,9 @@ export function ResultUnlockGate({ leadId, defaultName, citySlug, onUnlocked }: 
           <div className="flex items-start gap-3">
             <Sparkles className="w-4 h-4 text-teal-700 mt-0.5 flex-shrink-0" />
             <div className="text-[13px] text-slate-700 leading-relaxed">
-              <strong>Care Pass</strong> може да се отключи след физическа
-              консултация в участваща партньорска клиника, когато условията
-              са изпълнени. Не е застраховка и не е автоматична отстъпка
+              <strong>Care Pass</strong> е включен в партньорската ни мрежа.
+              Всеки Zubite пациент получава Care Pass при посещение в
+              партньорска клиника. Не е застраховка и не е автоматична отстъпка
               от лечение.
             </div>
           </div>
@@ -239,7 +239,7 @@ export function ResultUnlockGate({ leadId, defaultName, citySlug, onUnlocked }: 
             className="text-[11.5px] text-slate-500 leading-relaxed bg-slate-50/80 ring-1 ring-slate-200/60 rounded-lg px-3 py-2.5"
             data-testid="care-pass-contact-clarification"
           >
-            Оставянето на контакт или онлайн консултацията не отключват Care Pass автоматично. Care Pass може да се отключи след физическа консултация в участваща партньорска клиника, когато условията са изпълнени.
+            Care Pass е включен в партньорската ни мрежа. Всеки Zubite пациент получава Care Pass при посещение в партньорска клиника. Не е застраховка и не е автоматична отстъпка от лечение.
           </p>
 
           {error && (
