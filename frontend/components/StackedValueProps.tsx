@@ -118,7 +118,7 @@ const palettes: Palette[] = [
 // dark brand green. All 4 cards share the SAME cream tone so the stack
 // reads as one cohesive editorial column rather than 4 mismatched tiles.
 // Visual variety comes from the number badges + content, not the surface.
-const palettesInverted: Palette[] = Array(4).fill({
+const palettesInverted: Palette[] = Array.from({ length: 4 }, () => ({
   bg: '#FCFAF8',
   text: 'text-slate-900',
   sub: 'text-slate-600',
@@ -127,7 +127,7 @@ const palettesInverted: Palette[] = Array(4).fill({
   divider: 'border-slate-200/70',
   eyebrow: 'text-teal-700',
   ringClass: 'ring-white/40',
-})
+}))
 
 function CardBody({ card, palette, index }: { card: ValueCard; palette: Palette; index: number }) {
   return (
