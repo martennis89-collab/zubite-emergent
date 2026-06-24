@@ -832,52 +832,47 @@ function PatientBenefit() {
         className="absolute -top-20 right-0 w-[28rem] h-[28rem] rounded-full bg-cyan-200/25 blur-3xl pointer-events-none animate-[breatheGlow_15s_ease-in-out_infinite]"
         style={px(-0.05)}
       />
-      <div className="relative max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[1fr_1.3fr] gap-12 items-start">
+      <div className="relative max-w-6xl mx-auto px-5 sm:px-8">
         <Reveal>
-        <div className="lg:sticky lg:top-24">
-          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">Какво е Zubite.bg</p>
-          <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08]">
-            Платформа за <em className="not-italic text-teal-600">дентална ориентация</em>.
-          </h2>
-          <p className="mt-5 text-slate-600 text-base sm:text-lg leading-relaxed max-w-md">
-            Zubite.bg ти помага да разбереш какъв може да е проблемът,
-            какви са възможните следващи стъпки и към какъв тип
-            консултация или клиника да се насочиш.{' '}
-            <span className="text-slate-500">
-              Не поставя диагноза и не замества преглед при стоматолог.
-            </span>
-          </p>
-          {/* Optional in-section CTA — kept SECONDARY per brief. The header
-              no longer carries a persistent „Започни анализа" CTA, so this
-              soft entry remains inside the explainer section, not globally. */}
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            <Link
-              href="/quiz"
-              className="inline-flex items-center gap-1.5 rounded-full bg-white/70 backdrop-blur-md ring-1 ring-white/80 text-slate-900 text-sm font-medium px-4 py-2 hover:bg-white hover:-translate-y-0.5 transition-all shadow-[0_8px_24px_-14px_rgba(15,23,42,0.18)]"
-              data-testid="kakvo-section-cta"
-            >
-              Започни ориентация
-              <ArrowRight className="w-3.5 h-3.5 text-teal-600" />
-            </Link>
-            {/* Secondary contextual catalog link — kept calm so Zubite never
-                feels like a generic clinic directory. The primary patient
-                path is quiz → result → personalised shortlist; the public
-                catalog remains a transparent fallback. */}
-            <Link
-              href="/kliniki"
-              className="inline-flex items-center gap-1.5 text-[13px] text-slate-500 hover:text-teal-700 transition-colors"
-              data-testid="kakvo-section-catalog-link"
-            >
-              Виж публичния каталог
-              <ArrowRight className="w-3 h-3" />
-            </Link>
+          <div className="max-w-3xl">
+            <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">Какво е Zubite.bg</p>
+            <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08]">
+              Платформа за <em className="not-italic text-teal-600">дентална ориентация</em>.
+            </h2>
+            <p className="mt-5 text-slate-600 text-base sm:text-lg leading-relaxed max-w-2xl">
+              Zubite.bg ти помага да разбереш какъв може да е проблемът,
+              какви са възможните следващи стъпки и към какъв тип
+              консултация или клиника да се насочиш.{' '}
+              <span className="text-slate-500">
+                Не поставя диагноза и не замества преглед при стоматолог.
+              </span>
+            </p>
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <Link
+                href="/quiz"
+                className="inline-flex items-center gap-1.5 rounded-full bg-white/70 backdrop-blur-md ring-1 ring-white/80 text-slate-900 text-sm font-medium px-4 py-2 hover:bg-white hover:-translate-y-0.5 transition-all shadow-[0_8px_24px_-14px_rgba(15,23,42,0.18)]"
+                data-testid="kakvo-section-cta"
+              >
+                Започни ориентация
+                <ArrowRight className="w-3.5 h-3.5 text-teal-600" />
+              </Link>
+              <Link
+                href="/kliniki"
+                className="inline-flex items-center gap-1.5 text-[13px] text-slate-500 hover:text-teal-700 transition-colors"
+                data-testid="kakvo-section-catalog-link"
+              >
+                Виж публичния каталог
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+            <p className="mt-3 text-[12px] text-slate-400 leading-relaxed max-w-md">
+              Можеш да разгледаш и публичния каталог с партньорски клиники, но
+              персоналната ориентация започва с кратък анализ.
+            </p>
           </div>
-          <p className="mt-3 text-[12px] text-slate-400 leading-relaxed max-w-md">
-            Можеш да разгледаш и публичния каталог с партньорски клиники, но
-            персоналната ориентация започва с кратък анализ.
-          </p>
-        </div>
         </Reveal>
+      </div>
+      <div className="relative mt-14 sm:mt-20">
         <StackedValueProps />
       </div>
     </section>
