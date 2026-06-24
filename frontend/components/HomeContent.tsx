@@ -21,6 +21,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { ClinicStandardSection } from '@/components/patient/ClinicStandardSection'
 import { Footer } from '@/components/Footer'
+import { StackedValueProps } from '@/components/StackedValueProps'
 import { WordMorph } from '@/components/motion/WordMorph'
 import { CountUp } from '@/components/motion/CountUp'
 import { ParallaxFloat } from '@/components/motion/ParallaxFloat'
@@ -30,7 +31,7 @@ import {
   ShieldCheck, Sparkles, Building2, Stethoscope, ChevronDown,
   CheckCircle2, ArrowRight, MoveRight, Heart, Smile, Activity,
   AlignLeft, Clock, Star, BookOpen,
-  MessagesSquare, HelpCircle, Gift, Menu, X,
+  HelpCircle, Gift, Menu, X,
 } from 'lucide-react'
 
 export interface HomeBlogPost {
@@ -812,36 +813,10 @@ function TrustStrip() {
 // ─── 4. Problem ──────────────────────────────────────────────────
 // ─── 4. Patient benefit — Section 2 ──────────────────────────────
 function PatientBenefit() {
-  const benefits: Array<{ t: string; s: string; long: string; icon: React.ReactNode }> = [
-    {
-      t: 'По-малко объркване',
-      s: 'Разбираш дали има смисъл от наблюдение, профилактика или консултация.',
-      long: 'Не всеки симптом изисква лечение веднага. Понякога е достатъчно наблюдение или подобрена ежедневна грижа. Получаваш ориентир коя посока е по-вероятна за теб.',
-      icon: <HelpCircle className="w-4 h-4" />,
-    },
-    {
-      t: 'По-добри въпроси',
-      s: 'Отиваш на преглед по-подготвен.',
-      long: 'Когато попиташ правилно, получаваш по-полезен отговор. Zubite ти показва кои въпроси да зададеш на стоматолог или ортодонт за твоя конкретен случай.',
-      icon: <MessagesSquare className="w-4 h-4" />,
-    },
-    {
-      t: 'По-малко натиск',
-      s: 'Продължаваш само ако решиш.',
-      long: 'Никой не те задължава да продължиш към клиника или лечение. Може просто да получиш ориентира си и да го обмислиш на спокойствие.',
-      icon: <ShieldCheck className="w-4 h-4" />,
-    },
-    {
-      t: 'Допълнителна стойност',
-      s: 'След консултация получаваш Care Pass с отстъпки за продукти за орална хигиена.',
-      long: 'Когато заявиш насочване чрез Zubite.bg и посетиш консултацията, партньорската клиника ти предоставя Zubite Care Pass — карта с отстъпки за продукти за орална хигиена.',
-      icon: <Gift className="w-4 h-4" />,
-    },
-  ]
   return (
     <section
       id="kakvo-e-zubite"
-      className="relative py-20 sm:py-28 overflow-hidden scroll-mt-24"
+      className="relative py-20 sm:py-28 overflow-x-clip scroll-mt-24"
       data-testid="home-patient-benefit"
     >
       <div aria-hidden className="absolute inset-0 pointer-events-none"
@@ -859,6 +834,7 @@ function PatientBenefit() {
       />
       <div className="relative max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[1fr_1.3fr] gap-12 items-start">
         <Reveal>
+        <div className="lg:sticky lg:top-24">
           <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">Какво е Zubite.bg</p>
           <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08]">
             Платформа за <em className="not-italic text-teal-600">дентална ориентация</em>.
@@ -900,28 +876,9 @@ function PatientBenefit() {
             Можеш да разгледаш и публичния каталог с партньорски клиники, но
             персоналната ориентация започва с кратък анализ.
           </p>
-        </Reveal>
-        <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
-          {benefits.map((b, i) => (
-            <Reveal key={b.t} delay={i * 90}>
-              <details className="group/benefit relative rounded-2xl bg-white/70 backdrop-blur-xl ring-1 ring-white/70 p-5 sm:p-6 hover:-translate-y-1 hover:bg-white/85 hover:ring-teal-200/60 transition-all shadow-[0_6px_30px_-18px_rgba(15,23,42,0.18)] hover:shadow-[0_14px_40px_-18px_rgba(13,148,136,0.22)] cursor-pointer" data-testid={`benefit-card-${i}`}>
-                <summary className="list-none flex flex-col gap-3">
-                  <div className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-teal-50/80 text-teal-700 ring-1 ring-teal-100">
-                    {b.icon}
-                  </div>
-                  <h3 className="font-serif text-xl sm:text-2xl font-semibold text-slate-900 leading-tight">{b.t}</h3>
-                  <p className="text-base text-slate-600 leading-relaxed">{b.s}</p>
-                  <span className="text-[11px] text-teal-700 font-medium inline-flex items-center gap-1 mt-1 group-open/benefit:hidden">
-                    Виж повече <ChevronDown className="w-3 h-3" />
-                  </span>
-                </summary>
-                <p className="mt-3 text-sm text-slate-600 leading-relaxed border-t border-slate-200/50 pt-3">
-                  {b.long}
-                </p>
-              </details>
-            </Reveal>
-          ))}
         </div>
+        </Reveal>
+        <StackedValueProps />
       </div>
     </section>
   )

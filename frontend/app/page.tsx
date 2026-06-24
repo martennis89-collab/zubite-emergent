@@ -69,7 +69,7 @@ export default async function HomePage() {
   const recentPosts = await getRecentPosts()
 
   return (
-    <main className="min-h-screen bg-[#FCFAF8] text-slate-900 overflow-x-hidden" data-testid="home-main">
+    <main className="min-h-screen bg-[#FCFAF8] text-slate-900 overflow-x-clip" data-testid="home-main">
       <HomeContent recentPosts={recentPosts} />
 
       {/* Structured Data for SEO */}
