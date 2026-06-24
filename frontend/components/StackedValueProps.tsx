@@ -163,7 +163,7 @@ const palettesInverted: Palette[] = [
 function CardBody({ card, palette, index }: { card: ValueCard; palette: Palette; index: number }) {
   return (
     <article
-      className={`relative overflow-hidden rounded-3xl ring-1 ${palette.ringClass} shadow-[0_30px_80px_-32px_rgba(15,23,42,0.28)] px-6 py-8 sm:px-10 sm:py-10 md:px-14 md:py-12`}
+      className={`relative overflow-hidden rounded-3xl ring-1 ${palette.ringClass} shadow-[0_30px_80px_-32px_rgba(15,23,42,0.28)] px-6 py-12 sm:px-10 sm:py-16 md:px-14 md:py-20 min-h-[clamp(22rem,44vh,30rem)]`}
       style={{ backgroundColor: palette.bg }}
       data-testid={`stacked-benefit-card-${index}`}
     >
@@ -222,8 +222,8 @@ export function StackedValueProps({ inverted = false }: { inverted?: boolean } =
             // sliver of every preceding card (number + eyebrow) stays
             // visible above as new ones land on top.
             style={{
-              top: `calc(5rem + ${i * 2.25}rem)`,
-              marginBottom: i === cards.length - 1 ? 0 : '18vh',
+              top: `calc(5rem + ${i * 2.5}rem)`,
+              marginBottom: i === cards.length - 1 ? 0 : '8px',
               zIndex: 10 + i,
             }}
           >
