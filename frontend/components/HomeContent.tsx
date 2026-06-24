@@ -973,21 +973,37 @@ function SymptomChips() {
 // ─── 6. How it works (5 steps) ───────────────────────────────────
 function HowItWorks() {
   return (
-    <section id="how" className="relative py-20 sm:py-28 overflow-x-clip scroll-mt-24" data-testid="home-how">
-      <div aria-hidden className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-gradient-to-r from-transparent via-teal-200/70 to-transparent hidden lg:block" />
+    <section id="how" className="relative py-14 sm:py-20 overflow-x-clip scroll-mt-24" data-testid="home-how" style={{ backgroundColor: '#0F4F4A' }}>
+      {/* Brand-aligned glow — matches the other two dark-green moments
+          on the page so the visual rhythm light → green → light → green
+          stays consistent. */}
+      <div aria-hidden className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse 50% 35% at 15% 25%, rgba(45,212,191,0.20) 0%, rgba(45,212,191,0) 70%),' +
+            'radial-gradient(ellipse 55% 45% at 85% 75%, rgba(94,234,212,0.16) 0%, rgba(94,234,212,0) 70%),' +
+            'radial-gradient(circle at 50% 50%, rgba(15,79,74,0) 0%, rgba(7,40,38,0.55) 90%)',
+        }}
+      />
+      <div aria-hidden className="absolute inset-0 pointer-events-none opacity-[0.06] mix-blend-overlay"
+        style={{
+          backgroundImage: 'radial-gradient(rgba(255,255,255,0.4) 1px, transparent 1px)',
+          backgroundSize: '3px 3px',
+        }}
+      />
       <div className="relative max-w-[1600px] mx-auto px-6 sm:px-10 lg:px-16">
         <Reveal>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">Как работи</p>
-          <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08] max-w-3xl">
+          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-200 font-semibold eyebrow-sparkle">Как работи</p>
+          <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-white leading-[1.08] max-w-3xl">
             Какво се случва след като започнеш?
           </h2>
-          <p className="mt-3 text-slate-500 text-sm sm:text-base max-w-xl">
+          <p className="mt-3 text-teal-100/75 text-sm sm:text-base max-w-xl">
             Скролни надолу, за да преминеш през стъпките една по една.
           </p>
         </Reveal>
       </div>
-      <div className="mt-10 sm:mt-14">
-        <HorizontalSteps />
+      <div className="mt-6 sm:mt-8">
+        <HorizontalSteps inverted />
       </div>
     </section>
   )

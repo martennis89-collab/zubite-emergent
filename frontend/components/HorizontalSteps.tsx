@@ -36,7 +36,35 @@ const steps: Step[] = [
   { n: '05', t: 'Получаваш Care Pass', s: 'Карта с отстъпки за продукти за орална хигиена.', accent: true },
 ]
 
-function StepCard({ step, index }: { step: Step; index: number }) {
+function StepCard({ step, index, inverted }: { step: Step; index: number; inverted?: boolean }) {
+  if (inverted) {
+    return (
+      <article
+        data-testid={`how-step-${index}`}
+        className={
+          'relative h-full w-[clamp(20rem,30vw,28rem)] shrink-0 rounded-3xl backdrop-blur-xl p-7 sm:p-9 ring-1 ' +
+          (step.accent
+            ? 'bg-gradient-to-br from-teal-300/25 to-white/10 ring-teal-200/40 shadow-[0_28px_60px_-22px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.18)]'
+            : 'bg-white/10 ring-white/20 shadow-[0_18px_50px_-22px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.15)]')
+        }
+      >
+        <span className={'font-serif text-5xl sm:text-6xl font-bold leading-none ' + (step.accent ? 'text-teal-100/85' : 'text-teal-100/40')}>
+          {step.n}
+        </span>
+        <h3 className="mt-4 font-serif text-xl sm:text-2xl font-semibold text-white leading-tight max-w-xs">
+          {step.t}
+        </h3>
+        <p className="mt-3 text-sm sm:text-[15px] text-teal-50/85 leading-relaxed max-w-xs">
+          {step.s}
+        </p>
+        {step.accent && (
+          <span className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-white/15 ring-1 ring-white/25 text-[10px] uppercase tracking-wider text-teal-100 font-semibold px-2.5 py-1">
+            <Gift className="w-3 h-3" /> Care Pass
+          </span>
+        )}
+      </article>
+    )
+  }
   return (
     <article
       data-testid={`how-step-${index}`}
@@ -65,7 +93,7 @@ function StepCard({ step, index }: { step: Step; index: number }) {
   )
 }
 
-export function HorizontalSteps() {
+export function HorizontalSteps({ inverted = false }: { inverted?: boolean } = {}) {
   const sectionRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
   const [translateX, setTranslateX] = useState(0)
@@ -118,7 +146,7 @@ export function HorizontalSteps() {
     return (
       <div className="grid gap-4">
         {steps.map((s, i) => (
-          <StepCard key={s.n} step={s} index={i} />
+          <StepCard key={s.n} step={s} index={i} inverted={inverted} />
         ))}
       </div>
     )
@@ -127,9 +155,9 @@ export function HorizontalSteps() {
   return (
     <>
       {/* Mobile: simple vertical stack (md and below) */}
-      <div className="grid gap-4 md:hidden" data-testid="horizontal-steps-mobile">
+      <div className="grid gap-4 md:hidden px-5" data-testid="horizontal-steps-mobile">
         {steps.map((s, i) => (
-          <StepCard key={s.n} step={s} index={i} />
+          <StepCard key={s.n} step={s} index={i} inverted={inverted} />
         ))}
       </div>
 
@@ -137,13 +165,13 @@ export function HorizontalSteps() {
       <div
         ref={sectionRef}
         className="relative hidden md:block"
-        style={{ height: `${steps.length * 100}vh` }}
+        style={{ height: `${(steps.length - 1) * 80 + 80}vh` }}
         data-testid="horizontal-steps-track"
       >
-        <div className="sticky top-0 h-screen overflow-x-clip flex items-center">
+        <div className="sticky top-20 h-[64vh] min-h-[420px] overflow-x-clip flex items-center">
           <div
             ref={trackRef}
-            className="flex items-stretch gap-6 lg:gap-8 px-[12vw] will-change-transform"
+            className="flex items-stretch gap-4 lg:gap-5 px-[5vw] lg:px-[6vw] will-change-transform"
             style={{
               transform: `translate3d(${translateX}px, 0, 0)`,
               transition: 'transform 120ms cubic-bezier(0.22, 1, 0.36, 1)',
@@ -151,17 +179,17 @@ export function HorizontalSteps() {
           >
             {steps.map((s, i) => (
               <div key={s.n} className="flex items-center">
-                <StepCard step={s} index={i} />
+                <StepCard step={s} index={i} inverted={inverted} />
                 {i < steps.length - 1 && (
-                  <MoveRight aria-hidden className="ml-6 lg:ml-8 w-5 h-5 text-teal-400 shrink-0" />
+                  <MoveRight aria-hidden className={'ml-4 lg:ml-5 w-5 h-5 shrink-0 ' + (inverted ? 'text-teal-200/70' : 'text-teal-400')} />
                 )}
               </div>
             ))}
           </div>
           {/* Scrub progress indicator — subtle bottom rail */}
-          <div aria-hidden className="absolute bottom-10 left-1/2 -translate-x-1/2 w-[min(28rem,40vw)] h-[3px] rounded-full bg-slate-200/70 overflow-hidden">
+          <div aria-hidden className={'absolute bottom-4 left-1/2 -translate-x-1/2 w-[min(24rem,36vw)] h-[3px] rounded-full overflow-hidden ' + (inverted ? 'bg-white/15' : 'bg-slate-200/70')}>
             <div
-              className="h-full bg-gradient-to-r from-teal-400 to-teal-600"
+              className={'h-full bg-gradient-to-r ' + (inverted ? 'from-teal-200 to-white' : 'from-teal-400 to-teal-600')}
               style={{ width: `${Math.round(progressPct * 100)}%`, transition: 'width 120ms linear' }}
             />
           </div>
