@@ -1224,35 +1224,51 @@ function TrustReason() {
     },
   ]
   return (
-    <section className="relative py-20 sm:py-28 overflow-hidden" data-testid="home-trust">
+    <section className="relative py-24 sm:py-32 overflow-x-clip" data-testid="home-trust" style={{ backgroundColor: '#0F4F4A' }}>
+      {/* Brand-aligned glow — mirrors the #kakvo-e-zubite section so the
+          two dark-green moments visually rhyme across the page. */}
+      <div aria-hidden className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse 50% 40% at 80% 20%, rgba(45,212,191,0.20) 0%, rgba(45,212,191,0) 70%),' +
+            'radial-gradient(ellipse 55% 45% at 15% 85%, rgba(94,234,212,0.18) 0%, rgba(94,234,212,0) 70%),' +
+            'radial-gradient(circle at 50% 50%, rgba(15,79,74,0) 0%, rgba(7,40,38,0.55) 90%)',
+        }}
+      />
+      <div aria-hidden className="absolute inset-0 pointer-events-none opacity-[0.06] mix-blend-overlay"
+        style={{
+          backgroundImage: 'radial-gradient(rgba(255,255,255,0.4) 1px, transparent 1px)',
+          backgroundSize: '3px 3px',
+        }}
+      />
       <div
         aria-hidden
         data-parallax
-        className="absolute -top-32 left-1/3 w-[28rem] h-[28rem] rounded-full bg-teal-100/30 blur-3xl pointer-events-none animate-[breatheGlow_13s_ease-in-out_infinite]"
+        className="absolute -top-24 left-1/3 w-[32rem] h-[32rem] rounded-full bg-teal-400/15 blur-[120px] pointer-events-none animate-[breatheGlow_13s_ease-in-out_infinite]"
         style={px(-0.06)}
       />
       <div className="relative max-w-[1600px] mx-auto px-6 sm:px-10 lg:px-16">
         <Reveal>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">Защо да ни се довериш</p>
-          <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08] max-w-3xl">
+          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-200 font-semibold eyebrow-sparkle">Защо да ни се довериш</p>
+          <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-white leading-[1.08] max-w-3xl">
             Не диагноза. Не каталог.<br />Ориентир преди избора.
           </h2>
         </Reveal>
         <div className="mt-12 grid sm:grid-cols-3 gap-4 sm:gap-5">
           {cards.map((c, i) => (
             <Reveal key={c.t} delay={i * 100}>
-              <details className="group/trust block rounded-2xl bg-white/70 backdrop-blur-xl ring-1 ring-white/80 p-6 sm:p-7 h-full shadow-[0_8px_28px_-18px_rgba(15,23,42,0.18)] hover:-translate-y-1 hover:bg-white/85 hover:ring-teal-200/60 hover:shadow-[0_18px_50px_-22px_rgba(13,148,136,0.22)] transition-all cursor-pointer" data-testid={`trust-card-${i}`}>
+              <details className="group/trust block rounded-2xl bg-white/10 backdrop-blur-xl ring-1 ring-white/20 p-6 sm:p-7 h-full shadow-[0_18px_50px_-22px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.15)] hover:-translate-y-1 hover:bg-white/15 hover:ring-white/30 hover:shadow-[0_24px_60px_-22px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.20)] transition-all cursor-pointer" data-testid={`trust-card-${i}`}>
                 <summary className="list-none flex flex-col gap-3">
-                  <div className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-teal-50/90 text-teal-700 ring-1 ring-teal-100">
+                  <div className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-white/15 text-teal-100 ring-1 ring-white/25">
                     {c.icon}
                   </div>
-                  <h3 className="font-serif text-xl sm:text-2xl font-semibold text-slate-900 leading-tight">{c.t}</h3>
-                  <p className="text-base text-slate-600 leading-relaxed">{c.s}</p>
-                  <span className="text-[11px] text-teal-700 font-medium inline-flex items-center gap-1 mt-1 group-open/trust:hidden">
+                  <h3 className="font-serif text-xl sm:text-2xl font-semibold text-white leading-tight">{c.t}</h3>
+                  <p className="text-base text-teal-50/85 leading-relaxed">{c.s}</p>
+                  <span className="text-[11px] text-teal-200 font-medium inline-flex items-center gap-1 mt-1 group-open/trust:hidden">
                     Виж повече <ChevronDown className="w-3 h-3" />
                   </span>
                 </summary>
-                <p className="mt-3 text-sm text-slate-600 leading-relaxed border-t border-slate-200/50 pt-3">
+                <p className="mt-3 text-sm text-teal-50/80 leading-relaxed border-t border-white/15 pt-3">
                   {c.long}
                 </p>
               </details>
