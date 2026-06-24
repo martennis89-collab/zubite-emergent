@@ -391,13 +391,13 @@ export default function BreketiPage() {
       <section className="relative pb-12 sm:pb-16" data-testid="breketi-what">
         <div className="max-w-4xl mx-auto px-5 sm:px-8">
           <div className="relative rounded-2xl bg-white/70 backdrop-blur-xl ring-1 ring-white/80 shadow-[0_8px_30px_-20px_rgba(15,23,42,0.18)] p-6 sm:p-8">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">
+            <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">
               Какво представляват брекетите?
             </p>
             <h2 className="mt-3 font-serif text-2xl sm:text-3xl font-semibold text-slate-900 leading-tight">
               Фиксиран ортодонтски апарат, който движи зъбите постепенно
             </h2>
-            <p className="mt-4 text-slate-700 text-sm sm:text-base leading-relaxed">
+            <p className="mt-4 text-slate-700 text-sm sm:text-base leading-relaxed drop-cap">
               Брекетите са фиксирани ортодонтски апарати — малки брекети,
               залепени за зъбите, и ортодонтска дъга, която ги свързва.
               Поставят се от ортодонт и работят постепенно, в продължение на
@@ -419,7 +419,7 @@ export default function BreketiPage() {
           style={{ background: 'radial-gradient(ellipse 60% 40% at 80% 30%, rgba(165,243,252,0.20) 0%, transparent 70%),linear-gradient(180deg, #FCFAF8 0%, #F7FBFA 100%)' }}
         />
         <div className="relative max-w-4xl mx-auto px-5 sm:px-8">
-          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">
+          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">
             Кога могат да са подходящи
           </p>
           <h2 className="mt-3 font-serif text-2xl sm:text-3xl font-semibold text-slate-900 leading-tight">
@@ -455,7 +455,7 @@ export default function BreketiPage() {
       >
         <div className="max-w-5xl mx-auto px-5 sm:px-8">
           <div className="max-w-3xl">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">
+            <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">
               Брекети vs алайнери
             </p>
             <h2 className="mt-3 font-serif text-2xl sm:text-3xl font-semibold text-slate-900 leading-tight">
@@ -529,7 +529,7 @@ export default function BreketiPage() {
         />
         <div className="relative max-w-5xl mx-auto px-5 sm:px-8">
           <div className="max-w-3xl">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">
+            <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">
               Видове брекети
             </p>
             <h2 className="mt-3 font-serif text-2xl sm:text-3xl font-semibold text-slate-900 leading-tight">
@@ -565,7 +565,7 @@ export default function BreketiPage() {
       <section className="relative py-12 sm:py-16" data-testid="breketi-price-factors">
         <div className="max-w-5xl mx-auto px-5 sm:px-8">
           <div className="max-w-3xl">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">
+            <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">
               Какво влияе на цената
             </p>
             <h2 className="mt-3 font-serif text-2xl sm:text-3xl font-semibold text-slate-900 leading-tight">
@@ -599,7 +599,7 @@ export default function BreketiPage() {
           >
             <div className="grid sm:grid-cols-[1fr_auto] gap-5 sm:items-center">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">
+                <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">
                   Ориентировъчна цена
                 </p>
                 <p className="mt-2 font-serif text-2xl sm:text-3xl font-semibold text-slate-900">
@@ -627,7 +627,7 @@ export default function BreketiPage() {
           style={{ background: 'radial-gradient(ellipse 50% 40% at 20% 70%, rgba(94,234,212,0.18) 0%, transparent 70%),linear-gradient(180deg, #FCFAF8 0%, #F7FBFA 100%)' }}
         />
         <div className="relative max-w-4xl mx-auto px-5 sm:px-8">
-          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">
+          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">
             Кога да говориш с ортодонт
           </p>
           <h2 className="mt-3 font-serif text-2xl sm:text-3xl font-semibold text-slate-900 leading-tight">
@@ -657,7 +657,7 @@ export default function BreketiPage() {
       {/* ─── Questions to ask ─────────────────────────── */}
       <section className="relative py-12 sm:py-16" data-testid="breketi-questions">
         <div className="max-w-3xl mx-auto px-5 sm:px-8">
-          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">
+          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">
             Какви въпроси да зададеш
           </p>
           <h2 className="mt-3 font-serif text-2xl sm:text-3xl font-semibold text-slate-900 leading-tight">
@@ -722,7 +722,7 @@ export default function BreketiPage() {
       <section className="relative py-16 sm:py-20" data-testid="breketi-faq">
         <div className="max-w-3xl mx-auto px-5 sm:px-8">
           <div className="text-center">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">
+            <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">
               Често задавани въпроси
             </p>
             <h2 className="mt-3 font-serif text-3xl sm:text-4xl font-semibold text-slate-900 leading-tight">
@@ -755,7 +755,7 @@ export default function BreketiPage() {
       {/* ─── Related ──────────────────────────────────── */}
       <section className="relative py-12 sm:py-16" data-testid="breketi-related">
         <div className="max-w-5xl mx-auto px-5 sm:px-8">
-          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">
+          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">
             Свързани материали
           </p>
           <h2 className="mt-3 font-serif text-2xl sm:text-3xl font-semibold text-slate-900 leading-tight">

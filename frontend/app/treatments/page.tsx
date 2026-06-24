@@ -344,7 +344,7 @@ export default function TreatmentsPage() {
         />
         <div className="relative max-w-6xl mx-auto px-5 sm:px-8">
           <div className="max-w-3xl">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">
+            <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">
               Категории
             </p>
             <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight">
@@ -535,7 +535,7 @@ export default function TreatmentsPage() {
       >
         <div className="max-w-3xl mx-auto px-5 sm:px-8">
           <div className="text-center">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">
+            <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">
               Често задавани въпроси
             </p>
             <h2 className="mt-3 font-serif text-3xl sm:text-4xl font-semibold text-slate-900 leading-tight">

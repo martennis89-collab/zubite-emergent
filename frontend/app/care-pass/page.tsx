@@ -146,7 +146,7 @@ export default function CarePassPage() {
       <section id="how" className="relative py-20 sm:py-28" data-testid="care-pass-how">
         <div className="max-w-6xl mx-auto px-5 sm:px-8">
           <div className="text-center max-w-2xl mx-auto">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Как работи</p>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">Как работи</p>
             <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight">
               4 стъпки от въпросник до Care Pass.
             </h2>
@@ -195,11 +195,11 @@ export default function CarePassPage() {
         />
         <div className="relative max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[1fr_1.3fr] gap-12 items-start">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Какво включва</p>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">Какво включва</p>
             <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight">
               Отстъпки за партньорски продукти за орална хигиена.
             </h2>
-            <p className="mt-4 text-slate-600 text-base sm:text-lg leading-relaxed max-w-md">
+            <p className="mt-4 text-slate-600 text-base sm:text-lg leading-relaxed max-w-md drop-cap">
               Care Pass събира отстъпки за продукти, които поддържат
               ежедневната грижа за зъбите и венците — независимо дали
               продължаваш с лечение или просто се грижиш редовно.
@@ -266,7 +266,7 @@ export default function CarePassPage() {
       <section className="relative py-20 sm:py-28" data-testid="care-pass-faq">
         <div className="max-w-3xl mx-auto px-5 sm:px-8">
           <div className="text-center">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Често задавани въпроси</p>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">Често задавани въпроси</p>
             <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight">
               Кратки отговори за Care Pass.
             </h2>

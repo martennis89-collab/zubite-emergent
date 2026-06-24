@@ -859,7 +859,7 @@ function PatientBenefit() {
       />
       <div className="relative max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[1fr_1.3fr] gap-12 items-start">
         <Reveal>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Какво е Zubite.bg</p>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">Какво е Zubite.bg</p>
           <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08]">
             Платформа за <em className="not-italic text-teal-600">дентална ориентация</em>.
           </h2>
@@ -964,7 +964,7 @@ function SymptomChips() {
       />
       <div className="relative max-w-5xl mx-auto px-5 sm:px-8 text-center">
         <Reveal>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Може би си забелязал</p>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">Може би си забелязал</p>
           <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08]">
             Какво може да си забелязал?
           </h2>
@@ -1020,7 +1020,7 @@ function HowItWorks() {
       <div aria-hidden className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-gradient-to-r from-transparent via-teal-200/70 to-transparent hidden lg:block" />
       <div className="relative max-w-6xl mx-auto px-5 sm:px-8">
         <Reveal>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Как работи</p>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">Как работи</p>
           <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08] max-w-3xl">
             Какво се случва след като започнеш?
           </h2>
@@ -1082,7 +1082,7 @@ function TreatmentCategories() {
       />
       <div className="relative max-w-6xl mx-auto px-5 sm:px-8">
         <Reveal>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Категории</p>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">Категории</p>
           <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08] max-w-3xl">
             С какви случаи може да ти помогне Zubite.bg да се ориентираш?
           </h2>
@@ -1171,7 +1171,7 @@ function DecisionPreview() {
       />
       <div className="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[1fr_1.1fr] gap-12 items-center">
         <Reveal>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Какво получаваш</p>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">Какво получаваш</p>
           <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08]">
             Какъв ориентир получаваш?
           </h2>
@@ -1299,7 +1299,7 @@ function TrustReason() {
       />
       <div className="relative max-w-6xl mx-auto px-5 sm:px-8">
         <Reveal>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Защо да ни се довериш</p>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">Защо да ни се довериш</p>
           <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08] max-w-3xl">
             Не диагноза. Не каталог.<br />Ориентир преди избора.
           </h2>
@@ -1349,7 +1349,7 @@ function RecentArticles({ posts }: { posts: HomeBlogPost[] }) {
         <Reveal>
           <div className="flex items-end justify-between gap-6 flex-wrap">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold">Журнал</p>
+              <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">Журнал</p>
               <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight max-w-2xl">
                 Кратки обяснения за решения, които не трябва да взимаш на сляпо.
               </h2>
@@ -1591,7 +1591,7 @@ function FAQ() {
       />
       <div className="relative max-w-3xl mx-auto px-5 sm:px-8">
         <Reveal>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold text-center">Често задавани въпроси</p>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle text-center">Често задавани въпроси</p>
           <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-tight text-center">
             Кратки отговори.
           </h2>

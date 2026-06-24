@@ -51,6 +51,43 @@
     .parallax-bg-medium { transform: translate3d(0, calc(var(--py, 0) * -0.045px), 0); }
     .parallax-bg-fast   { transform: translate3d(0, calc(var(--py, 0) * -0.07px), 0); }
   }
+  /* ─── Drop cap helper ─────────────────────────────────────────────
+     Magazine-style first-letter on long educational paragraphs (e.g.
+     /breketi "Какво представляват", /care-pass intro sections).
+     Pull-quote-like emphasis without breaking semantics — caller just
+     adds `class="drop-cap"` to a regular <p>. Honors reduced-motion.
+  ───────────────────────────────────────────────────────────────── */
+  .drop-cap::first-letter {
+    float: left;
+    font-family: var(--font-playfair), Georgia, serif;
+    font-weight: 700;
+    font-size: 3.4em;
+    line-height: 0.9;
+    padding: 0.08em 0.14em 0 0;
+    margin-bottom: -0.05em;
+    color: #0d9488; /* teal-600 */
+  }
+  @media (max-width: 640px) {
+    .drop-cap::first-letter { font-size: 2.8em; }
+  }
+
+  /* ─── Eyebrow sparkle marker ──────────────────────────────────────
+     Prepends a small 4-pointed sparkle (✦) before any category
+     eyebrow. One ornament, one colour, used across every page so the
+     visual system stays disciplined. Inherits text colour, so the
+     sparkle automatically matches teal-700 eyebrows or any future
+     palette swap. Pure CSS — no extra DOM, no JS, no SVG bundling.
+  ───────────────────────────────────────────────────────────────── */
+  .eyebrow-sparkle::before {
+    content: '\2726'; /* ✦ U+2726 BLACK FOUR POINTED STAR */
+    display: inline-block;
+    margin-right: 0.55em;
+    font-size: 0.92em;
+    line-height: 1;
+    transform: translateY(-1px);
+    vertical-align: middle;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .parallax-bg-slow, .parallax-bg-medium, .parallax-bg-fast {
       transform: none !important;
