@@ -71,7 +71,7 @@ export function Footer({ treatmentSlug: _treatmentSlug }: FooterProps) {
       <div aria-hidden className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-teal-400/40 to-transparent" />
       <div aria-hidden className="absolute -top-32 left-1/4 w-96 h-96 rounded-full bg-teal-500/8 blur-3xl pointer-events-none" />
 
-      <div className="relative max-w-7xl mx-auto px-5 sm:px-8">
+      <div className="relative max-w-[1600px] mx-auto px-6 sm:px-10 lg:px-16">
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-[1.5fr_repeat(5,1fr)] gap-8 md:gap-10">
           {/* Brand */}
           <div className="col-span-2 md:col-span-4 lg:col-span-1">

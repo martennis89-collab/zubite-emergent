@@ -22,6 +22,7 @@ import Image from 'next/image'
 import { ClinicStandardSection } from '@/components/patient/ClinicStandardSection'
 import { Footer } from '@/components/Footer'
 import { StackedValueProps } from '@/components/StackedValueProps'
+import { HorizontalSteps } from '@/components/HorizontalSteps'
 import { WordMorph } from '@/components/motion/WordMorph'
 import { CountUp } from '@/components/motion/CountUp'
 import { ParallaxFloat } from '@/components/motion/ParallaxFloat'
@@ -29,7 +30,7 @@ import { resolveImageUrl } from '@/lib/imageUrl'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
 import {
   ShieldCheck, Sparkles, Building2, Stethoscope, ChevronDown,
-  CheckCircle2, ArrowRight, MoveRight, Heart, Smile, Activity,
+  CheckCircle2, ArrowRight, Heart, Smile, Activity,
   AlignLeft, Clock, Star, BookOpen,
   HelpCircle, Gift, Menu, X,
 } from 'lucide-react'
@@ -346,7 +347,7 @@ function Hero() {
         />
       </div>
 
-      <div className="relative max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[1.05fr_1fr] gap-12 items-center">
+      <div className="relative max-w-[1600px] mx-auto px-6 sm:px-10 lg:px-16 grid lg:grid-cols-[1.05fr_1fr] gap-12 items-center">
         <div>
           <Reveal>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/80 ring-1 ring-teal-100 text-teal-700 text-[11px] font-medium px-3 py-1 uppercase tracking-[0.16em]">
@@ -607,7 +608,7 @@ function LumiVideoSection() {
       />
       <div aria-hidden className="absolute -top-32 -right-24 w-[28rem] h-[28rem] rounded-full bg-teal-100/30 blur-3xl pointer-events-none" />
 
-      <div className="relative max-w-6xl mx-auto px-5 sm:px-8">
+      <div className="relative max-w-[1600px] mx-auto px-6 sm:px-10 lg:px-16">
         {/* Mobile-first ordering: headline → video → bullets+CTA.
             Desktop: 2 cols, copy left / video right via `md:grid-cols-2`. */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-center">
@@ -770,7 +771,7 @@ function TrustStrip() {
   // (== one full copy width) over ~40s and loop infinitely.
   return (
     <section className="py-10 sm:py-12" data-testid="home-trust-strip">
-      <div className="max-w-5xl mx-auto px-5 sm:px-8">
+      <div className="max-w-[1600px] mx-auto px-6 sm:px-10 lg:px-16">
         <div className="relative rounded-full bg-white/45 backdrop-blur-2xl ring-1 ring-white/65 shadow-[0_10px_40px_-20px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.9)] px-3 sm:px-4 py-3 overflow-hidden">
           {/* Inner top-edge gloss for liquid-glass refraction look */}
           <div aria-hidden className="absolute inset-x-6 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/55 to-transparent pointer-events-none opacity-80" />
@@ -816,41 +817,52 @@ function PatientBenefit() {
   return (
     <section
       id="kakvo-e-zubite"
-      className="relative py-20 sm:py-28 overflow-x-clip scroll-mt-24"
+      className="relative py-24 sm:py-32 overflow-x-clip scroll-mt-24"
       data-testid="home-patient-benefit"
+      style={{ backgroundColor: '#0F4F4A' }}
     >
+      {/* Brand-aligned glow — radial highlights anchored to the brand teal. */}
       <div aria-hidden className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            'radial-gradient(ellipse 70% 50% at 30% 40%, rgba(94,234,212,0.18) 0%, rgba(94,234,212,0) 70%),' +
-            'linear-gradient(180deg, #F4FAF9 0%, #FCFAF8 100%)',
+            'radial-gradient(ellipse 50% 35% at 20% 15%, rgba(45,212,191,0.22) 0%, rgba(45,212,191,0) 70%),' +
+            'radial-gradient(ellipse 55% 45% at 85% 80%, rgba(94,234,212,0.18) 0%, rgba(94,234,212,0) 70%),' +
+            'radial-gradient(circle at 50% 50%, rgba(15,79,74,0) 0%, rgba(7,40,38,0.55) 90%)',
+        }}
+      />
+      {/* Subtle film grain to keep the dark green from feeling flat. */}
+      <div aria-hidden className="absolute inset-0 pointer-events-none opacity-[0.06] mix-blend-overlay"
+        style={{
+          backgroundImage:
+            'radial-gradient(rgba(255,255,255,0.4) 1px, transparent 1px)',
+          backgroundSize: '3px 3px',
         }}
       />
       <div
         aria-hidden
         data-parallax
-        className="absolute -top-20 right-0 w-[28rem] h-[28rem] rounded-full bg-cyan-200/25 blur-3xl pointer-events-none animate-[breatheGlow_15s_ease-in-out_infinite]"
+        className="absolute -top-24 right-10 w-[32rem] h-[32rem] rounded-full bg-teal-400/15 blur-[120px] pointer-events-none animate-[breatheGlow_15s_ease-in-out_infinite]"
         style={px(-0.05)}
       />
-      <div className="relative max-w-6xl mx-auto px-5 sm:px-8">
+      <div className="relative max-w-[1600px] mx-auto px-6 sm:px-10 lg:px-16">
         <Reveal>
           <div className="max-w-3xl">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">Какво е Zubite.bg</p>
-            <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08]">
-              Платформа за <em className="not-italic text-teal-600">дентална ориентация</em>.
+            <p className="text-[11px] uppercase tracking-[0.2em] text-teal-200 font-semibold eyebrow-sparkle">Какво е Zubite.bg</p>
+            <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-white leading-[1.08]">
+              Платформа за <em className="not-italic text-teal-300">дентална ориентация</em>.
             </h2>
-            <p className="mt-5 text-slate-600 text-base sm:text-lg leading-relaxed max-w-2xl">
+            <p className="mt-5 text-teal-50/85 text-base sm:text-lg leading-relaxed max-w-2xl">
               Zubite.bg ти помага да разбереш какъв може да е проблемът,
               какви са възможните следващи стъпки и към какъв тип
               консултация или клиника да се насочиш.{' '}
-              <span className="text-slate-500">
+              <span className="text-teal-50/65">
                 Не поставя диагноза и не замества преглед при стоматолог.
               </span>
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Link
                 href="/quiz"
-                className="inline-flex items-center gap-1.5 rounded-full bg-white/70 backdrop-blur-md ring-1 ring-white/80 text-slate-900 text-sm font-medium px-4 py-2 hover:bg-white hover:-translate-y-0.5 transition-all shadow-[0_8px_24px_-14px_rgba(15,23,42,0.18)]"
+                className="inline-flex items-center gap-1.5 rounded-full bg-white text-slate-900 text-sm font-medium px-4 py-2 hover:-translate-y-0.5 transition-all shadow-[0_8px_24px_-14px_rgba(0,0,0,0.45)]"
                 data-testid="kakvo-section-cta"
               >
                 Започни ориентация
@@ -858,14 +870,14 @@ function PatientBenefit() {
               </Link>
               <Link
                 href="/kliniki"
-                className="inline-flex items-center gap-1.5 text-[13px] text-slate-500 hover:text-teal-700 transition-colors"
+                className="inline-flex items-center gap-1.5 text-[13px] text-teal-100/80 hover:text-white transition-colors"
                 data-testid="kakvo-section-catalog-link"
               >
                 Виж публичния каталог
                 <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
-            <p className="mt-3 text-[12px] text-slate-400 leading-relaxed max-w-md">
+            <p className="mt-3 text-[12px] text-teal-100/55 leading-relaxed max-w-md">
               Можеш да разгледаш и публичния каталог с партньорски клиники, но
               персоналната ориентация започва с кратък анализ.
             </p>
@@ -873,7 +885,7 @@ function PatientBenefit() {
         </Reveal>
       </div>
       <div className="relative mt-14 sm:mt-20">
-        <StackedValueProps />
+        <StackedValueProps inverted />
       </div>
     </section>
   )
@@ -914,7 +926,7 @@ function SymptomChips() {
         className="absolute -bottom-32 -left-20 w-[30rem] h-[30rem] rounded-full bg-teal-100/30 blur-3xl pointer-events-none animate-[breatheGlow_13s_ease-in-out_infinite]"
         style={px(0.06)}
       />
-      <div className="relative max-w-5xl mx-auto px-5 sm:px-8 text-center">
+      <div className="relative max-w-[1600px] mx-auto px-6 sm:px-10 lg:px-16 text-center">
         <Reveal>
           <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">Може би си забелязал</p>
           <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08]">
@@ -960,52 +972,22 @@ function SymptomChips() {
 
 // ─── 6. How it works (5 steps) ───────────────────────────────────
 function HowItWorks() {
-  const steps: Array<{ n: string; t: string; s: string; accent?: boolean }> = [
-    { n: '01', t: 'Отговаряш',              s: 'На кратки въпроси за това, което забелязваш.' },
-    { n: '02', t: 'Получаваш ориентир',     s: 'Виждаш дали има смисъл наблюдение, профилактика или консултация.' },
-    { n: '03', t: 'Избираш следваща стъпка', s: 'Можеш да продължиш към подходяща клиника, ако искаш.' },
-    { n: '04', t: 'Посещаваш консултация',  s: 'Клиниката потвърждава реалния случай.' },
-    { n: '05', t: 'Получаваш Care Pass',    s: 'Карта с отстъпки за продукти за орална хигиена.', accent: true },
-  ]
   return (
-    <section id="how" className="relative py-20 sm:py-28 overflow-hidden scroll-mt-24" data-testid="home-how">
+    <section id="how" className="relative py-20 sm:py-28 overflow-x-clip scroll-mt-24" data-testid="home-how">
       <div aria-hidden className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-gradient-to-r from-transparent via-teal-200/70 to-transparent hidden lg:block" />
-      <div className="relative max-w-6xl mx-auto px-5 sm:px-8">
+      <div className="relative max-w-[1600px] mx-auto px-6 sm:px-10 lg:px-16">
         <Reveal>
           <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">Как работи</p>
           <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08] max-w-3xl">
             Какво се случва след като започнеш?
           </h2>
+          <p className="mt-3 text-slate-500 text-sm sm:text-base max-w-xl">
+            Скролни надолу, за да преминеш през стъпките една по една.
+          </p>
         </Reveal>
-        <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-5">
-          {steps.map((s, i) => (
-            <Reveal key={s.n} delay={i * 90}>
-              <div
-                className={
-                  'relative rounded-2xl backdrop-blur-xl p-5 sm:p-6 h-full transition-all hover:-translate-y-1 ' +
-                  (s.accent
-                    ? 'bg-gradient-to-br from-teal-50/90 to-white/80 ring-1 ring-teal-300/50 shadow-[0_18px_40px_-22px_rgba(13,148,136,0.4)] hover:shadow-[0_22px_50px_-20px_rgba(13,148,136,0.45)]'
-                    : 'bg-white/70 ring-1 ring-white/80 shadow-[0_8px_30px_-20px_rgba(15,23,42,0.18)] hover:bg-white/85 hover:shadow-[0_16px_44px_-22px_rgba(15,23,42,0.22)]')
-                }
-                data-testid={`how-step-${i}`}
-              >
-                <span className={'font-serif text-3xl font-bold ' + (s.accent ? 'text-teal-500/70' : 'text-teal-600/30')}>
-                  {s.n}
-                </span>
-                <h3 className="mt-2 font-serif text-lg lg:text-xl font-semibold text-slate-900 leading-tight">{s.t}</h3>
-                <p className="mt-2 text-sm text-slate-600 leading-relaxed">{s.s}</p>
-                {s.accent && (
-                  <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-teal-500/10 ring-1 ring-teal-300/40 text-[10px] uppercase tracking-wider text-teal-700 font-semibold px-2.5 py-1">
-                    <Gift className="w-3 h-3" /> Care Pass
-                  </span>
-                )}
-                {i < steps.length - 1 && (
-                  <MoveRight aria-hidden className="hidden lg:block absolute top-12 -right-3 w-4 h-4 text-teal-300" />
-                )}
-              </div>
-            </Reveal>
-          ))}
-        </div>
+      </div>
+      <div className="mt-10 sm:mt-14">
+        <HorizontalSteps />
       </div>
     </section>
   )
@@ -1032,7 +1014,7 @@ function TreatmentCategories() {
             'linear-gradient(180deg, #FCFAF8 0%, #F7FBFA 100%)',
         }}
       />
-      <div className="relative max-w-6xl mx-auto px-5 sm:px-8">
+      <div className="relative max-w-[1600px] mx-auto px-6 sm:px-10 lg:px-16">
         <Reveal>
           <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">Категории</p>
           <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08] max-w-3xl">
@@ -1121,7 +1103,7 @@ function DecisionPreview() {
         className="absolute -bottom-32 left-1/4 w-80 h-80 rounded-full bg-cyan-100/25 blur-3xl pointer-events-none animate-[breatheGlow_14s_ease-in-out_infinite]"
         style={px(0.05)}
       />
-      <div className="relative z-10 max-w-6xl mx-auto px-5 sm:px-8 grid lg:grid-cols-[1fr_1.1fr] gap-12 items-center">
+      <div className="relative z-10 max-w-[1600px] mx-auto px-6 sm:px-10 lg:px-16 grid lg:grid-cols-[1fr_1.1fr] gap-12 items-center">
         <Reveal>
           <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">Какво получаваш</p>
           <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08]">
@@ -1249,7 +1231,7 @@ function TrustReason() {
         className="absolute -top-32 left-1/3 w-[28rem] h-[28rem] rounded-full bg-teal-100/30 blur-3xl pointer-events-none animate-[breatheGlow_13s_ease-in-out_infinite]"
         style={px(-0.06)}
       />
-      <div className="relative max-w-6xl mx-auto px-5 sm:px-8">
+      <div className="relative max-w-[1600px] mx-auto px-6 sm:px-10 lg:px-16">
         <Reveal>
           <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">Защо да ни се довериш</p>
           <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08] max-w-3xl">
@@ -1297,7 +1279,7 @@ function RecentArticles({ posts }: { posts: HomeBlogPost[] }) {
   }
   return (
     <section className="py-20 sm:py-28" data-testid="home-recent-articles">
-      <div className="max-w-6xl mx-auto px-5 sm:px-8">
+      <div className="max-w-[1600px] mx-auto px-6 sm:px-10 lg:px-16">
         <Reveal>
           <div className="flex items-end justify-between gap-6 flex-wrap">
             <div>
@@ -1391,7 +1373,7 @@ function CarePassTeaser() {
             'linear-gradient(180deg, #FCFAF8 0%, #F4FAF9 100%)',
         }}
       />
-      <div className="relative max-w-6xl mx-auto px-5 sm:px-8">
+      <div className="relative max-w-[1600px] mx-auto px-6 sm:px-10 lg:px-16">
         <Reveal>
           <div className="relative rounded-[2rem] overflow-hidden ring-1 ring-white/10 shadow-[0_30px_80px_-30px_rgba(15,23,42,0.5)]"
             style={{
@@ -1649,7 +1631,7 @@ function UnlockBenefits() {
       />
       <div aria-hidden className="absolute -top-32 right-0 w-[28rem] h-[28rem] rounded-full bg-teal-100/30 blur-3xl pointer-events-none" />
 
-      <div className="relative max-w-6xl mx-auto px-5 sm:px-8">
+      <div className="relative max-w-[1600px] mx-auto px-6 sm:px-10 lg:px-16">
         <Reveal>
           <div className="text-center max-w-3xl mx-auto">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/65 backdrop-blur-md ring-1 ring-white/80 text-[11px] uppercase tracking-[0.18em] text-teal-700 font-semibold px-3 py-1.5">

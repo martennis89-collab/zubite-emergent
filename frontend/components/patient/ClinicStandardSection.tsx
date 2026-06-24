@@ -54,7 +54,7 @@ export function ClinicStandardSection({ showExplainerLink = true, compact = fals
       <div aria-hidden className="absolute -top-24 -left-32 w-[28rem] h-[28rem] rounded-full bg-teal-200/25 blur-3xl pointer-events-none" />
       <div aria-hidden className="absolute top-32 -right-24 w-[24rem] h-[24rem] rounded-full bg-cyan-100/35 blur-3xl pointer-events-none" />
 
-      <div className="relative max-w-6xl mx-auto px-5 sm:px-8">
+      <div className="relative max-w-[1600px] mx-auto px-6 sm:px-10 lg:px-16">
         <div className="max-w-3xl mb-10">
           <p className="font-sans text-xs font-semibold tracking-[0.22em] uppercase text-teal-700 mb-3">
             Zubite стандарт

@@ -70,6 +70,7 @@ type Palette = {
 }
 
 // Light → brand-green → light → brand-green
+// (used when the parent section background is LIGHT)
 const palettes: Palette[] = [
   {
     bg: '#FCFAF8',
@@ -110,6 +111,52 @@ const palettes: Palette[] = [
     divider: 'border-white/15',
     eyebrow: 'text-teal-200',
     ringClass: 'ring-white/10',
+  },
+]
+
+// Alternative palette set used when the PARENT section background is the
+// dark brand green. All 4 cards become light so they pop off the dark
+// surrounding context (the section itself supplies the brand green).
+const palettesInverted: Palette[] = [
+  {
+    bg: '#FCFAF8',
+    text: 'text-slate-900',
+    sub: 'text-slate-600',
+    iconBg: 'bg-teal-50 text-teal-700 ring-teal-100',
+    numCol: 'text-teal-700/15',
+    divider: 'border-slate-200/70',
+    eyebrow: 'text-teal-700',
+    ringClass: 'ring-white/40',
+  },
+  {
+    bg: '#E6F4F2',
+    text: 'text-slate-900',
+    sub: 'text-slate-700',
+    iconBg: 'bg-white text-teal-700 ring-teal-100',
+    numCol: 'text-teal-700/20',
+    divider: 'border-teal-700/15',
+    eyebrow: 'text-teal-700',
+    ringClass: 'ring-teal-200/60',
+  },
+  {
+    bg: '#F5EFE6',
+    text: 'text-slate-900',
+    sub: 'text-slate-600',
+    iconBg: 'bg-white text-teal-700 ring-teal-100',
+    numCol: 'text-teal-700/15',
+    divider: 'border-stone-300/60',
+    eyebrow: 'text-teal-700',
+    ringClass: 'ring-stone-200/70',
+  },
+  {
+    bg: '#EAF4F6',
+    text: 'text-slate-900',
+    sub: 'text-slate-700',
+    iconBg: 'bg-white text-teal-700 ring-teal-100',
+    numCol: 'text-teal-700/15',
+    divider: 'border-teal-700/15',
+    eyebrow: 'text-teal-700',
+    ringClass: 'ring-teal-200/50',
   },
 ]
 
@@ -154,18 +201,19 @@ function CardBody({ card, palette, index }: { card: ValueCard; palette: Palette;
   )
 }
 
-export function StackedValueProps() {
+export function StackedValueProps({ inverted = false }: { inverted?: boolean } = {}) {
+  const activePalettes = inverted ? palettesInverted : palettes
   return (
     <div className="w-full" data-testid="stacked-value-props">
       {/* Mobile fallback — simple stack, no sticky trap */}
       <div className="grid gap-4 md:hidden px-5">
         {cards.map((c, i) => (
-          <CardBody key={c.t} card={c} palette={palettes[i % palettes.length]} index={i} />
+          <CardBody key={c.t} card={c} palette={activePalettes[i % activePalettes.length]} index={i} />
         ))}
       </div>
 
       {/* Desktop / tablet — full-width sticky stacking */}
-      <div className="hidden md:block relative max-w-6xl mx-auto px-5 sm:px-8">
+      <div className="hidden md:block relative max-w-[1600px] mx-auto px-6 sm:px-10 lg:px-16">
         {cards.map((c, i) => (
           <div
             key={c.t}
@@ -179,7 +227,7 @@ export function StackedValueProps() {
               zIndex: 10 + i,
             }}
           >
-            <CardBody card={c} palette={palettes[i % palettes.length]} index={i} />
+            <CardBody card={c} palette={activePalettes[i % activePalettes.length]} index={i} />
           </div>
         ))}
         {/* tail spacer so the last card lingers a beat before page continues */}
