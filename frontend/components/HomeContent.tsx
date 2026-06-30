@@ -1,20 +1,14 @@
 'use client'
 
 /**
- * Premium Wave.co-inspired homepage for Zubite.bg (Feb 2026).
+ * Premium Wave.co-inspired homepage for Zubite.bg.
  *
- * Built per /app/design_guidelines.json:
- *   - Warm-ivory base, soft turquoise/blue-green accents
- *   - Playfair Display headlines via CSS @font-face fallback (already
- *     used in the rest of the app as `font-serif`)
- *   - 13 sections per the blueprint
- *   - No new dependencies; lucide-react icons only
- *   - Mobile-first, fully responsive, motion-safe entrance reveals
- *
- * The previous `/app/frontend/components/AnimatedHomeSections.tsx`
- * stack remains in the repo (no deletes) so that any deep-link or
- * legacy SEO references still work. Only `/app/frontend/app/page.tsx`
- * is rewired to use this new file.
+ * Feb 2026 refactor: utility hooks (`useReveal`, `useBackgroundParallax`),
+ * the `Reveal` wrapper, the `<Nav />` sticky navigation, the `<MotionStyles />`
+ * keyframe block, all asset URL constants and the `HomeBlogPost` type have
+ * been moved to `./home/_shared` + `./home/Nav` so this file can shrink
+ * toward a pure orchestrator. Section components below will be migrated
+ * in follow-up passes.
  */
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
@@ -32,255 +26,27 @@ import {
   ShieldCheck, Sparkles, Building2, Stethoscope, ChevronDown,
   CheckCircle2, ArrowRight, Heart, Smile, Activity,
   AlignLeft, Clock, Star, BookOpen,
-  HelpCircle, Gift, Menu, X,
+  HelpCircle, Gift,
 } from 'lucide-react'
 
-export interface HomeBlogPost {
-  id: string
-  title: string
-  slug: string
-  excerpt: string
-  category: string
-  featured_image: string | null
-  published_at: string
-}
+import {
+  Reveal,
+  px,
+  useReveal,
+  useBackgroundParallax,
+  MotionStyles,
+  QUIZ_URL,
+  HERO_BG,
+  ASSET_B_GLASS_PANELS,
+  ASSET_C_APP_MOCKUP,
+  ASSET_E_CARE_PASS_CARD,
+  ASSET_F_FINAL_CTA_BG,
+  type HomeBlogPost,
+} from './home/_shared'
+import { Nav } from './home/Nav'
 
-const HERO_BG =
-  'https://static.prod-images.emergentagent.com/jobs/25b55d94-1ed6-49c7-af05-4dd6f19863cf/images/ee418e7567bbb08fdf27e9d9873be33914cd827a79e42b9833f9728687f9addb.png'
+export type { HomeBlogPost }
 
-// User-provided premium asset renders (Feb 2026)
-// Asset B — Floating frosted-glass UI panels (hero & decision depth layer)
-const ASSET_B_GLASS_PANELS =
-  'https://customer-assets.emergentagent.com/job_25b55d94-1ed6-49c7-af05-4dd6f19863cf/artifacts/d3zg8noc_ChatGPT%20Image%20May%2017%2C%202026%2C%2010_04_41%20AM.png'
-// Asset C — Premium dental decision app UI mockup (decision preview shell support)
-const ASSET_C_APP_MOCKUP =
-  'https://customer-assets.emergentagent.com/job_25b55d94-1ed6-49c7-af05-4dd6f19863cf/artifacts/owz9rhgj_ChatGPT%20Image%20May%2017%2C%202026%2C%2010_05_03%20AM.png'
-// Asset E — Premium Zubite Care Pass card render (care-pass centerpiece)
-const ASSET_E_CARE_PASS_CARD =
-  'https://customer-assets.emergentagent.com/job_25b55d94-1ed6-49c7-af05-4dd6f19863cf/artifacts/kyba9eaq_ChatGPT%20Image%20May%2017%2C%202026%2C%2010_21_45%20AM.png'
-// Asset F — Final CTA atmospheric navy/teal background
-const ASSET_F_FINAL_CTA_BG =
-  'https://customer-assets.emergentagent.com/job_25b55d94-1ed6-49c7-af05-4dd6f19863cf/artifacts/jdhdxffb_ChatGPT%20Image%20May%2017%2C%202026%2C%2010_05_42%20AM.png'
-
-const QUIZ_URL = '/quiz'
-
-// ─── Reveal-on-scroll helper ─────────────────────────────────────
-function useReveal<T extends HTMLElement>() {
-  const ref = useRef<T | null>(null)
-  const [shown, setShown] = useState(false)
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const io = new IntersectionObserver(
-      (entries) => entries.forEach((e) => {
-        if (e.isIntersecting) {
-          setShown(true)
-          io.disconnect()
-        }
-      }),
-      { threshold: 0.12, rootMargin: '0px 0px -10% 0px' },
-    )
-    io.observe(el)
-    return () => io.disconnect()
-  }, [])
-  return { ref, shown }
-}
-
-// ─── Lightweight parallax — single rAF scroll → CSS var `--py` ──
-// Background decorative elements use
-//   style={{ transform: 'translate3d(0, calc(var(--py,0) * -0.08px), 0)' }}
-// to drift opposite to scroll, creating depth without re-renders.
-// Honors prefers-reduced-motion: if reduced, --py stays at 0 forever.
-function useBackgroundParallax() {
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
-    if (mq.matches) return
-    let raf = 0
-    const update = () => {
-      document.documentElement.style.setProperty('--py', String(window.scrollY))
-      raf = 0
-    }
-    const onScroll = () => {
-      if (raf) return
-      raf = requestAnimationFrame(update)
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    update()
-    return () => {
-      window.removeEventListener('scroll', onScroll)
-      if (raf) cancelAnimationFrame(raf)
-    }
-  }, [])
-}
-
-// Inline style helper — px-based parallax offset bound to --py.
-// Use a small factor (±0.04 → 0.12) to keep things barely-noticeable.
-const px = (factor: number): React.CSSProperties => ({
-  transform: `translate3d(0, calc(var(--py, 0) * ${factor}px), 0)`,
-  willChange: 'transform',
-})
-
-function Reveal({
-  children, delay = 0, className = '',
-}: { children: React.ReactNode; delay?: number; className?: string }) {
-  const { ref, shown } = useReveal<HTMLDivElement>()
-  return (
-    <div
-      ref={ref}
-      style={{ transitionDelay: `${delay}ms` }}
-      className={
-        'transition-all duration-700 ease-out ' +
-        (shown ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4') +
-        ' ' + className
-      }
-    >
-      {children}
-    </div>
-  )
-}
-
-// ─── 1. Sticky navigation ────────────────────────────────────────
-function Nav() {
-  const [scrolled, setScrolled] = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
-  useEffect(() => {
-    const on = () => setScrolled(window.scrollY > 6)
-    on()
-    window.addEventListener('scroll', on, { passive: true })
-    return () => window.removeEventListener('scroll', on)
-  }, [])
-  // ESC closes the mobile drawer.
-  useEffect(() => {
-    if (!mobileOpen) return
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setMobileOpen(false)
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [mobileOpen])
-  const closeMobile = () => setMobileOpen(false)
-  return (
-    <div
-      className="fixed top-3 sm:top-4 inset-x-3 sm:inset-x-6 z-50 flex justify-center pointer-events-none"
-      data-testid="home-nav"
-    >
-      <header
-        className={
-          'pointer-events-auto w-full max-w-5xl rounded-3xl md:rounded-full transition-[background-color,box-shadow,backdrop-filter] duration-500 ease-out relative isolate ' +
-          'backdrop-blur-xl backdrop-saturate-150 ' +
-          (scrolled
-            ? 'bg-white/[0.22] ring-1 ring-white/30 shadow-[0_10px_36px_-12px_rgba(15,23,42,0.14),inset_0_1px_0_rgba(255,255,255,0.6),inset_0_-1px_0_rgba(15,23,42,0.05)]'
-            : 'bg-white/[0.10] ring-1 ring-white/20 shadow-[0_6px_24px_-10px_rgba(15,23,42,0.08),inset_0_1px_0_rgba(255,255,255,0.45),inset_0_-1px_0_rgba(15,23,42,0.04)]')
-        }
-      >
-        {/* Single soft specular sheen — only the very top edge, dispersed
-            like light catching a thin glass surface. Replaces the previous
-            3 stacked overlays which read as cloudy/synthetic. */}
-        <div
-          aria-hidden
-          className="absolute inset-x-8 top-0 h-px rounded-full bg-gradient-to-r from-transparent via-white/55 to-transparent pointer-events-none"
-        />
-        <div className="px-4 sm:px-6 h-14 sm:h-15 flex items-center justify-between">
-          <Link href="/" className="font-serif text-lg sm:text-xl font-semibold tracking-tight">
-            <span className="text-slate-900">Zubite</span>
-            <span className="text-teal-600">.bg</span>
-          </Link>
-          {/* Public homepage nav — Feb 2026 cleanup. Same labels as the
-              global `<Header />` used on /kliniki, /blog, /care-pass, etc.
-              Anchors point to in-page sections when the target lives on
-              the homepage (`#kakvo-e-zubite`, `#treatments`, `#care-pass`);
-              cross-page links use the canonical route. */}
-          <nav className="hidden md:flex items-center gap-4 lg:gap-5 text-[13px] text-slate-600">
-            <Link href="/symptoms"           className="group/nav relative whitespace-nowrap hover:text-slate-900 transition-colors" data-testid="home-nav-symptoms"><span>Симптоми</span><span aria-hidden="true" className="absolute left-0 -bottom-1 h-px w-full origin-left scale-x-0 bg-teal-600 transition-transform duration-300 ease-out group-hover/nav:scale-x-100" /></Link>
-            <Link href="#treatments"         className="group/nav relative whitespace-nowrap hover:text-slate-900 transition-colors" data-testid="home-nav-treatments"><span>Лечения</span><span aria-hidden="true" className="absolute left-0 -bottom-1 h-px w-full origin-left scale-x-0 bg-teal-600 transition-transform duration-300 ease-out group-hover/nav:scale-x-100" /></Link>
-            <Link href="#care-pass"          className="group/nav relative whitespace-nowrap hover:text-slate-900 transition-colors" data-testid="home-nav-care-pass"><span>Care Pass</span><span aria-hidden="true" className="absolute left-0 -bottom-1 h-px w-full origin-left scale-x-0 bg-teal-600 transition-transform duration-300 ease-out group-hover/nav:scale-x-100" /></Link>
-            <Link href="/blog"               className="group/nav relative whitespace-nowrap hover:text-slate-900 transition-colors" data-testid="home-nav-blog"><span>Статии</span><span aria-hidden="true" className="absolute left-0 -bottom-1 h-px w-full origin-left scale-x-0 bg-teal-600 transition-transform duration-300 ease-out group-hover/nav:scale-x-100" /></Link>
-            <Link href="/za-kliniki"         className="group/nav relative whitespace-nowrap hover:text-slate-900 transition-colors" data-testid="home-nav-za-kliniki"><span>За клиники</span><span aria-hidden="true" className="absolute left-0 -bottom-1 h-px w-full origin-left scale-x-0 bg-teal-600 transition-transform duration-300 ease-out group-hover/nav:scale-x-100" /></Link>
-            <Link href="#kakvo-e-zubite"     className="group/nav relative whitespace-nowrap hover:text-slate-900 transition-colors" data-testid="home-nav-kakvo"><span>Какво е Zubite.bg</span><span aria-hidden="true" className="absolute left-0 -bottom-1 h-px w-full origin-left scale-x-0 bg-teal-600 transition-transform duration-300 ease-out group-hover/nav:scale-x-100" /></Link>
-          </nav>
-          <div className="flex items-center gap-2">
-            {/* Mobile hamburger — visible only <md. Desktop persistent
-                `Започни анализа` CTA removed per Feb 2026 brief. */}
-            <button
-              type="button"
-              className="md:hidden p-2 text-slate-700 hover:text-slate-900 transition-colors"
-              onClick={() => setMobileOpen((v) => !v)}
-              aria-label={mobileOpen ? 'Затвори меню' : 'Отвори меню'}
-              aria-expanded={mobileOpen}
-              aria-controls="home-mobile-menu"
-              data-testid="home-mobile-menu-toggle"
-            >
-              {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile drawer — categorised, opens under the glass nav bar */}
-        {mobileOpen && (
-          <nav
-            id="home-mobile-menu"
-            className="md:hidden border-t border-white/40 px-5 py-4 max-h-[80vh] overflow-y-auto"
-            data-testid="home-mobile-menu-drawer"
-          >
-            {/* Primary — section anchors + key pages */}
-            <div className="space-y-1">
-              {[
-                { href: '/symptoms',     label: 'Симптоми',         testid: 'home-mobile-link-symptoms-primary' },
-                { href: '#treatments',   label: 'Лечения',          testid: 'home-mobile-link-treatments' },
-                { href: '#care-pass',    label: 'Care Pass',        testid: 'home-mobile-link-care-pass' },
-                { href: '/blog',         label: 'Статии',           testid: 'home-mobile-link-blog' },
-                { href: '/za-kliniki',   label: 'За клиники',       testid: 'home-mobile-link-za-kliniki' },
-                { href: '#kakvo-e-zubite', label: 'Какво е Zubite.bg', testid: 'home-mobile-link-kakvo' },
-              ].map((l) => (
-                <Link
-                  key={l.href}
-                  href={l.href}
-                  onClick={closeMobile}
-                  className="block py-2 text-sm text-slate-700 hover:text-slate-900 transition-colors"
-                  data-testid={l.testid}
-                >
-                  {l.label}
-                </Link>
-              ))}
-            </div>
-
-            {/* Categories — full treatment routes */}
-            <div className="mt-3 pt-3 border-t border-slate-200/60">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-semibold px-1 mb-1.5">
-                Лечения и ръководства
-              </p>
-              {[
-                { href: '/symptoms',           label: 'Симптоми',                testid: 'home-mobile-link-symptoms' },
-                { href: '/orthodontics',       label: 'Ортодонтия',              testid: 'home-mobile-link-orthodontics' },
-                { href: '/implants',           label: 'Импланти',                testid: 'home-mobile-link-implants' },
-                { href: '/cosmetic-dentistry', label: 'Естетична стоматология',  testid: 'home-mobile-link-cosmetic' },
-                { href: '/tmj',                label: 'TMJ',                     testid: 'home-mobile-link-tmj' },
-                { href: '/sleep-airway',       label: 'Сън и дишане',            testid: 'home-mobile-link-sleep' },
-              ].map((l) => (
-                <Link
-                  key={l.href}
-                  href={l.href}
-                  onClick={closeMobile}
-                  className="block py-1.5 px-1 text-[13.5px] text-slate-700 hover:text-slate-900 transition-colors"
-                  data-testid={l.testid}
-                >
-                  {l.label}
-                </Link>
-              ))}
-            </div>
-
-            {/* Mobile drawer "Започни анализа" CTA removed Feb 2026 per
-                user request — the dark navy pill inside the drawer was
-                visually heavy and competed with the in-page hero CTAs.
-                Users still reach /quiz from hero, decision preview and
-                section CTAs. */}
-          </nav>
-        )}
-      </header>
-    </div>
-  )
-}
 
 // ─── 2. Hero — floating quiz/result mockup ───────────────────────
 function Hero() {
@@ -1856,53 +1622,3 @@ export function HomeContent({ recentPosts = [] }: { recentPosts?: HomeBlogPost[]
   )
 }
 
-// ─── Global motion styles ────────────────────────────────────────
-// Centralised keyframes + reduced-motion fallback. The base `float`
-// keyframe is also defined inline in HeroMockup for backwards
-// compatibility; that's fine because keyframes with identical names
-// are deduplicated by the browser.
-function MotionStyles() {
-  return (
-    <style jsx global>{`
-      /* Slow vertical drift — used by stacked depth cards & subtle bg shapes */
-      @keyframes floatSlow {
-        0%, 100% { transform: translate3d(0, 0, 0) }
-        50%      { transform: translate3d(0, -10px, 0) }
-      }
-      @keyframes floatSlower {
-        0%, 100% { transform: translate3d(0, 0, 0) }
-        50%      { transform: translate3d(0, -14px, 0) }
-      }
-      /* Tiny X+Y sway — used by background decorative shapes */
-      @keyframes driftSlow {
-        0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg) }
-        50%      { transform: translate3d(6px, -8px, 0) rotate(0.6deg) }
-      }
-      /* Breathing glow — used by orb halo + light leaks */
-      @keyframes breatheGlow {
-        0%, 100% { opacity: 0.55; transform: scale(1) }
-        50%      { opacity: 0.85; transform: scale(1.04) }
-      }
-      /* Diagonal shimmer sweep — used on Care Pass card highlight */
-      @keyframes shimmerSweep {
-        0%   { transform: translateX(-120%) skewX(-12deg); opacity: 0 }
-        15%  { opacity: 0.55 }
-        50%  { opacity: 0.85 }
-        85%  { opacity: 0.40 }
-        100% { transform: translateX(220%) skewX(-12deg); opacity: 0 }
-      }
-      /* Reduced-motion fallback */
-      @media (prefers-reduced-motion: reduce) {
-        /* Stop named keyframe animations */
-        .motion-safe-animate, [class*="animate-["],
-        [style*="animation"] {
-          animation: none !important;
-        }
-        /* Freeze background parallax */
-        [data-parallax] {
-          transform: none !important;
-        }
-      }
-    `}</style>
-  )
-}
