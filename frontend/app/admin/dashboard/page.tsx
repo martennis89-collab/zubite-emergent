@@ -561,7 +561,7 @@ export default function AdminDashboardPage() {
   }
 
   const handleBulkDelete = async () => {
-    if (!selectedIds.size === 0) return
+    if (selectedIds.size === 0) return
     
     if (!confirm(`Сигурен ли си, че искаш да изтриеш ${selectedIds.size} лийда?`)) return
     

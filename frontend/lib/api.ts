@@ -26,9 +26,9 @@ export interface Lead {
 export const createLead = async (leadData: Lead) => {
   // Attach the captured first/latest-touch attribution. The helper is safe and
   // returns an empty object if storage is blocked.
-  let attribution = {} as Record<string, unknown>;
+  let attribution: Record<string, unknown> = {};
   try {
-    if (typeof window !== 'undefined') attribution = attachAttributionToLead();
+    if (typeof window !== 'undefined') attribution = attachAttributionToLead() as Record<string, unknown>;
   } catch { /* never block lead submission */ }
   const response = await api.post('/leads', { ...leadData, ...attribution });
   return response.data;

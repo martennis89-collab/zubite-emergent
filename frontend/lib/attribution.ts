@@ -238,7 +238,7 @@ export function classifyLeadSource(
 
   // Article landing without paid/search/social referral counts as blog/internal_content
   if (pageType === 'blog') return 'blog'
-  if (pageType === 'internal_content' || pageType === 'treatment_page' || pageType === 'comparison_page' || pageType === 'city_page') {
+  if (pageType === 'article' || pageType === 'treatment_page' || pageType === 'comparison_page' || pageType === 'city_page') {
     return 'internal_content'
   }
 

@@ -54,7 +54,6 @@ const ALLOWED_ATTR = [
 let hooksInstalled = false
 function ensureHooks() {
   if (hooksInstalled) return
-  // @ts-expect-error addHook typings differ between browser/node builds
   DOMPurify.addHook('afterSanitizeAttributes', (node: Element) => {
     // Force every external link to open safely.
     if (node.tagName === 'A') {
