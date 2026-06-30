@@ -151,23 +151,31 @@ def initiate_outbound_call(
 def verify_webhook_signature(payload: bytes, signature: str) -> bool:
     """
     Verify ElevenLabs webhook signature using HMAC-SHA256.
-    
+
     ElevenLabs sends the signature header in the format:
         t=<unix_timestamp>,v0=<hex_sha256>
-    
+
     The signed payload is `<timestamp>.<body>`.
-    
+
     Args:
         payload: Raw request body bytes
         signature: Signature header value from ElevenLabs-Signature
-        
+
     Returns:
-        True if signature is valid and recent (<30 min old)
+        True ONLY if the secret is configured AND the signature is valid
+        AND the timestamp is recent (<30 min old). Returns False in every
+        other case — including when the secret is unset. We do NOT allow
+        a "dev-mode bypass": that would let anyone who knows a lead id
+        overwrite call status / transcript / summary if production ever
+        forgets to set ELEVENLABS_WEBHOOK_SECRET (SEC-001).
     """
     if not ELEVENLABS_WEBHOOK_SECRET:
-        logger.warning("ELEVENLABS_WEBHOOK_SECRET not configured - skipping signature verification")
-        return True  # Allow in dev mode
-    
+        # Fail closed. The caller (router) is responsible for distinguishing
+        # this from a normal invalid-signature rejection and returning 503
+        # with a clear server-config error instead of 401.
+        logger.error("ELEVENLABS_WEBHOOK_SECRET not configured — rejecting webhook")
+        return False
+
     if not signature:
         return False
     

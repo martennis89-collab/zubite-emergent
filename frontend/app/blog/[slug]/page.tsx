@@ -7,6 +7,8 @@ import { BlogViewTracker } from '@/components/BlogViewTracker'
 import { ArticleBreadcrumbs } from '@/components/ArticleBreadcrumbs'
 import { TrackedLink } from '@/components/TrackedLink'
 import { parseMarkdown } from '@/lib/markdownToHtml'
+import { sanitizeArticleHtml } from '@/lib/sanitizeHtml'
+import { safeJsonLd } from '@/lib/seo/clinicJsonLd'
 import { resolveImageUrl } from '@/lib/imageUrl'
 import { Calendar, ArrowRight, Tag, User, Shield } from 'lucide-react'
 
@@ -146,16 +148,19 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
       <div aria-hidden className="absolute top-80 -right-24 w-[26rem] h-[26rem] rounded-full bg-cyan-100/40 blur-3xl pointer-events-none" />
 
       {/* JSON-LD: FAQ + Article schemas (in <head> alternative — emitted in DOM, valid for Google) */}
+      {/* SEC-003: use safeJsonLd to escape `</script>`, U+2028/U+2029 so a
+          malicious string in a schema field cannot break out of the script
+          tag and inject arbitrary HTML. */}
       {post.faq_schema && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(post.faq_schema) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(post.faq_schema) }}
         />
       )}
       {post.article_schema && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(post.article_schema) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(post.article_schema) }}
         />
       )}
 
@@ -227,9 +232,12 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
           )}
 
           {/* 6. Article body */}
+          {/* SEC-003: sanitize markdown-produced HTML through DOMPurify
+              before injecting via dangerouslySetInnerHTML. Strips <script>,
+              inline handlers, javascript: URLs, unsafe iframes, etc. */}
           <div
             className="prose prose-slate max-w-none mb-10"
-            dangerouslySetInnerHTML={{ __html: parseMarkdown(post.content) }}
+            dangerouslySetInnerHTML={{ __html: sanitizeArticleHtml(parseMarkdown(post.content)) }}
           />
 
           {/* 7. CTA — uses imported CTA block when present, falls back to default */}

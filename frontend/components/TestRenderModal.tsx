@@ -10,6 +10,7 @@ import {
   ArrowRight,
 } from 'lucide-react'
 import type { ParsedArticle } from '@/lib/articleParser'
+import { sanitizeArticleHtml } from '@/lib/sanitizeHtml'
 import {
   validateTestRender,
   buildPreviewHtml,
@@ -255,9 +256,12 @@ export function TestRenderModal({ open, onClose, parsed, rawMd, zipBlobs }: Prop
             )}
 
             {/* Body */}
+            {/* SEC-003 defence-in-depth: even though this preview is admin-only,
+                we run the same sanitizer the public blog page uses so authors
+                see exactly what readers will see (no script/onclick/etc.). */}
             <div
               className="prose prose-slate max-w-none mb-8"
-              dangerouslySetInnerHTML={{ __html: rendered.finalHtml }}
+              dangerouslySetInnerHTML={{ __html: sanitizeArticleHtml(rendered.finalHtml) }}
               data-testid="test-render-body"
             />
 

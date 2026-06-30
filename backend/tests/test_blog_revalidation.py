@@ -9,7 +9,10 @@ import time
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://ortho-preview-2.preview.emergentagent.com').rstrip('/')
 FRONTEND_URL = "http://localhost:3000"
-REVALIDATE_SECRET = "zubite-revalidate-secret-2024"
+# SEC-002 fix: hardcoded fallback secret was removed from the frontend
+# route. Read the real value from env; if it's not configured we skip the
+# revalidation tests instead of using a guessable default.
+REVALIDATE_SECRET = os.environ.get("REVALIDATE_SECRET", "")
 
 # Test credentials
 ADMIN_EMAIL = "admin@zubite.bg"

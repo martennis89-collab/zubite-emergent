@@ -158,16 +158,29 @@ async def elevenlabs_post_call_webhook(
     body = await request.body()
     logger.info(f"Received ElevenLabs webhook, body size: {len(body)} bytes")
 
+    # ─── SEC-001 fix: secret is MANDATORY in all environments ──────────
+    # Previously the verification path was `if webhook_secret: verify()` which
+    # silently passed when the env var was unset — letting anyone overwrite
+    # call status / summary / transcript of any known lead id. We now fail
+    # closed: missing secret → 503 server-config error; missing/invalid
+    # signature → 401. Lead records are NEVER mutated before this passes.
     signature = elevenlabs_signature or x_elevenlabs_signature
     webhook_secret = os.environ.get('ELEVENLABS_WEBHOOK_SECRET')
-    if webhook_secret:
-        # If a secret is configured, signature MUST be present and valid
-        if not signature:
-            logger.warning("Webhook rejected: missing signature header")
-            raise HTTPException(status_code=401, detail="Missing webhook signature")
-        if not verify_webhook_signature(body, signature):
-            logger.warning("Webhook rejected: invalid signature")
-            raise HTTPException(status_code=401, detail="Invalid webhook signature")
+    if not webhook_secret:
+        logger.error(
+            "Webhook rejected: ELEVENLABS_WEBHOOK_SECRET is not configured. "
+            "Refusing to process — set this env var in every environment."
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="Webhook signing key not configured on server",
+        )
+    if not signature:
+        logger.warning("Webhook rejected: missing signature header")
+        raise HTTPException(status_code=401, detail="Missing webhook signature")
+    if not verify_webhook_signature(body, signature):
+        logger.warning("Webhook rejected: invalid signature")
+        raise HTTPException(status_code=401, detail="Invalid webhook signature")
 
     try:
         payload = json_module.loads(body)

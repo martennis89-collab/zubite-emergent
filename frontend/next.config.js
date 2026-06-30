@@ -1,4 +1,62 @@
 /** @type {import('next').NextConfig} */
+
+// ─── SEC-003 / hardening ─────────────────────────────────────────────
+// Security headers — defence-in-depth so a sanitizer slip or accidental
+// inline-handler injection still cannot exfiltrate / hijack visitors.
+//
+// CSP notes:
+//   • Next.js needs `'unsafe-inline'` for styles (Tailwind injects critical
+//     CSS) and we keep it for now. Next 14 hydration also requires
+//     `'unsafe-inline'` for scripts unless we adopt nonces — adopting
+//     nonces would touch every dangerouslySetInnerHTML on the site and
+//     is out of scope for this P0 cleanup. We therefore ship a baseline
+//     that materially shrinks XSS blast radius (no third-party JS hosts
+//     other than the ones we actually use) and note the remaining gap.
+//   • Analytics: GTM + Meta Pixel are loaded after consent — their hosts
+//     are in script-src and img-src.
+//   • Backend API + storage hosts are listed in connect-src / img-src.
+//
+// If CSP needs further tightening (strict-dynamic + nonces), do it in a
+// follow-up with a dedicated test of every page that uses inline scripts.
+// ─────────────────────────────────────────────────────────────────────
+
+const CSP = [
+  "default-src 'self'",
+  // Scripts — Next needs unsafe-inline for hydration; restrict third-parties
+  // to the analytics/pixel hosts we actually load post-consent.
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net",
+  // Styles — Tailwind / Next inject inline styles
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com data:",
+  // Images — allow http(s), data URLs for inline diagrams, and our own
+  // preview/prod backends.
+  "img-src 'self' data: blob: https: http:",
+  // Media (video previews etc.)
+  "media-src 'self' https: data:",
+  // Network calls — same origin, plus analytics endpoints.
+  "connect-src 'self' https: https://www.google-analytics.com https://*.facebook.com https://www.facebook.com",
+  // Frames — only Make.com/embedded video if needed in future; for now keep tight.
+  "frame-src 'self' https://www.youtube.com https://www.facebook.com",
+  // Workers / object — block plugins / java applets
+  "object-src 'none'",
+  "frame-ancestors 'self'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  // Upgrade mixed content in production
+  'upgrade-insecure-requests',
+].join('; ')
+
+const securityHeaders = [
+  { key: 'Content-Security-Policy', value: CSP },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()' },
+  // HSTS — only meaningful on HTTPS. The production domain serves HTTPS
+  // via the platform ingress, so it is safe to send.
+  { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
+]
+
 const nextConfig = {
   reactStrictMode: true,
   images: {
@@ -12,6 +70,16 @@ const nextConfig = {
       {
         source: '/api/:path*',
         destination: `${backendUrl}/api/:path*`,
+      },
+    ]
+  },
+  async headers() {
+    return [
+      {
+        // Apply to every route. The headers are inert for API routes that
+        // return JSON — they just travel along the response.
+        source: '/:path*',
+        headers: securityHeaders,
       },
     ]
   },

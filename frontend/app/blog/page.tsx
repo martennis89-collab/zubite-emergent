@@ -3,6 +3,7 @@ import { Metadata } from 'next'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { resolveImageUrl } from '@/lib/imageUrl'
+import { safeJsonLd } from '@/lib/seo/clinicJsonLd'
 import { Calendar, ArrowRight, BookOpen, Sparkles } from 'lucide-react'
 
 // Force dynamic rendering - do not pre-render at build time
@@ -69,7 +70,7 @@ export default async function BlogPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
+          __html: safeJsonLd({
             '@context': 'https://schema.org',
             '@graph': [
               {
