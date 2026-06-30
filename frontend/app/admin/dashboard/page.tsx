@@ -10,8 +10,11 @@ import {
   Building2, ShieldCheck, Send, AlertTriangle, Clock,
   Sparkles, ArrowRight,
 } from 'lucide-react'
-import { AICallPanel } from '@/components/AICallPanel'
 import { AdminHeader } from '@/components/admin/AdminHeader'
+// AICallPanel — ElevenLabs integration soft-disabled Feb 2026. The
+// component file is kept on disk so the panel can be re-enabled by
+// restoring this import + the panel block below.
+// import { AICallPanel } from '@/components/AICallPanel'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -1139,7 +1142,10 @@ export default function AdminDashboardPage() {
                       </div>
                     </div>
 
-                    {/* AI Call Panel */}
+                    {/* AI Call Panel — soft-disabled Feb 2026. Block kept
+                        commented so the panel can be re-enabled in one diff
+                        when the ElevenLabs / Twilio integration returns. */}
+                    {/*
                     <AICallPanel
                       leadId={selectedLead.id}
                       leadName={selectedLead.name || 'Пациент'}
@@ -1178,6 +1184,7 @@ export default function AdminDashboardPage() {
                         }
                       }}
                     />
+                    */}
 
                     {/* Clinic Assignment & Verification Panel */}
                     <ClinicVerificationPanel

@@ -12,7 +12,12 @@ from database import db, client
 from storage import init_storage
 from emails import send_verification_email
 
-from routers import public, admin, blog, analytics, clinics, calls, verification, seo, consultations, audit_logs, orientation_settings, orientation_bookings, content_automation, public_clinics
+from routers import public, admin, blog, analytics, clinics, verification, seo, consultations, audit_logs, orientation_settings, orientation_bookings, content_automation, public_clinics
+# ─── ElevenLabs / call integration soft-disabled (Feb 2026) ──────────
+# `routers.calls` and `services.elevenlabs_service` are intentionally
+# NOT imported. Files remain on disk so the integration can be re-enabled
+# by uncommenting the import + the `include_router(calls.router)` line
+# below and restoring the ELEVENLABS_* / TWILIO_* env vars.
 
 # Root-level health endpoint
 app = FastAPI(title="Zubite.bg API")
@@ -30,7 +35,7 @@ api_router.include_router(admin.router)
 api_router.include_router(blog.router)
 api_router.include_router(analytics.router)
 api_router.include_router(clinics.router)
-api_router.include_router(calls.router)
+# api_router.include_router(calls.router)  # soft-disabled — see top-of-file comment
 api_router.include_router(verification.router)
 api_router.include_router(seo.router)
 api_router.include_router(consultations.router)
@@ -65,7 +70,7 @@ app.add_middleware(
     allow_origins=_cors_origins,
     allow_origin_regex=_cors_regex,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "ElevenLabs-Signature", "X-ElevenLabs-Signature"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 if STATIC_DIR.exists():
