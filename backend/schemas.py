@@ -831,6 +831,14 @@ class ClinicProfile(BaseModel):
     clinic_video_url: Optional[str] = Field(default=None, max_length=500)
     doctor_video_url: Optional[str] = Field(default=None, max_length=500)
 
+    # ── Feb 2026 — section-specific image uploads. Admins upload
+    # via `/api/admin/upload` (jpeg/png/webp, ≤5MB) and the returned
+    # URL is persisted here. Each is rendered in its corresponding
+    # profile section on the public clinic page when present.
+    doctor_spotlight_image_url: Optional[str] = Field(default=None, max_length=500)
+    team_image_url: Optional[str] = Field(default=None, max_length=500)
+    environment_image_url: Optional[str] = Field(default=None, max_length=500)
+
     doctor_spotlight_name: Optional[str] = Field(default=None, max_length=200)
     doctor_spotlight_role: Optional[str] = Field(default=None, max_length=200)
     doctor_spotlight_bio: Optional[str] = Field(default=None, max_length=1000)

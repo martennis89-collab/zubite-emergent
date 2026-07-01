@@ -7,6 +7,7 @@ import { Save, Plus, Trash2, CheckCircle2, AlertCircle, Eye, EyeOff } from 'luci
 import { AdminHeader } from '@/components/admin/AdminHeader'
 import { CaseLibraryEditor, type CaseRow as EditorCaseRow } from '@/components/admin/CaseLibraryEditor'
 import { ClinicPackageSection } from '@/components/admin/ClinicPackageSection'
+import { ImageUploadField } from '@/components/admin/ImageUploadField'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -50,6 +51,9 @@ interface ClinicProfile {
   hero_image_url?: string
   clinic_video_url?: string
   doctor_video_url?: string
+  doctor_spotlight_image_url?: string
+  team_image_url?: string
+  environment_image_url?: string
   doctor_spotlight_name?: string
   doctor_spotlight_role?: string
   doctor_spotlight_bio?: string
@@ -159,6 +163,9 @@ const VISIBILITY: Record<string, Tier[]> = {
   review_sources:           ['standard', 'featured', 'premium'],
   patient_intro:            ['featured', 'premium'],
   hero_image_url:           ['premium'],
+  doctor_spotlight_image_url:['premium'],
+  team_image_url:           ['premium'],
+  environment_image_url:    ['premium'],
   clinic_video_url:         ['premium'],
   doctor_video_url:         ['premium'],
   doctor_spotlight_name:    ['premium'],
@@ -250,6 +257,9 @@ export default function AdminClinicEditPage() {
         hero_image_url: p.hero_image_url || '',
         clinic_video_url: p.clinic_video_url || '',
         doctor_video_url: p.doctor_video_url || '',
+        doctor_spotlight_image_url: p.doctor_spotlight_image_url || '',
+        team_image_url: p.team_image_url || '',
+        environment_image_url: p.environment_image_url || '',
         doctor_spotlight_name: p.doctor_spotlight_name || '',
         doctor_spotlight_role: p.doctor_spotlight_role || '',
         doctor_spotlight_bio: p.doctor_spotlight_bio || '',
@@ -318,6 +328,9 @@ export default function AdminClinicEditPage() {
           hero_image_url: profile.hero_image_url || null,
           clinic_video_url: profile.clinic_video_url || null,
           doctor_video_url: profile.doctor_video_url || null,
+          doctor_spotlight_image_url: profile.doctor_spotlight_image_url || null,
+          team_image_url: profile.team_image_url || null,
+          environment_image_url: profile.environment_image_url || null,
           doctor_spotlight_name: profile.doctor_spotlight_name || null,
           doctor_spotlight_role: profile.doctor_spotlight_role || null,
           doctor_spotlight_bio: profile.doctor_spotlight_bio || null,
@@ -658,11 +671,15 @@ export default function AdminClinicEditPage() {
         </Section>
 
         {/* Section 5 — Медия URL-и */}
-        <Section title="Медия URL-и" testid="section-media">
-          <Field label="Hero image URL" hint={visibilityHint(tier, 'hero_image_url')}>
-            <input value={profile.hero_image_url || ''} onChange={(e) => setProfile({ ...profile, hero_image_url: e.target.value })}
-              maxLength={500} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" data-testid="field-hero_image_url" />
-          </Field>
+        <Section title="Медия и снимки" testid="section-media">
+          <ImageUploadField
+            label="Hero изображение (за horeto на профила)"
+            value={profile.hero_image_url || ''}
+            onChange={(url) => setProfile({ ...profile, hero_image_url: url })}
+            hint={visibilityHint(tier, 'hero_image_url')}
+            testid="upload-hero-image"
+            aspect="landscape"
+          />
           <Field label="Clinic video URL" hint={visibilityHint(tier, 'clinic_video_url')}>
             <input value={profile.clinic_video_url || ''} onChange={(e) => setProfile({ ...profile, clinic_video_url: e.target.value })}
               maxLength={500} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" data-testid="field-clinic_video_url" />
@@ -675,6 +692,24 @@ export default function AdminClinicEditPage() {
 
         {/* Section 6 — Лекар / екип */}
         <Section title="Лекар / екип" testid="section-doctor">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <ImageUploadField
+              label="Снимка на лекаря (spotlight)"
+              value={profile.doctor_spotlight_image_url || ''}
+              onChange={(url) => setProfile({ ...profile, doctor_spotlight_image_url: url })}
+              hint={visibilityHint(tier, 'doctor_spotlight_image_url')}
+              testid="upload-doctor-image"
+              aspect="portrait"
+            />
+            <ImageUploadField
+              label="Снимка на екипа"
+              value={profile.team_image_url || ''}
+              onChange={(url) => setProfile({ ...profile, team_image_url: url })}
+              hint={visibilityHint(tier, 'team_image_url')}
+              testid="upload-team-image"
+              aspect="landscape"
+            />
+          </div>
           <Field label="Име на лекар" hint={visibilityHint(tier, 'doctor_spotlight_name')}>
             <input value={profile.doctor_spotlight_name || ''} onChange={(e) => setProfile({ ...profile, doctor_spotlight_name: e.target.value })}
               maxLength={200} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" data-testid="field-doctor_spotlight_name" />
@@ -695,6 +730,14 @@ export default function AdminClinicEditPage() {
 
         {/* Section 7 — Premium съдържание */}
         <Section title="Premium съдържание" testid="section-premium">
+          <ImageUploadField
+            label="Снимка на средата / оборудването"
+            value={profile.environment_image_url || ''}
+            onChange={(url) => setProfile({ ...profile, environment_image_url: url })}
+            hint={visibilityHint(tier, 'environment_image_url')}
+            testid="upload-environment-image"
+            aspect="landscape"
+          />
           <Field label="История на клиниката (до 1500)" hint={visibilityHint(tier, 'clinic_story')}>
             <textarea value={profile.clinic_story || ''} onChange={(e) => setProfile({ ...profile, clinic_story: e.target.value })}
               maxLength={1500} rows={5} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" data-testid="field-clinic_story" />
