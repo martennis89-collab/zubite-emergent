@@ -273,6 +273,9 @@ async def admin_list_clinics(
         c["base_package"] = resolve_base_package(c)
         c["founding_status"] = resolve_founding_status(c)
         c["public_partner_label"] = public_partner_label(c)
+        # Ensure `legacy_tier` is always present (null when the clinic
+        # was never migrated) so FE type-guards don't need branching.
+        c["legacy_tier"] = c.get("legacy_tier") or None
         c["addons_active_count"] = addon_counts.get(cid, 0)
         # Lightweight entitlements summary (only the flags the list
         # table renders — full map available on the detail endpoint).
@@ -498,6 +501,12 @@ async def admin_update_clinic(
         BILLING_STATUS_VALUES, BILLING_CADENCE_VALUES,
         package_default_pricing,
     )
+    # Snapshot of keys explicitly supplied by the caller — used so
+    # every "only-if-not-user-supplied" auto-fill below is order-
+    # independent (previously the base_package block auto-filled
+    # monthly_price_eur which then masked the founding_growth 149
+    # override, causing a subtle default-collision bug).
+    user_provided = set(update.keys())
     if "base_package" in update:
         bp = (update["base_package"] or "").strip().lower()
         if bp not in BASE_PACKAGES:
@@ -506,19 +515,21 @@ async def admin_update_clinic(
         # Auto-fill locked pricing defaults when the admin switches
         # packages and hasn't manually overridden pricing in the same
         # request. Founding Growth intro pricing is applied only when
-        # `founding_status=founding_growth` is also set.
+        # `founding_status=founding_growth` is also set (handled below).
         defaults = package_default_pricing(bp)
         for k, v in defaults.items():
-            if k not in update:
+            if k not in user_provided:
                 update[k] = v
     if "founding_status" in update:
         fs = (update["founding_status"] or "").strip().lower()
         if fs not in FOUNDING_STATUS_VALUES:
             raise HTTPException(status_code=400, detail="Invalid founding_status")
         update["founding_status"] = fs
-        if fs == "founding_growth" and "monthly_price_eur" not in update:
+        if fs == "founding_growth" and "monthly_price_eur" not in user_provided:
             # Only auto-apply the founding intro monthly if the admin
-            # didn't override in this request.
+            # didn't override in this request. Overrides an earlier
+            # base_package default-fill because founding is the more
+            # specific configuration.
             from entitlements import FOUNDING_GROWTH_INTRO_MONTHLY_EUR
             update["monthly_price_eur"] = FOUNDING_GROWTH_INTRO_MONTHLY_EUR
     if "billing_status" in update:

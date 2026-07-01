@@ -272,13 +272,13 @@ def public_partner_label(clinic: Dict[str, Any]) -> str:
     Rules:
       • founding_status == 'strategic_private' AND admin has explicitly
         approved public exposure via `strategic_public_display=True`
-        → 'Strategic Partner'
+        → 'Стратегически партньор' (Bulgarian public site)
       • base_package == 'growth_partner' → 'Growth Partner'
       • otherwise → 'Verified Profile'
     """
     fs = resolve_founding_status(clinic)
     if fs == "strategic_private" and clinic.get("strategic_public_display") is True:
-        return "Strategic Partner"
+        return "Стратегически партньор"
     bp = resolve_base_package(clinic)
     return BASE_PACKAGE_LABELS.get(bp, "Verified Profile")
 
