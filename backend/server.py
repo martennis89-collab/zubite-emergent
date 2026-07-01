@@ -187,6 +187,20 @@ async def startup():
     from routers.bookings import reminder_loop
     await db.clinic_bookings.create_index("id", unique=True)
     await db.clinic_bookings.create_index([("clinic_id", 1), ("selected_slot_start", 1)])
+    # Atomic double-booking guard: unique partial index on active
+    # statuses only. Cancelled / completed rows are allowed to share
+    # a (clinic_id, slot) key so history and reschedule flows work.
+    try:
+        await db.clinic_bookings.create_index(
+            [("clinic_id", 1), ("selected_slot_start", 1)],
+            unique=True,
+            name="uniq_active_slot",
+            partialFilterExpression={
+                "status": {"$in": ["pending_confirmation", "confirmed", "rescheduled"]},
+            },
+        )
+    except Exception as exc:  # index may already exist under an older name
+        print(f"[bookings] uniq_active_slot index skipped: {exc}")
     await db.clinic_bookings.create_index("reminder_email_scheduled_for")
     await db.clinic_availability_rules.create_index([("clinic_id", 1), ("day_of_week", 1)])
     await db.clinic_booking_exceptions.create_index([("clinic_id", 1), ("date", 1)])

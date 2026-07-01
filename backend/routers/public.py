@@ -710,8 +710,8 @@ _VALID_TIERS = frozenset({"standard", "featured", "premium"})
 _TIER_BOOST = {"premium": 8, "featured": 5, "standard": 0}
 
 _PLACEMENT_LABEL = {
-    "premium": "Premium партньор",
-    "featured": "Представена клиника",
+    "premium": "Growth партньор",
+    "featured": "Growth партньор",
     "standard": None,
 }
 _PLACEMENT_DISCLOSURE = {

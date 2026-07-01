@@ -215,13 +215,30 @@ async def public_create_booking(
 
     if not body.consent_confirmed:
         raise HTTPException(status_code=400, detail="Consent is required")
+    if not body.not_emergency_confirmed:
+        raise HTTPException(status_code=400, detail="Not-emergency confirmation is required")
     if body.source not in BOOKING_SOURCES:
         raise HTTPException(status_code=400, detail="Invalid source")
 
-    # Verify slot is still available (double-booking guard).
+    # Server-side slot validity — re-generate concrete slots and
+    # require the submitted `selected_slot_start` to be one of them.
+    # Rejects payloads for outside-working-hours, blocked days, or
+    # under the min-lead-time; also gives us a defence-in-depth
+    # check against a stale client (booking form open across
+    # midnight etc.).
+    rules = await db.clinic_availability_rules.find({"clinic_id": clinic_id}, {"_id": 0}).to_list(200)
+    exceptions = await db.clinic_booking_exceptions.find({"clinic_id": clinic_id}, {"_id": 0}).to_list(500)
     booked = await _load_booked_starts(clinic_id)
-    if body.selected_slot_start in booked:
-        raise HTTPException(status_code=409, detail="Slot no longer available")
+    valid_slots = generate_slots(
+        rules=rules, exceptions=exceptions, booked_starts=booked,
+        horizon_days=60,
+    )
+    valid_starts = {s["start"] for s in valid_slots}
+    if body.selected_slot_start not in valid_starts:
+        # If the slot is taken → 409; otherwise it was never offered → 400.
+        if body.selected_slot_start in booked:
+            raise HTTPException(status_code=409, detail="Slot no longer available")
+        raise HTTPException(status_code=400, detail="Slot is not offered by this clinic")
 
     # Compute end if not supplied — default 30 minutes.
     end_iso = body.selected_slot_end
@@ -269,7 +286,18 @@ async def public_create_booking(
     except Exception:
         pass
 
-    await db.clinic_bookings.insert_one(dict(booking))
+    # Atomic write — the unique partial index on
+    # (clinic_id, selected_slot_start) for active statuses is the
+    # single source of truth for double-booking prevention. The
+    # read-then-write check above catches most collisions early;
+    # DuplicateKeyError catches the residual race window.
+    try:
+        await db.clinic_bookings.insert_one(dict(booking))
+    except Exception as exc:  # pragma: no cover — motor raises pymongo.errors.DuplicateKeyError
+        from pymongo.errors import DuplicateKeyError
+        if isinstance(exc, DuplicateKeyError):
+            raise HTTPException(status_code=409, detail="Slot no longer available")
+        raise
     _emit_track("booking_submitted",
                 clinicId=clinic_id, leadId=body.lead_id, bookingId=booking["id"],
                 treatmentCategory=body.treatment_category,
