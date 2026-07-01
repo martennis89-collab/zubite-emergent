@@ -204,6 +204,10 @@ export default function AdminClinicEditPage() {
 
   const [tier, setTier] = useState<Tier>('standard')
   const [tierBeforeSave, setTierBeforeSave] = useState<Tier>('standard')
+  // Care Pass partner flag is stored on the clinic document itself (not
+  // on ClinicProfile), so we mirror it into local state to gate the
+  // Care Pass-specific downgrade warning. Boolean — no admin editing.
+  const [carePassPartner, setCarePassPartner] = useState(false)
   const [clinicName, setClinicName] = useState('')
 
   const [profile, setProfile] = useState<ClinicProfile>({ profile_status: 'draft' })
@@ -226,6 +230,7 @@ export default function AdminClinicEditPage() {
       const rawTier = (c.partner_tier || (c.is_premium ? 'premium' : c.is_featured ? 'featured' : 'standard')) as Tier
       setTier(rawTier)
       setTierBeforeSave(rawTier)
+      setCarePassPartner(c.care_pass_partner === true)
       const p: ClinicProfile = c.clinic_profile || { profile_status: 'draft' }
       setProfile({
         profile_status: (p.profile_status as ProfileStatus) || 'draft',
@@ -443,7 +448,7 @@ export default function AdminClinicEditPage() {
                 към {TIER_DISPLAY['featured'].label} или {TIER_DISPLAY['premium'].label}.
                 Съществуващите данни се запазват — можеш да върнеш пакета по-късно.
               </p>
-              {tier === 'standard' && (
+              {tier === 'standard' && carePassPartner && (
                 <p className="mt-2 pt-2 border-t border-amber-200/70" data-testid="care-pass-downgrade-warning">
                   Care Pass е активен, но избраният пакет не го включва.
                   Потвърдете дали да бъде изключен преди запазване.
