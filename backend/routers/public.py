@@ -707,7 +707,21 @@ def _city_name_for(slug: Optional[str], fallback: Optional[str] = None) -> Optio
 # eligible clinic over an ineligible one (ineligible = excluded entirely).
 
 _VALID_TIERS = frozenset({"standard", "featured", "premium"})
-_TIER_BOOST = {"premium": 8, "featured": 5, "standard": 0}
+
+# Legacy boost (pre-Feb 2026): applies when a clinic has NO
+# `base_package` field (unmigrated). Authority was +8 historically; per
+# the Feb 2026 pricing revamp the private/strategic tier no longer
+# confers a hidden ranking advantage, so `premium` = `featured` = +5.
+_TIER_BOOST_LEGACY = {"premium": 5, "featured": 5, "standard": 0}
+
+# Canonical Feb 2026 boost — preferred when the clinic has been
+# migrated to `base_package`.
+_BASE_PACKAGE_BOOST = {"growth_partner": 5, "verified_profile": 0}
+
+# Backwards-compat alias for any old caller that imports `_TIER_BOOST`
+# by name. New code should reference `_TIER_BOOST_LEGACY` /
+# `_BASE_PACKAGE_BOOST` directly.
+_TIER_BOOST = _TIER_BOOST_LEGACY
 
 _PLACEMENT_LABEL = {
     "premium": "Growth партньор",
