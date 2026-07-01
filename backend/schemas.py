@@ -698,6 +698,25 @@ class ClinicCreate(BaseModel):
     # Aligner brand/provider tags — validated by `aligner_brands.normalize_aligner_brand_entries`.
     aligner_brands_supported: Optional[List[Dict[str, Any]]] = None
 
+    # ─── Feb 2026 pricing revamp ───────────────────────────────
+    # `base_package` is the canonical public commercial layer.
+    # Legacy `partner_tier` remains for audit but is no longer the
+    # source of truth for public labels / entitlements.
+    base_package: Optional[str] = None            # verified_profile | growth_partner
+    founding_status: Optional[str] = None         # none | founding_growth | strategic_private
+    billing_status: Optional[str] = None          # trial | active | past_due | paused | cancelled
+    billing_cadence: Optional[str] = None         # yearly | custom_private
+    monthly_price_eur: Optional[float] = None
+    annual_price_eur: Optional[float] = None
+    onboarding_fee_eur: Optional[float] = None
+    founding_start_date: Optional[str] = None     # ISO date (yyyy-mm-dd)
+    founding_end_date: Optional[str] = None       # ISO date (yyyy-mm-dd)
+    private_terms_notes: Optional[str] = Field(default=None, max_length=2000)
+    legacy_tier: Optional[str] = None             # populated on migration only
+    # Public exposure of strategic_private status — never true unless
+    # explicitly approved by admin.
+    strategic_public_display: bool = False
+
 
 # ─── Admin Rich Clinic Profile Editor (R1, Feb 2026) ────────────────
 # Nested admin-editable profile object stored as `clinic_profile` on the
@@ -866,6 +885,22 @@ class ClinicAdminUpdate(BaseModel):
     # ── Rich Profile Editor R1 ───────────────────────────────────────
     partner_tier: Optional[str] = None
     clinic_profile: Optional[ClinicProfile] = None
+
+    # ── Feb 2026 pricing revamp — accepted on PATCH ────────────
+    base_package: Optional[str] = None
+    founding_status: Optional[str] = None
+    billing_status: Optional[str] = None
+    billing_cadence: Optional[str] = None
+    monthly_price_eur: Optional[float] = None
+    annual_price_eur: Optional[float] = None
+    onboarding_fee_eur: Optional[float] = None
+    founding_start_date: Optional[str] = None
+    founding_end_date: Optional[str] = None
+    private_terms_notes: Optional[str] = Field(default=None, max_length=2000)
+    strategic_public_display: Optional[bool] = None
+    # `entitlement_overrides` — list of {key, value, note} rows. Router
+    # normalises + attaches `at`/`by` on write.
+    entitlement_overrides: Optional[List[Dict[str, Any]]] = None
 
     # ── Phase C1 — sponsorship & showcase flags ──────────────────────
     # `is_sponsored` toggles a visually-separated "Спонсорирано" badge
@@ -1345,3 +1380,50 @@ class PublicConsultationBookingCreate(BaseModel):
         if isinstance(v, str):
             return v.strip()
         return v
+
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  Clinic add-ons (Feb 2026 pricing revamp)
+# ═══════════════════════════════════════════════════════════════════
+# Stored in `clinic_addons` collection. Read-side helpers live in
+# `backend/addon_catalog.py`. Router: `backend/routers/clinic_addons.py`.
+
+class ClinicAddonCreate(BaseModel):
+    """Body for `POST /api/admin/clinics/{clinic_id}/addons`. When
+    `add_on_id` matches a catalog entry, the router auto-fills `name`
+    and `price_eur` from the catalog on save (admin can override)."""
+    model_config = ConfigDict(extra="ignore")
+
+    add_on_id: str = Field(min_length=1, max_length=80)
+    category: str = Field(min_length=1, max_length=40)
+    name: str = Field(min_length=1, max_length=200)
+    price_eur: Optional[float] = None
+    billing_type: str = "one_time"
+    status: str = "proposed"
+    start_date: Optional[str] = None  # ISO date
+    end_date: Optional[str] = None    # ISO date
+    public_visibility: str = "internal_only"
+    # Guardrail — hard-coded FALSE at the router level regardless of
+    # what is submitted here.
+    affects_organic_matching: bool = False
+    internal_owner: Optional[str] = Field(default=None, max_length=120)
+    delivery_notes: Optional[str] = Field(default=None, max_length=2000)
+    invoice_notes: Optional[str] = Field(default=None, max_length=2000)
+
+
+class ClinicAddonUpdate(BaseModel):
+    """Partial PATCH body — every field optional."""
+    model_config = ConfigDict(extra="ignore")
+
+    category: Optional[str] = Field(default=None, max_length=40)
+    name: Optional[str] = Field(default=None, max_length=200)
+    price_eur: Optional[float] = None
+    billing_type: Optional[str] = None
+    status: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    public_visibility: Optional[str] = None
+    internal_owner: Optional[str] = Field(default=None, max_length=120)
+    delivery_notes: Optional[str] = Field(default=None, max_length=2000)
+    invoice_notes: Optional[str] = Field(default=None, max_length=2000)

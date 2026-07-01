@@ -42,7 +42,10 @@ def run_all() -> None:
         assert payload["is_addons_showcase"] is True
         assert payload["is_sponsored"] is True
         assert payload["partner_tier"] == "premium"
-        assert payload["public_status_label"] == "Authority Partner"
+        # Feb 2026 pricing revamp: `premium` (legacy Authority) is
+        # publicly relabeled as Growth Partner. The private tier
+        # label is only surfaced when `strategic_public_display=true`.
+        assert payload["public_status_label"] == "Growth Partner"
         # Enrichment is populated
         assert len(payload["technology_section"]) >= 3
         assert len(payload["expert_qa"]) >= 3

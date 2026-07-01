@@ -1560,7 +1560,7 @@ function ShowcaseListingCardPreview({ clinic }: { clinic: PublicClinic }) {
           />
           <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-white/95 ring-1 ring-amber-200 text-amber-800 backdrop-blur-sm">
             <Sparkles className="w-3 h-3" />
-            Authority Partner
+            Growth Partner
           </span>
           {/* Sponsored — visually separated from tier badge, on right */}
           <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-900/80 text-white ring-1 ring-white/20">

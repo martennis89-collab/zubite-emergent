@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { Save, Plus, Trash2, CheckCircle2, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import { AdminHeader } from '@/components/admin/AdminHeader'
 import { CaseLibraryEditor, type CaseRow as EditorCaseRow } from '@/components/admin/CaseLibraryEditor'
+import { ClinicPackageSection } from '@/components/admin/ClinicPackageSection'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -97,14 +98,15 @@ const VERIFICATION_LABELS: Record<AlignerBrandEntry['verification_status'], stri
 const TIER_LABELS: Array<{ value: Tier; label: string }> = [
   { value: 'standard', label: 'Verified Profile' },
   { value: 'featured', label: 'Growth Partner' },
-  { value: 'premium',  label: 'Authority Partner' },
+  { value: 'premium',  label: 'Growth Partner · Strategic Private' },
 ]
 
 // Package display config keyed by internal enum. The backend enum stays
-// `standard/featured/premium` (zero-migration path — every existing row
-// still resolves cleanly through `_resolve_partner_tier` in public.py);
-// only labels, pricing and per-tier feature visibility change in the UI.
-// Source of truth: `Zubite_Clinic_Partner_Packages` doc (Feb 2026).
+// `standard/featured/premium` (kept in DB as `partner_tier` for audit);
+// the canonical field is now `base_package` (verified_profile /
+// growth_partner). Legacy Authority (`premium`) is publicly relabeled
+// as Growth Partner + strategic_private. Source of truth for pricing:
+// `entitlements.py::PACKAGE_DEFAULTS` (Feb 2026 pricing revamp).
 type TierDisplay = {
   label: string
   positioning: string
@@ -126,18 +128,18 @@ const TIER_DISPLAY: Record<Tier, TierDisplay> = {
   featured: {
     label: 'Growth Partner',
     positioning: 'Recommended',
-    monthly: '€149/month',
-    yearly: 'billed yearly · €1,788/year',
-    onboarding: 'Onboarding: €399 one-time',
-    foundingOffer: 'Founding offer: €99/month for first 6 months',
+    monthly: '€199/month',
+    yearly: 'billed yearly · €2,388/year',
+    onboarding: 'Onboarding: €499 one-time',
+    foundingOffer: 'Founding Growth: €149/month for first 6 months',
     activeCls: 'bg-teal-600 text-white',
   },
   premium: {
-    label: 'Authority Partner',
-    positioning: 'For Category Leaders',
-    monthly: '€349/month',
-    yearly: 'billed yearly · €4,188/year',
-    onboarding: 'Onboarding: €599 one-time',
+    label: 'Growth Partner · Strategic Private',
+    positioning: 'Legacy Authority · migrated to Growth + private terms',
+    monthly: 'Custom private',
+    yearly: 'Custom private',
+    onboarding: 'Custom private',
     activeCls: 'bg-violet-600 text-white',
   },
 }
@@ -417,6 +419,11 @@ export default function AdminClinicEditPage() {
             и отчетността. Не означава медицински рейтинг, клинично качество или
             гарантирана позиция.
           </p>
+          <p className="text-[11px] text-amber-700 italic leading-relaxed mb-3">
+            Feb 2026 revamp: за пълно конфигуриране на pricing / founding / billing / entitlements / add-ons
+            използвай новата секция „Package & Billing" по-долу. Тази стара секция остава само за
+            съвместимост с легаси `partner_tier` в базата.
+          </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {TIER_LABELS.map((t) => {
               const d = TIER_DISPLAY[t.value]
@@ -484,6 +491,12 @@ export default function AdminClinicEditPage() {
           )}
         </Section>
 
+        {/* Section 1.1 — NEW Package & Billing / Entitlements / Add-ons */}
+        <ClinicPackageSection
+          clinicId={clinicId}
+          onNotify={(m) => setMessage(m)}
+        />
+
         {/* Section 1.5 — Founding Growth Partner offer (only for Growth tier) */}
         {tier === 'featured' && (
           <Section title="Founding Growth Partner offer" testid="section-founding-offer">
@@ -496,9 +509,9 @@ export default function AdminClinicEditPage() {
               <div className="rounded-xl bg-teal-50/60 ring-1 ring-teal-200/60 px-4 py-3">
                 <p className="text-[11px] uppercase tracking-wider font-semibold text-teal-700">Условия</p>
                 <ul className="mt-1.5 space-y-1 text-[13px] text-slate-700">
-                  <li>Founding offer monthly price: <span className="font-semibold">€99</span></li>
+                  <li>Founding offer monthly price: <span className="font-semibold">€149</span></li>
                   <li>Founding offer duration: <span className="font-semibold">6 месеца</span></li>
-                  <li>Followed by standard Growth Partner pricing (€149/month, billed yearly)</li>
+                  <li>Followed by standard Growth Partner pricing (€199/month, billed yearly)</li>
                 </ul>
               </div>
               <div className="rounded-xl bg-slate-50 ring-1 ring-slate-200 px-4 py-3">

@@ -12,7 +12,7 @@ from database import db, client
 from storage import init_storage
 from emails import send_verification_email
 
-from routers import public, admin, blog, analytics, clinics, verification, seo, consultations, audit_logs, orientation_settings, orientation_bookings, content_automation, public_clinics
+from routers import public, admin, blog, analytics, clinics, verification, seo, consultations, audit_logs, orientation_settings, orientation_bookings, content_automation, public_clinics, clinic_addons
 # ─── ElevenLabs / call integration soft-disabled (Feb 2026) ──────────
 # `routers.calls` and `services.elevenlabs_service` are intentionally
 # NOT imported. Files remain on disk so the integration can be re-enabled
@@ -46,6 +46,7 @@ api_router.include_router(orientation_settings.router)
 api_router.include_router(orientation_bookings.router)
 api_router.include_router(content_automation.router)
 api_router.include_router(public_clinics.router)
+api_router.include_router(clinic_addons.router)
 
 app.include_router(api_router)
 
@@ -144,6 +145,39 @@ async def startup():
     await db.admin_audit_logs.create_index([("target_type", 1), ("target_id", 1)])
     await db.admin_audit_logs.create_index("severity")
     await db.admin_audit_logs.create_index([("created_at", -1), ("action", 1)])
+
+    # Feb 2026 pricing revamp — clinic add-ons indexes + one-time
+    # backfill of `base_package` / `founding_status` / `legacy_tier`
+    # for legacy clinics that still carry the old `partner_tier` enum.
+    await db.clinic_addons.create_index("id", unique=True)
+    await db.clinic_addons.create_index("clinic_id")
+    await db.clinic_addons.create_index([("clinic_id", 1), ("status", 1)])
+    await db.addon_catalog_items.create_index("add_on_id", unique=True)
+    try:
+        from entitlements import LEGACY_PARTNER_TIER_TO_BASE_PACKAGE
+        cursor = db.clinics.find(
+            {"base_package": {"$exists": False}},
+            {"_id": 0, "id": 1, "partner_tier": 1},
+        )
+        n = 0
+        async for c in cursor:
+            legacy_tier = (c.get("partner_tier") or "standard").strip().lower()
+            mapping = LEGACY_PARTNER_TIER_TO_BASE_PACKAGE.get(legacy_tier)
+            if not mapping:
+                continue
+            new_base, new_founding, legacy_label = mapping
+            patch = {
+                "base_package": new_base,
+                "founding_status": new_founding,
+            }
+            if legacy_label:
+                patch["legacy_tier"] = legacy_label
+            await db.clinics.update_one({"id": c["id"]}, {"$set": patch})
+            n += 1
+        if n:
+            print(f"[migration] backfilled base_package on {n} legacy clinics")
+    except Exception as exc:
+        print(f"[migration] base_package backfill skipped: {exc}")
 
     init_storage()
     asyncio.create_task(auto_verification_loop())

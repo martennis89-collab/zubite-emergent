@@ -239,6 +239,22 @@ async def admin_list_clinics(
         query["archived"] = {"$ne": True}
 
     clinics = await db.clinics.find(query, {"_id": 0, "password_hash": 0}).to_list(500)
+    # Bulk-load add-on counts so we don't N+1 the listing.
+    ids = [c.get("id") for c in clinics if c.get("id")]
+    addon_counts: Dict[str, int] = {}
+    if ids:
+        pipeline = [
+            {"$match": {"clinic_id": {"$in": ids}, "status": {"$in": ["active", "delivered"]}}},
+            {"$group": {"_id": "$clinic_id", "n": {"$sum": 1}}},
+        ]
+        async for row in db.clinic_addons.aggregate(pipeline):
+            addon_counts[row["_id"]] = row["n"]
+
+    from entitlements import (
+        resolve_base_package, resolve_founding_status, public_partner_label,
+        compute_entitlements,
+    )
+
     # Augment with simple counts for the listing table
     for c in clinics:
         cid = c.get("id")
@@ -253,6 +269,16 @@ async def admin_list_clinics(
         # Ensure `archived` flag is always present (default False) so the
         # admin UI can render badges without branching on `undefined`.
         c["archived"] = bool(c.get("archived"))
+        # Pricing revamp — expose derived summary for the admin table.
+        c["base_package"] = resolve_base_package(c)
+        c["founding_status"] = resolve_founding_status(c)
+        c["public_partner_label"] = public_partner_label(c)
+        c["addons_active_count"] = addon_counts.get(cid, 0)
+        # Lightweight entitlements summary (only the flags the list
+        # table renders — full map available on the detail endpoint).
+        ents = compute_entitlements(c, addons=[])
+        c["patient_journey_eligible"] = bool(ents.get("patient_journey_eligibility"))
+        c["partner_access"] = bool(ents.get("partner_access"))
     return {"clinics": clinics}
 
 
@@ -413,12 +439,26 @@ async def admin_get_clinic(
     booked = await db.consultation_requests.count_documents({"assigned_clinic_id": cid, "status": "booked"})
     attended = await db.consultation_requests.count_documents({"assigned_clinic_id": cid, "status": "attended"})
     no_show = await db.consultation_requests.count_documents({"assigned_clinic_id": cid, "status": "no_show"})
+    # Pricing revamp — attach derived entitlements + add-ons.
+    from entitlements import (
+        resolve_base_package, resolve_founding_status, public_partner_label,
+        compute_entitlements, package_default_pricing,
+    )
+    addons = await db.clinic_addons.find({"clinic_id": cid}, {"_id": 0}).to_list(200)
+    clinic_out = _public_clinic_dict(clinic)
+    clinic_out["base_package"] = resolve_base_package(clinic)
+    clinic_out["founding_status"] = resolve_founding_status(clinic)
+    clinic_out["public_partner_label"] = public_partner_label(clinic)
+    entitlements = compute_entitlements(clinic, addons=addons)
     return {
-        "clinic": _public_clinic_dict(clinic),
+        "clinic": clinic_out,
         "metrics": {
             "assigned": assigned, "booked": booked,
             "attended": attended, "no_show": no_show,
         },
+        "addons": addons,
+        "entitlements": entitlements,
+        "package_defaults": package_default_pricing(clinic_out["base_package"]),
     }
 
 
@@ -451,6 +491,81 @@ async def admin_update_clinic(
         if tier not in PARTNER_TIER_VALUES:
             raise HTTPException(status_code=400, detail="Invalid partner_tier")
         update["partner_tier"] = tier
+
+    # ── Feb 2026 pricing revamp validation ──────────────────────
+    from entitlements import (
+        BASE_PACKAGES, FOUNDING_STATUS_VALUES,
+        BILLING_STATUS_VALUES, BILLING_CADENCE_VALUES,
+        package_default_pricing,
+    )
+    if "base_package" in update:
+        bp = (update["base_package"] or "").strip().lower()
+        if bp not in BASE_PACKAGES:
+            raise HTTPException(status_code=400, detail="Invalid base_package")
+        update["base_package"] = bp
+        # Auto-fill locked pricing defaults when the admin switches
+        # packages and hasn't manually overridden pricing in the same
+        # request. Founding Growth intro pricing is applied only when
+        # `founding_status=founding_growth` is also set.
+        defaults = package_default_pricing(bp)
+        for k, v in defaults.items():
+            if k not in update:
+                update[k] = v
+    if "founding_status" in update:
+        fs = (update["founding_status"] or "").strip().lower()
+        if fs not in FOUNDING_STATUS_VALUES:
+            raise HTTPException(status_code=400, detail="Invalid founding_status")
+        update["founding_status"] = fs
+        if fs == "founding_growth" and "monthly_price_eur" not in update:
+            # Only auto-apply the founding intro monthly if the admin
+            # didn't override in this request.
+            from entitlements import FOUNDING_GROWTH_INTRO_MONTHLY_EUR
+            update["monthly_price_eur"] = FOUNDING_GROWTH_INTRO_MONTHLY_EUR
+    if "billing_status" in update:
+        bs = (update["billing_status"] or "").strip().lower()
+        if bs not in BILLING_STATUS_VALUES:
+            raise HTTPException(status_code=400, detail="Invalid billing_status")
+        update["billing_status"] = bs
+    if "billing_cadence" in update:
+        bc = (update["billing_cadence"] or "").strip().lower()
+        if bc not in BILLING_CADENCE_VALUES:
+            raise HTTPException(status_code=400, detail="Invalid billing_cadence")
+        update["billing_cadence"] = bc
+    for money_field in ("monthly_price_eur", "annual_price_eur", "onboarding_fee_eur"):
+        if money_field in update and update[money_field] is not None:
+            try:
+                update[money_field] = float(update[money_field])
+            except (TypeError, ValueError):
+                raise HTTPException(status_code=400, detail=f"Invalid {money_field}")
+            if update[money_field] < 0 or update[money_field] > 100000:
+                raise HTTPException(status_code=400, detail=f"{money_field} out of range")
+    for date_field in ("founding_start_date", "founding_end_date"):
+        if date_field in update and update[date_field]:
+            v = str(update[date_field]).strip()
+            # Loose ISO date validation — YYYY-MM-DD (10 chars) or empty.
+            if len(v) not in (0, 10) or (len(v) == 10 and not (v[4] == "-" and v[7] == "-")):
+                raise HTTPException(status_code=400, detail=f"Invalid {date_field}")
+            update[date_field] = v
+    if "entitlement_overrides" in update:
+        overrides = update["entitlement_overrides"] or []
+        if not isinstance(overrides, list):
+            raise HTTPException(status_code=400, detail="entitlement_overrides must be a list")
+        cleaned = []
+        now_iso = _now_iso()
+        for row in overrides:
+            if not isinstance(row, dict):
+                continue
+            key = str(row.get("key") or "").strip()
+            if not key:
+                continue
+            cleaned.append({
+                "key": key,
+                "value": row.get("value"),
+                "note": (row.get("note") or "").strip()[:500],
+                "at": row.get("at") or now_iso,
+                "by": row.get("by") or (user.username if user else "admin"),
+            })
+        update["entitlement_overrides"] = cleaned
 
     if "clinic_profile" in update:
         profile = update["clinic_profile"]

@@ -13,12 +13,16 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 export type PartnerTier = 'standard' | 'featured' | 'premium'
 
 /** Public-facing tier label (never the raw internal tier name).
- *  Per Feb 2026 product brief these are package-richness labels, NOT
- *  clinical superiority signals. */
+ *  Feb 2026 pricing revamp: only Verified / Growth are public. Any
+ *  legacy `premium` (old Authority) is publicly relabeled as Growth
+ *  Partner — the private "Strategic Partner" label is applied only
+ *  when `strategic_public_display=true` on the clinic, which is
+ *  surfaced via the payload's `public_status_label` string that the
+ *  UI should trust as-is. */
 export const PUBLIC_STATUS_LABEL: Record<PartnerTier, string> = {
   standard: 'Verified Profile',
-  featured: 'Premium Partner',
-  premium: 'Authority Partner',
+  featured: 'Growth Partner',
+  premium: 'Growth Partner',
 }
 
 export type ReviewSummary = {

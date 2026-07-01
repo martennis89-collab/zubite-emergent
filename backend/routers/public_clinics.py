@@ -53,14 +53,28 @@ def _demo_clinics_enabled() -> bool:
     return v in ("1", "true", "yes", "on")
 
 # Mirror the existing tier mapping (no parallel schema introduced).
-# Patient-facing labels per Feb 2026 product brief: "Verified Profile" /
-# "Premium Partner" / "Authority Partner". These are package-richness
-# labels, NOT clinical superiority signals.
+# Public labels per the Feb 2026 pricing revamp:
+#   • Verified Profile — profile-only presence
+#   • Growth Partner   — main partner package
+#   • Strategic Partner — private tier, only surfaced when
+#     `strategic_public_display=True` (admin-approved). "Authority
+#     Partner" is NEVER shown publicly — legacy Authority clinics
+#     were migrated to Growth Partner + strategic_private and their
+#     historical label lives on `legacy_tier` for audit only.
+# Legacy `partner_tier` keys are kept as a fallback while the DB
+# still carries mixed data; `_public_label_for_clinic` prefers the
+# new `base_package` + `founding_status` combo.
 _PUBLIC_STATUS_LABEL = {
     "standard": "Verified Profile",
-    "featured": "Premium Partner",
-    "premium": "Authority Partner",
+    "featured": "Growth Partner",
+    "premium": "Growth Partner",   # legacy Authority → Growth publicly
 }
+
+
+def _public_label_for_clinic(clinic: dict) -> str:
+    """Prefer canonical `base_package`; fall back to legacy tier."""
+    from entitlements import public_partner_label
+    return public_partner_label(clinic)
 
 # Statuses considered safe for public display. `active_partner` is a fully
 # onboarded clinic. `evaluation_partner` is a vetted pilot clinic and is
@@ -168,7 +182,9 @@ def _public_clinic_payload(clinic: dict) -> dict:
         ),
         # Tier (public label only).
         "partner_tier": tier,
-        "public_status_label": _PUBLIC_STATUS_LABEL[tier],
+        "public_status_label": _public_label_for_clinic(clinic),
+        # NEW canonical field — always safe to render.
+        "base_package": (clinic.get("base_package") or "").strip().lower() or None,
         "review": review,
         # Optional rich profile (for the public profile page).
         "long_description": profile.get("clinic_story"),

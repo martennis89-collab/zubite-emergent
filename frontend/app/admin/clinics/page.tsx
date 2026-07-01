@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Plus, Building2, X, Loader2, Archive, ArchiveRestore, AlertTriangle } from 'lucide-react'
@@ -27,9 +27,18 @@ interface PartnerClinic {
   booked_count?: number
   archived?: boolean
   archived_at?: string | null
+  // Feb 2026 pricing revamp — derived server-side.
+  base_package?: 'verified_profile' | 'growth_partner'
+  founding_status?: 'none' | 'founding_growth' | 'strategic_private'
+  public_partner_label?: string
+  addons_active_count?: number
+  patient_journey_eligible?: boolean
+  partner_access?: boolean
+  legacy_tier?: string | null
 }
 
 type ArchiveFilter = 'active' | 'archived'
+type PackageFilter = 'all' | 'verified_profile' | 'growth_partner' | 'founding_growth' | 'strategic_private' | 'legacy_authority'
 
 const CLINIC_STATUS = [
   { value: 'evaluation_partner', label: 'Evaluation', cls: 'bg-amber-100 text-amber-700' },
@@ -49,6 +58,7 @@ export default function AdminClinicsPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [createdInfo, setCreatedInfo] = useState<{ name: string; email: string; password: string } | null>(null)
   const [filter, setFilter] = useState<ArchiveFilter>('active')
+  const [packageFilter, setPackageFilter] = useState<PackageFilter>('all')
   const [archiveTarget, setArchiveTarget] = useState<PartnerClinic | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const router = useRouter()
@@ -71,6 +81,20 @@ export default function AdminClinicsPage() {
   }, [router, filter])
 
   useEffect(() => { load() }, [load])
+
+  const clinicsFiltered = useMemo(() => {
+    if (packageFilter === 'all') return clinics
+    return clinics.filter((c) => {
+      switch (packageFilter) {
+        case 'verified_profile':  return c.base_package === 'verified_profile'
+        case 'growth_partner':    return c.base_package === 'growth_partner'
+        case 'founding_growth':   return c.founding_status === 'founding_growth'
+        case 'strategic_private': return c.founding_status === 'strategic_private'
+        case 'legacy_authority':  return c.legacy_tier === 'authority_partner'
+        default:                  return true
+      }
+    })
+  }, [clinics, packageFilter])
 
   const updateStatus = async (id: string, field: string, value: string) => {
     await fetch(`${API_URL}/api/admin/clinics/${id}`, {
@@ -159,6 +183,33 @@ export default function AdminClinicsPage() {
           </button>
         </div>
 
+        {/* Package filter row */}
+        <div className="flex flex-wrap items-center gap-2 mb-4 text-sm" data-testid="admin-clinics-package-filters">
+          <span className="text-xs uppercase tracking-wider text-slate-500 font-medium">Package:</span>
+          {([
+            { v: 'all',                label: 'Всички' },
+            { v: 'verified_profile',   label: 'Verified Profile' },
+            { v: 'growth_partner',     label: 'Growth Partner' },
+            { v: 'founding_growth',    label: 'Founding Growth' },
+            { v: 'strategic_private',  label: 'Strategic Private' },
+            { v: 'legacy_authority',   label: 'Legacy Authority (migrated)' },
+          ] as const).map((o) => (
+            <button
+              key={o.v}
+              type="button"
+              onClick={() => setPackageFilter(o.v as PackageFilter)}
+              className={`px-3 h-7 rounded-full text-xs font-medium border ${
+                packageFilter === o.v
+                  ? 'bg-teal-600 text-white border-teal-600'
+                  : 'bg-white text-slate-700 border-slate-200 hover:border-teal-400'
+              }`}
+              data-testid={`admin-clinics-pkgfilter-${o.v}`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+
         {loading ? (
           <div className="h-40 grid place-items-center text-slate-400">Loading…</div>
         ) : clinics.length === 0 ? (
@@ -175,16 +226,19 @@ export default function AdminClinicsPage() {
                 <tr>
                   <th className="px-4 py-3 text-left">Клиника</th>
                   <th className="px-4 py-3 text-left">Град</th>
-                  <th className="px-4 py-3 text-left">Статус</th>
-                  <th className="px-4 py-3 text-left">Абонамент</th>
-                  <th className="px-4 py-3 text-left">Лечения</th>
+                  <th className="px-4 py-3 text-left">Package</th>
+                  <th className="px-4 py-3 text-left">Founding</th>
+                  <th className="px-4 py-3 text-left">Billing</th>
+                  <th className="px-4 py-3 text-center">Add-ons</th>
+                  <th className="px-4 py-3 text-center">PJ</th>
+                  <th className="px-4 py-3 text-center">PA</th>
                   <th className="px-4 py-3 text-right">Заявки</th>
                   <th className="px-4 py-3 text-right">Записани</th>
                   <th className="px-4 py-3 text-right">Действия</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {clinics.map((c) => (
+                {clinicsFiltered.map((c) => (
                   <tr key={c.id} className="hover:bg-slate-50/60" data-testid={`admin-clinic-row-${c.id}`}>
                     <td className="px-4 py-3">
                       <div className="font-medium text-slate-900 flex items-center gap-2">
@@ -195,17 +249,23 @@ export default function AdminClinicsPage() {
                     </td>
                     <td className="px-4 py-3 text-slate-700">{c.city}</td>
                     <td className="px-4 py-3">
-                      <select
-                        value={c.clinic_status || 'evaluation_partner'}
-                        onChange={(e) => updateStatus(c.id, 'clinic_status', e.target.value)}
-                        disabled={filter === 'archived'}
-                        className={`px-2 py-1 rounded-full text-xs border-0 ${statusCls(c.clinic_status)} ${filter === 'archived' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        data-testid={`clinic-status-${c.id}`}
-                      >
-                        {CLINIC_STATUS.map((s) => (
-                          <option key={s.value} value={s.value}>{s.label}</option>
-                        ))}
-                      </select>
+                      <div className="inline-flex flex-col gap-0.5">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
+                          c.base_package === 'growth_partner' ? 'bg-teal-100 text-teal-800' : 'bg-slate-100 text-slate-700'
+                        }`} data-testid={`clinic-base-package-${c.id}`}>
+                          {c.base_package === 'growth_partner' ? 'Growth' : 'Verified'}
+                        </span>
+                        {c.legacy_tier && (
+                          <span className="text-[9px] text-amber-700" title="Legacy tier preserved from migration">
+                            legacy: {c.legacy_tier}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-xs">
+                      {c.founding_status && c.founding_status !== 'none'
+                        ? <span className={`inline-flex px-1.5 py-0.5 rounded-full text-[10px] ${c.founding_status === 'strategic_private' ? 'bg-violet-50 text-violet-700' : 'bg-amber-50 text-amber-800'}`}>{c.founding_status === 'founding_growth' ? 'Founding' : 'Strategic'}</span>
+                        : <span className="text-slate-300">—</span>}
                     </td>
                     <td className="px-4 py-3">
                       <select
@@ -220,13 +280,14 @@ export default function AdminClinicsPage() {
                         ))}
                       </select>
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-600">
-                      {(() => {
-                        const t = (c.treatments_supported && c.treatments_supported.length > 0)
-                          ? c.treatments_supported
-                          : (c.treatments_offered || [])
-                        return t.length > 0 ? t.join(', ') : '—'
-                      })()}
+                    <td className="px-4 py-3 text-center font-mono text-xs" data-testid={`clinic-addons-${c.id}`}>
+                      {c.addons_active_count ?? 0}
+                    </td>
+                    <td className="px-4 py-3 text-center" data-testid={`clinic-pj-${c.id}`}>
+                      {c.patient_journey_eligible ? <span className="text-emerald-600">✓</span> : <span className="text-slate-300">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-center" data-testid={`clinic-pa-${c.id}`}>
+                      {c.partner_access ? <span className="text-emerald-600">✓</span> : <span className="text-slate-300">—</span>}
                     </td>
                     <td className="px-4 py-3 text-right font-mono">{c.assigned_requests_count ?? 0}</td>
                     <td className="px-4 py-3 text-right font-mono text-emerald-700">{c.booked_count ?? 0}</td>

@@ -1024,7 +1024,16 @@ def _score_clinic(clinic: dict, lead_city: str, lead_treatment: str, is_broad: b
         if lead_treatment.lower() in _treatments_of(clinic):
             score += 50
     # Tier boost AFTER eligibility — pure additive, max +8.
-    score += _TIER_BOOST.get(_resolve_partner_tier(clinic), 0)
+    # Feb 2026 pricing revamp: prefer new canonical `base_package`
+    # when present; fall back to legacy `partner_tier` boost so
+    # unmigrated clinics still get a sensible score. Legacy Authority
+    # (`premium`) is boosted at the same level as Growth Partner so
+    # the deprecated tier never confers a hidden ranking advantage.
+    bp = (clinic.get("base_package") or "").strip().lower()
+    if bp in _BASE_PACKAGE_BOOST:
+        score += _BASE_PACKAGE_BOOST[bp]
+    else:
+        score += _TIER_BOOST_LEGACY.get(_resolve_partner_tier(clinic), 0)
     return score
 
 
