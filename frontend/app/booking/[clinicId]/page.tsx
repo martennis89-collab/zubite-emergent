@@ -48,6 +48,8 @@ export default function BookingPage() {
 
   const [form, setForm] = useState({
     patient_name: '', patient_email: '', patient_phone: '',
+    patient_city: '',
+    treatment_category: '',
     patient_concern_summary: '',
     consent_confirmed: false, not_emergency_confirmed: false,
   })
@@ -175,7 +177,7 @@ export default function BookingPage() {
       {step === 'calendar' && (
         <div className="space-y-4" data-testid="booking-calendar">
           <p className="text-[13px] text-slate-600 leading-relaxed">
-            Избери свободен час от календара на клиниката. Zubite.bg не поставя диагноза —
+            Избери свободен час от календара на клиниката. Zubite.bg не е клиника и не поставя диагноза —
             информацията от въпросника помага на клиниката да разбере по-добре повода за консултация.
           </p>
           <p className="text-[11px] text-slate-500">Всички часове са в българско време (Europe/Sofia).</p>
@@ -244,6 +246,26 @@ export default function BookingPage() {
             onChange={(v) => setForm({ ...form, patient_phone: v })} testid="booking-phone" />
           <TextField label="Имейл" required type="email" value={form.patient_email}
             onChange={(v) => setForm({ ...form, patient_email: v })} testid="booking-email" />
+          <div className="grid grid-cols-2 gap-2">
+            <TextField label="Град (по избор)" value={form.patient_city}
+              onChange={(v) => setForm({ ...form, patient_city: v })} testid="booking-city" />
+            <label className="block text-xs text-slate-600">
+              <span>Тип консултация (по избор)</span>
+              <select value={form.treatment_category}
+                onChange={(e) => setForm({ ...form, treatment_category: e.target.value })}
+                className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm bg-white"
+                data-testid="booking-treatment-category">
+                <option value="">— избери —</option>
+                <option value="orthodontics">Ортодонтия / алайнери / брекети</option>
+                <option value="implants">Импланти</option>
+                <option value="aesthetics">Естетика / фасети / избелване</option>
+                <option value="hygiene">Хигиена / профилактика</option>
+                <option value="endodontics">Ендодонтия</option>
+                <option value="surgery">Хирургия</option>
+                <option value="other">Друго</option>
+              </select>
+            </label>
+          </div>
 
           <label className="block text-xs text-slate-600">
             <span>Кратко описание (по избор)</span>
@@ -281,7 +303,7 @@ export default function BookingPage() {
           </button>
 
           <p className="text-[10px] text-slate-500 italic leading-relaxed">
-            Zubite.bg не поставя диагноза и не замества преглед при стоматолог. Избраният час е за консултация с клиниката.
+            Zubite.bg не е клиника и не поставя диагноза. Информацията служи за ориентация и подготовка за консултация.
           </p>
         </form>
       )}

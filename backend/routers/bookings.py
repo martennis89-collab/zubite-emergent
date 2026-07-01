@@ -449,18 +449,29 @@ async def admin_list_bookings(
     user: AdminUser = Depends(get_current_user),
 ):
     q: Dict[str, Any] = {}
-    if clinic_id: q["clinic_id"] = clinic_id
-    if status: q["status"] = status
-    if treatment_category: q["treatment_category"] = treatment_category
-    if source: q["source"] = source
-    if date_from: q.setdefault("selected_slot_start", {})["$gte"] = date_from
-    if date_to:   q.setdefault("selected_slot_start", {})["$lte"] = date_to
-    if reminder_sent == "yes": q["reminder_email_sent_at"] = {"$ne": None}
-    if reminder_sent == "no":  q["reminder_email_sent_at"] = None
-    if city:
+    if clinic_id:
+        q["clinic_id"] = clinic_id
+    if status:
+        q["status"] = status
+    if treatment_category:
+        q["treatment_category"] = treatment_category
+    if source:
+        q["source"] = source
+    if date_from:
+        q.setdefault("selected_slot_start", {})["$gte"] = date_from
+    if date_to:
+        q.setdefault("selected_slot_start", {})["$lte"] = date_to
+    if reminder_sent == "yes":
+        q["reminder_email_sent_at"] = {"$ne": None}
+    if reminder_sent == "no":
+        q["reminder_email_sent_at"] = None
+    if city and not clinic_id:
         # City filter joins on the clinic — resolve clinic ids first.
+        # If clinic_id is ALSO passed we prefer the explicit id and
+        # ignore city (previous logic accidentally overwrote clinic_id
+        # with itself, causing an inert filter; documented in review).
         cids = [c["id"] async for c in db.clinics.find({"city": city}, {"_id": 0, "id": 1})]
-        q["clinic_id"] = {"$in": cids} if not clinic_id else clinic_id
+        q["clinic_id"] = {"$in": cids}
     docs = await db.clinic_bookings.find(q, {"_id": 0}).sort("selected_slot_start", -1).to_list(500)
     return {"bookings": docs}
 
@@ -520,6 +531,10 @@ async def reminder_loop(interval_seconds: int = 300):
             due = await db.clinic_bookings.find({
                 "reminder_email_scheduled_for": {"$ne": None, "$lte": now_iso},
                 "reminder_email_sent_at": None,
+                # Don't spam-retry a send that already failed once —
+                # admins can trigger a manual resend via the admin
+                # bookings action button.
+                "reminder_email_status": {"$ne": "send_failed"},
                 "status": {"$in": ["pending_confirmation", "confirmed"]},
             }, {"_id": 0}).to_list(200)
             for b in due:
@@ -528,12 +543,19 @@ async def reminder_loop(interval_seconds: int = 300):
                     continue
                 subj, html = patient_reminder_email(booking=b, clinic=clinic)
                 ok = _send_email(to=b.get("patient_email"), subject=subj, html=html, tag="patient_reminder_auto")
-                # Mark either way so we don't spam-retry a broken send.
-                sent_at = datetime.now(SOFIA).isoformat() if ok else None
-                await db.clinic_bookings.update_one(
-                    {"id": b["id"]},
-                    {"$set": {"reminder_email_sent_at": sent_at or "send_failed"}},
-                )
+                # Keep the ISO field pure — write a datetime iff sent
+                # ok. Failures are tracked in a separate status field
+                # so admin `reminder_sent=yes` filter (which tests
+                # for `reminder_email_sent_at != null`) is not
+                # polluted by broken sends.
+                update: Dict[str, Any] = {}
+                if ok:
+                    update["reminder_email_sent_at"] = datetime.now(SOFIA).isoformat()
+                    update["reminder_email_status"] = "sent"
+                else:
+                    update["reminder_email_status"] = "send_failed"
+                    update["reminder_email_last_error_at"] = datetime.now(SOFIA).isoformat()
+                await db.clinic_bookings.update_one({"id": b["id"]}, {"$set": update})
                 if ok:
                     _emit_track("booking_reminder_email_sent",
                                 clinicId=b["clinic_id"], bookingId=b["id"])
