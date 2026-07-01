@@ -87,14 +87,63 @@ const VERIFICATION_LABELS: Record<AlignerBrandEntry['verification_status'], stri
 }
 
 const TIER_LABELS: Array<{ value: Tier; label: string }> = [
-  { value: 'standard', label: 'Standard партньор' },
-  { value: 'featured', label: 'Featured партньор' },
-  { value: 'premium',  label: 'Premium партньор'  },
+  { value: 'standard', label: 'Verified Profile' },
+  { value: 'featured', label: 'Growth Partner' },
+  { value: 'premium',  label: 'Authority Partner' },
 ]
 
-// Tier visibility helpers — drives the inline "not publicly visible" hints
-// in admin so editors understand why a field they're typing won't surface.
+// Package display config keyed by internal enum. The backend enum stays
+// `standard/featured/premium` (zero-migration path — every existing row
+// still resolves cleanly through `_resolve_partner_tier` in public.py);
+// only labels, pricing and per-tier feature visibility change in the UI.
+// Source of truth: `Zubite_Clinic_Partner_Packages` doc (Feb 2026).
+type TierDisplay = {
+  label: string
+  positioning: string
+  monthly: string
+  yearly: string
+  onboarding: string
+  foundingOffer?: string
+  activeCls: string
+}
+const TIER_DISPLAY: Record<Tier, TierDisplay> = {
+  standard: {
+    label: 'Verified Profile',
+    positioning: 'Entry Presence',
+    monthly: '€39/month',
+    yearly: 'billed yearly · €468/year',
+    onboarding: 'Onboarding: €199 one-time',
+    activeCls: 'bg-slate-900 text-white',
+  },
+  featured: {
+    label: 'Growth Partner',
+    positioning: 'Recommended',
+    monthly: '€149/month',
+    yearly: 'billed yearly · €1,788/year',
+    onboarding: 'Onboarding: €399 one-time',
+    foundingOffer: 'Founding offer: €99/month for first 6 months',
+    activeCls: 'bg-teal-600 text-white',
+  },
+  premium: {
+    label: 'Authority Partner',
+    positioning: 'For Category Leaders',
+    monthly: '€349/month',
+    yearly: 'billed yearly · €4,188/year',
+    onboarding: 'Onboarding: €599 one-time',
+    activeCls: 'bg-violet-600 text-white',
+  },
+}
+
+// Tier ordering used for downgrade detection (lower index = lower tier).
+const TIER_ORDER: Tier[] = ['standard', 'featured', 'premium']
+const tierRank = (t: Tier) => TIER_ORDER.indexOf(t)
+
+// Tier visibility — extended in Feb 2026 to cover the full Zubite Partner
+// Package matrix. Existing profile-field keys are unchanged. The new keys
+// describe partner-access + authority + analytics features that surface
+// as chips / warnings in this editor (not as new form fields).
 const VISIBILITY: Record<string, Tier[]> = {
+  // ── existing profile fields ───────────────────────────────────
   short_description:        ['standard', 'featured', 'premium'],
   treatment_focus:          ['standard', 'featured', 'premium'],
   review_sources:           ['standard', 'featured', 'premium'],
@@ -110,15 +159,38 @@ const VISIBILITY: Record<string, Tier[]> = {
   environment_description:  ['premium'],
   consultation_process:     ['premium'],
   case_library:             ['premium'],
+  // ── partner-access matrix (Feb 2026 package doc) ─────────────
+  care_pass_partner:         ['featured', 'premium'],
+  quiz_result_participation: ['featured', 'premium'],
+  patient_context:           ['featured', 'premium'],
+  analytics_dashboard:       ['featured', 'premium'],
+  monthly_mini_report:       ['featured', 'premium'],
+  quarterly_optimization:    ['featured', 'premium'],
+  educational_events:        ['featured', 'premium'],
+  partner_supplier_offers:   ['featured', 'premium'],
+  beta_tools:                ['featured', 'premium'],
+  concierge_flow:            ['featured', 'premium'],
+  expert_quote:              ['featured', 'premium'],
+  clinic_spotlight:          ['featured', 'premium'],
+  founding_offer:            ['featured'],
+  expert_qa_interview:       ['premium'],
+  case_library_participation:['premium'],
+  expanded_analytics:        ['premium'],
+  quarterly_strategy_review: ['premium'],
+  annual_visibility_report:  ['premium'],
+  strategic_roundtables:     ['premium'],
+  speaker_cohost:            ['premium'],
+  podcast_video_opp:         ['premium'],
+  authority_content:         ['premium'],
+  priority_partner_campaign: ['premium'],
+  partner_access_plus:       ['premium'],
 }
 
 function visibilityHint(tier: Tier, field: keyof typeof VISIBILITY): string | null {
   const allowed = VISIBILITY[field]
-  if (allowed.includes(tier)) return null
-  if (allowed.includes('premium') && !allowed.includes('featured')) {
-    return 'Това поле ще се вижда публично само при Premium профил.'
-  }
-  return 'Това поле няма да се вижда публично при Standard профил.'
+  if (!allowed || allowed.includes(tier)) return null
+  const min = allowed[0]
+  return `Това поле ще се вижда публично само при ${TIER_DISPLAY[min].label} или по-нагоре.`
 }
 
 export default function AdminClinicEditPage() {
@@ -307,41 +379,115 @@ export default function AdminClinicEditPage() {
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
-        {/* Section 1 — Партньорски статус */}
-        <Section title="Партньорски статус" testid="section-partner-status">
-          <p className="text-xs text-slate-500 leading-relaxed mb-4">
-            Партньорският статус контролира видимостта и дълбочината на публичния
-            профил. Не означава медицински рейтинг или гаранция за качество.
+        {/* Section 1 — Партньорски пакет */}
+        <Section title="Партньорски пакет" testid="section-partner-status">
+          <p className="text-xs text-slate-500 leading-relaxed mb-4" data-testid="tier-trust-guardrail">
+            Пакетът определя дълбочината на профила, достъпа до партньорски функции
+            и отчетността. Не означава медицински рейтинг, клинично качество или
+            гарантирана позиция.
           </p>
-          <div className="flex flex-wrap gap-2">
-            {TIER_LABELS.map((t) => (
-              <button
-                key={t.value}
-                type="button"
-                onClick={() => setTier(t.value)}
-                className={
-                  'px-4 py-2 rounded-full text-sm font-medium transition-colors ' +
-                  (tier === t.value
-                    ? t.value === 'premium'
-                      ? 'bg-violet-600 text-white'
-                      : t.value === 'featured'
-                      ? 'bg-teal-600 text-white'
-                      : 'bg-slate-900 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200')
-                }
-                data-testid={`tier-${t.value}`}
-                aria-pressed={tier === t.value}
-              >
-                {t.label}
-              </button>
-            ))}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {TIER_LABELS.map((t) => {
+              const d = TIER_DISPLAY[t.value]
+              const active = tier === t.value
+              return (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => setTier(t.value)}
+                  className={
+                    'relative text-left rounded-2xl ring-1 p-4 transition-all ' +
+                    (active
+                      ? 'ring-teal-500 shadow-[0_10px_24px_-14px_rgba(15,118,110,0.35)] bg-white'
+                      : 'ring-slate-200 bg-slate-50 hover:bg-white hover:ring-slate-300')
+                  }
+                  data-testid={`tier-${t.value}`}
+                  aria-pressed={active}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={
+                      'inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ' +
+                      (active ? d.activeCls : 'bg-slate-200 text-slate-600')
+                    }>
+                      {d.positioning}
+                    </span>
+                    {active && <span className="text-[11px] font-medium text-teal-700">Selected</span>}
+                  </div>
+                  <p className="mt-3 font-serif text-lg font-semibold text-slate-900 leading-snug">{d.label}</p>
+                  <p className="mt-1 text-sm font-medium text-slate-800">{d.monthly}</p>
+                  <p className="text-[11.5px] text-slate-500 leading-snug">{d.yearly}</p>
+                  <p className="mt-2 text-[11.5px] text-slate-500 leading-snug">{d.onboarding}</p>
+                  {d.foundingOffer && (
+                    <p className="mt-2 text-[11px] text-teal-700 font-medium leading-snug" data-testid={`tier-${t.value}-founding-hint`}>
+                      {d.foundingOffer}
+                    </p>
+                  )}
+                </button>
+              )
+            })}
           </div>
           {tier !== tierBeforeSave && (
             <p className="mt-3 text-xs text-amber-700" data-testid="tier-pending">
               Промяната ще се запази след клик на „Запази".
             </p>
           )}
+          {tier !== tierBeforeSave && tierRank(tier) < tierRank(tierBeforeSave) && (
+            <div
+              className="mt-3 rounded-xl bg-amber-50 ring-1 ring-amber-200 px-3 py-2.5 text-[12px] text-amber-800 leading-relaxed"
+              data-testid="tier-downgrade-warning"
+            >
+              <p className="font-semibold mb-1">Внимание — понижаване на пакет</p>
+              <p>
+                Този пакет не включва някои вече активни функции. Те няма да се
+                показват публично след запазване, освен ако пакетът бъде върнат
+                към {TIER_DISPLAY['featured'].label} или {TIER_DISPLAY['premium'].label}.
+                Съществуващите данни се запазват — можеш да върнеш пакета по-късно.
+              </p>
+              {tier === 'standard' && (
+                <p className="mt-2 pt-2 border-t border-amber-200/70" data-testid="care-pass-downgrade-warning">
+                  Care Pass е активен, но избраният пакет не го включва.
+                  Потвърдете дали да бъде изключен преди запазване.
+                </p>
+              )}
+            </div>
+          )}
         </Section>
+
+        {/* Section 1.5 — Founding Growth Partner offer (only for Growth tier) */}
+        {tier === 'featured' && (
+          <Section title="Founding Growth Partner offer" testid="section-founding-offer">
+            <p className="text-xs text-slate-500 leading-relaxed mb-4">
+              Тази офер важи само за Growth Partner. Показва се тук, защото си
+              избрал/а <strong>{TIER_DISPLAY.featured.label}</strong>. Полетата се
+              запазват при клика на „Запази" в горния десен ъгъл.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              <div className="rounded-xl bg-teal-50/60 ring-1 ring-teal-200/60 px-4 py-3">
+                <p className="text-[11px] uppercase tracking-wider font-semibold text-teal-700">Условия</p>
+                <ul className="mt-1.5 space-y-1 text-[13px] text-slate-700">
+                  <li>Founding offer monthly price: <span className="font-semibold">€99</span></li>
+                  <li>Founding offer duration: <span className="font-semibold">6 месеца</span></li>
+                  <li>Followed by standard Growth Partner pricing (€149/month, billed yearly)</li>
+                </ul>
+              </div>
+              <div className="rounded-xl bg-slate-50 ring-1 ring-slate-200 px-4 py-3">
+                <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-600">Value-exchange checklist</p>
+                <ul className="mt-1.5 space-y-1 text-[13px] text-slate-700 list-disc list-inside marker:text-slate-400">
+                  <li>Пълна информация на клиничния профил</li>
+                  <li>Разговор за обратна връзка</li>
+                  <li>Разрешение за анонимизирани performance learnings</li>
+                  <li>Участие в expert quote/interview, ако е подходящо</li>
+                  <li>Сътрудничество за подобряване на платформата</li>
+                </ul>
+              </div>
+            </div>
+            <p className="mt-3 text-[11px] text-slate-400 leading-relaxed">
+              Полетата „Founding offer active / start date / end date / private
+              approval note" се управляват от Sales admin, не са редактируеми
+              от клиниката. За активиране на офер, свържете се с екипа.
+            </p>
+          </Section>
+        )}
 
         {/* Section 2 — Статус на профила */}
         <Section title="Статус на профила" testid="section-profile-status">
