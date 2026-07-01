@@ -202,10 +202,12 @@ function CaseCard({
 
           {/* Row 2 — treatment_type + duration + price */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <SmallSelect
+            <SmallInputWithSuggestions
               label="Тип лечение"
+              maxLength={80}
               value={row.treatment_type}
-              options={['', ...TREATMENT_TYPE_OPTIONS]}
+              suggestions={TREATMENT_TYPE_OPTIONS}
+              placeholder="Избери или въведи собствен"
               onChange={(v) => onChange({ treatment_type: v })}
               testid={`case-treatment-type-${index}`}
             />
@@ -397,7 +399,6 @@ function ImageBank({
         <div className="grid grid-cols-3 gap-2">
           {images.map((url, i) => (
             <div key={`${url}-${i}`} className="relative group aspect-square rounded-md overflow-hidden border border-slate-200 bg-white">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={url}
                 alt={`${label} ${i + 1}`}
@@ -444,25 +445,31 @@ function SmallInput({
   )
 }
 
-function SmallSelect({
-  label, value, options, onChange, testid,
+function SmallInputWithSuggestions({
+  label, value, onChange, maxLength, placeholder, testid, suggestions,
 }: {
-  label: string; value: string; options: string[]
-  onChange: (v: string) => void; testid?: string
+  label: string; value: string; onChange: (v: string) => void
+  maxLength?: number; placeholder?: string; testid?: string
+  suggestions: string[]
 }) {
+  const listId = `${testid || 'field'}-list`
   return (
     <label className="block text-xs text-slate-600">
       <span>{label}</span>
-      <select
+      <input
+        list={listId}
         value={value}
+        placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
+        maxLength={maxLength}
         className="mt-1 w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm bg-white"
         data-testid={testid}
-      >
-        {options.map((o) => (
-          <option key={o} value={o}>{o || '— избери —'}</option>
+      />
+      <datalist id={listId}>
+        {suggestions.map((o) => (
+          <option key={o} value={o} />
         ))}
-      </select>
+      </datalist>
     </label>
   )
 }
