@@ -12,7 +12,7 @@ from database import db, client
 from storage import init_storage
 from emails import send_verification_email
 
-from routers import public, admin, blog, analytics, clinics, verification, seo, consultations, audit_logs, orientation_settings, orientation_bookings, content_automation, public_clinics, clinic_addons
+from routers import public, admin, blog, analytics, clinics, verification, seo, consultations, audit_logs, orientation_settings, orientation_bookings, content_automation, public_clinics, clinic_addons, bookings
 # ─── ElevenLabs / call integration soft-disabled (Feb 2026) ──────────
 # `routers.calls` and `services.elevenlabs_service` are intentionally
 # NOT imported. Files remain on disk so the integration can be re-enabled
@@ -47,6 +47,7 @@ api_router.include_router(orientation_bookings.router)
 api_router.include_router(content_automation.router)
 api_router.include_router(public_clinics.router)
 api_router.include_router(clinic_addons.router)
+api_router.include_router(bookings.router)
 
 app.include_router(api_router)
 
@@ -181,6 +182,15 @@ async def startup():
 
     init_storage()
     asyncio.create_task(auto_verification_loop())
+
+    # Booking engine (Feb 2026) — indexes + 24h reminder loop.
+    from routers.bookings import reminder_loop
+    await db.clinic_bookings.create_index("id", unique=True)
+    await db.clinic_bookings.create_index([("clinic_id", 1), ("selected_slot_start", 1)])
+    await db.clinic_bookings.create_index("reminder_email_scheduled_for")
+    await db.clinic_availability_rules.create_index([("clinic_id", 1), ("day_of_week", 1)])
+    await db.clinic_booking_exceptions.create_index([("clinic_id", 1), ("date", 1)])
+    asyncio.create_task(reminder_loop())
 
 
 async def auto_verification_loop():

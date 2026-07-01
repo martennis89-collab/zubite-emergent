@@ -85,13 +85,24 @@ export default function ClinicProfileView({ clinic }: Props) {
     [],
   )
 
-  type CTAVariant = { label: string; onClick: () => void }
+  type CTAVariant = { label: string; onClick: () => void; testId?: string }
   const heroPrimary: CTAVariant = useMemo(() => {
+    // Feb 2026 booking engine — when the clinic has `booking_enabled`
+    // (Growth Partner or explicit admin override), the primary CTA
+    // navigates to the full booking calendar. Otherwise fall back to
+    // the existing online-orientation path.
+    if (clinic.booking_enabled) {
+      return {
+        label: 'Запази консултация',
+        onClick: () => { window.location.href = `/booking/${clinic.id}` },
+        testId: 'clinic-book-consultation-cta',
+      }
+    }
     if (schedulerState === 'available') {
       return { label: 'Запази час за консултация', onClick: () => scrollTo('consultation') }
     }
     return { label: 'Заяви контакт', onClick: openContact }
-  }, [schedulerState, openContact, scrollTo])
+  }, [clinic.booking_enabled, clinic.id, schedulerState, openContact, scrollTo])
 
   const heroSecondary: CTAVariant | null = useMemo(() => {
     if (schedulerState === 'available') {

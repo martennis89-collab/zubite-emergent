@@ -114,6 +114,8 @@ _BASE_ENTITLEMENTS_VERIFIED: Dict[str, Any] = {
     "partner_brand_supplier_offers": False,
     "selected_beta_access": False,
     "annual_category_insight_snapshot": False,
+    # booking (Feb 2026 booking engine — Verified is CTA-only)
+    "booking_enabled": False,
     # legacy alias (kept so older FE code doesn't break)
     "partner_access": False,
 }
@@ -146,6 +148,8 @@ _BASE_ENTITLEMENTS_GROWTH: Dict[str, Any] = {
     "partner_brand_supplier_offers": True,
     "selected_beta_access": True,
     "annual_category_insight_snapshot": True,
+    # booking calendar — enabled by default for Growth
+    "booking_enabled": True,
     # legacy alias
     "partner_access": True,
 }

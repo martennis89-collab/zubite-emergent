@@ -76,6 +76,22 @@ def _public_label_for_clinic(clinic: dict) -> str:
     from entitlements import public_partner_label
     return public_partner_label(clinic)
 
+
+def _quick_booking_enabled(clinic: dict) -> bool:
+    """Cheap derivation of `booking_enabled` for the public payload —
+    read directly off `base_package` + any persisted admin override.
+    Skips the add-on query (which is heavy) because no add-on in the
+    Feb 2026 catalog toggles this entitlement on its own.
+    """
+    from entitlements import resolve_base_package
+    bp = resolve_base_package(clinic)
+    default = bp == "growth_partner"
+    overrides = clinic.get("entitlement_overrides") or []
+    for o in overrides:
+        if isinstance(o, dict) and o.get("key") == "booking_enabled":
+            return bool(o.get("value"))
+    return default
+
 # Statuses considered safe for public display. `active_partner` is a fully
 # onboarded clinic. `evaluation_partner` is a vetted pilot clinic and is
 # included by design (per agreed scope §1).
@@ -185,6 +201,14 @@ def _public_clinic_payload(clinic: dict) -> dict:
         "public_status_label": _public_label_for_clinic(clinic),
         # NEW canonical field — always safe to render.
         "base_package": (clinic.get("base_package") or "").strip().lower() or None,
+        # Feb 2026 booking engine — cheap derived flag so the FE can
+        # conditionally show the "Запази консултация" CTA. We don't
+        # inline the addons check here (that costs another query per
+        # public request); we rely on the derived `booking_enabled`
+        # coming from the pre-migrated base_package + any admin
+        # override persisted in `entitlement_overrides` on the clinic
+        # doc itself.
+        "booking_enabled": _quick_booking_enabled(clinic),
         "review": review,
         # Optional rich profile (for the public profile page).
         "long_description": profile.get("clinic_story"),

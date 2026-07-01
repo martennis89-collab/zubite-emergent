@@ -77,6 +77,10 @@ export type PublicClinic = {
   profile_information_reviewed: boolean
   partner_tier: PartnerTier
   public_status_label: string
+  /** Feb 2026 booking engine — when true, patient can open the
+   *  full booking calendar via `/booking/{id}`. When false, only
+   *  the contact CTA (phone / lead form) is shown. */
+  booking_enabled?: boolean
   review: ReviewSummary | null
   long_description: string | null
   consultation_process: string | null
