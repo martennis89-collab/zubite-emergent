@@ -135,6 +135,13 @@ export interface RecommendedClinic {
       title: string
       category: string
       summary: string
+      treatment_type?: string | null
+      duration?: string | null
+      price?: string | null
+      materials?: string | null
+      specifics?: string | null
+      before_images?: string[]
+      after_images?: string[]
     }> | null
   };
 }

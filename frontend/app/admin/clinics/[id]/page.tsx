@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { Save, Plus, Trash2, CheckCircle2, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import { AdminHeader } from '@/components/admin/AdminHeader'
+import { CaseLibraryEditor, type CaseRow as EditorCaseRow } from '@/components/admin/CaseLibraryEditor'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -18,6 +19,13 @@ interface CaseRow {
   summary: string
   status: ProfileStatus
   consent_confirmed: boolean
+  treatment_type: string
+  duration: string
+  price: string
+  materials: string
+  specifics: string
+  before_images: string[]
+  after_images: string[]
   _key: number  // local-only stable key for React lists
 }
 
@@ -250,13 +258,24 @@ export default function AdminClinicEditPage() {
         review_sources: p.review_sources || {},
       })
       setCases(
-        (p.case_library || []).map((c, i) => ({
+        (p.case_library || []).map((c) => ({
           id: c.id,
           title: c.title || '',
           category: c.category || '',
           summary: c.summary || '',
           status: (c.status as ProfileStatus) || 'draft',
           consent_confirmed: !!c.consent_confirmed,
+          treatment_type: (c as { treatment_type?: string }).treatment_type || '',
+          duration: (c as { duration?: string }).duration || '',
+          price: (c as { price?: string }).price || '',
+          materials: (c as { materials?: string }).materials || '',
+          specifics: (c as { specifics?: string }).specifics || '',
+          before_images: Array.isArray((c as { before_images?: string[] }).before_images)
+            ? (c as { before_images?: string[] }).before_images as string[]
+            : [],
+          after_images: Array.isArray((c as { after_images?: string[] }).after_images)
+            ? (c as { after_images?: string[] }).after_images as string[]
+            : [],
           _key: ++caseKeyRef.current,
         })),
       )
@@ -312,6 +331,13 @@ export default function AdminClinicEditPage() {
             summary: c.summary,
             status: c.status,
             consent_confirmed: c.consent_confirmed,
+            treatment_type: c.treatment_type || null,
+            duration: c.duration || null,
+            price: c.price || null,
+            materials: c.materials || null,
+            specifics: c.specifics || null,
+            before_images: c.before_images || [],
+            after_images: c.after_images || [],
           })),
         },
       }
@@ -826,52 +852,11 @@ export default function AdminClinicEditPage() {
 
         {/* Section 8 — Библиотека със случаи */}
         <Section title="Библиотека със случаи" testid="section-cases">
-          <p className="text-xs text-slate-500 mb-3">
-            Само текст. Без снимки. Без имена на пациенти. Публикуван случай
-            изисква потвърдено съгласие. {visibilityHint(tier, 'case_library')}
-          </p>
-          <div className="space-y-3">
-            {cases.map((row, i) => (
-              <div key={row._key} className="rounded-lg border border-slate-200 p-3 space-y-2" data-testid={`case-row-${i}`}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <TextInput label="Заглавие" maxLength={120} value={row.title} testid={`case-title-${i}`}
-                    onChange={(v) => setCases((arr) => arr.map((r, idx) => idx === i ? { ...r, title: v } : r))} />
-                  <TextInput label="Категория" maxLength={80} value={row.category} testid={`case-category-${i}`}
-                    onChange={(v) => setCases((arr) => arr.map((r, idx) => idx === i ? { ...r, category: v } : r))} />
-                </div>
-                <Field label="Описание (до 700)">
-                  <textarea value={row.summary} onChange={(e) => setCases((arr) => arr.map((r, idx) => idx === i ? { ...r, summary: e.target.value } : r))}
-                    maxLength={700} rows={3} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" data-testid={`case-summary-${i}`} />
-                </Field>
-                <div className="flex flex-wrap items-center gap-3">
-                  <label className="inline-flex items-center gap-1.5 text-xs">
-                    <input type="checkbox" checked={row.consent_confirmed}
-                      onChange={(e) => setCases((arr) => arr.map((r, idx) => idx === i ? { ...r, consent_confirmed: e.target.checked } : r))}
-                      data-testid={`case-consent-${i}`} />
-                    Потвърдено съгласие от пациента
-                  </label>
-                  <select value={row.status} onChange={(e) => setCases((arr) => arr.map((r, idx) => idx === i ? { ...r, status: e.target.value as ProfileStatus } : r))}
-                    className="px-2 py-1 rounded-lg border border-slate-200 text-xs" data-testid={`case-status-${i}`}>
-                    <option value="draft">Чернова</option>
-                    <option value="published" disabled={!row.consent_confirmed}>Публикуван</option>
-                  </select>
-                  <button type="button" onClick={() => setCases((arr) => arr.filter((_, idx) => idx !== i))}
-                    className="ml-auto inline-flex items-center gap-1 text-rose-600 hover:text-rose-700 text-xs" data-testid={`case-remove-${i}`}>
-                    <Trash2 className="w-3.5 h-3.5" /> Премахни
-                  </button>
-                </div>
-              </div>
-            ))}
-            {cases.length < 12 && (
-              <button type="button" onClick={() => setCases((arr) => [...arr, {
-                title: '', category: '', summary: '', status: 'draft' as ProfileStatus,
-                consent_confirmed: false, _key: ++caseKeyRef.current,
-              }])}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 text-white text-sm" data-testid="case-add">
-                <Plus className="w-3.5 h-3.5" /> Добави случай
-              </button>
-            )}
-          </div>
+          <CaseLibraryEditor
+            cases={cases as EditorCaseRow[]}
+            onChange={(updater) => setCases((arr) => updater(arr as EditorCaseRow[]) as CaseRow[])}
+            visibilityHint={visibilityHint(tier, 'case_library')}
+          />
         </Section>
       </div>
 

@@ -196,7 +196,21 @@ def _public_clinic_payload(clinic: dict) -> dict:
         "price_ranges": profile.get("price_ranges") or [],
         "treatment_details": profile.get("treatment_details") or {},
         "case_library": [
-            c for c in (profile.get("case_library") or [])
+            {
+                "id": c.get("id"),
+                "title": c.get("title"),
+                "category": c.get("category"),
+                "summary": c.get("summary"),
+                # Revamp fields (Feb 2026) — surfaced when present.
+                "treatment_type": c.get("treatment_type") or None,
+                "duration": c.get("duration") or None,
+                "price": c.get("price") or None,
+                "materials": c.get("materials") or None,
+                "specifics": c.get("specifics") or None,
+                "before_images": [u for u in (c.get("before_images") or []) if isinstance(u, str) and u.strip()],
+                "after_images": [u for u in (c.get("after_images") or []) if isinstance(u, str) and u.strip()],
+            }
+            for c in (profile.get("case_library") or [])
             # Only consent-confirmed cases reach the public payload.
             if c.get("consent_confirmed") and c.get("status") == "published"
         ],
@@ -242,6 +256,7 @@ async def list_public_clinics(
     query: dict[str, Any] = {
         "is_active": True,
         "clinic_status": {"$in": list(_PUBLIC_STATUSES)},
+        "archived": {"$ne": True},
         "name": {"$ne": None, "$exists": True},
         "city_slug": {"$ne": None, "$exists": True},
     }
@@ -286,6 +301,7 @@ async def get_public_clinic(slug_or_id: str):
     base = {
         "is_active": True,
         "clinic_status": {"$in": list(_PUBLIC_STATUSES)},
+        "archived": {"$ne": True},
         "name": {"$ne": None},
     }
     # Hide demo records from production lookups (same gate as the list).
@@ -329,6 +345,7 @@ async def _load_clinic_for_public_scheduler(clinic_id: str) -> dict:
     base = {
         "is_active": True,
         "clinic_status": {"$in": list(_PUBLIC_STATUSES)},
+        "archived": {"$ne": True},
         "id": clinic_id,
     }
     if not _demo_clinics_enabled():

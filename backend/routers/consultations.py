@@ -217,8 +217,28 @@ async def _send_clinic_assignment_email(clinic: Dict[str, Any], req: Dict[str, A
 # ─── Admin: Clinic Management ─────────────────────────────
 
 @router.get("/admin/clinics")
-async def admin_list_clinics(user: AdminUser = Depends(get_current_user)):
-    clinics = await db.clinics.find({}, {"_id": 0, "password_hash": 0}).to_list(500)
+async def admin_list_clinics(
+    archived: Optional[str] = None,
+    user: AdminUser = Depends(get_current_user),
+):
+    """List partner clinics for the admin dashboard.
+
+    `archived` query values:
+      • `false` / omitted → only NON-archived clinics (default)
+      • `true`            → only archived clinics
+      • `all`             → both
+    """
+    archived_norm = (archived or "").strip().lower()
+    query: Dict[str, Any] = {}
+    if archived_norm == "true":
+        query["archived"] = True
+    elif archived_norm == "all":
+        pass  # no filter — include both
+    else:
+        # default: hide archived
+        query["archived"] = {"$ne": True}
+
+    clinics = await db.clinics.find(query, {"_id": 0, "password_hash": 0}).to_list(500)
     # Augment with simple counts for the listing table
     for c in clinics:
         cid = c.get("id")
@@ -230,7 +250,74 @@ async def admin_list_clinics(user: AdminUser = Depends(get_current_user)):
         )
         # Surface canonical normalized treatments (Feb 2026 cleanup).
         c["treatments_supported"] = _canonical_treatments_for_doc(c)
+        # Ensure `archived` flag is always present (default False) so the
+        # admin UI can render badges without branching on `undefined`.
+        c["archived"] = bool(c.get("archived"))
     return {"clinics": clinics}
+
+
+@router.post("/admin/clinics/{clinic_id}/archive")
+async def admin_archive_clinic(
+    clinic_id: str,
+    request: Request,
+    user: AdminUser = Depends(get_current_user),
+):
+    """Soft-delete: hide clinic from ALL public surfaces (listings,
+    matching, direct profile URL → 404) without destroying data. The
+    clinic remains fully editable in the admin dashboard under the
+    Archived tab and can be un-archived at any time."""
+    if not isinstance(clinic_id, str) or not clinic_id.strip():
+        raise HTTPException(status_code=400, detail="Invalid clinic_id")
+    before = await db.clinics.find_one({"id": clinic_id}, {"_id": 0, "password_hash": 0})
+    if not before:
+        raise HTTPException(status_code=404, detail="Clinic not found")
+    if before.get("archived") is True:
+        return {"ok": True, "already_archived": True}
+    now = _now_iso()
+    await db.clinics.update_one(
+        {"id": clinic_id},
+        {"$set": {"archived": True, "archived_at": now, "updated_at": now}},
+    )
+    await audit_log(
+        "clinic.archived",
+        actor=user, actor_type="admin",
+        target_type="clinic", target_id=clinic_id,
+        target_summary=before.get("clinic_name"),
+        metadata={"archived_at": now},
+        severity="warning", request=request,
+    )
+    return {"ok": True, "archived": True, "archived_at": now}
+
+
+@router.post("/admin/clinics/{clinic_id}/unarchive")
+async def admin_unarchive_clinic(
+    clinic_id: str,
+    request: Request,
+    user: AdminUser = Depends(get_current_user),
+):
+    """Restore an archived clinic. All public surfaces immediately
+    honour its previous `clinic_status` / `is_active` state."""
+    if not isinstance(clinic_id, str) or not clinic_id.strip():
+        raise HTTPException(status_code=400, detail="Invalid clinic_id")
+    before = await db.clinics.find_one({"id": clinic_id}, {"_id": 0, "password_hash": 0})
+    if not before:
+        raise HTTPException(status_code=404, detail="Clinic not found")
+    if not before.get("archived"):
+        return {"ok": True, "already_active": True}
+    now = _now_iso()
+    await db.clinics.update_one(
+        {"id": clinic_id},
+        {"$set": {"archived": False, "unarchived_at": now, "updated_at": now}},
+    )
+    await audit_log(
+        "clinic.unarchived",
+        actor=user, actor_type="admin",
+        target_type="clinic", target_id=clinic_id,
+        target_summary=before.get("clinic_name"),
+        metadata={"unarchived_at": now},
+        severity="info", request=request,
+    )
+    return {"ok": True, "archived": False, "unarchived_at": now}
 
 
 @router.post("/admin/clinics")
@@ -396,6 +483,29 @@ async def admin_update_clinic(
                     )
                 if not case.get("id"):
                     case["id"] = str(uuid.uuid4())
+                # Feb 2026 revamp — before/after images (up to 3 each).
+                for _img_field in ("before_images", "after_images"):
+                    imgs = case.get(_img_field)
+                    if imgs is None:
+                        continue
+                    if not isinstance(imgs, list):
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"{_img_field} must be a list",
+                        )
+                    if len(imgs) > 3:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"{_img_field} exceeds 3 items",
+                        )
+                    for u in imgs:
+                        if not isinstance(u, str) or not u.strip() or len(u) > 500:
+                            raise HTTPException(
+                                status_code=400,
+                                detail=f"Invalid {_img_field} entry",
+                            )
+                    # Persist trimmed list (drop any accidental blanks).
+                    case[_img_field] = [u.strip() for u in imgs if u.strip()]
 
         # Stamp updated_at on every write; stamp published_at on transition
         # to published (or keep previous if already published).

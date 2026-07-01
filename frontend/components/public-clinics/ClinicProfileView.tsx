@@ -587,18 +587,14 @@ export default function ClinicProfileView({ clinic }: Props) {
                     )}
                   </SectionShell>
 
-                  {/* Cases — collapsed only when empty */}
-                  <SectionShell id="cases" testid="profile-section-cases" title="Реални случаи" subtitle="Публикуват се само случаи с потвърдено пациентско съгласие." icon={<FileText className="w-4 h-4 text-teal-700" />}>
+                  {/* Cases — rich showcase with before/after images and treatment details */}
+                  <SectionShell id="cases" testid="profile-section-cases" title="Библиотека със случаи" subtitle="Публикуват се само случаи с потвърдено пациентско съгласие." icon={<FileText className="w-4 h-4 text-teal-700" />}>
                     {clinic.case_library.length > 0 ? (
-                      <Accordion
-                        items={clinic.case_library.map((c, i) => ({
-                          id: c.id || `case-${i}`,
-                          head: c.title + (c.category ? ` · ${c.category}` : ''),
-                          body: c.summary,
-                        }))}
-                        testid="accordion-cases"
-                        defaultOpenIdx={0}
-                      />
+                      <div className="space-y-4" data-testid="case-library-showcase">
+                        {clinic.case_library.map((c, i) => (
+                          <CaseShowcaseCard key={c.id || `case-${i}`} caseItem={c} index={i} />
+                        ))}
+                      </div>
                     ) : (
                       <EmptyStateCard hint="Реални случаи" message="Клиниката все още не е предоставила реални случаи за публикуване." testid="empty-cases" />
                     )}
@@ -1675,4 +1671,127 @@ function consultationStepsFromText(text: string): AccordionItem[] {
     }
   }
   return steps.length > 0 ? steps : [{ id: 'step-only', head: 'Процес', body: text }]
+}
+
+
+// ─── CaseShowcaseCard ─────────────────────────────────────────────
+// Rich per-case card used inside the "Библиотека със случаи" section.
+// Shows treatment metadata + optional before/after gallery. Falls back
+// gracefully when older cases carry only text.
+
+type CaseItem = PublicClinic['case_library'][number]
+
+function CaseShowcaseCard({ caseItem: c, index }: { caseItem: CaseItem; index: number }) {
+  const beforeList = Array.isArray(c.before_images) ? c.before_images.filter(Boolean) : []
+  const afterList = Array.isArray(c.after_images) ? c.after_images.filter(Boolean) : []
+  const hasImages = beforeList.length > 0 || afterList.length > 0
+
+  const meta: Array<{ label: string; value: string }> = []
+  if (c.treatment_type) meta.push({ label: 'Тип лечение', value: c.treatment_type })
+  if (c.duration)       meta.push({ label: 'Продължителност', value: c.duration })
+  if (c.price)          meta.push({ label: 'Цена', value: c.price })
+  if (c.materials)      meta.push({ label: 'Материали', value: c.materials })
+
+  return (
+    <article
+      className="rounded-2xl bg-white ring-1 ring-slate-200/70 overflow-hidden"
+      data-testid={`case-card-${index}`}
+    >
+      {/* Header */}
+      <header className="px-4 sm:px-5 py-4 border-b border-slate-100">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-teal-700 mb-1">
+              {c.category || 'Случай'}
+            </p>
+            <h4 className="font-serif text-lg font-semibold text-slate-900 leading-tight">
+              {c.title}
+            </h4>
+          </div>
+          {hasImages && (
+            <span className="hidden sm:inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-teal-50 text-teal-700 text-[10px] font-semibold uppercase tracking-wider px-2 py-1">
+              Преди · След
+            </span>
+          )}
+        </div>
+      </header>
+
+      {/* Before / After gallery */}
+      {hasImages && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-slate-100">
+          <CaseImageColumn label="Преди" images={beforeList} testid={`case-${index}-before`} />
+          <CaseImageColumn label="След"  images={afterList}  testid={`case-${index}-after`} />
+        </div>
+      )}
+
+      {/* Body */}
+      <div className="px-4 sm:px-5 py-4 space-y-4">
+        {c.summary && (
+          <p className="text-[13px] leading-relaxed text-slate-700 whitespace-pre-line" data-testid={`case-${index}-summary`}>
+            {c.summary}
+          </p>
+        )}
+        {c.specifics && (
+          <div className="rounded-lg bg-slate-50/80 ring-1 ring-slate-100 px-3.5 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 mb-1">
+              Особености
+            </p>
+            <p className="text-[13px] leading-relaxed text-slate-700 whitespace-pre-line" data-testid={`case-${index}-specifics`}>
+              {c.specifics}
+            </p>
+          </div>
+        )}
+        {meta.length > 0 && (
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 pt-1" data-testid={`case-${index}-meta`}>
+            {meta.map((m) => (
+              <div key={m.label} className="flex items-start justify-between gap-3 border-b border-slate-100/80 pb-2 last:border-0">
+                <dt className="text-[11px] uppercase tracking-wider text-slate-500 font-medium flex-shrink-0">
+                  {m.label}
+                </dt>
+                <dd className="text-[13px] text-slate-800 text-right min-w-0">
+                  {m.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        )}
+      </div>
+    </article>
+  )
+}
+
+function CaseImageColumn({
+  label, images, testid,
+}: { label: string; images: string[]; testid: string }) {
+  if (images.length === 0) {
+    return (
+      <div className="bg-white p-4 grid place-items-center text-[11px] text-slate-400 italic min-h-[140px]">
+        Няма снимка „{label}“
+      </div>
+    )
+  }
+  return (
+    <div className="bg-white p-2" data-testid={testid}>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500 px-2 pt-1 pb-2">
+        {label}
+      </p>
+      <div className={images.length > 1 ? 'grid grid-cols-3 gap-1.5' : ''}>
+        {images.map((url, i) => (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={`${url}-${i}`}
+            src={url}
+            alt={`${label} ${i + 1}`}
+            loading="lazy"
+            className={
+              images.length > 1
+                ? 'w-full aspect-square object-cover rounded-md ring-1 ring-slate-200/70'
+                : 'w-full aspect-[4/3] object-cover rounded-md ring-1 ring-slate-200/70'
+            }
+            data-testid={`${testid}-img-${i}`}
+          />
+        ))}
+      </div>
+    </div>
+  )
 }

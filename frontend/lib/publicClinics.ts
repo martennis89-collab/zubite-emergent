@@ -89,7 +89,19 @@ export type PublicClinic = {
   category_authority: string | null
   price_ranges: ProfilePriceRange[]
   treatment_details: Record<string, ProfileTreatmentDetail>
-  case_library: Array<{ id?: string; title: string; category?: string; summary: string }>
+  case_library: Array<{
+    id?: string
+    title: string
+    category?: string
+    summary: string
+    treatment_type?: string | null
+    duration?: string | null
+    price?: string | null
+    materials?: string | null
+    specifics?: string | null
+    before_images?: string[]
+    after_images?: string[]
+  }>
   profile_published_at: string | null
   // Phase C1 — sponsorship + demo flags
   is_sponsored: boolean

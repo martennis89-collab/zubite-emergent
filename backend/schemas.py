@@ -710,8 +710,13 @@ PROFILE_STATUS_VALUES = ("draft", "published")
 
 
 class ClinicProfileCase(BaseModel):
-    """A single text-only case in the case library. R1: no images,
-    no patient PII. `published` requires `consent_confirmed=True`."""
+    """A single case in the case library.
+
+    Feb 2026 revamp: supports treatment metadata (type, duration, price
+    range as free text, materials, specifics) and before/after images
+    (up to 3 each). Published cases still require `consent_confirmed=True`.
+    NEVER include patient PII in any field.
+    """
     model_config = ConfigDict(extra="ignore")
 
     id: Optional[str] = Field(default=None, max_length=80)
@@ -720,6 +725,21 @@ class ClinicProfileCase(BaseModel):
     summary: str = Field(min_length=1, max_length=700)
     status: str = Field(default="draft")
     consent_confirmed: bool = False
+
+    # ── Revamp fields (Feb 2026) ────────────────────────────────
+    treatment_type: Optional[str] = Field(default=None, max_length=80)
+    # Free text — e.g. "6 месеца", "3 сесии", "1 година"
+    duration: Optional[str] = Field(default=None, max_length=80)
+    # Free text — per product decision the price is admin-authored copy,
+    # e.g. "От 4 500 лв.", "По запитване", "3 200 – 4 000 лв."
+    price: Optional[str] = Field(default=None, max_length=120)
+    # Free text — e.g. "Invisalign Comprehensive, композитни фасети"
+    materials: Optional[str] = Field(default=None, max_length=300)
+    # Free text — clinical specifics / особености, no PII
+    specifics: Optional[str] = Field(default=None, max_length=700)
+    # Image URLs (served via `/api/files/{id}` or absolute). Max 3 each.
+    before_images: Optional[List[str]] = None
+    after_images: Optional[List[str]] = None
 
 
 class ClinicProfileQA(BaseModel):

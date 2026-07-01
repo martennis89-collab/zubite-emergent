@@ -183,13 +183,13 @@ async def get_cities():
 async def get_city(city_slug: str):
     if city_slug not in CITIES:
         raise HTTPException(status_code=404, detail="City not found")
-    clinic = await db.clinics.find_one({"city_slug": city_slug, "is_active": True}, {"_id": 0})
+    clinic = await db.clinics.find_one({"city_slug": city_slug, "is_active": True, "archived": {"$ne": True}}, {"_id": 0})
     return {"city_slug": city_slug, "city_name": CITIES[city_slug], "clinic": clinic}
 
 
 @router.get("/clinics")
 async def get_clinics():
-    clinics = await db.clinics.find({"is_active": True}, {"_id": 0}).to_list(100)
+    clinics = await db.clinics.find({"is_active": True, "archived": {"$ne": True}}, {"_id": 0}).to_list(100)
     return clinics
 
 
@@ -210,6 +210,7 @@ async def create_lead(data: LeadCreate):
         clinic = await db.clinics.find_one({
             "city_slug": data.city_slug,
             "is_active": True,
+            "archived": {"$ne": True},
             "$or": [
                 {"treatments_supported": data.treatment_type},
                 {"treatments_offered": data.treatment_type},
@@ -960,6 +961,10 @@ def _is_clinic_visible(clinic: dict) -> bool:
     # Hard negatives.
     if clinic.get("is_active") is False:
         return False
+    # Archived clinics are treated as hard-deleted for all public
+    # surfaces (listings, matching, direct profile URL → 404).
+    if clinic.get("archived") is True:
+        return False
     # Demo / showcase clinics never compete for real recommendations.
     if clinic.get("is_demo") is True:
         return False
@@ -1095,6 +1100,15 @@ def _public_profile_for_tier(clinic: dict, tier: str) -> Optional[dict]:
                 "title": c.get("title"),
                 "category": c.get("category"),
                 "summary": c.get("summary"),
+                # Revamp fields (Feb 2026). All optional — the FE renders
+                # them only when present.
+                "treatment_type": c.get("treatment_type") or None,
+                "duration": c.get("duration") or None,
+                "price": c.get("price") or None,
+                "materials": c.get("materials") or None,
+                "specifics": c.get("specifics") or None,
+                "before_images": [u for u in (c.get("before_images") or []) if isinstance(u, str) and u.strip()],
+                "after_images": [u for u in (c.get("after_images") or []) if isinstance(u, str) and u.strip()],
             }
             for c in cases
             if isinstance(c, dict)
@@ -1278,6 +1292,7 @@ async def recommended_clinics(lead_id: str, limit: int = 3):
             "city_slug": 1, "city_name": 1, "city": 1,
             "treatments_supported": 1, "treatments_offered": 1,
             "is_active": 1, "clinic_status": 1, "status": 1,
+            "archived": 1,
             "is_demo": 1,
             # Public profile slug — projected so it's available for the
             # `slug` field exposed in `_safe_clinic_payload` (Feb 2026).
@@ -1476,6 +1491,7 @@ async def request_call(lead_id: str, body: RequestCallBody):
             "city_slug": 1, "city_name": 1, "city": 1,
             "treatments_supported": 1, "treatments_offered": 1,
             "is_active": 1, "clinic_status": 1, "status": 1,
+            "archived": 1,
             "partner_tier": 1, "is_featured": 1, "is_premium": 1,
             "featured_rank": 1, "sponsored_rank": 1,
             "subscription_status": 1,
