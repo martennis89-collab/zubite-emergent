@@ -66,6 +66,9 @@ export type PublicClinic = {
   patient_intro: string | null
   treatment_focus: string[]
   hero_image_url: string | null
+  doctor_spotlight_image_url: string | null
+  team_image_url: string | null
+  environment_image_url: string | null
   best_for: string[]
   not_ideal_for: string[]
   why_this_clinic_appears: string[]

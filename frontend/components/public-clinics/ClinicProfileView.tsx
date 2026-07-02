@@ -510,20 +510,49 @@ export default function ClinicProfileView({ clinic }: Props) {
 
                   {/* Doctor */}
                   <SectionShell id="team" testid="profile-section-doctor" title="Водещ лекар" icon={<UserCircle2 className="w-4 h-4 text-teal-700" />}>
-                    {clinic.doctor_spotlight?.name ? (
+                    {(clinic.doctor_spotlight?.name || clinic.team_image_url) ? (
                       <div>
-                        <p className="font-medium text-slate-900 text-[14px]">
-                          {clinic.doctor_spotlight.name}
-                        </p>
-                        {clinic.doctor_spotlight.role && (
-                          <p className="text-[12px] text-slate-500 mt-0.5">
-                            {clinic.doctor_spotlight.role}
-                          </p>
+                        {clinic.doctor_spotlight?.name && (
+                          <div className="flex items-start gap-3">
+                            {clinic.doctor_spotlight_image_url && (
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              <img
+                                src={clinic.doctor_spotlight_image_url}
+                                alt={clinic.doctor_spotlight.name || 'Водещ лекар'}
+                                className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover ring-2 ring-teal-100 flex-shrink-0"
+                                data-testid="profile-doctor-image"
+                              />
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium text-slate-900 text-[14px]">
+                                {clinic.doctor_spotlight.name}
+                              </p>
+                              {clinic.doctor_spotlight.role && (
+                                <p className="text-[12px] text-slate-500 mt-0.5">
+                                  {clinic.doctor_spotlight.role}
+                                </p>
+                              )}
+                              {clinic.doctor_spotlight.bio && (
+                                <p className="mt-1.5 text-[13px] text-slate-700 leading-relaxed whitespace-pre-line">
+                                  {clinic.doctor_spotlight.bio}
+                                </p>
+                              )}
+                            </div>
+                          </div>
                         )}
-                        {clinic.doctor_spotlight.bio && (
-                          <p className="mt-1.5 text-[13px] text-slate-700 leading-relaxed whitespace-pre-line">
-                            {clinic.doctor_spotlight.bio}
-                          </p>
+                        {clinic.team_image_url && (
+                          <figure className={clinic.doctor_spotlight?.name ? 'mt-4' : ''} data-testid="profile-team-figure">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={clinic.team_image_url}
+                              alt={`Екипът на ${clinic.name}`}
+                              className="w-full h-48 sm:h-64 object-cover rounded-xl ring-1 ring-slate-200"
+                              data-testid="profile-team-image"
+                            />
+                            <figcaption className="mt-1.5 text-[11px] text-slate-500 leading-snug">
+                              Екипът на клиниката
+                            </figcaption>
+                          </figure>
                         )}
                         {clinic.team_note && (
                           <p className="mt-2 text-[11px] text-slate-500 italic">
@@ -543,11 +572,27 @@ export default function ClinicProfileView({ clinic }: Props) {
                 <>
                   {/* Deep clinic story */}
                   <SectionShell testid="profile-section-story" title="Историята на клиниката" icon={<BookOpenCheck className="w-4 h-4 text-teal-700" />}>
-                    {clinic.long_description ? (
+                    {(clinic.long_description || clinic.environment_image_url) ? (
                       <div>
-                        <p className="text-[13px] text-slate-700 leading-relaxed whitespace-pre-line">
-                          {clinic.long_description}
-                        </p>
+                        {clinic.environment_image_url && (
+                          <figure className="mb-3" data-testid="profile-environment-figure">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={clinic.environment_image_url}
+                              alt={`Средата в ${clinic.name}`}
+                              className="w-full h-48 sm:h-64 object-cover rounded-xl ring-1 ring-slate-200"
+                              data-testid="profile-environment-image"
+                            />
+                            <figcaption className="mt-1.5 text-[11px] text-slate-500 leading-snug">
+                              Средата в клиниката
+                            </figcaption>
+                          </figure>
+                        )}
+                        {clinic.long_description && (
+                          <p className="text-[13px] text-slate-700 leading-relaxed whitespace-pre-line">
+                            {clinic.long_description}
+                          </p>
+                        )}
                         {clinic.environment_description && (
                           <div className="mt-3 rounded-md bg-teal-50/40 ring-1 ring-teal-100 p-2.5 text-[12px] text-slate-700 leading-snug">
                             {clinic.environment_description}

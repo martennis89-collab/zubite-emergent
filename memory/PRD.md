@@ -73,6 +73,8 @@ Build and optimize **Zubite.bg**, an educational orthodontic platform for the Bu
 - Phase B / C / D (Care Pass, /breketi, /treatments, /results, clinic profile, static pages) — pending: same width standard + selective dark-green pattern + overlapping tiles per user request.
 
 
+- **Public Clinic Profile — Doctor / Team / Environment Images (Feb 2026)** — Extended `PublicClinic` type with `doctor_spotlight_image_url`, `team_image_url`, `environment_image_url` (backend already exposed them). `ClinicProfileView.tsx` now renders: (a) round doctor avatar (80/96px) next to the leading-doctor block, (b) full-width team photo (h-48 sm:h-64, rounded-xl, ring-1) with caption "Екипът на клиниката" below the doctor bio, (c) environment photo hero at the top of "Историята на клиниката" with caption "Средата в клиниката". All rendering is conditional (only when URL present) and the doctor block also renders when only a team image exists (no forced empty state). Doctor image gate = doctor name present; team + environment images render on the Authority tier (`isAuthority`) sections. Verified via preview screenshots against seeded Unsplash URLs on `sofia-premium-dental-studio` — hero + team + environment images all render with correct rounding, ring, and captions. Zero backend changes. `data-testid`s added: `profile-doctor-image`, `profile-team-figure`, `profile-team-image`, `profile-environment-figure`, `profile-environment-image`.
+
 
 ## Tech Stack
 - **Frontend**: Next.js 14 (App Router), React, Tailwind, shadcn/ui.
