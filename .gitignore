@@ -32,15 +32,18 @@ next-env.d.ts
 dist/
 dist
 
-# Environment files (comprehensive coverage)
-.env
-.env.*
-*.env
-backend/.env
-backend/.env.*
-frontend/.env
-frontend/.env.*
-# Allow committed example/template files at any depth
+# Environment files
+# NOTE: Emergent production deployment expects `.env` files to be
+# committed (they are auto-rewritten during deploy). Only exclude
+# example/template files, and any obviously secret ones (tokens,
+# credentials JSON).
+!.env
+!.env.*
+!*.env
+!backend/.env
+!backend/.env.*
+!frontend/.env
+!frontend/.env.*
 !.env.example
 !**/.env.example
 !.env.*.example
@@ -48,6 +51,10 @@ frontend/.env.*
 
 *token.json*
 *credentials.json*
+
+# Test credentials (development-only — never ship to production)
+memory/test_credentials.md
+**/test_credentials.md
 
 # Logs and debug files
 npm-debug.log*
