@@ -386,10 +386,19 @@ async def admin_create_clinic(
     import secrets as _secrets
     temp_password = _secrets.token_urlsafe(12)
     now = _now_iso()
+    # Public listing (`/kliniki`) expects a canonical `name` + `city_slug`
+    # + `is_active` triple. Legacy admin docs only had `clinic_name` +
+    # free-text `city`, which excluded them from the public list. Mirror
+    # both fields on insert so new clinics surface immediately.
+    from routers.public_clinics import resolve_city_slug
+    city_slug = resolve_city_slug({"city": data.city})
     doc = {
         "id": _new_id(),
         "clinic_name": data.clinic_name,
+        "name": data.clinic_name,
         "city": data.city,
+        "city_slug": city_slug,
+        "is_active": True,
         "email": email,
         "phone": data.phone,
         "address": data.address,
@@ -483,6 +492,17 @@ async def admin_update_clinic(
     update = {k: v for k, v in raw.items() if v is not None}
     if not update:
         raise HTTPException(status_code=400, detail="No fields to update")
+    # Keep the canonical public-listing fields in sync when admin edits
+    # `clinic_name` or `city`. Public `/kliniki` filters on `name` +
+    # `city_slug` — legacy edits that only touched `clinic_name`/`city`
+    # would otherwise leave stale values behind.
+    if "clinic_name" in update:
+        update["name"] = update["clinic_name"]
+    if "city" in update:
+        from routers.public_clinics import resolve_city_slug
+        derived_slug = resolve_city_slug({"city": update["city"]})
+        if derived_slug:
+            update["city_slug"] = derived_slug
     if "clinic_status" in update and update["clinic_status"] not in CLINIC_STATUS_VALUES:
         raise HTTPException(status_code=400, detail="Invalid clinic_status")
     if "subscription_status" in update and update["subscription_status"] not in SUBSCRIPTION_STATUS_VALUES:

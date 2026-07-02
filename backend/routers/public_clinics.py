@@ -124,6 +124,38 @@ def _bool_filter(q: Optional[str]) -> Optional[bool]:
     return q.lower() in ("1", "true", "yes", "on")
 
 
+# Legacy admin-created clinics store only free-text `city` (BG or Latin
+# name). Map to the canonical `city_slug` used across the platform. Kept
+# in sync with `config.CITIES` — extend both together.
+_CITY_NAME_TO_SLUG: dict[str, str] = {
+    "sofia": "sofia", "софия": "sofia",
+    "plovdiv": "plovdiv", "пловдив": "plovdiv",
+    "varna": "varna", "варна": "varna",
+    "burgas": "burgas", "бургас": "burgas",
+    "ruse": "ruse", "русе": "ruse",
+    "stara zagora": "stara-zagora", "stara-zagora": "stara-zagora",
+    "стара загора": "stara-zagora",
+    "pleven": "pleven", "плевен": "pleven",
+    "sliven": "sliven", "сливен": "sliven",
+    "dobrich": "dobrich", "добрич": "dobrich",
+    "shumen": "shumen", "шумен": "shumen",
+    "haskovo": "haskovo", "хасково": "haskovo",
+}
+
+
+def resolve_city_slug(clinic: dict) -> Optional[str]:
+    """Return the clinic's `city_slug` if present, otherwise map the
+    free-text `city` (BG or Latin) to a canonical slug. Returns None
+    when neither field can be resolved."""
+    slug = clinic.get("city_slug")
+    if isinstance(slug, str) and slug.strip():
+        return slug.strip().lower()
+    city = (clinic.get("city") or "").strip().lower()
+    if not city:
+        return None
+    return _CITY_NAME_TO_SLUG.get(city)
+
+
 def _public_clinic_payload(clinic: dict) -> dict:
     """Build a safe, marketing-honest public payload from a clinic doc.
 
@@ -137,6 +169,10 @@ def _public_clinic_payload(clinic: dict) -> dict:
     name = clinic.get("clinic_name") or clinic.get("name") or ""
     clinic_id = clinic.get("id")
     slug = slugify_clinic(name) or clinic_id or ""
+
+    # Legacy admin-created docs may lack `city_slug`; derive from the
+    # free-text `city` field so /kliniki listing still surfaces them.
+    city_slug_resolved = resolve_city_slug(clinic)
 
     # Review data is shown only when both rating AND count exist (per spec).
     review = None
@@ -175,8 +211,8 @@ def _public_clinic_payload(clinic: dict) -> dict:
         "id": clinic_id,
         "slug": slug,
         "name": name,
-        "city_slug": clinic.get("city_slug"),
-        "city_name": clinic.get("city_name"),
+        "city_slug": city_slug_resolved,
+        "city_name": clinic.get("city_name") or clinic.get("city"),
         "area": clinic.get("area"),
         "treatments": treatments,
         "specialties": clinic.get("specialties") or [],
@@ -297,11 +333,12 @@ async def list_public_clinics(
     limit: int = Query(default=50, ge=1, le=100),
 ):
     query: dict[str, Any] = {
-        "is_active": True,
         "clinic_status": {"$in": list(_PUBLIC_STATUSES)},
         "archived": {"$ne": True},
-        "name": {"$ne": None, "$exists": True},
-        "city_slug": {"$ne": None, "$exists": True},
+        # Legacy admin-created docs may lack `is_active` entirely; only
+        # exclude clinics explicitly set to False. `clinic_status` above
+        # is the authoritative positive signal.
+        "is_active": {"$ne": False},
     }
     # Production environments don't set ZUBITE_INCLUDE_DEMO_CLINICS, so any
     # clinic flagged `is_demo: true` stays out of the public list. Preview
@@ -312,7 +349,19 @@ async def list_public_clinics(
     # hidden from listings (direct URL only), regardless of demo gate.
     query["is_addons_showcase"] = {"$ne": True}
     if city:
-        query["city_slug"] = city.lower()
+        # Match both canonical slug and free-text (BG/Latin) forms so
+        # legacy admin-created docs are included. Case-insensitive on
+        # the free-text `city` because admin input may be capitalised.
+        city_l = city.lower()
+        matching_free_text = [
+            k for k, v in _CITY_NAME_TO_SLUG.items() if v == city_l
+        ]
+        or_clauses: list[dict[str, Any]] = [{"city_slug": city_l}]
+        for ft in matching_free_text:
+            or_clauses.append(
+                {"city": {"$regex": f"^{re.escape(ft)}$", "$options": "i"}}
+            )
+        query["$or"] = or_clauses
     if specialty:
         query["treatments_supported"] = specialty.lower()
     if _bool_filter(online_consultation) is True:
@@ -326,9 +375,13 @@ async def list_public_clinics(
 
     docs = await db.clinics.find(query, {"_id": 0}).to_list(limit)
     docs.sort(key=lambda c: _ranking_score(c, (specialty or "").lower() or None))
+    payloads = [_public_clinic_payload(c) for c in docs]
+    # Drop entries that have no resolvable name or city — the frontend
+    # route `/kliniki/[city]/[specialty]/[slug]` can't handle either.
+    payloads = [p for p in payloads if p.get("name") and p.get("city_slug")]
     return {
-        "clinics": [_public_clinic_payload(c) for c in docs],
-        "total": len(docs),
+        "clinics": payloads,
+        "total": len(payloads),
         "ranking_note": (
             "Клиниките се подреждат според релевантност към избраната категория, "
             "локация, профилна пълнота и Zubite доверителни сигнали. "
@@ -342,10 +395,9 @@ async def get_public_clinic(slug_or_id: str):
     """Lookup by slug (slugified from name) OR by clinic id (UUID). Returns
     only clinics in a public-displayable status."""
     base = {
-        "is_active": True,
+        "is_active": {"$ne": False},
         "clinic_status": {"$in": list(_PUBLIC_STATUSES)},
         "archived": {"$ne": True},
-        "name": {"$ne": None},
     }
     # Hide demo records from production lookups (same gate as the list).
     if not _demo_clinics_enabled():
@@ -356,6 +408,8 @@ async def get_public_clinic(slug_or_id: str):
         # Scan-then-match-by-derived-slug. Acceptable at ≤100 active clinics.
         async for c in db.clinics.find(base, {"_id": 0}):
             name = c.get("clinic_name") or c.get("name") or ""
+            if not name:
+                continue
             if slugify_clinic(name) == slug_or_id:
                 doc = c
                 break
