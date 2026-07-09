@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import {
   LayoutDashboard, ListChecks, Calendar, BarChart3, MessageSquare, LogOut, Building2,
+  CalendarClock, Clock,
 } from 'lucide-react'
 
 interface ClinicUser {
@@ -17,8 +18,10 @@ interface ClinicUser {
 const NAV = [
   { href: '/clinic/dashboard', label: 'Преглед', icon: LayoutDashboard, exact: true },
   { href: '/clinic/dashboard/requests', label: 'Заявки', icon: ListChecks },
+  { href: '/clinic/dashboard/bookings', label: 'Заявки за час', icon: CalendarClock },
   { href: '/clinic/dashboard/online-orientation', label: 'Онлайн ориентация', icon: Calendar },
   { href: '/clinic/dashboard/calendar', label: 'Календар', icon: Calendar },
+  { href: '/clinic/dashboard/availability', label: 'Наличности', icon: Clock },
   { href: '/clinic/dashboard/performance', label: 'Резултати', icon: BarChart3 },
   { href: '/clinic/dashboard/reviews', label: 'Ревюта', icon: MessageSquare },
 ]
