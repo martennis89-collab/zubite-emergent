@@ -12,6 +12,7 @@ import {
   SELECTION_SOURCE_LABELS, requestSourceLabel,
 } from '@/lib/consultationLabels'
 import { AdminHeader } from '@/components/admin/AdminHeader'
+import { PatientContextSection, type PatientContext } from '@/components/PatientContextSection'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -23,6 +24,11 @@ interface DetailResp {
   clinic_city?: string | null
   appointment?: Appointment | null
   lead?: Record<string, unknown> | null
+  // TODO(backend): GET /api/admin/consultation-requests/{id} does not yet
+  // return `patient_context` the way GET /api/clinic/consultation-requests/{id}
+  // does. Add it there so admins can see the same Clinical Brief the clinic
+  // sees. Rendered below guarded on presence — no fake content if absent.
+  patient_context?: PatientContext | null
 }
 interface EventsResp { events: EventItem[] }
 
@@ -62,6 +68,9 @@ export default function AdminConsultationDetail() {
       if (a.ok) setData(await a.json())
       if (b.ok) setEvents(((await b.json()) as EventsResp).events || [])
       if (c.ok) setClinics(((await c.json()).clinics || []) as ClinicOption[])
+      // TODO(analytics): fire `admin_viewed_request` here once an admin-side
+      // event tracker exists — no such tracker exists yet in this repo (only
+      // lib/patientAnalytics.ts, patient-flow only).
     } finally { setLoading(false) }
   }, [id, router])
 
@@ -85,6 +94,8 @@ export default function AdminConsultationDetail() {
         const j = await resp.json()
         setAssignMsg({ ok: true, text: `Заявката е назначена на ${j.assigned_to || 'клиниката'}.` })
         setAssignClinicId('')
+        // TODO(analytics): fire `admin_updated_request_status` here once an
+        // admin-side event tracker exists.
         await load()
       } else {
         let detail = 'Възникна грешка при назначаването.'
@@ -323,6 +334,13 @@ export default function AdminConsultationDetail() {
                   Свободен текст от пациента. Третирайте съдържанието като чувствително (PII).
                 </div>
               </section>
+            )}
+
+            {/* Clinical Brief — same component the clinic dashboard uses.
+                Only renders once the backend admin endpoint includes
+                `patient_context` (see DetailResp TODO above). */}
+            {data?.patient_context && (
+              <PatientContextSection ctx={data.patient_context} />
             )}
 
             {/* Consent section — display the captured consent */}

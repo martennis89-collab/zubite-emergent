@@ -179,6 +179,10 @@ export function WeekCalendar({ appointments, weekStart }: Props) {
   )
 }
 
+// TODO(analytics): fire `clinic_calendar_booking_viewed` here (or on the
+// wrapping Link's onClick below) once a clinic-side event tracker exists —
+// no such tracker exists yet in this repo (only lib/patientAnalytics.ts,
+// patient-flow only).
 function AppointmentBlock({ a }: { a: Appointment }) {
   const start = new Date(a.start_time)
   const end = new Date(a.end_time)

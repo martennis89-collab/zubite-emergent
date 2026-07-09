@@ -323,6 +323,11 @@ export default function ClinicMatchPage() {
                 />
               </div>
 
+              {/* Partner-status trust note — sits directly above the cards it describes. */}
+              <p className="text-xs text-slate-500 mb-4 leading-relaxed" data-testid="partner-status-trust-note">
+                Партньорският статус не означава медицински рейтинг, гаранция за резултат или закупено първо място. Zubite.bg показва клиники според релевантност, налична информация и избраните от пациента критерии.
+              </p>
+
               {/* Cards */}
               <div
                 className={`grid gap-5 ${
