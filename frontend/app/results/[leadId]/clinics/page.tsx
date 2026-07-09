@@ -184,10 +184,13 @@ export default function ClinicMatchPage() {
               className="font-serif text-xl sm:text-2xl font-semibold text-slate-900 leading-tight"
               data-testid="match-title"
             >
-              Подбрани клиники за твоята заявка
+              3 клиники, които може да са подходящи за твоя случай
             </h1>
             <p className="text-slate-600 mt-3 text-[15px] sm:text-base leading-relaxed" data-testid="match-subtitle">
-              Показваме ограничен брой клиники според локация, релевантност към избраната категория, налична информация в профила и Zubite доверителни сигнали. Това не е диагноза и не означава, че една клиника е клинично „най-добра" за всеки случай.
+              Показваме опции според избраните от теб критерии, град, тип лечение и наличната информация. Това не е медицинска препоръка или гаранция за резултат.
+            </p>
+            <p className="text-slate-500 mt-2 text-[13.5px] leading-relaxed" data-testid="match-page-explanation">
+              Можеш да продължиш с една клиника или да сравниш до 3 опции. Това помага да получиш различни мнения, без да изпращаме заявката ти към твърде много места.
             </p>
             {/* Title trust chips — Feb 2026: Care Pass chip removed
                 (Care Pass is universal in our partner network — repeating

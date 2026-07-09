@@ -20,7 +20,7 @@ const STATUSES = [
   'pending_confirmation', 'confirmed', 'completed', 'no_show',
   'cancelled_by_clinic', 'cancelled_by_patient', 'rescheduled',
 ]
-const SOURCES = ['quiz_result', 'clinic_profile', 'article', 'admin_manual', 'campaign']
+const SOURCES = ['quiz_result', 'clinic_profile', 'clinic_recommendation', 'article', 'admin_manual', 'campaign']
 
 export default function AdminBookingsPage() {
   const [loading, setLoading] = useState(true)

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { CalendarDays, Clock, Loader2, CheckCircle2, AlertTriangle, ChevronLeft } from 'lucide-react'
+import { trackPatientEvent } from '@/lib/patientAnalytics'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -34,7 +35,11 @@ export default function BookingPage() {
 
   const clinicId = params.clinicId as string
   const leadId = (params.leadId as string) || searchParams.get('leadId') || null
-  const source = leadId ? 'quiz_result' : 'clinic_profile'
+  // Explicit `source` query param (e.g. `clinic_recommendation` from the
+  // clinic recommendation card) wins over the default inference so the
+  // booking payload's `source` field accurately reflects where the patient
+  // came from. Falls back to the pre-existing inferred value when absent.
+  const source = searchParams.get('source') || (leadId ? 'quiz_result' : 'clinic_profile')
 
   const [loading, setLoading] = useState(true)
   const [enabled, setEnabled] = useState(false)
@@ -103,6 +108,13 @@ export default function BookingPage() {
       if (r.ok) {
         setConfirmed({ start: selected.start, clinic: clinicName, email: form.patient_email, name: form.patient_name })
         setStep('success')
+        trackPatientEvent('consultation_booking_completed', {
+          lead_id: leadId,
+          clinic_id: clinicId,
+          source,
+          consultation_type: selected.consultation_type,
+          success: true,
+        })
       } else if (r.status === 409) {
         setStep('slot_taken')
         await load()
@@ -144,6 +156,9 @@ export default function BookingPage() {
           <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-2">Консултацията е заявена успешно</h2>
           <p className="text-sm text-slate-600 mb-4">
             Изпратихме потвърждение на <b>{confirmed.email}</b> и уведомихме клиниката. Ще получиш напомняне 1 ден преди часа.
+          </p>
+          <p className="text-sm text-slate-600 mb-4">
+            Клиниката ще потвърди часа според наличността си.
           </p>
           <div className="rounded-xl bg-slate-50 border border-slate-100 p-3 text-left text-sm space-y-1 mb-4">
             <div><b>Клиника:</b> {confirmed.clinic}</div>
@@ -299,7 +314,7 @@ export default function BookingPage() {
             className="w-full inline-flex items-center justify-center gap-2 h-11 rounded-full bg-teal-600 hover:bg-teal-700 text-white font-medium text-sm disabled:opacity-50"
             data-testid="booking-submit">
             {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-            Запази час
+            Изпрати заявка за час
           </button>
 
           <p className="text-[10px] text-slate-500 italic leading-relaxed">

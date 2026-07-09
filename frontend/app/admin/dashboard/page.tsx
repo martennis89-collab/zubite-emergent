@@ -57,6 +57,14 @@ const QUESTIONS: Record<string, string> = {
   c6: 'Има ли видима разлика в захапката (горни/долни зъби)?',
   c7: 'Държи ли устата си често отворена през деня?',
   c8: 'Мислиш ли, че има нужда от преглед при ортодонт?',
+  // Intake questions (Phase 1 Smart Consultation Flow) — appended to
+  // MasterQuiz after the diagnostic segment questions, same IDs for
+  // adult/teen/child.
+  treatment_interest: 'Какво лечение обмисляш в момента?',
+  readiness_timeline: 'Кога искаш да направиш следваща стъпка?',
+  budget_mindset: 'Как мислиш за бюджета?',
+  second_opinion: 'Искаш ли да сравниш повече от едно мнение?',
+  has_files: 'Имаш ли снимка, план или оферта от клиника?',
 }
 
 const ANSWER_LABELS: Record<string, string> = {
@@ -68,6 +76,30 @@ const ANSWER_LABELS: Record<string, string> = {
   mild: 'Леко струпани',
   aligned: 'Подредени',
   past: 'Преди да, вече не',
+  // treatment_interest
+  aligners: 'Алайнери / Invisalign',
+  braces: 'Брекети',
+  both: 'И двете',
+  ask_doctor: 'Искам лекар да ми каже',
+  // readiness_timeline
+  asap: 'Възможно най-скоро',
+  within_1_month: 'До 1 месец',
+  in_1_3_months: 'След 1–3 месеца',
+  just_researching: 'Само проучвам',
+  // budget_mindset
+  affordable: 'Търся най-достъпен вариант',
+  balanced: 'Искам баланс цена/качество',
+  premium_if_justified: 'Готов/а съм за премиум решение, ако има смисъл',
+  unknown_pricing: 'Не знам какви са реалните цени',
+  // second_opinion
+  compare_up_to_3: 'Да, искам да сравня до 3 опции',
+  single_clinic: 'Не, искам да избера една клиника',
+  zubite_help_first: 'Първо искам Zubite да ми помогне',
+  // has_files
+  has_opg: 'Да, имам OPG / панорамна снимка',
+  has_plan_or_offer: 'Да, имам план или оферта',
+  has_smile_photos: 'Да, имам снимки на усмивката/зъбите',
+  none: 'Не',
 }
 
 const RESERVED_ANSWER_KEYS = new Set([

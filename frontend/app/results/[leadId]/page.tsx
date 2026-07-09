@@ -6,10 +6,25 @@ import Link from 'next/link'
 import { ResultsHeader } from '@/components/ResultsHeader'
 import { Footer } from '@/components/Footer'
 import { ResultUnlockGate } from '@/components/patient/ResultUnlockGate'
+import { AssistedChoiceModal } from '@/components/patient/AssistedChoiceModal'
 import { getLead } from '@/lib/api'
+import { getStoredLeadContact } from '@/lib/leadContact'
+import { trackPatientEvent } from '@/lib/patientAnalytics'
 import {
-  Loader2, Home, ShieldCheck, ArrowRight, Gift, Sparkles, Compass, MessageCircle,
+  Loader2, Home, ShieldCheck, ArrowRight, Gift, Sparkles, Compass, MessageCircle, CheckCircle2,
 } from 'lucide-react'
+
+// Safe, non-diagnostic orientation note — band-agnostic, shown alongside
+// (not instead of) the existing per-band `explanation` copy below.
+const SAFE_ORIENTATION_NOTE =
+  'Според отговорите ти има смисъл да се обсъди ортодонтска консултация. ' +
+  'Възможно е да се сравнят алайнери, брекети или комбиниран подход, но точната ' +
+  'преценка зависи от преглед, снимки и лекарска оценка.'
+
+const GLOBAL_DISCLAIMER =
+  'Zubite.bg не поставя диагноза и не замества преглед, образна диагностика или ' +
+  'лекарска преценка. Платформата помага с ориентация, подготовка за консултация ' +
+  'и свързване с подходящи клиники според избраните критерии.'
 
 interface Lead {
   id: string
@@ -114,6 +129,8 @@ export default function ResultsPage() {
   const [lead, setLead] = useState<Lead | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [assistedModalOpen, setAssistedModalOpen] = useState(false)
+  const [assistedRequested, setAssistedRequested] = useState(false)
 
   useEffect(() => {
     const fetchLead = async () => {
@@ -287,13 +304,21 @@ export default function ResultsPage() {
                   </ul>
                 </div>
 
-                {/* Trust note */}
+                {/* Safe orientation note — band-agnostic, always the same
+                    non-diagnostic wording regardless of GREEN/YELLOW/RED. */}
+                <p className="relative mt-4 text-slate-600 text-[13.5px] leading-relaxed" data-testid="result-safe-orientation-note">
+                  {SAFE_ORIENTATION_NOTE}
+                </p>
+
+                {/* Trust note — global disclaimer, must stay visible */}
                 <p className="relative mt-5 text-[12px] text-slate-500 leading-relaxed" data-testid="result-trust-note">
-                  Zubite.bg не поставя диагноза и не замества преглед. Целта е да ти помогне да се ориентираш към правилния тип консултация.
+                  {GLOBAL_DISCLAIMER}
                 </p>
               </article>
 
-              {/* Next-step card — primary CTA to clinic shortlist */}
+              {/* Next-step card — primary CTA to clinic shortlist + secondary
+                  assisted-choice CTA (reuses the existing P5 AssistedChoiceModal /
+                  postRequestZubiteHelp flow — no new request model). */}
               <article
                 className="relative rounded-2xl bg-white/80 backdrop-blur-xl ring-1 ring-white/80 shadow-[0_18px_50px_-22px_rgba(15,23,42,0.20)] p-6 sm:p-7"
                 data-testid="next-step-card"
@@ -315,10 +340,35 @@ export default function ResultsPage() {
                 >
                   <span aria-hidden className="absolute inset-x-3 top-0.5 h-1/3 rounded-full bg-white/30 blur-sm pointer-events-none" />
                   <span className="relative inline-flex items-center gap-2">
-                    Виж подходящи клиники
+                    Виж 3 подходящи опции
                     <ArrowRight className="w-4 h-4" />
                   </span>
                 </Link>
+
+                {assistedRequested ? (
+                  <div
+                    className="mt-3 w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-emerald-50/85 ring-1 ring-emerald-100 text-emerald-800 text-sm font-medium rounded-full"
+                    data-testid="results-assisted-choice-submitted"
+                  >
+                    <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
+                    Заявката е изпратена
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      trackPatientEvent('assisted_choice_modal_opened', {
+                        lead_id: leadId,
+                        source: 'matching_page',
+                      })
+                      setAssistedModalOpen(true)
+                    }}
+                    className="mt-3 w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-white/70 backdrop-blur-xl ring-1 ring-white/80 text-slate-900 text-sm font-medium rounded-full hover:bg-white hover:-translate-y-0.5 transition-all shadow-[0_8px_24px_-12px_rgba(15,23,42,0.18)]"
+                    data-testid="results-assisted-choice-cta"
+                  >
+                    Искам Zubite да ми помогне първо
+                  </button>
+                )}
               </article>
             </>
           )}
@@ -362,6 +412,16 @@ export default function ResultsPage() {
           </div>
         </div>
       </section>
+
+      {assistedModalOpen && (
+        <AssistedChoiceModal
+          leadId={leadId}
+          source="matching_page"
+          initialContact={getStoredLeadContact(leadId)}
+          onClose={() => setAssistedModalOpen(false)}
+          onSuccess={() => setAssistedRequested(true)}
+        />
+      )}
 
       <Footer />
 

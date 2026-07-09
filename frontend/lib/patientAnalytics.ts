@@ -43,6 +43,9 @@ export type PatientAnalyticsEvent =
   | 'assisted_choice_submitted'
   | 'assisted_choice_failed'
   | 'matching_choice_blocked'
+  // ─── Phase 1 Smart Consultation Flow — booking CTA on clinic card ──
+  | 'consultation_booking_started'
+  | 'consultation_booking_completed'
   // ─── MVP unlock-mechanic events (Phase B/C, June 2026) ─────────
   | 'post_quiz_lead_capture_viewed'
   | 'post_quiz_lead_submitted'
@@ -61,6 +64,7 @@ export interface PatientAnalyticsPayload {
   source?: string | null
   rank_position?: number | null
   treatment_type?: string | null
+  consultation_type?: string | null
   city?: string | null
   band?: string | null
   segment?: string | null
