@@ -11,8 +11,8 @@ import Image from 'next/image'
 import {
   ShieldCheck, ArrowRight, CheckCircle2, Star, Building2, Activity,
 } from 'lucide-react'
-import { WordMorph } from '@/components/motion/WordMorph'
 import { ParallaxFloat } from '@/components/motion/ParallaxFloat'
+import { trackPatientEvent } from '@/lib/patientAnalytics'
 import {
   Reveal,
   px,
@@ -92,43 +92,34 @@ export function Hero() {
           <Reveal>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/80 ring-1 ring-teal-100 text-teal-700 text-[11px] font-medium px-3 py-1 uppercase tracking-[0.16em]">
               <ShieldCheck className="w-3 h-3" />
-              Първо <WordMorph words={['яснота', 'ориентир', 'насока', 'спокойствие']} className="text-teal-700" />. После избор.
+              Първо яснота, после избор
             </span>
           </Reveal>
           <Reveal delay={80}>
             <h1 className="mt-5 font-serif font-semibold tracking-tight text-slate-900 text-[2.5rem] sm:text-5xl lg:text-[3.75rem] leading-[1.05]">
-              Спри да питаш{' '}
-              <span className="text-teal-600">случайни хора</span>{' '}
-              в социалните мрежи за дентални съвети.
+              Кривите зъби и неправилната захапка{' '}
+              <span className="text-teal-600">рядко болят</span>. Затова хората чакат твърде дълго.
             </h1>
           </Reveal>
           <Reveal delay={160}>
             <p className="mt-5 text-slate-600 text-lg sm:text-xl leading-relaxed max-w-xl">
-              Zubite.bg ти помага да се ориентираш дали симптомите ти може да
-              са сигнал за дентален проблем, какви решения съществуват и към
-              какъв тип специалист има смисъл да се насочиш.
-            </p>
-          </Reveal>
-          <Reveal delay={200}>
-            <p
-              className="mt-4 text-slate-500 text-[15px] sm:text-base leading-relaxed max-w-xl italic"
-              data-testid="hero-quiz-hook"
-            >
-              Мислиш, че всичко е наред със зъбите ти? Отговори на няколко
-              въпроса и виж дали има сигнал, който си струва да провериш.
+              Струпване, неравна захапка, стягане в челюстта, изтъркване —
+              често започват без болка. Zubite.bg ти помага да разбереш на
+              какъв етап си, преди коригирането да стане по-сложно и по-скъпо.
             </p>
           </Reveal>
           <Reveal delay={220}>
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <Link
                 href={QUIZ_URL}
+                onClick={() => { try { trackPatientEvent('home_cta_clicked', { cta_location: 'hero' }) } catch { /* noop */ } }}
                 className="group relative inline-flex items-center gap-1.5 rounded-full text-white text-sm font-medium px-5 py-3 transition-all hover:-translate-y-0.5 shadow-[0_18px_40px_-12px_rgba(13,148,136,0.55)] overflow-hidden"
                 style={{ backgroundImage: 'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)' }}
                 data-testid="hero-primary-cta"
               >
                 <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
                 <span className="relative inline-flex items-center gap-1.5">
-                  Провери своя случай
+                  Провери дали захапката ти е наред (60 сек)
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                 </span>
               </Link>
@@ -141,10 +132,12 @@ export function Hero() {
                 <span className="relative">Виж как работи</span>
               </Link>
             </div>
-            {/* Unlock-mechanic microcopy under hero CTAs */}
+            {/* Single non-diagnostic microcopy under hero CTAs (the only
+                inline disclaimer instance; the full disclaimer lives once in
+                the Trust section). */}
             <p className="mt-4 text-[12px] text-slate-500 leading-relaxed max-w-xl" data-testid="hero-unlock-microcopy">
-              Попълни оценката и можеш да получиш безплатна онлайн ориентация.
-              Care Pass е включен във всяка партньорска клиника.
+              Не е диагноза. Кратък въпросник, който показва дали има смисъл
+              да го обсъдиш с ортодонт.
             </p>
           </Reveal>
           <Reveal delay={260}>
@@ -154,7 +147,6 @@ export function Hero() {
                   '60 секунди',
                   'Без регистрация',
                   'Ориентир, не диагноза',
-                  'Care Pass в партньорската мрежа',
                 ].map((c) => (
                   <span
                     key={c}

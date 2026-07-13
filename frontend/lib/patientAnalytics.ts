@@ -51,6 +51,11 @@ export type PatientAnalyticsEvent =
   | 'homepage_unlock_benefits_cta_clicked'
   | 'homepage_care_pass_benefit_clicked'
   | 'homepage_free_orientation_benefit_clicked'
+  // ─── Homepage rebuild (July 2026) — canonical CTA + split-path picker ─
+  | 'home_cta_clicked'       // any primary quiz CTA; carries cta_location
+  | 'home_quiz_start'        // quiz-chip in the symptom picker; carries quiz_start_source
+  | 'home_article_route'     // article-routed chip/guide (NOT a quiz start)
+  | 'home_lumi_play'         // Lumi explainer play
 
 /** Allowed payload shape. Privacy-safe by construction — no PII. */
 export interface PatientAnalyticsPayload {
@@ -74,6 +79,10 @@ export interface PatientAnalyticsPayload {
   error_code?: string | null
   reason?: 'already_selected_clinic' | 'already_requested_zubite_help' | string | null
   attempted_action?: 'request_call' | 'assisted_choice' | string | null
+  // Homepage rebuild (July 2026) — non-PII context for the canonical CTA
+  // and the split-path symptom picker.
+  cta_location?: 'hero' | 'picker' | 'process' | 'stage_card' | 'final' | 'sticky' | string | null
+  quiz_start_source?: string | null
 }
 
 interface FbqLike {

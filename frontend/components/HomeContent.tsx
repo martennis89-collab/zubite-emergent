@@ -187,25 +187,28 @@ function PatientBenefit() {
   )
 }
 
-// ─── 5. What you may be noticing — Section 3 ─────────────────────
-function SymptomChips() {
-  // Each chip routes to the closest existing destination. Where the
-  // dynamic /symptoms/[symptomSlug] page already supports a slug, we
-  // use it; otherwise we link to the most relevant top-level page
-  // (e.g. /tmj for jaw clicking, /orthodontics for malocclusion).
-  // Only "Лош дъх" has no specific destination → falls back to /symptoms.
-  // Order MUST stay in sync with `data-testid="symptom-chip-{i}"`.
-  const chips: Array<{ label: string; href: string }> = [
-    { label: 'Кървящи венци',                        href: '/symptoms/bleeding-gums' },
-    { label: 'Криви или струпани зъби',              href: '/orthodontics' },
-    { label: 'Щракане в челюстта',                   href: '/tmj' },
-    { label: 'Болка или напрежение',                 href: '/symptoms/toothache' },
-    { label: 'Лош дъх',                              href: '/symptoms' },
-    { label: 'Липсващ зъб',                          href: '/implants' },
-    { label: 'Износване на зъбите',                  href: '/symptoms/sensitivity' },
-    { label: 'Неясна захапка',                       href: '/orthodontics' },
-    { label: 'Детето диша през устата',              href: '/sleep-airway' },
-    { label: 'Чудиш се за брекети или алайнери',     href: '/aligners-vs-braces' },
+// ─── Section 2 — Symptom picker (split paths) ────────────────────
+// Bite/alignment chips START THE QUIZ (the quiz can only read
+// bite/alignment). Everything the quiz cannot read (gums, bad breath,
+// missing tooth) lives in a separate, quieter block that routes to
+// Журнал articles — never into the quiz. This keeps the platform's
+// trust promise: the quiz never claims to read a symptom it cannot.
+function SymptomPicker() {
+  // Quiz chips — bite/alignment only. All start the quiz; `quiz_start_source`
+  // records which chip initiated it.
+  const quizChips: Array<{ label: string; source: string }> = [
+    { label: 'Криви или струпани зъби',            source: 'crooked_teeth' },
+    { label: 'Неравна захапка',                    source: 'uneven_bite' },
+    { label: 'Стягане или щракане в челюстта',     source: 'jaw_tension' },
+    { label: 'Изтъркване на зъбите',               source: 'tooth_wear' },
+    { label: 'Детето диша през устата',            source: 'mouth_breathing' },
+    { label: 'Чудиш се за брекети или алайнери',   source: 'braces_vs_aligners' },
+  ]
+  // Article-routed chips — NOT the quiz. Things the quiz can't read.
+  const articleChips: Array<{ label: string; href: string }> = [
+    { label: 'Кървящи венци', href: '/symptoms/bleeding-gums' },
+    { label: 'Лош дъх',       href: '/symptoms' },
+    { label: 'Липсващ зъб',   href: '/implants' },
   ]
   return (
     <section id="noticing" className="relative py-20 sm:py-28 overflow-hidden scroll-mt-24" data-testid="home-noticing">
@@ -226,19 +229,20 @@ function SymptomChips() {
         <Reveal>
           <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">Може би си забелязал</p>
           <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08]">
-            Какво може да си забелязал?
+            Кое от тези ти е познато?
           </h2>
           <p className="mt-5 text-slate-600 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
-            Ако не си сигурен дали е дребно, нормално или нещо за проверка —
-            започни с кратък ориентир.
+            Ако не си сигурен дали е дребно или си струва да се провери —
+            започни оттук.
           </p>
         </Reveal>
         <Reveal delay={120}>
           <ul className="mt-10 flex flex-wrap justify-center gap-2.5 sm:gap-3" data-testid="symptom-chips">
-            {chips.map((c, i) => (
+            {quizChips.map((c, i) => (
               <li key={c.label}>
                 <Link
-                  href={c.href}
+                  href={QUIZ_URL}
+                  onClick={() => { try { trackPatientEvent('home_quiz_start', { quiz_start_source: c.source, cta_location: 'picker' }) } catch { /* noop */ } }}
                   className="inline-flex items-center gap-1.5 rounded-full bg-white/75 backdrop-blur-xl ring-1 ring-white/80 text-sm text-slate-800 font-medium px-4 py-2 shadow-[0_6px_18px_-12px_rgba(15,23,42,0.18)] hover:-translate-y-0.5 hover:bg-white hover:ring-teal-200/70 hover:text-teal-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 transition-all cursor-pointer"
                   data-testid={`symptom-chip-${i}`}
                 >
@@ -253,11 +257,151 @@ function SymptomChips() {
           <div className="mt-10">
             <Link
               href={QUIZ_URL}
-              className="group inline-flex items-center gap-1.5 rounded-full bg-white/55 backdrop-blur-xl ring-1 ring-white/70 text-slate-900 text-sm font-medium px-5 py-3 hover:bg-white hover:-translate-y-0.5 transition-all shadow-[0_8px_24px_-12px_rgba(15,23,42,0.18)]"
+              onClick={() => { try { trackPatientEvent('home_cta_clicked', { cta_location: 'picker' }) } catch { /* noop */ } }}
+              className="group inline-flex items-center gap-1.5 rounded-full text-white text-sm font-medium px-6 py-3.5 hover:-translate-y-0.5 transition-all shadow-[0_18px_40px_-12px_rgba(13,148,136,0.55)] overflow-hidden relative"
+              style={{ backgroundImage: 'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)' }}
               data-testid="noticing-cta"
             >
-              Започни анализа
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 text-teal-600" />
+              <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
+              <span className="relative inline-flex items-center gap-1.5">
+                Провери дали захапката ти е наред (60 сек)
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+              </span>
+            </Link>
+          </div>
+        </Reveal>
+        {/* Article-routed block — quieter, visually separated. Routes to
+            Журнал, NOT the quiz. */}
+        <Reveal delay={260}>
+          <div className="mt-12 pt-8 border-t border-slate-200/50 max-w-xl mx-auto">
+            <p className="text-sm text-slate-500 mb-3">Друго те притеснява?</p>
+            <ul className="flex flex-wrap justify-center gap-2" data-testid="article-route-chips">
+              {articleChips.map((c) => (
+                <li key={c.label}>
+                  <Link
+                    href={c.href}
+                    onClick={() => { try { trackPatientEvent('home_article_route', { quiz_start_source: c.label }) } catch { /* noop */ } }}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-white/50 ring-1 ring-slate-200/70 text-[13px] text-slate-600 px-3 py-1.5 hover:bg-white hover:text-teal-700 transition-all"
+                    data-testid={`article-route-chip-${c.href}`}
+                  >
+                    {c.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Reveal>
+      </div>
+    </section>
+  )
+}
+
+// ─── Section 4 — Process (4 steps; folds in Lumi + Care Pass) ─────
+function Process() {
+  const [lumiOpen, setLumiOpen] = useState(false)
+  const steps: Array<{ n: string; t: string; s: string; icon: React.ReactNode }> = [
+    {
+      n: '01', t: 'Отговаряш', icon: <HelpCircle className="w-5 h-5" />,
+      s: 'на кратки въпроси за това, което забелязваш при зъбите и захапката си.',
+    },
+    {
+      n: '02', t: 'Виждаш на какъв етап си', icon: <ShieldCheck className="w-5 h-5" />,
+      s: 'ранен, развиващ се или напреднал. И какво означава това на прост език.',
+    },
+    {
+      n: '03', t: 'Избираш дали да продължиш', icon: <Building2 className="w-5 h-5" />,
+      s: 'можеш да поискаш до 3 подходящи клиники в твоя град. Или просто да задържиш ориентира за себе си.',
+    },
+    {
+      n: '04', t: 'Получаваш Care Pass', icon: <Gift className="w-5 h-5" />,
+      s: 'след консултация през Zubite.bg клиниката ти дава карта с отстъпки за продукти за орална хигиена.',
+    },
+  ]
+  return (
+    <section id="how" className="relative py-20 sm:py-28 overflow-hidden scroll-mt-24" data-testid="home-how">
+      <div aria-hidden className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse 55% 45% at 20% 25%, rgba(94,234,212,0.16) 0%, transparent 65%),' +
+            'radial-gradient(ellipse 50% 40% at 82% 78%, rgba(165,243,252,0.20) 0%, transparent 65%),' +
+            'linear-gradient(180deg, #FCFAF8 0%, #F7FAF9 100%)',
+        }}
+      />
+      <div className="relative max-w-[1600px] mx-auto px-6 sm:px-10 lg:px-16">
+        <Reveal>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">Как работи</p>
+          <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08] max-w-3xl">
+            Какво се случва, след като започнеш?
+          </h2>
+          <p className="mt-3 text-slate-600 text-sm sm:text-base max-w-xl">
+            Четири стъпки. Без ангажимент, без диагноза.
+          </p>
+        </Reveal>
+
+        <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+          {steps.map((st, i) => (
+            <Reveal key={st.n} delay={i * 70}>
+              <div className="relative h-full rounded-2xl bg-white/75 backdrop-blur-xl ring-1 ring-white/80 shadow-[0_14px_40px_-24px_rgba(15,23,42,0.20),inset_0_1px_0_rgba(255,255,255,0.9)] p-5 sm:p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-teal-50 ring-1 ring-teal-100 text-teal-700">
+                    {st.icon}
+                  </span>
+                  <span className="font-serif text-2xl text-slate-300">{st.n}</span>
+                </div>
+                <h3 className="font-serif text-lg font-semibold text-slate-900 leading-snug">{st.t}</h3>
+                <p className="mt-2 text-[14px] text-slate-600 leading-relaxed">{st.s}</p>
+                {/* Optional Lumi explainer — inline play on step 01 only. */}
+                {i === 0 && (
+                  <button
+                    type="button"
+                    onClick={() => { setLumiOpen((v) => !v); try { trackPatientEvent('home_lumi_play') } catch { /* noop */ } }}
+                    className="mt-4 inline-flex items-center gap-1.5 text-[12px] font-medium text-teal-700 hover:text-teal-800 transition-colors"
+                    data-testid="process-lumi-play"
+                    aria-expanded={lumiOpen}
+                  >
+                    <span aria-hidden className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-teal-100 text-teal-700">▷</span>
+                    30 сек с Луми
+                  </button>
+                )}
+              </div>
+            </Reveal>
+          ))}
+        </div>
+
+        {/* Lumi video — mounts only after the patient opts in (no preload). */}
+        {lumiOpen && (
+          <Reveal>
+            <div className="mt-6 mx-auto max-w-sm rounded-[1.5rem] overflow-hidden ring-1 ring-white/80 shadow-[0_24px_60px_-30px_rgba(15,23,42,0.3)]" style={{ aspectRatio: '9 / 16' }} data-testid="process-lumi-video-wrap">
+              <video
+                src="/videos/lumi-homepage-explainer.mp4"
+                poster="/images/lumi-homepage-poster.webp"
+                controls
+                autoPlay
+                playsInline
+                preload="none"
+                className="w-full h-full object-cover bg-slate-900"
+                data-testid="process-lumi-video"
+              >
+                Браузърът ти не поддържа видео.
+              </video>
+            </div>
+          </Reveal>
+        )}
+
+        <Reveal delay={120}>
+          <div className="mt-10 text-center">
+            <Link
+              href={QUIZ_URL}
+              onClick={() => { try { trackPatientEvent('home_cta_clicked', { cta_location: 'process' }) } catch { /* noop */ } }}
+              className="group relative inline-flex items-center gap-1.5 rounded-full text-white text-sm font-medium px-6 py-3.5 hover:-translate-y-0.5 transition-all shadow-[0_18px_40px_-12px_rgba(13,148,136,0.55)] overflow-hidden"
+              style={{ backgroundImage: 'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)' }}
+              data-testid="process-cta"
+            >
+              <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
+              <span className="relative inline-flex items-center gap-1.5">
+                Провери на кой етап си (60 сек)
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+              </span>
             </Link>
           </div>
         </Reveal>
@@ -266,56 +410,18 @@ function SymptomChips() {
   )
 }
 
-// ─── 6. How it works (5 steps) ───────────────────────────────────
-function HowItWorks() {
-  return (
-    <section id="how" className="relative py-14 sm:py-20 overflow-x-clip scroll-mt-24" data-testid="home-how" style={{ backgroundColor: '#0F4F4A' }}>
-      {/* Brand-aligned glow — matches the other two dark-green moments
-          on the page so the visual rhythm light → green → light → green
-          stays consistent. */}
-      <div aria-hidden className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            'radial-gradient(ellipse 50% 35% at 15% 25%, rgba(45,212,191,0.20) 0%, rgba(45,212,191,0) 70%),' +
-            'radial-gradient(ellipse 55% 45% at 85% 75%, rgba(94,234,212,0.16) 0%, rgba(94,234,212,0) 70%),' +
-            'radial-gradient(circle at 50% 50%, rgba(15,79,74,0) 0%, rgba(7,40,38,0.55) 90%)',
-        }}
-      />
-      <div aria-hidden className="absolute inset-0 pointer-events-none opacity-[0.06] mix-blend-overlay"
-        style={{
-          backgroundImage: 'radial-gradient(rgba(255,255,255,0.4) 1px, transparent 1px)',
-          backgroundSize: '3px 3px',
-        }}
-      />
-      <div className="relative max-w-[1600px] mx-auto px-6 sm:px-10 lg:px-16">
-        <Reveal>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-200 font-semibold eyebrow-sparkle">Как работи</p>
-          <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-white leading-[1.08] max-w-3xl">
-            Какво се случва след като започнеш?
-          </h2>
-          <p className="mt-3 text-teal-100/75 text-sm sm:text-base max-w-xl">
-            Скролни надолу, за да преминеш през стъпките една по една.
-          </p>
-        </Reveal>
-      </div>
-      <div className="mt-6 sm:mt-8">
-        <HorizontalSteps inverted />
-      </div>
-    </section>
-  )
-}
-
 // ─── 9. Treatment categories — Section 7 ─────────────────────────
 function TreatmentCategories() {
+  // Ortho-first order per the July 2026 homepage brief.
   const cats: Array<{ t: string; s: string; href: string; icon: React.ReactNode; featured?: boolean }> = [
-    { t: 'Ортодонтия',              s: 'Криви зъби, захапка, струпване, разстояния и нужда от ортодонтска оценка.',          href: '/orthodontics',         icon: <Smile className="w-4 h-4" />,       featured: true },
-    { t: 'Алайнери vs брекети',     s: 'Каква е разликата, кога кой вариант има смисъл и какво зависи от случая.',           href: '/aligners-vs-braces',   icon: <AlignLeft className="w-4 h-4" />,   featured: true },
-    { t: 'Импланти',                s: 'Липсващ зъб, стари мостове, подвижни протези или нужда от план за възстановяване.',  href: '/implants',             icon: <Stethoscope className="w-4 h-4" /> },
-    { t: 'Венци и хигиена',         s: 'Кървене, чувствителност, неприятен дъх и плакировка — какво да обсъдиш на преглед.',  href: '/symptoms',             icon: <Heart className="w-4 h-4" /> },
-    { t: 'Естетична стоматология',  s: 'Фасети, бондинг, избелване и усмивка — с реалистични очаквания.',                     href: '/cosmetic-dentistry',   icon: <Sparkles className="w-4 h-4" /> },
+    { t: 'Алайнери vs брекети',     s: 'Каква е разликата, кога кой вариант има смисъл и какво зависи от случая.',           href: '/aligners-vs-braces',   icon: <AlignLeft className="w-4 h-4" />,    featured: true },
+    { t: 'Ортодонтия',              s: 'Криви зъби, захапка, струпване, разстояния и нужда от ортодонтска оценка.',          href: '/orthodontics',         icon: <Smile className="w-4 h-4" />,        featured: true },
     { t: 'TMJ / челюст',            s: 'Щракане, пукане, болка в челюстта, скърцане със зъби или сутрешно напрежение.',       href: '/tmj',                  icon: <Activity className="w-4 h-4" /> },
-    { t: 'Сън и дишане',            s: 'Симптоми, свързани със сън, дишане през устата, захапка и челюстна позиция.',         href: '/sleep-airway',         icon: <Heart className="w-4 h-4" /> },
     { t: 'Детска ортодонтия',       s: 'Кога детето има нужда от ранна оценка и кои признаци не е добре да се игнорират.',    href: '/orthodontics',         icon: <Smile className="w-4 h-4" /> },
+    { t: 'Импланти',                s: 'Липсващ зъб, стари мостове, подвижни протези или нужда от план за възстановяване.',  href: '/implants',             icon: <Stethoscope className="w-4 h-4" /> },
+    { t: 'Естетична стоматология',  s: 'Фасети, бондинг, избелване и усмивка — с реалистични очаквания.',                     href: '/cosmetic-dentistry',   icon: <Sparkles className="w-4 h-4" /> },
+    { t: 'Венци и хигиена',         s: 'Кървене, чувствителност, неприятен дъх и плакировка — какво да обсъдиш на преглед.',  href: '/symptoms',             icon: <Heart className="w-4 h-4" /> },
+    { t: 'Сън и дишане',            s: 'Симптоми, свързани със сън, дишане през устата, захапка и челюстна позиция.',         href: '/sleep-airway',         icon: <Heart className="w-4 h-4" /> },
   ]
   return (
     <section id="treatments" className="relative py-20 sm:py-28 overflow-hidden scroll-mt-24" data-testid="home-treatments">
@@ -328,10 +434,14 @@ function TreatmentCategories() {
       />
       <div className="relative max-w-[1600px] mx-auto px-6 sm:px-10 lg:px-16">
         <Reveal>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">Категории</p>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">Ръководства</p>
           <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl lg:text-5xl font-semibold text-slate-900 leading-[1.08] max-w-3xl">
-            С какви случаи може да ти помогне Zubite.bg да се ориентираш?
+            Или започни с четене.
           </h2>
+          <p className="mt-4 text-slate-600 text-base sm:text-lg leading-relaxed max-w-2xl">
+            Ако още не си готов за въпросника, разгледай по тема. Всяко
+            ръководство завършва с проверка на етапа.
+          </p>
         </Reveal>
         <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {cats.map((c, i) => (
@@ -422,7 +532,8 @@ function DecisionPreview() {
             Какъв ориентир получаваш?
           </h2>
           <p className="mt-5 text-slate-600 text-lg sm:text-xl leading-relaxed max-w-md">
-            Кратко, разбираемо обобщение — без жаргон, без диагноза.
+            На какъв етап може да си — и какво означава това. Кратко,
+            разбираемо, без жаргон.
           </p>
           <ul className="mt-6 space-y-2.5 text-base text-slate-700">
             <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-teal-500 mt-1" /> Ориентир, не диагноза</li>
@@ -432,11 +543,16 @@ function DecisionPreview() {
           </ul>
           <Link
             href={QUIZ_URL}
-            className="mt-7 inline-flex items-center gap-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium px-5 py-3 transition-colors"
+            onClick={() => { try { trackPatientEvent('home_cta_clicked', { cta_location: 'stage_card' }) } catch { /* noop */ } }}
+            className="group mt-7 relative inline-flex items-center gap-1.5 rounded-full text-white text-sm font-medium px-6 py-3.5 hover:-translate-y-0.5 transition-all shadow-[0_18px_40px_-12px_rgba(13,148,136,0.55)] overflow-hidden"
+            style={{ backgroundImage: 'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)' }}
             data-testid="decision-cta"
           >
-            Започни анализа
-            <ArrowRight className="w-4 h-4" />
+            <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
+            <span className="relative inline-flex items-center gap-1.5">
+              Провери на кой етап си (60 сек)
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+            </span>
           </Link>
         </Reveal>
         <Reveal delay={120}>
@@ -470,8 +586,12 @@ function DecisionPreview() {
                 </span>
               </div>
               <h3 className="mt-3 font-serif text-2xl sm:text-3xl text-slate-900 leading-snug">
-                Възможно леко до умерено <br />струпване на долни зъби
+                Развиващ се етап
               </h3>
+              <p className="mt-2 text-sm text-slate-600 leading-relaxed">
+                Леко до умерено струпване на долни зъби. На този етап
+                коригирането обикновено е по-просто, отколкото ако се изчака.
+              </p>
               <div className="mt-5 grid grid-cols-2 gap-3">
                 <div className="rounded-xl bg-slate-50/80 ring-1 ring-slate-200/40 p-3">
                   <p className="text-[10px] uppercase tracking-wider text-slate-500">Ориентировъчен срок</p>
@@ -486,12 +606,13 @@ function DecisionPreview() {
                 <p className="font-medium text-slate-900">Възможни подходи за обсъждане:</p>
                 <p className="text-slate-600">· Прозрачни алайнери</p>
                 <p className="text-slate-600">· Естетични брекети</p>
+                <p className="text-slate-600">· Метални брекети</p>
                 <p className="text-slate-600">· Ортодонтска консултация за потвърждение</p>
               </div>
               <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
-                <p className="text-[11px] text-slate-500">Насочване към партньорска клиника по избор</p>
+                <p className="text-[11px] text-slate-500">Следваща стъпка: консултация с ортодонт</p>
                 {/* Decorative mockup label only — non-interactive. Real CTA
-                    is the "Започни анализа" button to the left of this card. */}
+                    is the warm quiz button to the left of this card. */}
                 <span aria-hidden className="text-xs font-medium text-slate-400">Пример</span>
               </div>
             </div>
@@ -518,19 +639,19 @@ function TrustReason() {
   const cards: Array<{ t: string; s: string; long: string; icon: React.ReactNode }> = [
     {
       t: 'Не поставяме диагноза',
-      s: 'Окончателната оценка се прави от стоматолог или ортодонт.',
-      long: 'Zubite.bg дава ориентир според това, което си описал. Той не замества медицински преглед, образна диагностика и професионална оценка от специалист.',
+      s: 'Окончателната преценка се прави от стоматолог или ортодонт след преглед.',
+      long: 'Zubite.bg не поставя диагноза и не замества преглед, образна диагностика или лекарска преценка. Дава ориентир според това, което си описал.',
       icon: <ShieldCheck className="w-5 h-5" />,
     },
     {
       t: 'Не показваме случаен списък',
-      s: 'Насочването се базира на описания случай, град и категория.',
-      long: 'Не получаваш произволен каталог от клиники. Препоръчваме партньорски клиники, които работят с описания случай в твоя град — нищо повече.',
+      s: 'Насочваме според описания случай, града и категорията, не като класация „най-добри клиники".',
+      long: 'Не получаваш произволен каталог от клиники. Насочваме към партньорски клиники, които работят с описания случай в твоя град — нищо повече.',
       icon: <Stethoscope className="w-5 h-5" />,
     },
     {
       t: 'Не те притискаме',
-      s: 'Избираш дали да продължиш.',
+      s: 'Сам избираш дали да продължиш. Ориентирът остава твой.',
       long: 'Може да получиш ориентира си и да го обмислиш на спокойствие. Заявка към клиника тръгва само ако ти решиш да продължиш.',
       icon: <Sparkles className="w-5 h-5" />,
     },
@@ -689,9 +810,47 @@ function RecentArticles({ posts }: { posts: HomeBlogPost[] }) {
   )
 }
 
+// ─── Section 7 — Zubite стандарт (condensed link-out) ────────────
+// Does NOT duplicate the /standart-za-kliniki body copy — a short
+// positioning statement + a single link to the full standard page.
+function ZubiteStandard() {
+  return (
+    <section className="relative py-20 sm:py-28 overflow-hidden" data-testid="home-zubite-standard">
+      <div aria-hidden className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse 55% 40% at 25% 30%, rgba(94,234,212,0.14) 0%, transparent 65%),' +
+            'linear-gradient(180deg, #FCFAF8 0%, #F7FBFA 100%)',
+        }}
+      />
+      <div className="relative max-w-3xl mx-auto px-6 sm:px-10 text-center">
+        <Reveal>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-teal-700 font-semibold eyebrow-sparkle">Zubite стандарт</p>
+          <h2 className="mt-3 font-serif text-[2rem] sm:text-4xl font-semibold text-slate-900 leading-[1.1]">
+            Не всяка клиника може да е част от Zubite.bg.
+          </h2>
+          <p className="mt-5 text-slate-600 text-base sm:text-lg leading-relaxed">
+            Работим с ограничен брой партньорски клиники, които покриват
+            нашия стандарт за качество, отношение към пациента и прозрачност.
+            Когато видиш клиника тук, тя е избрана по критерии — не по реклама.
+          </p>
+          <Link
+            href="/standart-za-kliniki"
+            className="mt-6 inline-flex items-center gap-1.5 text-sm font-medium text-teal-700 hover:text-teal-800 transition-colors"
+            data-testid="home-zubite-standard-link"
+          >
+            Виж Zubite стандарт <ArrowRight className="w-4 h-4" />
+          </Link>
+        </Reveal>
+      </div>
+    </section>
+  )
+}
+
 // ─── 12. FAQ ─────────────────────────────────────────────────────
 function FAQ() {
   const items = [
+    { q: 'На кой етап съм — как разбирам?',   a: 'Не поставяме диагноза. Кратък въпросник ти показва дали описаните признаци приличат на ранен, развиващ се или напреднал етап, и дали има смисъл да го обсъдиш с ортодонт. Точната преценка се прави след преглед.' },
     { q: 'Zubite.bg клиника ли е?',          a: 'Не. Zubite.bg е независима платформа за ориентация и насочване. Помагаме ти да разбереш какъв тип проблем описваш, какви следващи стъпки може да имат смисъл и към какъв тип клиника да се насочиш.' },
     { q: 'Платформата ли поставя диагноза?', a: 'Не. Въпросникът дава ориентировъчна информация според твоите отговори. Диагноза, план за лечение и точна цена могат да бъдат потвърдени само след преглед от стоматолог или ортодонт.' },
     { q: 'Колко струва използването?',       a: 'Попълването на въпросника е безплатно. Ако решиш да продължиш към клиника, ще видиш каква е следващата стъпка и дали има цена за консултация според конкретната клиника.' },
@@ -893,38 +1052,34 @@ function MobileStickyCTA() {
 // ─── Public exports ──────────────────────────────────────────────
 export function HomeContent({ recentPosts = [] }: { recentPosts?: HomeBlogPost[] }) {
   useBackgroundParallax()
+  // July 2026 rebuild — exactly 9 sections. Cut entirely: standalone Lumi
+  // (folded into Process step 01), TrustStrip marquee, PatientBenefit,
+  // UnlockBenefits, ClinicStandardSection detail cards (→ ZubiteStandard
+  // link-out), CarePassTeaser (folded into Process step 04), the old
+  // HorizontalSteps HowItWorks (→ Process). Repeated primary CTA lives in
+  // hero + after sections 3 (stage card), 4 (process) and 9 (final).
   return (
     <>
       <MotionStyles />
       <Nav />
-      {/* 1. Hero / Awareness */}
+      {/* 1. Hero */}
       <Hero />
-      {/* 1.5 Lumi explainer video — immediately after hero */}
-      <LumiVideoSection />
-      <TrustStrip />
-      {/* 2. Patient benefit */}
-      <PatientBenefit />
-      {/* 3. What you may be noticing */}
-      <SymptomChips />
-      {/* 4. How it works (5 steps) */}
-      <HowItWorks />
-      {/* 4.5 Unlock benefits — what completing the quiz unlocks */}
-      <UnlockBenefits />
-      {/* 4.6 Zubite Clinic Standard — trust pillars */}
-      <ClinicStandardSection />
-      {/* 5. Product / result preview */}
+      {/* 2. Symptom picker (split paths) */}
+      <SymptomPicker />
+      {/* 3. Stage output card */}
       <DecisionPreview />
-      {/* 6. Why trust Zubite */}
+      {/* 4. Process (4 steps · Lumi · Care Pass) */}
+      <Process />
+      {/* 5. Trust (merged, single disclaimer) */}
       <TrustReason />
-      {/* 7. Treatment/category coverage */}
+      {/* 6. Guides */}
       <TreatmentCategories />
-      {/* 8. Care Pass */}
-      <CarePassTeaser />
-      {/* Bonus: editorial reinforcement (kept under Care Pass, before FAQ) */}
+      {/* 7. Zubite стандарт (link-out) */}
+      <ZubiteStandard />
+      {/* 8. Журнал */}
       <RecentArticles posts={recentPosts} />
-      {/* 9. FAQ / objections */}
+      {/* 9. FAQ + final CTA + footer */}
       <FAQ />
-      {/* 10. Final CTA */}
       <FinalCTA />
       <Footer />
     </>

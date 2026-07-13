@@ -9,6 +9,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { Sparkles, CheckCircle2, Gift, Clock, ArrowRight } from 'lucide-react'
+import { trackPatientEvent } from '@/lib/patientAnalytics'
 import { Reveal, px, QUIZ_URL, ASSET_F_FINAL_CTA_BG } from './_shared'
 
 export function FinalCTA() {
@@ -57,13 +58,14 @@ export function FinalCTA() {
             <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
               <Link
                 href={QUIZ_URL}
+                onClick={() => { try { trackPatientEvent('home_cta_clicked', { cta_location: 'final' }) } catch { /* noop */ } }}
                 className="group relative inline-flex items-center gap-1.5 rounded-full text-white text-sm font-medium px-5 py-3 transition-all hover:-translate-y-0.5 shadow-[0_18px_40px_-12px_rgba(13,148,136,0.55)] overflow-hidden"
                 style={{ backgroundImage: 'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)' }}
                 data-testid="final-primary-cta"
               >
                 <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
                 <span className="relative inline-flex items-center gap-1.5">
-                  Започни оценката
+                  Провери на кой етап си (60 сек)
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                 </span>
               </Link>
@@ -75,10 +77,6 @@ export function FinalCTA() {
                 <span className="relative">Виж как работи</span>
               </Link>
             </div>
-            <p className="mt-7 text-[11px] text-slate-400 leading-snug max-w-lg mx-auto">
-              Zubite.bg не поставя диагноза и не заменя професионален
-              стоматологичен преглед.
-            </p>
           </div>
         </Reveal>
       </div>

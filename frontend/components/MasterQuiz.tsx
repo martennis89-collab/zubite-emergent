@@ -477,6 +477,16 @@ function calculateResult(answers: { value: string; score: number; tags?: string[
 
 const SEGMENT_LABELS: Record<Segment, string> = { adult: 'възрастен', teen: 'тийнейджър', child: 'дете' }
 
+// Named orientation stage — the primary output of the result screen
+// (July 2026). Mapped from the existing severity band; it is an
+// orientation label, NOT a diagnosis (the badge below says so and the
+// existing band/explanation remain as supporting severity detail).
+const STAGE_BY_BAND: Record<ResultBand, string> = {
+  low: 'Ранен етап',
+  moderate: 'Развиващ се етап',
+  high: 'Напреднал етап',
+}
+
 const getBandStyles = (band: ResultBand) => {
   switch (band) {
     case 'low': return { bgGradient: 'from-emerald-50 to-emerald-100/30', borderColor: 'border-emerald-200', textColor: 'text-emerald-800', accentBg: 'bg-emerald-100', dotColor: 'bg-emerald-500', labelBg: 'bg-emerald-100', labelText: 'text-emerald-700' }
@@ -896,12 +906,24 @@ export function MasterQuiz() {
         <div className="pt-14 min-h-screen px-4 py-8 sm:py-12">
           <div className="w-full max-w-2xl mx-auto">
             <div className={`bg-gradient-to-br ${styles.bgGradient} rounded-2xl border-2 ${styles.borderColor} p-6 sm:p-8 mb-6 animate-fade-in-up`} data-testid="result-card">
+              {/* Primary output — named orientation stage (July 2026).
+                  Leads the card; severity band + explanation remain below as
+                  supporting detail. The badge keeps it explicitly non-diagnostic. */}
+              <div className="mb-5">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/70 ring-1 ring-slate-200 text-slate-700 text-[11px] font-medium px-3 py-1" data-testid="result-stage-badge">
+                  <ShieldCheck className="w-3 h-3 text-teal-600" /> Ориентир, не диагноза
+                </span>
+                <p className="mt-3 text-[11px] uppercase tracking-[0.18em] text-slate-500 font-semibold">Твоят ориентир</p>
+                <h1 className={`font-serif text-3xl sm:text-4xl font-semibold ${styles.textColor} leading-tight`} data-testid="result-stage-title">
+                  {STAGE_BY_BAND[result.band]}
+                </h1>
+              </div>
               <div className="flex items-center gap-2 mb-6">
                 <span className={`w-2.5 h-2.5 rounded-full ${styles.dotColor}`} />
                 <span className={`text-sm font-semibold ${styles.labelText} ${styles.labelBg} px-3 py-1 rounded-full`}>{content.bandLabel}</span>
                 <span className="text-xs text-slate-400 ml-auto">Сегмент: {SEGMENT_LABELS[segment]}</span>
               </div>
-              <h1 className={`font-serif text-2xl sm:text-3xl font-semibold ${styles.textColor} mb-6 leading-tight`}>{content.headline}</h1>
+              <h2 className={`font-serif text-2xl sm:text-3xl font-semibold ${styles.textColor} mb-6 leading-tight`}>{content.headline}</h2>
               <p className="text-slate-700 text-base sm:text-lg leading-relaxed mb-6">{content.explanation}</p>
               <div className={`${styles.accentBg} rounded-xl p-4 mb-6`}>
                 <p className={`${styles.textColor} font-medium`}>{content.urgency}</p>
