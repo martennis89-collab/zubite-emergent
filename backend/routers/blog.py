@@ -178,6 +178,12 @@ async def admin_upload_file(request: Request, file: UploadFile = File(...), user
             severity="info", request=request,
         )
         return {"success": True, "file_id": file_id, "url": f"/api/files/{file_id}", "filename": file.filename, "size": result["size"]}
+    except HTTPException:
+        # The storage layer already chose a meaningful status (503 when R2
+        # is unconfigured, 502 on a write failure). Swallowing it into a
+        # blanket 500 below tells the admin "unknown error" for a
+        # misconfiguration they could actually fix.
+        raise
     except Exception as e:
         logger.error(f"File upload failed: {e}")
         raise HTTPException(status_code=500, detail="Failed to upload file")
@@ -194,6 +200,10 @@ async def serve_file(file_id: str):
             content=data, media_type=record.get("content_type", content_type),
             headers={"Cache-Control": "public, max-age=31536000", "Content-Disposition": f"inline; filename=\"{record.get('original_filename', 'image')}\""}
         )
+    except HTTPException:
+        # Preserve the storage layer's status — an object missing from the
+        # bucket is a 404, not a server fault.
+        raise
     except Exception as e:
         logger.error(f"Failed to serve file {file_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve file")

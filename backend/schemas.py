@@ -384,6 +384,11 @@ class ClinicUserOut(BaseModel):
     eik: Optional[str] = None
     mol: Optional[str] = None
     description: Optional[str] = None
+    # Viber deep-link channel. `viber_phone` is stored already normalised
+    # to E.164 (see phone_utils) because a deep link cannot carry the
+    # free-text formats the rest of the platform accepts.
+    viber_enabled: bool = False
+    viber_phone: Optional[str] = None
 
 
 class ClinicTokenResponse(BaseModel):
@@ -404,6 +409,10 @@ class ClinicProfileUpdate(BaseModel):
     eik: Optional[str] = None
     mol: Optional[str] = None
     description: Optional[str] = None
+    viber_enabled: Optional[bool] = None
+    # Free-text on the way in; the endpoint normalises to E.164 before
+    # storing and rejects anything it cannot resolve.
+    viber_phone: Optional[str] = Field(default=None, max_length=40)
 
 
 class ClinicPasswordChange(BaseModel):

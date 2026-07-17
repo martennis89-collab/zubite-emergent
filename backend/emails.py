@@ -264,6 +264,59 @@ def _admin_url(path: str) -> str:
     return f"{base}{path}"
 
 
+async def send_clinic_chat_notification(
+    *,
+    to_email: str,
+    clinic_name: str | None = None,
+) -> bool:
+    """Tell a clinic a patient has opened an online consultation thread.
+
+    Carries NO message text and NO attachment on purpose. The patient may
+    have written about their health and attached an X-ray; that is
+    special-category data and must stay behind the dashboard login rather
+    than sitting in an unencrypted mailbox. This is a nudge, not a copy.
+    """
+    if not RESEND_API_KEY:
+        logging.warning("RESEND_API_KEY not configured - skipping chat notification")
+        return False
+
+    url = _admin_url("/clinic/dashboard/chats")
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #5eead4 0%, #14b8a6 100%); padding: 24px; text-align: center;">
+            <h1 style="color: #0f172a; margin: 0; font-size: 22px;">Нов онлайн разговор</h1>
+        </div>
+        <div style="padding: 24px; background: #f8fafc;">
+            <div style="background: white; border-radius: 12px; padding: 20px; border: 1px solid #e2e8f0;">
+                <p style="color: #0f172a; margin: 0 0 12px 0; font-size: 15px;">
+                    Пациент започна онлайн разговор с вас в Zubite.
+                </p>
+                <p style="color: #64748b; margin: 0 0 20px 0; font-size: 14px; line-height: 1.6;">
+                    Съобщението и приложените файлове са достъпни само във вашето табло —
+                    не ги изпращаме по имейл.
+                </p>
+                <a href="{url}" style="display: inline-block; background: #14b8a6; color: white; text-decoration: none; padding: 12px 20px; border-radius: 999px; font-weight: 500; font-size: 14px;">
+                    Отвори разговора
+                </a>
+            </div>
+        </div>
+    </div>
+    """
+    params = {
+        "from": SENDER_EMAIL,
+        "to": [to_email],
+        "subject": "Нов онлайн разговор в Zubite",
+        "html": html_content,
+    }
+    try:
+        result = await asyncio.to_thread(resend.Emails.send, params)
+        logging.info(f"Clinic chat notification sent to {to_email}, email_id: {result.get('id')}")
+        return True
+    except Exception as e:
+        logging.error(f"Failed to send clinic chat notification: {str(e)}")
+        return False
+
+
 async def send_admin_selected_clinic_request_alert(
     *,
     request_id: str,

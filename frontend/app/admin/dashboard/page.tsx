@@ -11,10 +11,6 @@ import {
   Sparkles, ArrowRight,
 } from 'lucide-react'
 import { AdminHeader } from '@/components/admin/AdminHeader'
-// AICallPanel — ElevenLabs integration soft-disabled Feb 2026. The
-// component file is kept on disk so the panel can be re-enabled by
-// restoring this import + the panel block below.
-// import { AICallPanel } from '@/components/AICallPanel'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -88,20 +84,6 @@ interface Lead {
   email?: string
   notes?: string
   answers: Record<string, unknown>
-  // Call fields
-  call_status?: string
-  call_attempts?: number
-  last_call_at?: string
-  last_call_duration_seconds?: number
-  answered_call?: boolean
-  interested_in_treatment?: boolean
-  treatment_interest?: string
-  treatment_timeline?: string
-  permission_to_share?: boolean
-  call_summary?: string
-  call_transcript?: Array<{ role: string; message: string; time_in_call_secs?: number }>
-  call_outcome_json?: Record<string, unknown>
-  call_error_message?: string
   // Verification & clinic assignment
   assigned_clinic_id?: string
   clinic_lead_status?: string
@@ -903,20 +885,6 @@ export default function AdminDashboardPage() {
                               <div className="flex items-center gap-1.5 text-sm text-slate-600">
                                 <Phone className="w-3.5 h-3.5" />
                                 {lead.phone}
-                                {/* Call status indicator */}
-                                {lead.call_status && lead.call_status !== 'idle' && (
-                                  <span className={`ml-2 w-2 h-2 rounded-full ${
-                                    lead.call_status === 'completed' ? 'bg-emerald-500' :
-                                    lead.call_status === 'calling' ? 'bg-amber-500 animate-pulse' :
-                                    lead.call_status === 'no_answer' ? 'bg-orange-500' :
-                                    lead.call_status === 'failed' ? 'bg-red-500' : 'bg-slate-400'
-                                  }`} title={
-                                    lead.call_status === 'completed' ? 'Обаждане завършено' :
-                                    lead.call_status === 'calling' ? 'Обаждане в ход' :
-                                    lead.call_status === 'no_answer' ? 'Без отговор' :
-                                    lead.call_status === 'failed' ? 'Неуспешно обаждане' : ''
-                                  } />
-                                )}
                               </div>
                             )}
                             {lead.email && (
@@ -1141,50 +1109,6 @@ export default function AdminDashboardPage() {
                         </div>
                       </div>
                     </div>
-
-                    {/* AI Call Panel — soft-disabled Feb 2026. Block kept
-                        commented so the panel can be re-enabled in one diff
-                        when the ElevenLabs / Twilio integration returns. */}
-                    {/*
-                    <AICallPanel
-                      leadId={selectedLead.id}
-                      leadName={selectedLead.name || 'Пациент'}
-                      leadPhone={selectedLead.phone}
-                      callData={{
-                        call_status: selectedLead.call_status as 'idle' | 'calling' | 'completed' | 'failed' | 'no_answer',
-                        call_attempts: selectedLead.call_attempts,
-                        last_call_at: selectedLead.last_call_at,
-                        last_call_duration_seconds: selectedLead.last_call_duration_seconds,
-                        answered_call: selectedLead.answered_call,
-                        interested_in_treatment: selectedLead.interested_in_treatment,
-                        treatment_interest: selectedLead.treatment_interest,
-                        treatment_timeline: selectedLead.treatment_timeline,
-                        permission_to_share: selectedLead.permission_to_share,
-                        call_summary: selectedLead.call_summary,
-                        call_transcript: selectedLead.call_transcript,
-                        call_outcome_json: selectedLead.call_outcome_json as Record<string, boolean | string | null> | undefined,
-                        call_error_message: selectedLead.call_error_message,
-                      }}
-                      onCallInitiated={() => {
-                        setMessage({ type: 'success', text: 'Обаждането е инициирано!' })
-                      }}
-                      onRefresh={async () => {
-                        // Refresh lead data
-                        const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
-                        const response = await fetch(`${API_URL}/api/admin/leads`, {
-        credentials: 'include' as RequestCredentials,
-      })
-                        if (response.ok) {
-                          const data = await response.json()
-                          const updatedLead = data.find((l: Lead) => l.id === selectedLead.id)
-                          if (updatedLead) {
-                            setSelectedLead(updatedLead)
-                            setLeads(data)
-                          }
-                        }
-                      }}
-                    />
-                    */}
 
                     {/* Clinic Assignment & Verification Panel */}
                     <ClinicVerificationPanel

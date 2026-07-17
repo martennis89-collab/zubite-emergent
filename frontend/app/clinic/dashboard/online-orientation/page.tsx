@@ -19,6 +19,7 @@ import {
   RefreshCw, Phone, Mail, MessageSquare, Clock,
 } from 'lucide-react'
 import { ClinicShell } from '@/components/ClinicShell'
+import { OrientationAvailabilityManager } from '@/components/clinic/OrientationAvailabilityManager'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -135,6 +136,10 @@ export default function ClinicOrientationBookingsPage() {
             <RefreshCw className="w-4 h-4" /> Опресни
           </button>
         </header>
+
+        {/* Availability first: a clinic with no windows set will never get
+            a request, so the fix for an empty list below lives up here. */}
+        <OrientationAvailabilityManager />
 
         {loading ? (
           <div className="inline-flex items-center gap-2 text-sm text-slate-500" data-testid="clinic-orient-loading">

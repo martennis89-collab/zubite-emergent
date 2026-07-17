@@ -80,12 +80,10 @@ ACTION_KEYS: frozenset[str] = frozenset({
     "consultation_request.admin_status_changed",
     "consultation_request.admin_note_added",
     "appointment.cancelled",
-    # Verification & calls
+    # Verification
     "verification.email_sent",
     "verification.responded",
     "verification.flagged",
-    "call.initiated",
-    "calls.cleanup_stuck",
     # Content / files
     "blog_post.created",
     "blog_post.updated",

@@ -58,14 +58,25 @@ if not REVALIDATE_SECRET or len(REVALIDATE_SECRET) < 16:
     )
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
 
-# Object Storage
-STORAGE_URL = "https://integrations.emergentagent.com/objstore/api/v1/storage"
-EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY')
+# Object Storage — Cloudflare R2 (S3-compatible).
+#
+# Replaces Emergent's proprietary object store, which was the last
+# runtime dependency on the platform we are migrating off. R2 is private:
+# objects are never served directly from the bucket, only proxied through
+# `GET /api/files/{id}`, so no public bucket or custom domain is needed
+# and patient-uploaded files can never be fetched by guessing a URL.
+#
+# R2_ENDPOINT is the account-level S3 endpoint WITHOUT the bucket, e.g.
+# https://<account-id>.r2.cloudflarestorage.com — the bucket is passed
+# separately as R2_BUCKET. Cloudflare shows the two joined together in
+# the dashboard; `init_storage` splits a trailing bucket back off if it
+# is left on, since pasting the dashboard value verbatim is the obvious
+# mistake to make.
+R2_ENDPOINT = (os.environ.get('R2_ENDPOINT') or '').strip().rstrip('/')
+R2_BUCKET = (os.environ.get('R2_BUCKET') or '').strip()
+R2_ACCESS_KEY_ID = os.environ.get('R2_ACCESS_KEY_ID')
+R2_SECRET_ACCESS_KEY = os.environ.get('R2_SECRET_ACCESS_KEY')
 APP_NAME = "zubite-bg"
-
-# Twilio / ElevenLabs
-TWILIO_PHONE_NUMBER_ID = os.environ.get('ELEVENLABS_TWILIO_PHONE_ID')
-CALL_TIMEOUT_MINUTES = 5
 
 # Production URL
 PRODUCTION_URL = os.environ.get('PRODUCTION_URL', 'https://zubite.bg')

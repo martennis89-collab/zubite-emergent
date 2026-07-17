@@ -3,12 +3,19 @@
 A single, reusable function that maps `(clinic_doc, settings_doc)` to
 one of the canonical `ORIENTATION_ACCESS_STATUS_VALUES`:
 
-    included_in_plan     — Premium clinic, admin-enabled, clinic active
-    addon_enabled        — Basic clinic, admin enabled the add-on, clinic active
-    disabled_by_admin    — Tier allows it, but admin toggled enabled=false
-                           (or, for Basic, the add-on flag is off)
-    not_available        — Tier does not include it and no add-on for Basic
+    included_in_plan     — Growth Partner, admin-enabled, clinic active
+    addon_enabled        — Verified Profile, admin enabled the add-on, clinic active
+    disabled_by_admin    — Package allows it, but admin toggled enabled=false
+                           (or, for Verified, the add-on flag is off)
+    not_available        — Package does not include it and no add-on
     clinic_inactive      — Clinic is suspended / inactive / unverified
+
+Package resolution goes through `entitlements.resolve_base_package`,
+which prefers the canonical `base_package` field and falls back to
+legacy `partner_tier`. This module must never read `partner_tier`
+directly to decide access: clinics written after the Feb-2026 revamp
+leave that field unset, so a direct read defaults them to "standard"
+and hides the feature from the Growth Partners who pay for it.
 
 Phase E will branch on this status to decide whether to surface this
 clinic's free-orientation slots on the patient result page. Phase D
@@ -23,13 +30,12 @@ from __future__ import annotations
 from typing import Any, Dict, Optional, TypedDict
 
 
-# Tier mapping (frozen contract for Phase D):
-#   standard / featured       → "basic"
-#   premium / premium_plus    → "premium"
-#   founding_premium          → "premium"
-#   admin_only                → "admin_only" (never surfaced to patients)
-PREMIUM_LIKE_TIERS = frozenset({"premium", "premium_plus", "founding_premium"})
-BASIC_LIKE_TIERS = frozenset({"standard", "featured"})
+from entitlements import resolve_base_package
+
+# `admin_only` is a legacy `partner_tier` with no counterpart in the
+# base-package model — it is an internal holding state, never surfaced
+# to patients, so it is resolved before the package lookup.
+ADMIN_ONLY_TIER = "admin_only"
 
 
 def _is_clinic_active(clinic: Dict[str, Any]) -> bool:
@@ -60,24 +66,31 @@ def _is_clinic_active(clinic: Dict[str, Any]) -> bool:
 class AccessReport(TypedDict, total=False):
     status: str
     is_active: bool
-    tier: str
-    plan_category: str           # "premium" | "basic" | "admin_only" | "unknown"
+    tier: str                    # legacy `partner_tier`, retained for audit
+    base_package: str            # canonical: verified_profile | growth_partner
+    plan_category: str           # "growth" | "verified" | "admin_only"
     enabled: bool                # admin operational toggle
+    # Mirrors the persisted settings field of the same name; "basic"
+    # here is the stored field's legacy wording, not a package.
     addon_enabled_for_basic: bool
     reasons: list                # human-readable detail strings (BG, admin-only)
 
 
-def _plan_category(tier: Optional[str]) -> str:
-    t = (tier or "").strip().lower()
-    if t in PREMIUM_LIKE_TIERS:
-        return "premium"
-    if t in BASIC_LIKE_TIERS:
-        return "basic"
-    if t == "admin_only":
+def _plan_category(clinic: Dict[str, Any]) -> str:
+    """Resolve the clinic's package via the canonical `base_package`
+    field, falling back to legacy `partner_tier` only through
+    `resolve_base_package`.
+
+    Reading `partner_tier` directly here is what this function used to
+    do, and it silently mis-classified every clinic saved after the
+    Feb-2026 revamp: those docs carry `base_package` and leave
+    `partner_tier` unset, so a Growth Partner resolved to the default
+    "standard" → "basic" → orientation gated behind the Basic add-on
+    toggle they should never have needed.
+    """
+    if (clinic.get("partner_tier") or "").strip().lower() == ADMIN_ONLY_TIER:
         return "admin_only"
-    # Unknown / missing — treat conservatively as basic so admin still
-    # has a path to enable via add-on toggle.
-    return "basic"
+    return "growth" if resolve_base_package(clinic) == "growth_partner" else "verified"
 
 
 def get_online_orientation_access_status(
@@ -89,68 +102,44 @@ def get_online_orientation_access_status(
     See module docstring for the canonical status values.
     """
     tier = (clinic.get("partner_tier") or "").strip().lower() or "standard"
-    plan = _plan_category(tier)
+    base_package = resolve_base_package(clinic)
+    plan = _plan_category(clinic)
     enabled = bool((settings or {}).get("enabled"))
     addon = bool((settings or {}).get("addon_enabled_for_basic"))
     active = _is_clinic_active(clinic)
     reasons: list = []
 
+    def _report(status: str, **kw: Any) -> AccessReport:
+        kw.setdefault("enabled", enabled)
+        kw.setdefault("addon_enabled_for_basic", addon)
+        return AccessReport(
+            status=status, tier=tier, base_package=base_package,
+            plan_category=plan, reasons=reasons, **kw,
+        )
+
     # Inactive clinics ALWAYS short-circuit to clinic_inactive — the
     # plan doesn't matter if we can't safely route patients to them.
     if not active:
         reasons.append("Клиниката не е активна (suspended / inactive / unverified).")
-        return AccessReport(
-            status="clinic_inactive",
-            is_active=False, tier=tier, plan_category=plan,
-            enabled=enabled, addon_enabled_for_basic=addon,
-            reasons=reasons,
-        )
+        return _report("clinic_inactive", is_active=False)
 
     if plan == "admin_only":
         reasons.append("Партньорски тарифен план: admin_only — не се излага на пациентския funnel.")
-        return AccessReport(
-            status="not_available",
-            is_active=True, tier=tier, plan_category=plan,
-            enabled=enabled, addon_enabled_for_basic=addon,
-            reasons=reasons,
-        )
+        return _report("not_available", is_active=True)
 
-    if plan == "premium":
+    if plan == "growth":
         if enabled:
-            return AccessReport(
-                status="included_in_plan",
-                is_active=True, tier=tier, plan_category=plan,
-                enabled=True, addon_enabled_for_basic=addon,
-                reasons=["Включено в Premium профила и активно от админа."],
-            )
-        reasons.append("Включено в Premium профила, но изключено от админа.")
-        return AccessReport(
-            status="disabled_by_admin",
-            is_active=True, tier=tier, plan_category=plan,
-            enabled=False, addon_enabled_for_basic=addon,
-            reasons=reasons,
-        )
+            reasons.append("Включено в Growth Partner пакета и активно от админа.")
+            return _report("included_in_plan", is_active=True, enabled=True)
+        reasons.append("Включено в Growth Partner пакета, но изключено от админа.")
+        return _report("disabled_by_admin", is_active=True, enabled=False)
 
-    # Basic-like tier from here on.
+    # Verified Profile from here on — orientation is an add-on only.
     if not addon:
-        reasons.append("Налично като add-on за Basic — добавката не е активирана.")
-        return AccessReport(
-            status="not_available",
-            is_active=True, tier=tier, plan_category=plan,
-            enabled=enabled, addon_enabled_for_basic=False,
-            reasons=reasons,
-        )
+        reasons.append("Налично като add-on за Verified Profile — добавката не е активирана.")
+        return _report("not_available", is_active=True, addon_enabled_for_basic=False)
     if not enabled:
         reasons.append("Add-on е активиран, но операционно е изключено от админа.")
-        return AccessReport(
-            status="disabled_by_admin",
-            is_active=True, tier=tier, plan_category=plan,
-            enabled=False, addon_enabled_for_basic=True,
-            reasons=reasons,
-        )
-    return AccessReport(
-        status="addon_enabled",
-        is_active=True, tier=tier, plan_category=plan,
-        enabled=True, addon_enabled_for_basic=True,
-        reasons=["Add-on за Basic е активиран и операционно е включено."],
-    )
+        return _report("disabled_by_admin", is_active=True, enabled=False, addon_enabled_for_basic=True)
+    reasons.append("Add-on за Verified Profile е активиран и операционно е включено.")
+    return _report("addon_enabled", is_active=True, enabled=True, addon_enabled_for_basic=True)

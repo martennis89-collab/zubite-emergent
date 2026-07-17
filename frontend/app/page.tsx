@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import { HomeContent, type HomeBlogPost } from '../components/HomeContent'
+import { HomeContent } from '../components/HomeContent'
 
 export const metadata: Metadata = {
   title: 'Zubite.bg — На кой етап е захапката ти? Провери за 60 секунди',
@@ -44,33 +44,14 @@ export const metadata: Metadata = {
   },
 }
 
-// Fetch recent blog posts for SSR
-async function getRecentPosts(): Promise<HomeBlogPost[]> {
-  try {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || process.env.REACT_APP_BACKEND_URL || ''
-    if (!API_URL) return []
-
-    const response = await fetch(`${API_URL}/api/blog/posts?limit=3`, {
-      next: { revalidate: 300 }, // Revalidate every 5 minutes
-    })
-
-    if (!response.ok) {
-      return []
-    }
-
-    const data = await response.json()
-    return data.posts || []
-  } catch {
-    return []
-  }
-}
-
-export default async function HomePage() {
-  const recentPosts = await getRecentPosts()
-
+// The Журнал preview was cut from the homepage on 2026-07-16 (it served
+// content discovery, not the page's single purpose: explain Zubite +
+// start the quiz). Its SSR blog fetch went with it — the homepage no
+// longer blocks render on a backend call. /blog remains the blog surface.
+export default function HomePage() {
   return (
     <main className="min-h-screen bg-[#FCFAF8] text-slate-900 overflow-x-clip" data-testid="home-main">
-      <HomeContent recentPosts={recentPosts} />
+      <HomeContent />
 
       {/* Structured Data for SEO */}
       <script

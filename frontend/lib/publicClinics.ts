@@ -6,7 +6,33 @@
  * `lib/api.ts` so the quiz-driven results flow stays untouched.
  */
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+/**
+ * Base URL for the backend.
+ *
+ * These helpers run in BOTH contexts. On the server (SSR/RSC) the
+ * browser-facing `NEXT_PUBLIC_API_URL` may be unreachable — in Docker it
+ * points at a host-published port that does not exist inside the
+ * container, and in production it takes a needless round trip out to the
+ * public internet. `INTERNAL_API_URL` / `BACKEND_INTERNAL_URL` exist for
+ * this (the same vars `next.config.js` already uses for its `/api`
+ * rewrite), so prefer them server-side and fall back to the public URL.
+ *
+ * Trailing slashes are stripped: a stray one produces `//api/...` and a
+ * 404, and the value is baked in at build time on Vercel — a known
+ * migration footgun, so it is handled here rather than trusted to config.
+ */
+function resolveApiUrl(): string {
+  const isServer = typeof window === 'undefined'
+  const raw = isServer
+    ? process.env.INTERNAL_API_URL ||
+      process.env.BACKEND_INTERNAL_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      ''
+    : process.env.NEXT_PUBLIC_API_URL || ''
+  return raw.replace(/\/+$/, '')
+}
+
+const API_URL = resolveApiUrl()
 
 /** Public partner tier — derived from the existing `partner_tier` field on
  *  the clinic doc. No parallel schema. */
@@ -78,12 +104,41 @@ export type PublicClinic = {
   accepts_adults: boolean | null
   accepts_children: boolean | null
   profile_information_reviewed: boolean
+  /**
+   * LEGACY audit field. Do NOT gate rendering on this — it is not
+   * written from the canonical `base_package`, so every clinic created
+   * after the Feb-2026 pricing revamp reports "standard" here no matter
+   * what they pay. Use `entitlements` below. Kept only for the public
+   * status label and for legacy admin code.
+   */
   partner_tier: PartnerTier
+  /** Canonical commercial package (Feb 2026 revamp). */
+  base_package?: 'verified_profile' | 'growth_partner' | null
+  /**
+   * Entitlement-derived render flags computed server-side from
+   * `entitlements.py`. This is the single source of truth for which
+   * profile sections a clinic is entitled to.
+   */
+  entitlements?: {
+    enhanced_clinic_profile: boolean
+    structured_trust_signals: boolean
+    treatment_service_map: 'limited' | 'full'
+    max_treatment_sections: number
+    case_library_eligibility: boolean
+    expert_qa: boolean
+  }
   public_status_label: string
   /** Feb 2026 booking engine — when true, patient can open the
    *  full booking calendar via `/booking/{id}`. When false, only
    *  the contact CTA (phone / lead form) is shown. */
   booking_enabled?: boolean
+  /**
+   * Clinic's Viber number in E.164, or null. The server only sends it
+   * when the package grants the chat channel AND the clinic enabled it,
+   * so render the Viber CTA on presence alone — do not combine it with
+   * `entitlements` or `base_package` here.
+   */
+  viber_phone?: string | null
   review: ReviewSummary | null
   long_description: string | null
   consultation_process: string | null
@@ -184,6 +239,21 @@ export const TREATMENT_LABELS: Record<string, string> = {
   estetichna_stomatologia: 'Естетична стоматология',
   endodontics: 'Ендодонтия',
   pediatric: 'Детска стоматология',
+  // Added 2026-07: these slugs are in active use (lib/pricing.ts keys,
+  // the /breketi + /aligners-vs-braces + /tmj + /sleep-airway routes) but
+  // had no label, so `treatmentLabel()` fell through to its raw-slug
+  // fallback and printed English ("braces", "veneers") to Bulgarian
+  // patients. Labels below match the wording used elsewhere on the site.
+  braces: 'Брекети',
+  breketi: 'Брекети',
+  veneers: 'Фасети',
+  bonding: 'Бондинг',
+  whitening: 'Избелване',
+  tmj: 'TMJ / челюстни стави',
+  sleep_airway: 'Сън и дишане',
+  'sleep-airway': 'Сън и дишане',
+  hygiene: 'Хигиена и венци',
+  periodontics: 'Пародонтология',
 }
 
 /** URL specialty slug → canonical backend treatment key. The backend stores

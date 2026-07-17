@@ -24,7 +24,7 @@ import {
   ArrowLeft, Building2, MapPin, ShieldCheck, Sparkles, Video, Heart,
   Phone, Check, X, MessagesSquare, Stethoscope, UserCircle2, BookOpenCheck,
   Cpu, ListChecks, Award, Quote, FileText, Megaphone, ChevronDown,
-  CalendarClock,
+  CalendarClock, MessageCircle,
 } from 'lucide-react'
 import {
   type PublicClinic, treatmentLabel, cityDisplay,
@@ -63,13 +63,43 @@ export default function ClinicProfileView({ clinic }: Props) {
     }
   }, [])
 
-  const isPremium = clinic.partner_tier !== 'standard'
-  const isAuthority = clinic.partner_tier === 'premium'
+  // Section gating reads server-computed entitlements (from
+  // `entitlements.py`), NOT `partner_tier`.
+  //
+  // The old gate was `partner_tier !== 'standard'` / `=== 'premium'`.
+  // `partner_tier` is a legacy audit field that is never written from the
+  // canonical `base_package`, so the API reports "standard" for every
+  // clinic created since the Feb-2026 revamp — which silently rendered
+  // paying Growth Partners (€199/mo) as minimum Verified profiles: no
+  // approach, no team, no questions, no case library, no story.
+  //
+  // Fallback to the legacy read only if `entitlements` is missing (older
+  // cached payload), so this degrades to previous behaviour rather than
+  // erasing sections outright.
+  const ent = clinic.entitlements
+  const isEnhanced = ent
+    ? ent.enhanced_clinic_profile
+    : clinic.partner_tier !== 'standard'
+  const canShowCases = ent
+    ? ent.case_library_eligibility
+    : clinic.partner_tier === 'premium'
+  const canShowExpertQa = ent
+    ? ent.expert_qa
+    : clinic.partner_tier === 'premium'
+  const maxTreatmentSections = ent?.max_treatment_sections ?? 3
+  /**
+   * Trust signals — team, treatments, location, patient-fit — are sold
+   * with BOTH packages. The locked pricing lists them verbatim under
+   * Verified Profile ("Structured trust signals: team, treatments,
+   * location, patient-fit info"), but patient-fit and team used to sit
+   * behind the enhanced gate, so a Verified clinic paying for them got
+   * only treatments + location. True for both packages by default;
+   * still an entitlement so an admin override can withdraw it.
+   */
+  const hasTrustSignals = ent ? ent.structured_trust_signals : true
 
   const tierBadgeStyle =
-    clinic.partner_tier === 'premium'
-      ? 'bg-amber-50 text-amber-800 ring-amber-100'
-      : clinic.partner_tier === 'featured'
+    clinic.base_package === 'growth_partner'
       ? 'bg-teal-50 text-teal-800 ring-teal-100'
       : 'bg-slate-50 text-slate-700 ring-slate-200'
 
@@ -116,18 +146,22 @@ export default function ClinicProfileView({ clinic }: Props) {
       ? 'Клиниката приема заявки за онлайн консултация, но няма публикувани свободни часове.'
       : null
 
+  // Anchors must track the same entitlements as the sections they point
+  // at — a link to a section the clinic isn't entitled to scrolls nowhere.
   const visibleAnchors = useMemo(() => {
     const all: Array<{ id: string; label: string }> = [
       { id: 'overview', label: 'Обзор' },
       { id: 'consultation', label: 'Консултация' },
       { id: 'services', label: 'Услуги' },
     ]
-    if (isPremium) all.push({ id: 'approach', label: 'Подход' }, { id: 'team', label: 'Екип' })
-    if (isAuthority) all.push({ id: 'cases', label: 'Случаи' })
-    if (isPremium) all.push({ id: 'questions', label: 'Въпроси' })
+    if (hasTrustSignals) all.push({ id: 'suitability', label: 'Подходящост' })
+    if (isEnhanced) all.push({ id: 'approach', label: 'Подход' })
+    if (hasTrustSignals) all.push({ id: 'team', label: 'Екип' })
+    if (canShowCases) all.push({ id: 'cases', label: 'Случаи' })
+    if (isEnhanced) all.push({ id: 'questions', label: 'Въпроси' })
     all.push({ id: 'location', label: 'Локация' })
     return all
-  }, [isPremium, isAuthority])
+  }, [isEnhanced, canShowCases, hasTrustSignals])
 
   const hasRealZubiteFeedback = false  // Reserved — never faked.
 
@@ -164,158 +198,166 @@ export default function ClinicProfileView({ clinic }: Props) {
             Към каталога с клиники
           </Link>
 
-          {/* ═══════════ Compact Hero ═══════════ */}
+          {/* ═══════════ Immersive Hero ═══════════
+              The clinic's own photo (or team shot) carries the section as a
+              darkened background, with the identity + key facts overlaid on
+              top. This is the "mini-site" moment: the clinic's room, not a
+              Zubite card with a thumbnail bolted to the side.
+
+              Contrast: the scrim below is a bottom-weighted black gradient,
+              so white text sits on ~70-85% black regardless of how light the
+              uploaded photo is. Never rely on the photo being dark. */}
           <Reveal as="header">
             <div
               id="overview"
-              className="relative rounded-2xl overflow-hidden ring-1 ring-white/75 shadow-[0_24px_60px_-28px_rgba(13,148,136,0.40)] scroll-mt-20"
+              className="relative rounded-2xl overflow-hidden ring-1 ring-slate-900/10 shadow-[0_24px_60px_-28px_rgba(15,23,42,0.45)] scroll-mt-20 min-h-[420px] sm:min-h-[460px] flex"
               data-testid="profile-hero"
             >
-              {/* Branded gradient wash behind hero */}
+              {/* Background image / fallback */}
+              <div aria-hidden className="absolute inset-0">
+                {clinic.hero_image_url ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={clinic.hero_image_url}
+                    alt=""
+                    className="w-full h-full object-cover"
+                    data-testid="profile-hero-image"
+                  />
+                ) : (
+                  /* No photo yet — a calm branded field rather than a broken
+                     frame. Never a stock dental photo. */
+                  <div className="w-full h-full bg-gradient-to-br from-teal-800 via-teal-900 to-slate-900 grid place-items-center">
+                    <Building2 className="w-16 h-16 text-white/10" />
+                  </div>
+                )}
+              </div>
+
+              {/* Darkening scrim — bottom-weighted so the copy block is
+                  always legible, top kept lighter so the photo still reads. */}
               <div
                 aria-hidden
                 className="absolute inset-0 pointer-events-none"
                 style={{
                   background:
-                    'linear-gradient(135deg, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.78) 60%, rgba(245,252,250,0.75) 100%)',
-                  backdropFilter: 'blur(20px)',
+                    'linear-gradient(180deg, rgba(2,20,24,0.45) 0%, rgba(2,20,24,0.30) 30%, rgba(2,20,24,0.78) 78%, rgba(2,20,24,0.92) 100%)',
                 }}
               />
+              {/* Subtle brand tint so every clinic photo still feels Zubite */}
               <div
                 aria-hidden
-                className="absolute -top-16 -right-24 w-72 h-72 pointer-events-none"
+                className="absolute inset-0 pointer-events-none mix-blend-soft-light"
                 style={{
                   background:
-                    'radial-gradient(circle, rgba(94,234,212,0.40) 0%, rgba(94,234,212,0) 70%)',
+                    'radial-gradient(ellipse 70% 60% at 15% 100%, rgba(45,212,191,0.55) 0%, rgba(45,212,191,0) 70%)',
                 }}
               />
-              <div className="relative grid sm:grid-cols-[1fr,260px] lg:grid-cols-[1fr,320px]">
-                <div className="p-5 sm:p-6 order-2 sm:order-1">
-                  <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
-                    <span
-                      className={
-                        'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ring-1 ' +
-                        tierBadgeStyle
-                      }
-                      data-testid="profile-tier-label"
-                    >
-                      <Sparkles className="w-3 h-3" />
-                      {clinic.public_status_label}
-                    </span>
-                    {clinic.is_sponsored && (
-                      <span
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-700 ring-1 ring-slate-200"
-                        data-testid="profile-sponsored-label"
-                        title="Спонсорираната видимост е обозначена отделно и не влияе на органичното подреждане."
-                      >
-                        <Megaphone className="w-3 h-3" />
-                        Спонсорирано
-                      </span>
-                    )}
-                  </div>
-                  {clinic.is_sponsored && (
-                    <p
-                      className="mt-0.5 text-[10px] text-slate-500 leading-snug"
-                      data-testid="profile-sponsored-helper"
-                    >
-                      Спонсорираната видимост е обозначена отделно и не влияе на органичното подреждане.
-                    </p>
-                  )}
-                  <h1
-                    className="font-serif text-xl sm:text-2xl lg:text-[34px] font-semibold text-slate-900 leading-[1.1] tracking-tight"
-                    data-testid="profile-name"
+
+              {/* Content */}
+              <div className="relative w-full flex flex-col justify-end p-5 sm:p-7 lg:p-9">
+                <div className="flex flex-wrap items-center gap-1.5 mb-3">
+                  <span
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-white/15 text-white ring-1 ring-white/25 backdrop-blur-md"
+                    data-testid="profile-tier-label"
                   >
-                    {clinic.name}
-                  </h1>
-                  <p className="mt-1.5 text-sm text-slate-500 inline-flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5" />
-                    {clinic.city_name || cityDisplay(clinic.city_slug || '')}
-                    {clinic.area && ` · ${clinic.area}`}
-                  </p>
-
-                  {clinic.short_description && (
-                    <p
-                      className="mt-3 text-sm text-slate-700 leading-relaxed line-clamp-3"
-                      data-testid="profile-short-description"
+                    <Sparkles className="w-3 h-3" />
+                    {clinic.public_status_label}
+                  </span>
+                  {clinic.is_sponsored && (
+                    <span
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-900/50 text-white/90 ring-1 ring-white/20 backdrop-blur-md"
+                      data-testid="profile-sponsored-label"
+                      title="Спонсорираната видимост е обозначена отделно и не влияе на органичното подреждане."
                     >
-                      {clinic.short_description}
-                    </p>
+                      <Megaphone className="w-3 h-3" />
+                      Спонсорирано
+                    </span>
                   )}
+                </div>
 
-                  <ul className="mt-3 flex flex-wrap gap-1" data-testid="profile-trust-chips">
-                    {clinic.online_consultation && (
-                      <BadgePill icon={<Video className="w-2.5 h-2.5" />} label="Онлайн консултация" />
-                    )}
-                    {clinic.care_pass_partner && (
-                      <BadgePill icon={<Heart className="w-2.5 h-2.5 text-rose-500" />} label="Care Pass" />
-                    )}
-                    {clinic.profile_information_reviewed && (
-                      <BadgePill
-                        icon={<ShieldCheck className="w-2.5 h-2.5 text-teal-600" />}
-                        label="Профил прегледан"
-                      />
-                    )}
-                  </ul>
+                <h1
+                  className="font-serif text-[28px] sm:text-4xl lg:text-[44px] font-semibold text-white leading-[1.05] tracking-tight drop-shadow-sm"
+                  data-testid="profile-name"
+                >
+                  {clinic.name}
+                </h1>
+                <p className="mt-2 text-sm text-white/75 inline-flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5" />
+                  {clinic.city_name || cityDisplay(clinic.city_slug || '')}
+                  {clinic.area && ` · ${clinic.area}`}
+                </p>
 
-                  <div className="mt-4 flex flex-col sm:flex-row gap-2">
-                    <button
-                      type="button"
-                      onClick={heroPrimary.onClick}
-          className="group relative inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-slate-900 text-sm font-medium overflow-hidden hover:-translate-y-0.5 transition-all shadow-[0_18px_40px_-12px_rgba(94,234,212,0.45)]"
-                      style={{
-                        backgroundImage:
-                          'linear-gradient(135deg,#5eead4 0%,#2dd4bf 60%,#14b8a6 100%)',
-                      }}
-                      data-testid="profile-cta-primary"
-                    >
-                      <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/40 blur-sm pointer-events-none" />
-                      <span className="relative inline-flex items-center gap-2">
+                {clinic.short_description && (
+                  <p
+                    className="mt-3 text-sm sm:text-base text-white/85 leading-relaxed max-w-2xl line-clamp-3"
+                    data-testid="profile-short-description"
+                  >
+                    {clinic.short_description}
+                  </p>
+                )}
+
+                {/* Key-fact containers — only render what the clinic actually
+                    has. No placeholders, no invented stats. */}
+                <HeroFacts clinic={clinic} />
+
+                <div className="mt-5 flex flex-col sm:flex-row gap-2">
+                  <button
+                    type="button"
+                    onClick={heroPrimary.onClick}
+                    className="group relative inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full text-slate-900 text-sm font-medium overflow-hidden hover:-translate-y-0.5 transition-all shadow-[0_18px_40px_-12px_rgba(94,234,212,0.55)]"
+                    style={{
+                      backgroundImage:
+                        'linear-gradient(135deg,#5eead4 0%,#2dd4bf 60%,#14b8a6 100%)',
+                    }}
+                    data-testid="profile-cta-primary"
+                  >
+                    <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/40 blur-sm pointer-events-none" />
+                    <span className="relative inline-flex items-center gap-2">
                       {schedulerState === 'available'
                         ? <CalendarClock className="w-4 h-4 group-hover:rotate-[-4deg] transition-transform" />
                         : <Phone className="w-4 h-4" />}
                       {heroPrimary.label}
-                      </span>
-                    </button>
-                    {heroSecondary && (
-                      <button
-                        type="button"
-                        onClick={heroSecondary.onClick}
-                        className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-white/85 ring-1 ring-slate-300 text-slate-700 text-sm font-medium hover:bg-white hover:ring-slate-400 transition-colors"
-                        data-testid="profile-cta-secondary"
-                      >
-                        <Phone className="w-3.5 h-3.5" />
-                        {heroSecondary.label}
-                      </button>
-                    )}
-                  </div>
-                  {heroNote && (
-                    <p
-                      className="mt-2 text-[11px] text-amber-800 leading-snug"
-                      data-testid="profile-cta-note"
+                    </span>
+                  </button>
+                  {heroSecondary && (
+                    <button
+                      type="button"
+                      onClick={heroSecondary.onClick}
+                      className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-full bg-white/10 backdrop-blur-md ring-1 ring-white/30 text-white text-sm font-medium hover:bg-white/20 transition-colors"
+                      data-testid="profile-cta-secondary"
                     >
-                      {heroNote}
-                    </p>
+                      <Phone className="w-3.5 h-3.5" />
+                      {heroSecondary.label}
+                    </button>
+                  )}
+                  {/* Presence of `viber_phone` already means "entitled and
+                      switched on" — the server resolves that. */}
+                  {clinic.viber_phone && (
+                    <a
+                      href={`viber://chat?number=${encodeURIComponent(clinic.viber_phone)}`}
+                      className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-full bg-white/10 backdrop-blur-md ring-1 ring-white/30 text-white text-sm font-medium hover:bg-white/20 transition-colors"
+                      data-testid="profile-cta-viber"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      Пишете във Viber
+                    </a>
                   )}
                 </div>
-
-                <div className="order-1 sm:order-2 relative">
-                  {clinic.hero_image_url ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
-                      src={clinic.hero_image_url}
-                      alt={clinic.name}
-                      className="w-full h-40 sm:h-full sm:min-h-[220px] object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-40 sm:h-full sm:min-h-[220px] bg-gradient-to-br from-teal-100/60 via-cyan-50/40 to-white grid place-items-center">
-                      <Building2 className="w-10 h-10 text-teal-200" />
-                    </div>
-                  )}
-                  <div
-                    aria-hidden
-                    className="absolute inset-0 ring-1 ring-inset ring-white/30 pointer-events-none"
-                  />
-                </div>
+                {heroNote && (
+                  <p
+                    className="mt-2 text-[11px] text-amber-200/90 leading-snug"
+                    data-testid="profile-cta-note"
+                  >
+                    {heroNote}
+                  </p>
+                )}
+                {clinic.is_sponsored && (
+                  <p
+                    className="mt-2 text-[10px] text-white/55 leading-snug"
+                    data-testid="profile-sponsored-helper"
+                  >
+                    Спонсорираната видимост е обозначена отделно и не влияе на органичното подреждане.
+                  </p>
+                )}
               </div>
             </div>
           </Reveal>
@@ -374,8 +416,9 @@ export default function ClinicProfileView({ clinic }: Props) {
           <div className="mt-5 grid lg:grid-cols-[1fr,300px] gap-5">
             {/* ── Left main column ── */}
             <div className="space-y-4 min-w-0">
-              {/* Suitability — dark decision section (Premium+) */}
-              {isPremium && (
+              {/* Suitability / patient-fit — a trust signal, sold with both
+                  packages (see `hasTrustSignals`). Was enhanced-only. */}
+              {hasTrustSignals && (
                 <Reveal>
                   <DarkSectionShell
                     id="suitability"
@@ -432,9 +475,15 @@ export default function ClinicProfileView({ clinic }: Props) {
                         Допълнителен фокус: {clinic.treatment_focus.join(', ')}
                       </p>
                     )}
-                    {isPremium && (
+                    {/* Expanded per-treatment detail. `max_treatment_sections`
+                        is the paid boundary between the packages (Verified 3 /
+                        Growth 8) and was previously not enforced anywhere on
+                        the public page — every clinic rendered all of them.
+                        The chip list above always shows the full set; only the
+                        expanded sections are capped. */}
+                    {isEnhanced && (
                       <div className="mt-3 space-y-1" data-testid="profile-treatments-accordion">
-                        {clinic.treatments.map((t, i) => (
+                        {clinic.treatments.slice(0, maxTreatmentSections).map((t, i) => (
                           <TreatmentAccordion
                             key={t}
                             slug={t}
@@ -451,7 +500,7 @@ export default function ClinicProfileView({ clinic }: Props) {
               </SectionShell>
 
               {/* Premium block */}
-              {isPremium && (
+              {isEnhanced && (
                 <>
                   {/* Approach — dark split feature band */}
                   <Reveal>
@@ -508,67 +557,76 @@ export default function ClinicProfileView({ clinic }: Props) {
                     )}
                   </SectionShell>
 
-                  {/* Doctor */}
-                  <SectionShell id="team" testid="profile-section-doctor" title="Водещ лекар" icon={<UserCircle2 className="w-4 h-4 text-teal-700" />}>
-                    {(clinic.doctor_spotlight?.name || clinic.team_image_url) ? (
-                      <div>
-                        {clinic.doctor_spotlight?.name && (
-                          <div className="flex items-start gap-3">
-                            {clinic.doctor_spotlight_image_url && (
-                              /* eslint-disable-next-line @next/next/no-img-element */
-                              <img
-                                src={clinic.doctor_spotlight_image_url}
-                                alt={clinic.doctor_spotlight.name || 'Водещ лекар'}
-                                className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover ring-2 ring-teal-100 flex-shrink-0"
-                                data-testid="profile-doctor-image"
-                              />
-                            )}
-                            <div className="min-w-0 flex-1">
-                              <p className="font-medium text-slate-900 text-[14px]">
-                                {clinic.doctor_spotlight.name}
-                              </p>
-                              {clinic.doctor_spotlight.role && (
-                                <p className="text-[12px] text-slate-500 mt-0.5">
-                                  {clinic.doctor_spotlight.role}
-                                </p>
-                              )}
-                              {clinic.doctor_spotlight.bio && (
-                                <p className="mt-1.5 text-[13px] text-slate-700 leading-relaxed whitespace-pre-line">
-                                  {clinic.doctor_spotlight.bio}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                        {clinic.team_image_url && (
-                          <figure className={clinic.doctor_spotlight?.name ? 'mt-4' : ''} data-testid="profile-team-figure">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={clinic.team_image_url}
-                              alt={`Екипът на ${clinic.name}`}
-                              className="w-full h-48 sm:h-64 object-cover rounded-xl ring-1 ring-slate-200"
-                              data-testid="profile-team-image"
-                            />
-                            <figcaption className="mt-1.5 text-[11px] text-slate-500 leading-snug">
-                              Екипът на клиниката
-                            </figcaption>
-                          </figure>
-                        )}
-                        {clinic.team_note && (
-                          <p className="mt-2 text-[11px] text-slate-500 italic">
-                            {clinic.team_note}
-                          </p>
-                        )}
-                      </div>
-                    ) : (
-                      <EmptyStateCard hint="Водещ лекар" message="Профилът на водещия лекар все още не е добавен." testid="empty-doctor" />
-                    )}
-                  </SectionShell>
                 </>
               )}
 
-              {/* Authority block */}
-              {isAuthority && (
+              {/* Team / lead doctor — a Verified-level trust signal
+                  ("team, treatments, location, patient-fit"), so it sits
+                  outside the enhanced gate. */}
+              {hasTrustSignals && (
+                    <SectionShell id="team" testid="profile-section-doctor" title="Водещ лекар" icon={<UserCircle2 className="w-4 h-4 text-teal-700" />}>
+                      {(clinic.doctor_spotlight?.name || clinic.team_image_url) ? (
+                        <div>
+                          {clinic.doctor_spotlight?.name && (
+                            <div className="flex items-start gap-3">
+                              {clinic.doctor_spotlight_image_url && (
+                                /* eslint-disable-next-line @next/next/no-img-element */
+                                <img
+                                  src={clinic.doctor_spotlight_image_url}
+                                  alt={clinic.doctor_spotlight.name || 'Водещ лекар'}
+                                  className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover ring-2 ring-teal-100 flex-shrink-0"
+                                  data-testid="profile-doctor-image"
+                                />
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <p className="font-medium text-slate-900 text-[14px]">
+                                  {clinic.doctor_spotlight.name}
+                                </p>
+                                {clinic.doctor_spotlight.role && (
+                                  <p className="text-[12px] text-slate-500 mt-0.5">
+                                    {clinic.doctor_spotlight.role}
+                                  </p>
+                                )}
+                                {clinic.doctor_spotlight.bio && (
+                                  <p className="mt-1.5 text-[13px] text-slate-700 leading-relaxed whitespace-pre-line">
+                                    {clinic.doctor_spotlight.bio}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          {clinic.team_image_url && (
+                            <figure className={clinic.doctor_spotlight?.name ? 'mt-4' : ''} data-testid="profile-team-figure">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={clinic.team_image_url}
+                                alt={`Екипът на ${clinic.name}`}
+                                className="w-full h-48 sm:h-64 object-cover rounded-xl ring-1 ring-slate-200"
+                                data-testid="profile-team-image"
+                              />
+                              <figcaption className="mt-1.5 text-[11px] text-slate-500 leading-snug">
+                                Екипът на клиниката
+                              </figcaption>
+                            </figure>
+                          )}
+                          {clinic.team_note && (
+                            <p className="mt-2 text-[11px] text-slate-500 italic">
+                              {clinic.team_note}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <EmptyStateCard hint="Водещ лекар" message="Профилът на водещия лекар все още не е добавен." testid="empty-doctor" />
+                      )}
+                    </SectionShell>
+              )}
+
+              {/* Enhanced-profile block (Growth Partner). Individual
+                  sub-sections carry their own entitlement gate where the
+                  entitlement is distinct — case library and expert Q&A can
+                  be granted or withheld independently via add-ons/overrides,
+                  so they must not ride on the enhanced-profile flag. */}
+              {isEnhanced && (
                 <>
                   {/* Deep clinic story */}
                   <SectionShell testid="profile-section-story" title="Историята на клиниката" icon={<BookOpenCheck className="w-4 h-4 text-teal-700" />}>
@@ -626,35 +684,41 @@ export default function ClinicProfileView({ clinic }: Props) {
                     )}
                   </SectionShell>
 
-                  {/* Expert Q&A — collapsed */}
-                  <SectionShell testid="profile-section-expert-qa" title="Експертни отговори" icon={<Quote className="w-4 h-4 text-teal-700" />}>
-                    {clinic.expert_qa.length > 0 ? (
-                      <Accordion
-                        items={clinic.expert_qa.map((qa, i) => ({
-                          id: `eqa-${i}`,
-                          head: qa.question,
-                          body: qa.answer,
-                        }))}
-                        testid="accordion-expert-qa"
-                        defaultOpenIdx={-1}
-                      />
-                    ) : (
-                      <EmptyStateCard hint="Експертни отговори" message="Клиниката все още не е добавила отговори на често задавани пациентски въпроси." testid="empty-expert-qa" />
-                    )}
-                  </SectionShell>
+                  {/* Expert Q&A — collapsed. Own entitlement. */}
+                  {canShowExpertQa && (
+                    <SectionShell testid="profile-section-expert-qa" title="Експертни отговори" icon={<Quote className="w-4 h-4 text-teal-700" />}>
+                      {clinic.expert_qa.length > 0 ? (
+                        <Accordion
+                          items={clinic.expert_qa.map((qa, i) => ({
+                            id: `eqa-${i}`,
+                            head: qa.question,
+                            body: qa.answer,
+                          }))}
+                          testid="accordion-expert-qa"
+                          defaultOpenIdx={-1}
+                        />
+                      ) : (
+                        <EmptyStateCard hint="Експертни отговори" message="Клиниката все още не е добавила отговори на често задавани пациентски въпроси." testid="empty-expert-qa" />
+                      )}
+                    </SectionShell>
+                  )}
 
-                  {/* Cases — rich showcase with before/after images and treatment details */}
-                  <SectionShell id="cases" testid="profile-section-cases" title="Библиотека със случаи" subtitle="Публикуват се само случаи с потвърдено пациентско съгласие." icon={<FileText className="w-4 h-4 text-teal-700" />}>
-                    {clinic.case_library.length > 0 ? (
-                      <div className="space-y-4" data-testid="case-library-showcase">
-                        {clinic.case_library.map((c, i) => (
-                          <CaseShowcaseCard key={c.id || `case-${i}`} caseItem={c} index={i} />
-                        ))}
-                      </div>
-                    ) : (
-                      <EmptyStateCard hint="Реални случаи" message="Клиниката все още не е предоставила реални случаи за публикуване." testid="empty-cases" />
-                    )}
-                  </SectionShell>
+                  {/* Cases — rich showcase with before/after images and
+                      treatment details. Own entitlement; the API also
+                      withholds the data itself when not eligible. */}
+                  {canShowCases && (
+                    <SectionShell id="cases" testid="profile-section-cases" title="Библиотека със случаи" subtitle="Публикуват се само случаи с потвърдено пациентско съгласие." icon={<FileText className="w-4 h-4 text-teal-700" />}>
+                      {clinic.case_library.length > 0 ? (
+                        <div className="space-y-4" data-testid="case-library-showcase">
+                          {clinic.case_library.map((c, i) => (
+                            <CaseShowcaseCard key={c.id || `case-${i}`} caseItem={c} index={i} />
+                          ))}
+                        </div>
+                      ) : (
+                        <EmptyStateCard hint="Реални случаи" message="Клиниката все още не е предоставила реални случаи за публикуване." testid="empty-cases" />
+                      )}
+                    </SectionShell>
+                  )}
 
                   {/* Prices — collapsed via accordion when data exists, compact empty otherwise */}
                   <SectionShell testid="profile-section-prices" title="Ценови ориентири" icon={<ListChecks className="w-4 h-4 text-teal-700" />}>
@@ -720,7 +784,7 @@ export default function ClinicProfileView({ clinic }: Props) {
               </div>
 
               {/* Questions checklist — Premium+ collapsed by default */}
-              {isPremium && (
+              {isEnhanced && (
                 <SectionShell id="questions" testid="profile-section-questions" title="Въпроси, които можеш да зададеш" subtitle="Неутрални предложения от Zubite — не са твърдения на клиниката." icon={<MessagesSquare className="w-4 h-4 text-teal-700" />}>
                   <Accordion
                     items={SUGGESTED_QUESTIONS.map((q, i) => ({
@@ -1246,6 +1310,96 @@ function BadgePill({ icon, label }: { icon: React.ReactNode; label: string }) {
       {icon}
       {label}
     </li>
+  )
+}
+
+/**
+ * Glass fact containers overlaid on the hero photo.
+ *
+ * Strictly opt-in per fact: a container only appears when the clinic
+ * genuinely has that data. Nothing is placeheld, defaulted or inferred —
+ * an incomplete profile shows fewer containers rather than empty or
+ * invented ones. Review data in particular is only rendered when a real
+ * rating exists (`review.count > 0`); it is never faked or rounded up.
+ */
+function HeroFacts({ clinic }: { clinic: PublicClinic }) {
+  const facts: Array<{ icon: React.ReactNode; label: string; value: string }> = []
+
+  const treatments = clinic.treatment_focus?.length
+    ? clinic.treatment_focus
+    : clinic.treatments || []
+  if (treatments.length > 0) {
+    facts.push({
+      icon: <Stethoscope className="w-3.5 h-3.5" />,
+      label: 'Основен фокус',
+      value: treatments.slice(0, 2).map(treatmentLabel).join(' · '),
+    })
+  }
+
+  if (clinic.review && clinic.review.count > 0) {
+    facts.push({
+      icon: <Award className="w-3.5 h-3.5" />,
+      label: 'Оценка',
+      value: `${clinic.review.rating.toFixed(1)} (${clinic.review.count})`,
+    })
+  }
+
+  if (clinic.online_consultation) {
+    facts.push({
+      icon: <Video className="w-3.5 h-3.5" />,
+      label: 'Консултация',
+      value: clinic.online_consultation_label || 'Онлайн',
+    })
+  }
+
+  // Who the clinic treats — only stated when explicitly set, since a
+  // null here means "not specified", not "no".
+  const audience =
+    clinic.accepts_adults && clinic.accepts_children
+      ? 'Възрастни и деца'
+      : clinic.accepts_children
+      ? 'Деца'
+      : clinic.accepts_adults
+      ? 'Възрастни'
+      : null
+  if (audience) {
+    facts.push({
+      icon: <UserCircle2 className="w-3.5 h-3.5" />,
+      label: 'Приема',
+      value: audience,
+    })
+  }
+
+  if (clinic.care_pass_partner) {
+    facts.push({
+      icon: <Heart className="w-3.5 h-3.5" />,
+      label: 'Zubite',
+      value: 'Care Pass партньор',
+    })
+  }
+
+  if (facts.length === 0) return null
+
+  return (
+    <ul
+      className="mt-5 grid grid-cols-2 sm:flex sm:flex-wrap gap-2"
+      data-testid="profile-hero-facts"
+    >
+      {facts.map((f) => (
+        <li
+          key={f.label}
+          className="rounded-xl bg-white/10 backdrop-blur-md ring-1 ring-white/20 px-3 py-2 min-w-0"
+        >
+          <p className="text-[10px] uppercase tracking-[0.12em] text-white/55 inline-flex items-center gap-1">
+            {f.icon}
+            {f.label}
+          </p>
+          <p className="mt-0.5 text-[13px] font-medium text-white truncate">
+            {f.value}
+          </p>
+        </li>
+      ))}
+    </ul>
   )
 }
 

@@ -58,15 +58,6 @@ _storage_mod.init_storage = lambda: None  # type: ignore[assignment]
 import resend as _resend  # noqa: E402
 _resend.Emails.send = MagicMock(return_value={"id": "test-no-send"})  # type: ignore[assignment]
 
-# Neutralise the ElevenLabs initiate function so call.initiated never hits
-# the real provider — return a deterministic mock response.
-import services.elevenlabs_service as _eleven_svc  # noqa: E402
-_eleven_svc.initiate_outbound_call = lambda **kwargs: (  # type: ignore[assignment]
-    True,
-    {"conversation_id": "conv-mock-123", "call_sid": "CA-MOCK", "mock": True,
-     "message": "mock"}
-)
-
 from httpx import ASGITransport, AsyncClient  # noqa: E402
 
 _LOOP = asyncio.new_event_loop()
@@ -864,48 +855,6 @@ class TestVerificationAudit:
         assert "alert_email_attempted" in flagged["metadata"]
         enc = json.dumps(rows, default=str)
         assert token not in enc
-
-
-# ─── 7. Call audit ────────────────────────────────────────────────
-class TestCallAudit:
-    def test_call_initiated_audit_without_phone_or_transcript(self, app):
-        async def go():
-            token = await _admin_token(app)
-            lid = await _seed_lead(phone="+359888CALL777")
-            async with _client(app) as c:
-                r = await c.post(
-                    f"/api/admin/leads/{lid}/call",
-                    headers={"Authorization": f"Bearer {token}"},
-                )
-            return lid, r, await _all_audit_rows()
-
-        lid, r, rows = _run(go())
-        assert r.status_code == 200
-        ci = next(x for x in rows if x["action"] == "call.initiated")
-        assert ci["target_type"] == "call"
-        # target_id is the call_log_id (a UUID), not the lead id.
-        assert ci["target_id"] != lid
-        assert ci["metadata"]["lead_id"] == lid
-        assert ci["metadata"]["is_mock"] is True
-        # Phone MUST NOT appear in audit row.
-        enc = json.dumps(rows, default=str)
-        assert "+359888CALL777" not in enc
-
-    def test_cleanup_stuck_audit_has_reset_count_only(self, app):
-        async def go():
-            token = await _admin_token(app)
-            async with _client(app) as c:
-                r = await c.post(
-                    "/api/admin/calls/cleanup-stuck",
-                    headers={"Authorization": f"Bearer {token}"},
-                )
-            return r, await _all_audit_rows()
-
-        r, rows = _run(go())
-        assert r.status_code == 200
-        cs = next(x for x in rows if x["action"] == "calls.cleanup_stuck")
-        assert "reset_count" in cs["metadata"]
-        assert isinstance(cs["metadata"]["reset_count"], int)
 
 
 # ─── 8. Resilience ────────────────────────────────────────────────

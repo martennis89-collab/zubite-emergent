@@ -1,93 +1,50 @@
 'use client'
 
 /**
- * Hero + decorative floating result-mockup. Extracted from
- * HomeContent.tsx in Feb 2026 — behaviour and visuals are bit-for-bit
- * identical to the previous inline implementation.
+ * Hero — asymmetric split: value prop on the left, the REAL first step of
+ * the quiz on the right.
+ *
+ * 2026-07-16 redesign: the right column used to be a hand-built div
+ * "mockup" of a result card — a fake screenshot of a product surface that
+ * actually exists. It now renders the genuine first question of MasterQuiz
+ * (the segment picker), using the same labels/icons as `/quiz` itself.
+ * Answering here deep-links into `/quiz?segment=…`, which MasterQuiz reads
+ * to skip its own picker — so the visitor's first click in the hero IS
+ * their first quiz answer, not a click-through to go start the quiz.
+ *
+ * This also lands the "for you or for your child?" fork the copy audit
+ * flagged: it now happens in the hero rather than being buried.
  */
 
 import Link from 'next/link'
-import Image from 'next/image'
 import {
-  ShieldCheck, ArrowRight, CheckCircle2, Star, Building2, Activity,
+  ShieldCheck, ArrowRight, CheckCircle2, User, Users, Baby,
 } from 'lucide-react'
-import { ParallaxFloat } from '@/components/motion/ParallaxFloat'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
-import {
-  Reveal,
-  px,
-  HERO_BG,
-  ASSET_B_GLASS_PANELS,
-  QUIZ_URL,
-} from './_shared'
+import { Reveal, QUIZ_URL } from './_shared'
+
+// Mirrors MasterQuiz's own segment step (labels + icons kept in sync).
+const SEGMENTS = [
+  { seg: 'adult', icon: <User className="w-5 h-5" />, label: 'За мен', sub: 'възрастен' },
+  { seg: 'teen',  icon: <Users className="w-5 h-5" />, label: 'За тийнейджър', sub: '12–17 години' },
+  { seg: 'child', icon: <Baby className="w-5 h-5" />, label: 'За дете', sub: 'под 12 години' },
+] as const
 
 export function Hero() {
   return (
-    <section className="relative pt-32 pb-20 sm:pt-40 sm:pb-28 overflow-hidden" data-testid="home-hero">
-      {/* Soft warm-ivory base with radial teal glow */}
+    <section className="relative pt-24 pb-20 sm:pb-28 overflow-hidden" data-testid="home-hero">
+      {/* Warm-ivory base with a single soft teal glow — one ambient layer */}
       <div
         aria-hidden
         className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            'radial-gradient(ellipse 80% 60% at 15% 20%, rgba(94,234,212,0.35) 0%, rgba(94,234,212,0) 60%),' +
-            'radial-gradient(ellipse 60% 50% at 85% 60%, rgba(165,243,252,0.45) 0%, rgba(165,243,252,0) 60%),' +
+            'radial-gradient(ellipse 70% 55% at 20% 15%, rgba(94,234,212,0.28) 0%, rgba(94,234,212,0) 60%),' +
             'linear-gradient(180deg, #FCFAF8 0%, #F4FAF9 100%)',
         }}
       />
-      {/* warm grain texture (low opacity overlay) */}
-      <div
-        aria-hidden
-        className="absolute inset-0 opacity-[0.14] pointer-events-none mix-blend-overlay"
-        style={{
-          backgroundImage: `url(${HERO_BG})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      />
-      {/* soft turquoise glow blobs — slow vertical parallax + breathing */}
-      <div
-        aria-hidden
-        data-parallax
-        className="absolute -top-32 -left-32 w-[36rem] h-[36rem] rounded-full bg-teal-200/30 blur-3xl pointer-events-none animate-[breatheGlow_9s_ease-in-out_infinite]"
-        style={px(-0.08)}
-      />
-      <div
-        aria-hidden
-        data-parallax
-        className="absolute -bottom-40 right-0 w-[40rem] h-[40rem] rounded-full bg-cyan-100/40 blur-3xl pointer-events-none animate-[breatheGlow_11s_ease-in-out_infinite]"
-        style={px(0.06)}
-      />
-      <div
-        aria-hidden
-        data-parallax
-        className="absolute top-20 right-1/3 w-72 h-72 rounded-full bg-emerald-200/20 blur-3xl pointer-events-none animate-[breatheGlow_13s_ease-in-out_infinite]"
-        style={px(-0.04)}
-      />
 
-      {/* Asset B — Floating frosted-glass UI panels as decorative depth layer (very low opacity) */}
-      <div
-        aria-hidden
-        data-parallax
-        className="absolute -right-20 top-32 w-[42rem] h-[42rem] pointer-events-none hidden lg:block opacity-[0.25] mix-blend-normal"
-        style={{
-          transform: 'translate3d(0, calc(var(--py, 0) * 0.04px), 0) rotate(-4deg)',
-          willChange: 'transform',
-          maskImage: 'radial-gradient(circle at 50% 50%, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 70%)',
-          WebkitMaskImage: 'radial-gradient(circle at 50% 50%, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 70%)',
-        }}
-      >
-        <Image
-          src={ASSET_B_GLASS_PANELS}
-          alt=""
-          fill
-          sizes="700px"
-          className="object-cover"
-          unoptimized
-        />
-      </div>
-
-      <div className="relative max-w-[1600px] mx-auto px-6 sm:px-10 lg:px-16 grid lg:grid-cols-[1.05fr_1fr] gap-12 items-center">
+      <div className="relative max-w-[1600px] mx-auto px-6 sm:px-10 lg:px-16 grid lg:grid-cols-[1.05fr_1fr] gap-12 lg:gap-16 items-center">
         <div>
           <Reveal>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/80 ring-1 ring-teal-100 text-teal-700 text-[11px] font-medium px-3 py-1 uppercase tracking-[0.16em]">
@@ -96,164 +53,119 @@ export function Hero() {
             </span>
           </Reveal>
           <Reveal delay={80}>
-            <h1 className="mt-5 font-serif font-semibold tracking-tight text-slate-900 text-[2.5rem] sm:text-5xl lg:text-[3.75rem] leading-[1.05]">
+            <h1 className="mt-5 font-serif font-semibold tracking-tight text-slate-900 text-[2.75rem] sm:text-[3.5rem] lg:text-[4.25rem] leading-[1.02]">
               Кривите зъби и неправилната захапка{' '}
               <span className="text-teal-600">рядко болят</span>. Затова хората чакат твърде дълго.
             </h1>
           </Reveal>
           <Reveal delay={160}>
-            <p className="mt-5 text-slate-600 text-lg sm:text-xl leading-relaxed max-w-xl">
-              Струпване, неравна захапка, стягане в челюстта, изтъркване —
-              често започват без болка. Zubite.bg ти помага да разбереш на
-              какъв етап си, преди коригирането да стане по-сложно и по-скъпо.
+            {/* Straight-text value prop: what this is, what you do, what you
+                get back. Every claim here matches what MasterQuiz actually
+                returns on its result screen — stage, a summary of the signals
+                the answers raised, and the orthodontist call — and that screen
+                renders before the contact form, so "без регистрация" is true. */}
+            <p className="mt-6 text-slate-600 text-lg sm:text-xl leading-relaxed max-w-xl">
+              Zubite.bg не е клиника и не поставя диагноза. Отговаряш на
+              няколко въпроса за зъбите и захапката си и{' '}
+              <span className="text-slate-900 font-medium">
+                веднага виждаш кратко обобщение на това, което описа, и дали
+                има смисъл да го обсъдиш с ортодонт
+              </span>{' '}
+              — без регистрация.
             </p>
           </Reveal>
           <Reveal delay={220}>
-            <div className="mt-7 flex flex-wrap items-center gap-3">
-              <Link
-                href={QUIZ_URL}
-                onClick={() => { try { trackPatientEvent('home_cta_clicked', { cta_location: 'hero' }) } catch { /* noop */ } }}
-                className="group relative inline-flex items-center gap-1.5 rounded-full text-white text-sm font-medium px-5 py-3 transition-all hover:-translate-y-0.5 shadow-[0_18px_40px_-12px_rgba(13,148,136,0.55)] overflow-hidden"
-                style={{ backgroundImage: 'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)' }}
-                data-testid="hero-primary-cta"
-              >
-                <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
-                <span className="relative inline-flex items-center gap-1.5">
-                  Провери дали захапката ти е наред (60 сек)
-                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+            <div className="mt-7 flex flex-wrap gap-2">
+              {[
+                '60 секунди',
+                'Без регистрация',
+                'Ориентир, не диагноза',
+              ].map((c) => (
+                <span
+                  key={c}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-white/60 ring-1 ring-slate-200 text-[11px] text-slate-700 font-medium px-3 py-1.5"
+                >
+                  <CheckCircle2 className="w-3 h-3 text-teal-500" />
+                  {c}
                 </span>
-              </Link>
-              <Link
-                href="#how"
-                className="relative inline-flex items-center gap-1.5 rounded-full bg-white/35 backdrop-blur-2xl text-slate-900 text-sm font-medium px-5 py-3 ring-1 ring-white/60 hover:bg-white/55 hover:-translate-y-0.5 transition-all shadow-[0_8px_24px_-12px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95),inset_0_-1px_0_rgba(15,23,42,0.04)] overflow-hidden"
-                data-testid="hero-secondary-cta"
-              >
-                <span aria-hidden className="absolute inset-x-3 top-0.5 h-1/2 rounded-full bg-white/65 blur-sm pointer-events-none" />
-                <span className="relative">Виж как работи</span>
-              </Link>
+              ))}
             </div>
-            {/* Single non-diagnostic microcopy under hero CTAs (the only
-                inline disclaimer instance; the full disclaimer lives once in
-                the Trust section). */}
-            <p className="mt-4 text-[12px] text-slate-500 leading-relaxed max-w-xl" data-testid="hero-unlock-microcopy">
-              Не е диагноза. Кратък въпросник, който показва дали има смисъл
-              да го обсъдиш с ортодонт.
-            </p>
-          </Reveal>
-          <Reveal delay={260}>
-            <ParallaxFloat strength={4} mobileFactor={0.012}>
-              <div className="mt-6 flex flex-wrap gap-2">
-                {[
-                  '60 секунди',
-                  'Без регистрация',
-                  'Ориентир, не диагноза',
-                ].map((c) => (
-                  <span
-                    key={c}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-white/50 backdrop-blur-md ring-1 ring-white/70 text-[11px] text-slate-700 font-medium px-3 py-1.5 shadow-[0_4px_12px_-6px_rgba(15,23,42,0.1)]"
-                  >
-                    <CheckCircle2 className="w-3 h-3 text-teal-500" />
-                    {c}
-                  </span>
-                ))}
-              </div>
-            </ParallaxFloat>
           </Reveal>
         </div>
 
-        {/* Floating product mockup */}
+        {/* The real quiz, step 1 — not a mockup of it. */}
         <Reveal delay={120}>
-          <HeroMockup />
+          <HeroQuizStart />
         </Reveal>
       </div>
     </section>
   )
 }
 
-function HeroMockup() {
+function HeroQuizStart() {
   return (
-    <div className="relative w-full max-w-md mx-auto" data-testid="home-hero-mockup">
-      {/* Small decorative floating shapes behind the mockup — barely visible, slow drift */}
-      <div
-        aria-hidden
-        className="absolute -top-10 -left-10 w-20 h-20 rounded-2xl bg-teal-200/35 backdrop-blur-md ring-1 ring-white/50 rotate-[8deg] animate-[driftSlow_12s_ease-in-out_infinite] pointer-events-none"
-      />
-      <div
-        aria-hidden
-        className="absolute top-1/3 -right-12 w-16 h-16 rounded-full bg-cyan-100/40 backdrop-blur-md ring-1 ring-white/40 animate-[driftSlow_14s_ease-in-out_infinite_reverse] pointer-events-none"
-        style={{ animationDelay: '-3s' }}
-      />
-      <div
-        aria-hidden
-        className="absolute -bottom-8 left-6 w-14 h-14 rounded-xl bg-emerald-100/40 backdrop-blur-md ring-1 ring-white/40 -rotate-[6deg] animate-[driftSlow_16s_ease-in-out_infinite] pointer-events-none"
-        style={{ animationDelay: '-6s' }}
-      />
-      {/* Deepest decorative card — rotated and offset, slow float */}
-      <div aria-hidden className="absolute inset-0 -translate-y-3 translate-x-4 rotate-[3.5deg] rounded-[2rem] bg-gradient-to-br from-teal-100/70 to-cyan-50/40 ring-1 ring-white/60 shadow-[0_30px_60px_-30px_rgba(15,23,42,0.18)] animate-[floatSlower_10s_ease-in-out_infinite]" />
-      {/* Mid translucent card — slight counter-rotate for layered depth */}
-      <div aria-hidden className="absolute inset-0 translate-y-2 -translate-x-3 -rotate-[2.5deg] rounded-[1.85rem] bg-white/55 backdrop-blur-xl ring-1 ring-white/70 shadow-[0_20px_50px_-25px_rgba(15,23,42,0.18)] animate-[floatSlow_9s_ease-in-out_infinite_reverse]" />
-      {/* Bottom subtle card */}
-      <div className="absolute -inset-4 sm:-inset-6 rounded-[2rem] bg-gradient-to-br from-white/60 to-teal-50/60 backdrop-blur-xl ring-1 ring-white/60" />
-      {/* Primary card */}
-      <div className="relative rounded-[1.75rem] bg-white shadow-[0_30px_60px_-20px_rgba(15,23,42,0.12)] ring-1 ring-slate-100 p-6 sm:p-7 animate-[float_6s_ease-in-out_infinite]">
-        <div className="flex items-center gap-2 text-[11px] text-slate-500">
-          <span className="inline-block w-2 h-2 rounded-full bg-teal-500" />
-          Примерен ориентир след въпросника
+    <div className="relative w-full max-w-md mx-auto lg:mx-0 lg:ml-auto" data-testid="home-hero-quiz-start">
+      <div className="rounded-2xl bg-white shadow-[0_24px_48px_-20px_rgba(15,23,42,0.16)] ring-1 ring-slate-100 p-6 sm:p-8">
+        {/* No "step 1 of N" — N differs per segment (10 adult / 8 teen /
+            8 child), so a fixed count here would be wrong for every path. */}
+        <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-teal-700 font-semibold">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-teal-500" />
+          Първи въпрос
         </div>
-        <h3 className="mt-4 font-serif text-2xl text-slate-900 leading-tight">
-          Възможно леко разместване <br />на предни зъби
-        </h3>
-        <div className="mt-4 flex items-center gap-3">
-          <div className="inline-flex items-center gap-1 rounded-full bg-amber-50 text-amber-700 ring-1 ring-amber-100 text-[11px] px-2.5 py-1">
-            <Star className="w-3 h-3 fill-current" /> Ориентировъчен случай
-          </div>
-        </div>
-        <p className="mt-5 text-[11px] uppercase tracking-[0.14em] text-slate-400 font-semibold">
-          Посоки за обсъждане:
+        <h2 className="mt-4 font-serif text-2xl sm:text-[1.75rem] font-semibold text-slate-900 leading-snug">
+          За кого попълваш този тест?
+        </h2>
+        <p className="mt-2 text-sm text-slate-500">
+          Въпросите се различават за възрастен, тийнейджър и дете.
         </p>
-        <div className="mt-2.5 space-y-3 text-sm">
-          {[
-            { label: 'Прозрачни алайнери', sub: 'При опитен Invisalign provider могат да работят и при много сложни случаи — благодарение на SmartTrack материала и ClinCheck планирането. Изискват дисциплина (20–22 ч. дневно).' },
-            { label: 'Естетични брекети',  sub: 'Вариант при нужда от по-постоянен контрол.' },
-            { label: 'Метални брекети',    sub: 'Често по-достъпна опция, особено при по-сложни движения.' },
-          ].map((row) => (
-            <div key={row.label} className="flex items-start gap-2.5">
-              <span aria-hidden className="mt-1.5 inline-block w-1.5 h-1.5 rounded-full bg-teal-500 shrink-0" />
-              <div>
-                <p className="text-[13px] font-medium text-slate-800 leading-snug">{row.label}</p>
-                <p className="mt-0.5 text-[11.5px] text-slate-500 leading-snug">{row.sub}</p>
-              </div>
-            </div>
+
+        <div className="mt-6 space-y-3">
+          {SEGMENTS.map(({ seg, icon, label, sub }) => (
+            <Link
+              key={seg}
+              href={`${QUIZ_URL}?segment=${seg}`}
+              onClick={() => {
+                try {
+                  trackPatientEvent('home_quiz_start', {
+                    quiz_start_source: `hero_segment_${seg}`,
+                    cta_location: 'hero',
+                  })
+                } catch { /* noop */ }
+              }}
+              className="group w-full flex items-center gap-4 p-4 rounded-2xl bg-white ring-1 ring-slate-200 hover:ring-teal-300 hover:-translate-y-0.5 transition-all text-left"
+              data-testid={`hero-segment-${seg}`}
+            >
+              <span className="w-11 h-11 rounded-full bg-teal-50 ring-1 ring-teal-100 flex items-center justify-center text-teal-700 shrink-0 group-hover:bg-teal-100 transition-colors">
+                {icon}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-base font-medium text-slate-800">{label}</span>
+                <span className="block text-sm text-slate-400">{sub}</span>
+              </span>
+              <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-teal-500 ml-auto shrink-0 transition-colors" />
+            </Link>
           ))}
         </div>
-        <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
-          <p className="text-[11px] text-slate-500 leading-snug">
-            Следваща стъпка: <br />консултация с ортодонт
-          </p>
-          {/* Decorative mockup label only — intentionally non-interactive.
-              The real CTA is the hero "Провери своя случай" button. */}
-          <span aria-hidden className="inline-flex items-center text-slate-400 text-xs font-medium whitespace-nowrap">
-            Пример
-          </span>
-        </div>
-      </div>
-      {/* Floating chip — clinic suggestion */}
-      <div className="absolute -bottom-6 -left-4 sm:-left-8 rounded-2xl bg-white shadow-lg ring-1 ring-slate-100 px-3 py-2 flex items-center gap-2 animate-[float_7s_ease-in-out_infinite_reverse]">
-        <Building2 className="w-4 h-4 text-teal-500" />
-        <span className="text-[11px] text-slate-700 font-medium">Партньорски клиники</span>
-      </div>
-      {/* Floating chip — price */}
-      <div className="absolute -top-5 right-0 rounded-2xl bg-white shadow-lg ring-1 ring-slate-100 px-3 py-2 flex items-center gap-2 animate-[float_5.5s_ease-in-out_infinite]">
-        <Activity className="w-4 h-4 text-teal-500" />
-        <span className="text-[11px] text-slate-700 font-medium">Ориентир за цена</span>
+
+        {/* The paragraph on the left already states what you get back, so
+            this line carries only what it doesn't: length + the disclaimer.
+            (8 questions for teen/child, 10 for adult — hence "8–10".) */}
+        <p className="mt-5 text-[12px] text-slate-500 leading-relaxed" data-testid="hero-unlock-microcopy">
+          8–10 въпроса. Не е диагноза — точната преценка се прави след
+          преглед при специалист.
+        </p>
       </div>
 
-      <style jsx global>{`
-        @keyframes float {
-          0%,100% { transform: translateY(0) }
-          50%     { transform: translateY(-8px) }
-        }
-      `}</style>
+      <div className="mt-4 text-center lg:text-left">
+        <Link
+          href="#how"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-teal-700 transition-colors"
+          data-testid="hero-secondary-cta"
+        >
+          Или виж как работи
+          <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
+      </div>
     </div>
   )
 }

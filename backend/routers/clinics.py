@@ -22,6 +22,9 @@ from config import (
 )
 from rate_limit import rate_limit
 from audit import audit_log
+from entitlements import compute_entitlements
+from phone_utils import normalize_msisdn_bg
+from routers.public import _is_clinic_visible
 
 router = APIRouter()
 
@@ -33,6 +36,8 @@ def _clinic_to_out(clinic: dict) -> ClinicUserOut:
         address=clinic.get("address"), website=clinic.get("website"),
         company_name=clinic.get("company_name"), eik=clinic.get("eik"),
         mol=clinic.get("mol"), description=clinic.get("description"),
+        viber_enabled=bool(clinic.get("viber_enabled")),
+        viber_phone=clinic.get("viber_phone"),
     )
 
 
@@ -309,9 +314,22 @@ async def admin_assign_lead_to_clinic(lead_id: str, body: dict, request: Request
     # Strict type check to prevent NoSQL injection via {"clinic_id": {"$ne": ""}}
     if not clinic_id or not isinstance(clinic_id, str):
         raise HTTPException(status_code=400, detail="clinic_id is required and must be a string")
-    clinic = await db.clinics.find_one({"id": clinic_id, "password_hash": {"$exists": True}}, {"_id": 0, "clinic_name": 1, "email": 1, "notification_email": 1, "id": 1})
+    clinic = await db.clinics.find_one(
+        {"id": clinic_id, "password_hash": {"$exists": True}},
+        {"_id": 0, "clinic_name": 1, "email": 1, "notification_email": 1, "id": 1,
+         "clinic_status": 1, "status": 1, "is_active": 1, "archived": 1, "is_demo": 1},
+    )
     if not clinic:
         raise HTTPException(status_code=404, detail="Clinic account not found")
+    if not _is_clinic_visible(clinic):
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Clinic is not currently eligible for new lead assignment "
+                f"(clinic_status={clinic.get('clinic_status')!r}, status={clinic.get('status')!r}). "
+                "Reactivate the clinic before assigning."
+            ),
+        )
 
     # Phase 2C: detect "is this a new/different clinic?" so we only notify
     # the new clinic on actual (re)assignments, not on idempotent re-saves.
@@ -475,13 +493,72 @@ async def clinic_profile(clinic=Depends(get_current_clinic)):
 
 
 @router.patch("/clinic/profile")
-async def update_clinic_profile(data: ClinicProfileUpdate, clinic=Depends(get_current_clinic)):
-    update_fields = {k: v for k, v in data.model_dump().items() if v is not None}
+async def update_clinic_profile(
+    data: ClinicProfileUpdate,
+    request: Request,
+    clinic=Depends(get_current_clinic),
+):
+    update_fields = {k: v for k, v in data.model_dump(exclude_unset=True).items() if v is not None}
     if not update_fields:
         raise HTTPException(status_code=400, detail="No fields to update")
+
+    if "viber_enabled" in update_fields or "viber_phone" in update_fields:
+        await _apply_viber_update(clinic, data, update_fields)
+
     await db.clinics.update_one({"id": clinic["id"]}, {"$set": update_fields})
     updated = await db.clinics.find_one({"id": clinic["id"]}, {"_id": 0, "password_hash": 0})
     return _clinic_to_out(updated)
+
+
+async def _apply_viber_update(
+    clinic: dict,
+    data: ClinicProfileUpdate,
+    update_fields: dict,
+) -> None:
+    """Validate + normalise the Viber channel fields in place.
+
+    Two rules the clinic cannot talk its way around:
+      • the channel belongs to the Growth package, so a Verified profile
+        cannot switch it on by POSTing the flag directly;
+      • the stored number must be E.164, because it is fed to a
+        `viber://chat?number=` deep link that cannot parse the free-text
+        phone formats the rest of the platform accepts.
+    """
+    addons = await db.clinic_addons.find({"clinic_id": clinic["id"]}, {"_id": 0}).to_list(200)
+    ents = compute_entitlements(clinic, addons=addons)
+    if not ents.get("patient_chat_channels"):
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "chat_channels_not_in_package",
+                "message": "Viber каналът е част от пакета Growth Partner.",
+            },
+        )
+
+    if "viber_phone" in update_fields:
+        normalised = normalize_msisdn_bg(update_fields["viber_phone"])
+        if not normalised:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "code": "invalid_viber_phone",
+                    "message": "Въведете валиден номер, напр. 0888 123 456 или +359 88 123 4567.",
+                },
+            )
+        update_fields["viber_phone"] = normalised
+
+    # Turning the channel on requires a number to point it at — either one
+    # arriving in this request or one already stored.
+    if update_fields.get("viber_enabled") is True:
+        number = update_fields.get("viber_phone") or clinic.get("viber_phone")
+        if not number:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "code": "viber_phone_required",
+                    "message": "Добавете Viber номер, преди да включите канала.",
+                },
+            )
 
 
 @router.post("/clinic/change-password")

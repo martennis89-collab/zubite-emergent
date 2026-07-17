@@ -19,8 +19,8 @@ from datetime import datetime, timezone, timedelta
 import requests
 
 API_URL = os.environ.get("API_URL", "http://localhost:8001")
-ADMIN_USER = "admin@zubite.bg"
-ADMIN_PASS = "password"
+ADMIN_USER = os.environ.get("ADMIN_USER", "admin@zubite.bg")
+ADMIN_PASS = os.environ.get("ADMIN_PASS", "password")
 
 
 def _admin_token():

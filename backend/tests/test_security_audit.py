@@ -7,7 +7,6 @@ Validates 17 security fixes across:
 - NoSQL injection guards
 - PII reduction on public lead endpoints
 - Pydantic strict validation (EmailStr, length limits)
-- ElevenLabs webhook signature enforcement
 - Clinic password change min_length
 - Regression: existing admin/clinic flows still work
 """
@@ -203,24 +202,6 @@ class TestPydanticValidation:
                    "answers": {}, "page_path": "/" + ("x" * 600), "consent": False}
         r = requests.post(f"{API}/leads", json=payload, headers=_xff("10.4.0.3"))
         assert r.status_code == 422, f"long page_path should be 422, got {r.status_code}"
-
-
-# ─── 14. ElevenLabs webhook signature ─────────────────────
-
-class TestWebhookSignature:
-    def test_missing_signature_rejected(self):
-        # Secret is set in .env => unsigned requests must be 401
-        r = requests.post(f"{API}/webhooks/elevenlabs/post-call",
-                          json={"type": "post_call_transcription", "data": {}},
-                          headers=_xff("10.5.0.1"))
-        assert r.status_code == 401, f"unsigned webhook should be 401, got {r.status_code}"
-
-    def test_invalid_signature_rejected(self):
-        r = requests.post(f"{API}/webhooks/elevenlabs/post-call",
-                          json={"type": "post_call_transcription", "data": {}},
-                          headers={**_xff("10.5.0.2"),
-                                   "ElevenLabs-Signature": "t=1,v0=deadbeef"})
-        assert r.status_code == 401, f"invalid signature webhook should be 401, got {r.status_code}"
 
 
 # ─── 15. Clinic change-password validation ────────────────

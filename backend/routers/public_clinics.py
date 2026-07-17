@@ -92,6 +92,82 @@ def _quick_booking_enabled(clinic: dict) -> bool:
             return bool(o.get("value"))
     return default
 
+
+# ─── Public entitlement projection ──────────────────────────────────
+# WHY THIS EXISTS: the public profile used to decide which sections to
+# render by sniffing the legacy `partner_tier` string. That field is not
+# written from the canonical `base_package` (the legacy mapping is
+# one-way, on read), so every clinic created after the Feb-2026 revamp
+# arrives here with no `partner_tier`, gets defaulted to "standard" below
+# in `_public_clinic_payload`, and rendered as a minimum profile — even a
+# Growth Partner paying full price. These flags come from
+# `entitlements.py`, the actual source of truth, so the page renders what
+# the clinic is entitled to.
+#
+# Only the render-relevant subset is exposed. Commercial entitlements
+# (analytics_dashboard, monthly_mini_report, care_pass_access, partner
+# offers, beta access…) are clinic-private and must never ship in a
+# public payload.
+_PUBLIC_ENTITLEMENT_KEYS = (
+    "enhanced_clinic_profile",
+    "structured_trust_signals",
+    "treatment_service_map",
+    "max_treatment_sections",
+)
+
+
+def _resolve_base_package(clinic: dict) -> str:
+    """Canonical package for a clinic, resolving legacy `partner_tier`."""
+    from entitlements import resolve_base_package
+    return resolve_base_package(clinic)
+
+
+def _public_entitlements(clinic: dict) -> dict:
+    """Public-safe entitlement projection for the profile renderer.
+
+    Same trade-off as `_quick_booking_enabled`: derive from
+    `base_package` + persisted admin overrides and skip the per-request
+    add-on query, since no add-on in the current catalog toggles these
+    keys on its own.
+    """
+    from entitlements import (
+        default_entitlements,
+        resolve_base_package,
+        apply_admin_overrides,
+    )
+
+    base = default_entitlements(resolve_base_package(clinic))
+    final = apply_admin_overrides(base, clinic.get("entitlement_overrides"))
+
+    out = {k: final.get(k) for k in _PUBLIC_ENTITLEMENT_KEYS}
+    # Collapse the tri-state values ("true_when_suitable") to plain bools
+    # so the frontend never has to know about the internal encoding.
+    out["case_library_eligibility"] = bool(final.get("case_library_eligibility"))
+    out["expert_qa"] = bool(final.get("expert_qa_interview_every_six_months"))
+    return out
+
+
+def _public_viber_phone(clinic: dict) -> Optional[str]:
+    """The clinic's Viber number, only when it should actually be shown.
+
+    Resolved server-side rather than shipping the flags and letting the
+    renderer decide: the number is only published when the package grants
+    the channel AND the clinic switched it on, so a downgrade stops
+    publishing it without anyone editing the frontend.
+    """
+    from entitlements import (
+        default_entitlements,
+        resolve_base_package,
+        apply_admin_overrides,
+    )
+
+    number = (clinic.get("viber_phone") or "").strip()
+    if not number or not clinic.get("viber_enabled"):
+        return None
+    base = default_entitlements(resolve_base_package(clinic))
+    final = apply_admin_overrides(base, clinic.get("entitlement_overrides"))
+    return number if final.get("patient_chat_channels") else None
+
 # Statuses considered safe for public display. `active_partner` is a fully
 # onboarded clinic. `evaluation_partner` is a vetted pilot clinic and is
 # included by design (per agreed scope §1).
@@ -165,6 +241,9 @@ def _public_clinic_payload(clinic: dict) -> dict:
     tier_raw = (clinic.get("partner_tier") or "standard").lower()
     tier = tier_raw if tier_raw in _PUBLIC_STATUS_LABEL else "standard"
     profile = clinic.get("clinic_profile") or {}
+    # Entitlement-derived render flags — the canonical gate. See
+    # `_public_entitlements` for why `tier` above must not be used for this.
+    _ent = _public_entitlements(clinic)
 
     name = clinic.get("clinic_name") or clinic.get("name") or ""
     clinic_id = clinic.get("id")
@@ -238,8 +317,12 @@ def _public_clinic_payload(clinic: dict) -> dict:
         # Tier (public label only).
         "partner_tier": tier,
         "public_status_label": _public_label_for_clinic(clinic),
-        # NEW canonical field — always safe to render.
-        "base_package": (clinic.get("base_package") or "").strip().lower() or None,
+        # NEW canonical field — always safe to render. Returns the
+        # RESOLVED package, not the raw column: legacy clinics carry only
+        # `partner_tier` until the startup backfill reaches them, and the
+        # frontend must not have to know that. `resolve_base_package`
+        # applies LEGACY_PARTNER_TIER_TO_BASE_PACKAGE for those.
+        "base_package": _resolve_base_package(clinic),
         # Feb 2026 booking engine — cheap derived flag so the FE can
         # conditionally show the "Запази консултация" CTA. We don't
         # inline the addons check here (that costs another query per
@@ -248,6 +331,14 @@ def _public_clinic_payload(clinic: dict) -> dict:
         # override persisted in `entitlement_overrides` on the clinic
         # doc itself.
         "booking_enabled": _quick_booking_enabled(clinic),
+        # Present only when the package grants the channel and the clinic
+        # switched it on — see `_public_viber_phone`. Null means "do not
+        # render a Viber CTA", with no flags for the frontend to combine.
+        "viber_phone": _public_viber_phone(clinic),
+        # Canonical, entitlement-derived render flags. The frontend gates
+        # sections on these — NOT on `partner_tier` above, which is a
+        # legacy audit field and is "standard" for every post-revamp clinic.
+        "entitlements": _ent,
         "review": review,
         # Optional rich profile (for the public profile page).
         "long_description": profile.get("clinic_story"),
@@ -266,10 +357,13 @@ def _public_clinic_payload(clinic: dict) -> dict:
         "team_note": profile.get("team_note"),
         "clinic_video_url": profile.get("clinic_video_url"),
         "doctor_video_url": profile.get("doctor_video_url"),
-        # Phase C1 — Authority-tier enrichment fields. Always returned
-        # (possibly empty); the frontend tier gate decides what to show.
+        # Enrichment fields. Storage is tier-agnostic (so a downgrade
+        # preserves data), which means gating cannot be left to the
+        # frontend alone: an un-entitled clinic's paid-tier content would
+        # still sit in the JSON for anyone reading the network tab. These
+        # are emptied server-side when the clinic is not entitled.
         "technology_section": profile.get("technology_section") or [],
-        "expert_qa": profile.get("expert_qa") or [],
+        "expert_qa": (profile.get("expert_qa") or []) if _ent.get("expert_qa") else [],
         "faq": profile.get("faq") or [],
         "category_authority": profile.get("category_authority"),
         "price_ranges": profile.get("price_ranges") or [],
@@ -292,7 +386,7 @@ def _public_clinic_payload(clinic: dict) -> dict:
             for c in (profile.get("case_library") or [])
             # Only consent-confirmed cases reach the public payload.
             if c.get("consent_confirmed") and c.get("status") == "published"
-        ],
+        ] if _ent.get("case_library_eligibility") else [],
         "profile_published_at": profile.get("published_at"),
         # Phase C1 — sponsorship + demo flags (FE consumes them
         # respectively for the "Спонсорирано" badge and the demo

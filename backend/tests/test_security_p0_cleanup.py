@@ -1,15 +1,7 @@
 """
 P0 security cleanup tests — pre-launch hardening for Zubite.bg.
 
-Covers the three findings from the security audit:
-
-  SEC-001  ElevenLabs post-call webhook secret must be mandatory
-           - missing env secret  → 503, no lead mutation
-           - missing signature   → 401, no lead mutation
-           - invalid signature   → 401, no lead mutation
-           - valid signature path is exercised by the existing call tests
-             (we don't have a fresh leads fixture here so we assert the
-             update-skip side of the contract instead).
+Covers the security-audit findings that remain relevant:
 
   SEC-002  Revalidation secret must be mandatory (no committed fallback)
            - missing/invalid request secret  → 401
@@ -27,10 +19,7 @@ Covers the three findings from the security audit:
 
 from __future__ import annotations
 
-import json
 import os
-import uuid
-from typing import Optional
 
 import pytest
 import requests
@@ -40,82 +29,7 @@ BACKEND_URL = os.environ.get(
     "https://ortho-preview-2.preview.emergentagent.com",
 ).rstrip("/")
 FRONTEND_URL = "http://localhost:3000"
-WEBHOOK_PATH = "/api/webhooks/elevenlabs/post-call"
 REVALIDATE_PATH = "/api/revalidate"
-
-
-# ─── SEC-001  ElevenLabs webhook ─────────────────────────────────────
-
-
-def _post_webhook(headers: Optional[dict] = None, payload: Optional[dict] = None):
-    return requests.post(
-        f"{BACKEND_URL}{WEBHOOK_PATH}",
-        json=payload or {"type": "post_call_transcription", "data": {}},
-        headers=headers or {},
-        timeout=15,
-    )
-
-
-class TestElevenLabsWebhookSEC001:
-    """Webhook must fail closed when secret unset / signature missing / signature invalid."""
-
-    def test_unsigned_webhook_is_rejected(self):
-        """No signature header → 401 (never silently accepted)."""
-        r = _post_webhook(headers={"Content-Type": "application/json"})
-        # Accept either 401 (signature missing) or 503 (secret unset on
-        # server). Critically, must NOT be 200/2xx.
-        assert r.status_code in (401, 503), (
-            f"Expected 401 or 503 for unsigned webhook, got {r.status_code} body={r.text[:200]}"
-        )
-        # Even if it returned 200, it must NOT report "processed": True
-        if r.status_code == 200:
-            data = r.json()
-            assert data.get("processed") is not True
-
-    def test_invalid_signature_is_rejected(self):
-        """Garbage signature header → 401, no mutation."""
-        r = _post_webhook(
-            headers={
-                "Content-Type": "application/json",
-                "ElevenLabs-Signature": "t=0,v0=deadbeef",
-            },
-        )
-        assert r.status_code in (401, 503), (
-            f"Expected 401/503 for invalid signature, got {r.status_code} body={r.text[:200]}"
-        )
-
-    def test_lead_record_unchanged_on_rejected_webhook(self):
-        """
-        Send a forged webhook referencing a random lead id; the lead must
-        not exist or, if any lookup-by-conv side path existed, no fields
-        must have been written.
-        """
-        fake_lead_id = str(uuid.uuid4())
-        r = _post_webhook(
-            payload={
-                "type": "post_call_transcription",
-                "data": {
-                    "conversation_initiation_client_data": {"lead_id": fake_lead_id},
-                    "transcript": [{"role": "user", "text": "hijacked"}],
-                    "call_summary": "I rewrote your call summary",
-                    "status": "completed",
-                },
-            },
-        )
-        # We expect the request to be blocked at the signature/secret gate.
-        assert r.status_code in (401, 503)
-        # And of course the lead doesn't exist publicly anyway; if a
-        # /api/leads/{id} accessor exists it must not return a doc with
-        # the injected transcript.
-        try:
-            check = requests.get(f"{BACKEND_URL}/api/leads/{fake_lead_id}", timeout=10)
-            if check.status_code == 200:
-                body = check.text
-                assert "hijacked" not in body
-                assert "I rewrote your call summary" not in body
-        except requests.RequestException:
-            # Endpoint may not exist for unknown ids; that is fine.
-            pass
 
 
 # ─── SEC-002  Revalidation endpoint ──────────────────────────────────

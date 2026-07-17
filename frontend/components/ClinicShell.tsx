@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import {
   LayoutDashboard, ListChecks, Calendar, BarChart3, MessageSquare, LogOut, Building2,
+  Settings,
 } from 'lucide-react'
 
 interface ClinicUser {
@@ -21,6 +22,7 @@ const NAV = [
   { href: '/clinic/dashboard/calendar', label: 'Календар', icon: Calendar },
   { href: '/clinic/dashboard/performance', label: 'Резултати', icon: BarChart3 },
   { href: '/clinic/dashboard/reviews', label: 'Ревюта', icon: MessageSquare },
+  { href: '/clinic/dashboard/settings', label: 'Настройки', icon: Settings },
 ]
 
 export function ClinicShell({ children }: { children: React.ReactNode }) {

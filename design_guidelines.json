@@ -1,31 +1,24 @@
 {
+  "_status_note": "The color_tokens section below is verified-accurate against the live site as of 2026-07-16 and founder-approved — treat it as ground truth. Everything else in this file (section_by_section_treatment, component_inventory, image_urls, instructions_to_main_agent) is an OLDER, UNEXECUTED homepage redesign draft from an earlier Emergent agent session — it does not describe the current site, references a shadcn/ui dependency that isn't installed, points at Emergent-hosted CDN images, and describes Zubi incorrectly (as a faceless orb, contradicting the confirmed official mascot). The founder plans a separate design/layout audit later; do not implement this draft's sections/components as if they were current instructions.",
   "theme_and_archetype": {
     "theme": "Light",
     "archetype": "Organic & Earthy (Modified for Premium Soft-Tech Healthcare)",
     "vibe": "Calm, premium, trustworthy, clear, non-fear-based, decision engine"
   },
   "color_tokens": {
-    "css_vars": {
-      "--background": "252 30% 98%",
-      "--foreground": "165 20% 15%",
-      "--primary": "173 57% 39%",
-      "--primary-foreground": "0 0% 100%",
-      "--secondary": "173 30% 90%",
-      "--secondary-foreground": "165 30% 20%",
-      "--accent": "180 20% 95%",
-      "--accent-foreground": "165 20% 15%",
-      "--muted": "60 10% 95%",
-      "--muted-foreground": "165 10% 40%",
-      "--card": "0 0% 100%",
-      "--card-foreground": "165 20% 15%",
-      "--border": "165 10% 90%",
-      "--glass-bg": "252 30% 98% / 0.8"
+    "_verified_against_live_site": "2026-07-16 — the values below were read directly from the running app (computed styles + source grep), not carried over from the original aspirational draft. Founder confirmed: likes the colors as they actually are; do not 'correct' them back toward the old draft values.",
+    "hex": {
+      "background": "#FCFAF8",
+      "text": "#0f172a",
+      "primary_gradient": ["#14b8a6", "#0d9488", "#0f766e"],
+      "border_muted": "#e2e8f0"
     },
+    "implementation_note": "These are NOT wired through CSS custom properties. `--background`/`--foreground`/`--primary`/etc. exist in globals.css as an unused shadcn/ui scaffold (still at generic defaults, white/near-black) and should not be treated as the source of truth. The real palette is applied directly via Tailwind utility/arbitrary-value classes on every page (e.g. `bg-[#FCFAF8]`, the `.btn-primary` teal gradient in globals.css) — over 100 files reference `#FCFAF8` directly. Any future token-system work should consolidate these into real CSS variables rather than assuming the existing (unused) ones are already correct.",
     "descriptions": {
-      "Warm Ivory": "Main background (#FCFAF8 or close). Gives the clinical space a warm, hospitable feel.",
-      "Soft Turquoise / Blue-Green": "Primary CTA and active states (#2A9D8F). Calming healthcare trust tone.",
-      "Deep Slate/Charcoal": "Text color (#1E2925). Softer than pure black for a premium look.",
-      "Sky Blue-Green": "Accent and secondary surfaces. Used in Care Pass teaser."
+      "Warm Ivory": "Main background, #FCFAF8. Confirmed live via computed style on <body> — matches this file's original description closely. Genuinely in consistent use site-wide, not drift.",
+      "Teal": "Primary CTA and active states. A three-stop gradient (#14b8a6 → #0d9488 → #0f766e, i.e. Tailwind teal-500/600/700), not a flat color. This is Tailwind's standard teal, not the '#2A9D8F soft turquoise' this file originally specified — the founder has confirmed the teal-based palette as-is is correct; do not shift it toward the old turquoise value.",
+      "Slate": "Text color, #0f172a (Tailwind slate-900). Used directly via `text-slate-900`, not through a CSS variable.",
+      "Sky-blue / dental-blue": "Configured in tailwind.config.js (`dental-blue-500` etc., #0ea5e9 family) but NOT actually used anywhere in the component code as of this audit — effectively dead config, not a real part of the shipped palette. Do not assume it's in active use."
     }
   },
   "typography_pairing": {
@@ -132,7 +125,7 @@
     "NO cyberpunk, neon, or harsh borders.",
     "NO childish mascots (Zubi is an abstract/calm guide).",
     "NO generic dental stock photos (smiling people pointing at teeth).",
-    "NO purple gradients. Stick to ivory/turquoise.",
+    "NO purple gradients. Stick to ivory background (#FCFAF8) + teal primary (#14b8a6/#0d9488/#0f766e) — see color_tokens for the verified values.",
     "NO aggressive 'Book Now' language. Use 'request guidance' variations.",
     "NO center-everything disease. Use asymmetric bento grids and left-aligned text for readability.",
     "NO pure black/white combinations. Tint greys and whites with warmth."

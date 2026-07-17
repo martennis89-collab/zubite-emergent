@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, ReactNode } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowRight, ArrowLeft, Loader2, CheckCircle, MapPin, X, User, Users, Baby, ShieldCheck } from 'lucide-react'
 import {
   trackQuizStart,
@@ -14,6 +14,13 @@ import {
 import { trackEvent as gaTrackEvent } from '@/lib/analytics/gtag'
 import { getStoredAttribution } from '@/lib/attribution'
 import { MANUAL_RECOMMENDATION_COPY } from '@/lib/manualRecommendationCopy'
+import {
+  TREATMENT_PRICES,
+  ORTHO_DURATION,
+  PRICE_DISCLAIMER,
+  PRICE_NOT_PERSONAL_NOTE,
+  formatPrice,
+} from '@/lib/pricing'
 
 // ─── Types ────────────────────────────────────────────────
 type Segment = 'adult' | 'teen' | 'child'
@@ -497,9 +504,70 @@ const getBandStyles = (band: ResultBand) => {
 
 const generateSessionId = () => `quiz_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
+// ─── Intake context (Clinical Brief) ──────────────────────────────
+// Routing/logistics context, deliberately NOT part of the clinical
+// question set: these don't affect scoring or the patient's orientation,
+// they only help the clinic prepare. They live on the city step (after
+// the result, once the patient has chosen to see options) so the "60
+// seconds / 8–10 questions" promise on the symptom quiz stays true.
+//
+// All optional by design — a skipped answer is honest missing data; a
+// forced answer is noise in the brief.
+//
+// `importance` and `can_travel` reuse keys that already exist in the
+// backend's label vocabulary (_QUIZ_QUESTION_LABELS/_QUIZ_VALUE_LABELS),
+// so they surface in the Clinical Brief with no backend change.
+const INTAKE_FIELDS: Array<{
+  key: 'importance' | 'can_travel' | 'has_files' | 'preferred_channel'
+  label: string
+  hint?: string
+  multi?: boolean
+  options: Array<{ value: string; label: string }>
+}> = [
+  {
+    key: 'importance',
+    label: 'Какво тежи най-много при избора?',
+    options: [
+      { value: 'quality', label: 'Качество и опит' },
+      { value: 'comfort', label: 'Баланс цена / качество' },
+      { value: 'price', label: 'Цената' },
+    ],
+  },
+  {
+    key: 'has_files',
+    label: 'Имаш ли вече нещо от предишен преглед?',
+    hint: 'Ако имаш, клиниката може да го прегледа предварително.',
+    multi: true,
+    options: [
+      { value: 'photos', label: 'Снимки на зъбите' },
+      { value: 'opg', label: 'OPG / скенер' },
+      { value: 'plan', label: 'План или оферта' },
+      { value: 'none', label: 'Нямам' },
+    ],
+  },
+  {
+    key: 'preferred_channel',
+    label: 'Как предпочиташ да се свържат с теб?',
+    options: [
+      { value: 'call', label: 'Обаждане' },
+      { value: 'message', label: 'Съобщение' },
+      { value: 'any', label: 'Няма значение' },
+    ],
+  },
+  {
+    key: 'can_travel',
+    label: 'Би ли пътувал/а до друг град за лечение?',
+    options: [
+      { value: 'no', label: 'Само в моя град' },
+      { value: 'yes', label: 'Да, ако си струва' },
+    ],
+  },
+]
+
 // ─── Component ────────────────────────────────────────────
 export function MasterQuiz() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [segment, setSegment] = useState<Segment | null>(null)
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [answers, setAnswers] = useState<{ questionId: string; value: string; score: number; tags?: string[] }[]>([])
@@ -507,6 +575,9 @@ export function MasterQuiz() {
   const [step, setStep] = useState<'segment' | 'quiz' | 'insight' | 'result' | 'soft_commit' | 'form' | 'exit'>('segment')
   const [formVersion, setFormVersion] = useState<'A' | 'B'>('A')
   const [formData, setFormData] = useState({ city: '' })
+  // Optional intake answers (see INTAKE_FIELDS). Single-select fields hold
+  // a string; `has_files` holds a string[].
+  const [intake, setIntake] = useState<Record<string, string | string[]>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [isClient, setIsClient] = useState(false)
@@ -540,15 +611,9 @@ export function MasterQuiz() {
     } catch { /* silent */ }
   }
 
-  if (!isClient) {
-    return <main className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="w-8 h-8 text-teal-500 animate-spin" /></main>
-  }
-
-  const questions = segment ? QUESTION_SETS[segment] : []
-  const totalQ = questions.length
-  const progress = result ? 100 : segment ? ((currentQuestion) / totalQ) * 100 : 0
-
   // ─── Handlers ─────────────────────────────────────────
+  // Declared before the isClient early-return (not a hook, so this is
+  // safe) so the URL-segment auto-select effect below can call it.
   const handleSegmentSelect = (seg: Segment) => {
     setIsTransitioning(true)
     trackEvent('segment_selected', { segment: seg })
@@ -576,6 +641,30 @@ export function MasterQuiz() {
       setIsTransitioning(false)
     }, 200)
   }
+
+  // Homepage entry points (e.g. "Детето диша през устата") can pass
+  // ?segment=child|teen|adult to skip the segment picker and land the
+  // visitor directly in the right question set, instead of dropping a
+  // parent into the generic/adult flow. Runs once, only on the segment
+  // step, only for a valid value.
+  const autoSegmentAppliedRef = useRef(false)
+  useEffect(() => {
+    if (!isClient || autoSegmentAppliedRef.current || step !== 'segment') return
+    const requested = searchParams?.get('segment')
+    if (requested === 'adult' || requested === 'teen' || requested === 'child') {
+      autoSegmentAppliedRef.current = true
+      handleSegmentSelect(requested)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isClient, step, searchParams])
+
+  if (!isClient) {
+    return <main className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="w-8 h-8 text-teal-500 animate-spin" /></main>
+  }
+
+  const questions = segment ? QUESTION_SETS[segment] : []
+  const totalQ = questions.length
+  const progress = result ? 100 : segment ? ((currentQuestion) / totalQ) * 100 : 0
 
   const handleAnswer = (questionId: string, value: string, score: number, tags?: string[]) => {
     const timeSpent = Date.now() - questionStartTime.current
@@ -650,11 +739,25 @@ export function MasterQuiz() {
       answers.forEach(a => { answersObj[a.questionId] = a.value })
       const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
       const bandMap: Record<ResultBand, string> = { low: 'GREEN', moderate: 'YELLOW', high: 'RED' }
+
+      // Optional intake answers → `answers`, where the Clinical Brief
+      // reads them. Empty/skipped fields are omitted entirely rather than
+      // sent as "" — a blank row in the brief is worse than no row.
+      const intakeAnswers: Record<string, string | string[]> = {}
+      for (const [k, v] of Object.entries(intake)) {
+        if (Array.isArray(v) ? v.length > 0 : !!v) intakeAnswers[k] = v
+      }
+
       const leadData = {
         city_slug: formData.city, treatment_type: 'diagnostic_quiz',
-        answers: { ...answersObj, quiz_score: result?.totalScore || 0, quiz_band: result?.band || '', quiz_flags: result?.flags || [], segment, form_version: formVersion, session_id: sessionId.current, source: 'diagnostic_quiz_v1' },
+        answers: { ...answersObj, ...intakeAnswers, quiz_score: result?.totalScore || 0, quiz_band: result?.band || '', quiz_flags: result?.flags || [], segment, form_version: formVersion, session_id: sessionId.current, source: 'diagnostic_quiz_v1' },
         score_total: result?.totalScore || 0,
         band: bandMap[result?.band || 'low'],
+        // `can_travel` is also a first-class Lead field used by clinic
+        // matching, so mirror the intake answer onto it. Previously it
+        // silently defaulted to `true` for every homepage lead — an
+        // assumption the patient was never asked to make.
+        ...(intake.can_travel ? { can_travel: intake.can_travel === 'yes' } : {}),
         // No name/phone/email/consent here — backend creates a locked
         // lead (contact_details_submitted=false). Contact is gathered on
         // /results/[leadId] via ResultUnlockGate → POST /unlock-result.
@@ -940,6 +1043,71 @@ export function MasterQuiz() {
                 </div>
               )}
 
+              {/* Price + duration orientation.
+                  Deliberately NOT derived from the band: the quiz reads
+                  reported symptoms and cannot forecast a given patient's
+                  cost or treatment length. These are the general Bulgarian
+                  market ranges from lib/pricing.ts (single source of truth,
+                  shared with the price-guide pages), labelled as such. The
+                  only band-dependent line is the mild-case duration hint,
+                  which mirrors existing approved copy and is phrased as a
+                  general statement about mild cases, not about this user.
+
+                  Adult/teen ONLY. For under-12s this screen's own education
+                  copy says "целта не е брекети — а насочване на растежа",
+                  so quoting aligner/braces ranges to a parent would
+                  contradict the advice sitting right above it. There is no
+                  approved pricing for interceptive treatment, so the child
+                  segment gets an honest qualitative note instead of numbers. */}
+              <div className="border-t border-slate-200/50 pt-6 mb-6">
+                {segment === 'child' ? (
+                  <>
+                    <p className="text-[11px] uppercase tracking-[0.14em] text-slate-500 font-semibold">
+                      За цената
+                    </p>
+                    <p className="mt-2 text-sm text-slate-600 leading-relaxed">
+                      При деца под 12 г. лечението често не е брекети, а
+                      насочване на растежа. Затова цената и срокът зависят
+                      силно от подхода и се определят след преглед.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-[11px] uppercase tracking-[0.14em] text-slate-500 font-semibold">
+                      Ориентировъчни цени в България
+                    </p>
+                    <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="rounded-xl bg-white/60 ring-1 ring-slate-200 p-3">
+                        <p className="text-[11px] text-slate-500">Прозрачни алайнери</p>
+                        <p className="mt-1 font-serif text-lg text-slate-900">
+                          {formatPrice(TREATMENT_PRICES['orthodontics-aligners'])}
+                        </p>
+                      </div>
+                      <div className="rounded-xl bg-white/60 ring-1 ring-slate-200 p-3">
+                        <p className="text-[11px] text-slate-500">Брекети</p>
+                        <p className="mt-1 font-serif text-lg text-slate-900">
+                          {formatPrice(TREATMENT_PRICES['orthodontics-braces'])}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 rounded-xl bg-white/60 ring-1 ring-slate-200 p-3">
+                      <p className="text-[11px] text-slate-500">Продължителност</p>
+                      <p className="mt-1 font-serif text-lg text-slate-900">
+                        {result.band === 'low' ? ORTHO_DURATION.mild : ORTHO_DURATION.typical}
+                      </p>
+                      <p className="mt-1 text-[11px] text-slate-500 leading-snug">
+                        {result.band === 'low'
+                          ? 'Леките случаи обикновено се коригират по-бързо. ' + ORTHO_DURATION.note
+                          : ORTHO_DURATION.note}
+                      </p>
+                    </div>
+                    <p className="mt-3 text-[11px] text-slate-500 leading-relaxed">
+                      {PRICE_NOT_PERSONAL_NOTE} {PRICE_DISCLAIMER}
+                    </p>
+                  </>
+                )}
+              </div>
+
               <p className="text-slate-600 text-sm leading-relaxed border-t border-slate-200/50 pt-6">{content.education}</p>
             </div>
 
@@ -1057,6 +1225,76 @@ export function MasterQuiz() {
                     ))}
                   </div>
                 </div>
+                {/* Optional intake — helps the clinic prepare. Explicitly
+                    marked optional and visually secondary to the city step
+                    so it never reads as a wall of required questions. */}
+                <div className="pt-5 border-t border-slate-100" data-testid="intake-block">
+                  <p className="text-sm font-medium text-slate-700">
+                    Няколко бързи въпроса{' '}
+                    <span className="font-normal text-slate-400">· по избор</span>
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500 leading-relaxed">
+                    Помагат на клиниката да се подготви, преди да се свърже с теб.
+                    Можеш да ги пропуснеш.
+                  </p>
+
+                  <div className="mt-4 space-y-4">
+                    {INTAKE_FIELDS.map((f) => (
+                      <div key={f.key}>
+                        <label className="block text-[13px] text-slate-700 mb-1.5">{f.label}</label>
+                        {f.hint && (
+                          <p className="text-[11px] text-slate-400 mb-1.5 leading-snug">{f.hint}</p>
+                        )}
+                        <div className="flex flex-wrap gap-1.5">
+                          {f.options.map((o) => {
+                            const cur = intake[f.key]
+                            const selected = f.multi
+                              ? Array.isArray(cur) && cur.includes(o.value)
+                              : cur === o.value
+                            return (
+                              <button
+                                key={o.value}
+                                type="button"
+                                onClick={() =>
+                                  setIntake((prev) => {
+                                    if (!f.multi) {
+                                      // Tapping the selected chip clears it —
+                                      // the field must stay skippable.
+                                      return { ...prev, [f.key]: prev[f.key] === o.value ? '' : o.value }
+                                    }
+                                    const list = Array.isArray(prev[f.key]) ? [...(prev[f.key] as string[])] : []
+                                    // "Нямам" is exclusive of the others.
+                                    if (o.value === 'none') {
+                                      return { ...prev, [f.key]: list.includes('none') ? [] : ['none'] }
+                                    }
+                                    const next = list.filter((v) => v !== 'none')
+                                    return {
+                                      ...prev,
+                                      [f.key]: next.includes(o.value)
+                                        ? next.filter((v) => v !== o.value)
+                                        : [...next, o.value],
+                                    }
+                                  })
+                                }
+                                className={
+                                  'px-3 py-1.5 rounded-full text-[13px] ring-1 transition-all ' +
+                                  (selected
+                                    ? 'bg-teal-50 ring-teal-400 text-teal-800 font-medium'
+                                    : 'bg-white ring-slate-200 text-slate-600 hover:ring-slate-300')
+                                }
+                                data-testid={`intake-${f.key}-${o.value}`}
+                                aria-pressed={selected}
+                              >
+                                {o.label}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 {error && <p className="text-red-600 text-sm bg-red-50 border border-red-200 p-3 rounded-xl">{error}</p>}
                 <button onClick={handleSubmit} disabled={isSubmitting}
                   className="w-full mt-4 px-8 py-4 bg-teal-500 text-white font-semibold rounded-full hover:bg-teal-600 hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50"

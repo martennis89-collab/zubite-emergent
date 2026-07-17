@@ -36,6 +36,12 @@ export interface PatientContext {
   urgency: string | null
   main_concern: string | null
   patient_message: string | null
+  /** Orientation stage the patient was shown on their result screen
+   *  ("Ранен / Развиващ се / Напреднал етап"). Null for leads that
+   *  never completed a quiz. */
+  stage_label?: string | null
+  /** Clinical flags derived by the quiz scorer (Струпване, Захапка…). */
+  signal_flags?: string[]
   quiz_summary: PatientContextQuizRow[]
   source_context: PatientContextSource
 }
@@ -75,6 +81,8 @@ export function PatientContextSection({ ctx }: { ctx: PatientContext }) {
   )
   const hasShared = !!(ctx.main_concern || ctx.patient_message)
   const hasQuiz = (ctx.quiz_summary?.length ?? 0) > 0
+  const stageLabel = ctx.stage_label ?? null
+  const hasFlags = (ctx.signal_flags?.length ?? 0) > 0
   const article = articleFallbackLabel(ctx.source_context)
   const campaignLabel = utmCampaignLabel(ctx.source_context)
   const hasSource = !!(article || campaignLabel || ctx.source_context.content_path_summary)
@@ -93,6 +101,42 @@ export function PatientContextSection({ ctx }: { ctx: PatientContext }) {
           Не представляват диагноза и не заменят клиничен преглед.
         </p>
       </header>
+
+      {/* Orientation the patient was actually shown. Leads the brief on
+          purpose: it is what the patient already believes about their own
+          case, so the clinic opens the conversation from the same page.
+          Stays explicitly non-diagnostic — it is the quiz's orientation,
+          not a clinical finding. */}
+      {(stageLabel || hasFlags) && (
+        <div
+          data-testid="patient-context-orientation"
+          className="rounded-xl border border-teal-100 bg-teal-50/50 p-4"
+        >
+          <div className="text-xs font-medium uppercase tracking-wide text-teal-800/70">
+            Ориентир, показан на пациента
+          </div>
+          {stageLabel && (
+            <p className="mt-1.5 font-serif text-xl text-slate-900 leading-snug">
+              {stageLabel}
+            </p>
+          )}
+          {hasFlags && (
+            <ul className="mt-2 flex flex-wrap gap-1.5" data-testid="patient-context-flags">
+              {ctx.signal_flags!.map((f) => (
+                <li
+                  key={f}
+                  className="inline-flex items-center rounded-full bg-white px-2.5 py-0.5 text-[11px] text-slate-700 ring-1 ring-teal-100"
+                >
+                  {f}
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="mt-2 text-[11px] text-slate-500 leading-snug">
+            Ориентировъчен резултат от въпросника — не е диагноза.
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {hasMainContext && (

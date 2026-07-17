@@ -38,6 +38,7 @@ from audit import audit_log, diff_fields
 from auth import get_current_user, get_current_clinic, hash_password
 from emails import _send_email  # internal helper; safe wrapper
 from config import RESEND_API_KEY, SENDER_EMAIL, PRODUCTION_URL
+from routers.public import _is_clinic_visible
 
 logger = logging.getLogger(__name__)
 
@@ -902,10 +903,21 @@ async def admin_assign_consultation_to_clinic(
     if not isinstance(req_id, str):
         raise HTTPException(status_code=400, detail="Invalid id")
     clinic = await db.clinics.find_one(
-        {"id": body.clinic_id}, {"_id": 0, "id": 1, "clinic_name": 1, "email": 1, "notification_email": 1}
+        {"id": body.clinic_id},
+        {"_id": 0, "id": 1, "clinic_name": 1, "email": 1, "notification_email": 1,
+         "clinic_status": 1, "status": 1, "is_active": 1, "archived": 1, "is_demo": 1},
     )
     if not clinic:
         raise HTTPException(status_code=404, detail="Clinic not found")
+    if not _is_clinic_visible(clinic):
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Clinic is not currently eligible for new lead assignment "
+                f"(clinic_status={clinic.get('clinic_status')!r}, status={clinic.get('status')!r}). "
+                "Reactivate the clinic before assigning."
+            ),
+        )
     req = await db.consultation_requests.find_one({"id": req_id}, {"_id": 0})
     if not req:
         raise HTTPException(status_code=404, detail="Request not found")
@@ -985,9 +997,22 @@ async def admin_create_consultation_request(
     """Manual creation — rare. Auto-creation happens via lead assign flow."""
     now = _now_iso()
     if data.assigned_clinic_id:
-        clinic = await db.clinics.find_one({"id": data.assigned_clinic_id}, {"_id": 0, "id": 1})
+        clinic = await db.clinics.find_one(
+            {"id": data.assigned_clinic_id},
+            {"_id": 0, "id": 1, "clinic_status": 1, "status": 1, "is_active": 1,
+             "archived": 1, "is_demo": 1},
+        )
         if not clinic:
             raise HTTPException(status_code=404, detail="Clinic not found")
+        if not _is_clinic_visible(clinic):
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "Clinic is not currently eligible for new lead assignment "
+                    f"(clinic_status={clinic.get('clinic_status')!r}, status={clinic.get('status')!r}). "
+                    "Reactivate the clinic before assigning."
+                ),
+            )
     doc = {
         "id": _new_id(),
         **data.model_dump(),
@@ -1110,6 +1135,9 @@ _QUIZ_QUESTION_LABELS: Dict[str, str] = {
     "main_concern":      "Основен повод",
     "age_range":         "Възрастова група",
     "segment":           "За кого е заявката",
+    # Intake context captured on the city step of MasterQuiz (optional).
+    "has_files":         "Налични материали",
+    "preferred_channel": "Предпочитан контакт",
 }
 
 # Friendly value labels for known answer codes. Keys missing here fall
@@ -1133,6 +1161,102 @@ _QUIZ_VALUE_LABELS: Dict[str, Dict[str, str]] = {
                           "exploring": "Тества вариантите"},
     "urgency":           {"high": "Висока", "moderate": "Умерена", "low": "Ниска"},
     "can_travel":        {"yes": "Да", "no": "Не"},
+    # `segment` is emitted by MasterQuiz as a raw English enum; without
+    # this the clinic-facing brief printed "adult" / "child".
+    "segment":           {"adult": "Възрастен",
+                          "teen": "Тийнейджър (12–17 г.)",
+                          "child": "Дете (под 12 г.)"},
+    # Intake context (MasterQuiz city step).
+    "has_files":         {"photos": "Снимки на зъбите",
+                          "opg": "OPG / скенер",
+                          "plan": "План или оферта",
+                          "none": "Няма"},
+    "preferred_channel": {"call": "Обаждане",
+                          "message": "Съобщение",
+                          "any": "Няма значение"},
+}
+
+# ── MasterQuiz (homepage flagship) ──────────────────────────────────
+# WHY THIS EXISTS: `_QUIZ_QUESTION_LABELS` above was written for the
+# treatment/city quizzes, whose answer keys are `seriousness`, `timing`,
+# `can_travel`… MasterQuiz — the quiz the entire homepage funnels into —
+# emits `a1..a10` (adult), `t1..t8` (teen), `c1..c8` (child) instead.
+# `_safe_quiz_summary` drops any key it has no label for, so every
+# homepage lead reached the clinic with exactly ONE row surfaced
+# (`segment`). Ten answered questions were collected, stored, and thrown
+# away at render time — while Growth Partner is sold "patient-reported
+# context". These labels close that gap.
+#
+# The labels are deliberately clinical shorthand, not the patient-facing
+# question text ("Коя от тези усмивки е най-близка до твоята?" → "Подредба
+# на зъбите"). The clinic needs the signal at a glance; the patient's
+# phrasing is noise in a brief. Keep in sync with QUESTION_SETS in
+# frontend/components/MasterQuiz.tsx.
+_MASTER_QUIZ_LABELS: Dict[str, str] = {
+    # adult
+    "a1": "Подредба на зъбите",
+    "a2": "Крие зъбите при усмивка",
+    "a3": "Равномерна захапка",
+    "a4": "Дъвче едностранно",
+    "a5": "Дишане през устата",
+    "a6": "Щракане в челюстта",
+    "a7": "Сутрешно напрежение в челюстта",
+    "a8": "Износване на зъбите",
+    "a9": "Главоболие / напрежение",
+    "a10": "Подозирал/а проблем преди теста",
+    # teen
+    "t1": "Подредба на зъбите",
+    "t2": "Притеснява се от усмивката си",
+    "t3": "Неравномерна захапка",
+    "t4": "Дъвче едностранно",
+    "t5": "Струпани постоянни зъби",
+    "t6": "Дишане през устата",
+    "t7": "Затруднения с говора",
+    "t8": "Родителят очаква нужда от лечение",
+    # child
+    "c1": "Подредба на зъбите",
+    "c2": "Дишане през устата",
+    "c3": "Хъркане / неспокоен сън",
+    "c4": "Смучене на пръст / биберон",
+    "c5": "Тясна челюст / липса на място",
+    "c6": "Видима разлика в захапката",
+    "c7": "Отворена уста през деня",
+    "c8": "Родителят очаква нужда от преглед",
+}
+
+# Shared value vocabulary for the MasterQuiz keys above.
+_MASTER_QUIZ_VALUES: Dict[str, str] = {
+    "crowded": "Видимо струпани",
+    "mild": "Леко струпани",
+    "aligned": "Подредени",
+    "yes": "Да",
+    "no": "Не",
+    "sometimes": "Понякога",
+    "unsure": "Не е сигурен/а",
+    "past": "Преди да, вече не",
+}
+
+# Clinical flags derived by the quiz scorer — the highest-signal output it
+# produces, and previously not surfaced to the clinic at all.
+_QUIZ_FLAG_LABELS: Dict[str, str] = {
+    "crowding": "Струпване",
+    "bite_issue": "Захапка",
+    "airway": "Дишане",
+    "tension": "Напрежение",
+    "wear": "Износване",
+    "development": "Развитие",
+}
+
+# Orientation stage shown to the patient on their result screen. The
+# clinic should see the same words the patient saw.
+_QUIZ_BAND_LABELS: Dict[str, str] = {
+    "low": "Ранен етап",
+    "moderate": "Развиващ се етап",
+    "high": "Напреднал етап",
+    # legacy/lead-level band values
+    "GREEN": "Ранен етап",
+    "YELLOW": "Развиващ се етап",
+    "RED": "Напреднал етап",
 }
 
 # Safe surface for the "source of arrival" panel — never expose the raw
@@ -1167,31 +1291,94 @@ def _classify_source_type(lead: Dict[str, Any]) -> str:
 
 def _safe_quiz_summary(lead: Dict[str, Any]) -> List[Dict[str, str]]:
     """Return ONLY known safe quiz answers in `{question_label, answer_label}`
-    rows. Drops any key we don't have a label for."""
+    rows. Drops any key we don't have a label for.
+
+    Covers both answer vocabularies: the treatment/city quizzes
+    (`seriousness`, `timing`, …) and MasterQuiz (`a1..a10`/`t1..t8`/
+    `c1..c8`). Order is stable and deliberate — MasterQuiz answers first
+    in question order, since that quiz drives the homepage funnel.
+    """
     out: List[Dict[str, str]] = []
     if not lead:
         return out
     answers = lead.get("answers") or {}
     if not isinstance(answers, dict):
         return out
+
+    def _clean(raw: Any) -> Optional[str]:
+        # Only allow primitive types — never serialise nested dicts/lists.
+        if raw is None or raw == "" or not isinstance(raw, (str, int, float, bool)):
+            return None
+        s = str(raw).strip()
+        if not s:
+            return None
+        return s[:199].rstrip() + "…" if len(s) > 200 else s
+
+    def _render(key: str, raw: Any, value_map: Dict[str, str]) -> Optional[str]:
+        """Render one answer. Handles multi-select answers (a list of
+        option codes, e.g. `has_files`) by mapping each item through the
+        value vocabulary and joining. Deliberately narrow: only a list of
+        primitives is accepted, capped at 6, so this cannot be used to
+        serialise arbitrary nested data into a clinic-facing payload.
+        """
+        if isinstance(raw, list):
+            parts: List[str] = []
+            for item in raw[:6]:
+                v = _clean(item)
+                if v is None:
+                    continue
+                parts.append(value_map.get(v, v))
+            return ", ".join(parts) if parts else None
+        v = _clean(raw)
+        return None if v is None else value_map.get(v, v)
+
+    # MasterQuiz answers, in question order (a1, a2, … then t…, then c…).
+    for key, label in _MASTER_QUIZ_LABELS.items():
+        if key not in answers:
+            continue
+        val = _clean(answers.get(key))
+        if val is None:
+            continue
+        out.append({
+            "question_label": label,
+            "answer_label": _MASTER_QUIZ_VALUES.get(val, val),
+        })
+
+    # Treatment/city-quiz answers + MasterQuiz intake context.
     for key, label in _QUIZ_QUESTION_LABELS.items():
         if key not in answers:
             continue
-        raw = answers.get(key)
-        if raw is None or raw == "":
+        display = _render(key, answers.get(key), _QUIZ_VALUE_LABELS.get(key) or {})
+        if display is None:
             continue
-        # Only allow primitive types — never serialise nested dicts/lists.
-        if not isinstance(raw, (str, int, float, bool)):
-            continue
-        raw_str = str(raw).strip()
-        if not raw_str:
-            continue
-        if len(raw_str) > 200:
-            raw_str = raw_str[:199].rstrip() + "…"
-        value_map = _QUIZ_VALUE_LABELS.get(key) or {}
-        display = value_map.get(raw_str, raw_str)
         out.append({"question_label": label, "answer_label": display})
     return out
+
+
+def _safe_quiz_signals(lead: Dict[str, Any]) -> Dict[str, Any]:
+    """The quiz's own derived output: orientation stage + clinical flags.
+
+    This is the highest-signal part of the brief — it is what the patient
+    was actually shown on their result screen — and it was previously not
+    sent to the clinic at all. Keeping it aligned matters: the clinic
+    should know what the patient was told before they speak.
+    """
+    if not lead:
+        return {"stage_label": None, "flags": []}
+    answers = lead.get("answers") or {}
+    if not isinstance(answers, dict):
+        answers = {}
+
+    raw_band = answers.get("quiz_band") or lead.get("band")
+    stage = _QUIZ_BAND_LABELS.get(str(raw_band).strip()) if raw_band else None
+
+    raw_flags = answers.get("quiz_flags")
+    flags: List[str] = []
+    if isinstance(raw_flags, list):
+        for f in raw_flags:
+            if isinstance(f, str) and f in _QUIZ_FLAG_LABELS:
+                flags.append(_QUIZ_FLAG_LABELS[f])
+    return {"stage_label": stage, "flags": flags}
 
 
 def _safe_source_context(lead: Dict[str, Any]) -> Dict[str, Any]:
@@ -1248,6 +1435,11 @@ async def _build_patient_context(req: Dict[str, Any]) -> Dict[str, Any]:
                 "_id": 0,
                 # Allow-list only — everything else is dropped.
                 "answers": 1,
+                # Orientation stage. MasterQuiz leads carry it in
+                # `answers.quiz_band`; treatment/city-quiz leads only have
+                # the lead-level `band`, so both are needed for the stage
+                # line to resolve for every lead type.
+                "band": 1,
                 "first_article_title": 1, "first_article_slug": 1,
                 "latest_article_title": 1, "latest_article_slug": 1,
                 "first_utm_source": 1, "first_utm_campaign": 1, "first_utm_ad": 1,
@@ -1265,6 +1457,7 @@ async def _build_patient_context(req: Dict[str, Any]) -> Dict[str, Any]:
     # P5 patient_message: truncate to 1000 (matches storage cap) for UI.
     pm_raw = req.get("patient_message")
     patient_message = (pm_raw[:1000] if isinstance(pm_raw, str) else None)
+    signals = _safe_quiz_signals(lead)
     return {
         "label": "Информация, споделена от пациента",
         "treatment_interest": req.get("treatment_interest"),
@@ -1273,6 +1466,11 @@ async def _build_patient_context(req: Dict[str, Any]) -> Dict[str, Any]:
         "urgency": req.get("urgency"),
         "main_concern": (main_concern_raw[:500] if main_concern_raw else None),
         "patient_message": patient_message,
+        # The orientation the patient was actually shown — stage + the
+        # scorer's clinical flags. Lets the clinic open the call already
+        # knowing what the patient has been told.
+        "stage_label": signals["stage_label"],
+        "signal_flags": signals["flags"],
         "quiz_summary": _safe_quiz_summary(lead),
         "source_context": _safe_source_context(lead),
     }

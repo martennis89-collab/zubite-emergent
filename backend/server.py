@@ -12,12 +12,7 @@ from database import db, client
 from storage import init_storage
 from emails import send_verification_email
 
-from routers import public, admin, blog, analytics, clinics, verification, seo, consultations, audit_logs, orientation_settings, orientation_bookings, content_automation, public_clinics, clinic_addons, bookings
-# ─── ElevenLabs / call integration soft-disabled (Feb 2026) ──────────
-# `routers.calls` and `services.elevenlabs_service` are intentionally
-# NOT imported. Files remain on disk so the integration can be re-enabled
-# by uncommenting the import + the `include_router(calls.router)` line
-# below and restoring the ELEVENLABS_* / TWILIO_* env vars.
+from routers import public, admin, blog, analytics, clinics, verification, seo, consultations, audit_logs, orientation_settings, orientation_bookings, content_automation, public_clinics, clinic_addons, bookings, consultation_chat
 
 # Root-level health endpoint
 app = FastAPI(title="Zubite.bg API")
@@ -35,7 +30,6 @@ api_router.include_router(admin.router)
 api_router.include_router(blog.router)
 api_router.include_router(analytics.router)
 api_router.include_router(clinics.router)
-# api_router.include_router(calls.router)  # soft-disabled — see top-of-file comment
 api_router.include_router(verification.router)
 api_router.include_router(seo.router)
 api_router.include_router(consultations.router)
@@ -43,6 +37,7 @@ from routers import reviews as _reviews  # noqa: E402
 api_router.include_router(_reviews.router)
 api_router.include_router(audit_logs.router)
 api_router.include_router(orientation_settings.router)
+api_router.include_router(consultation_chat.router)
 api_router.include_router(orientation_bookings.router)
 api_router.include_router(content_automation.router)
 api_router.include_router(public_clinics.router)
@@ -86,8 +81,6 @@ async def startup():
     await db.leads.create_index("band")
     await db.leads.create_index("status")
     await db.leads.create_index("form_version")
-    await db.leads.create_index("call_status")
-    await db.leads.create_index("last_conversation_id")
     await db.leads.create_index("assigned_clinic_id")
     await db.leads.create_index("clinic_lead_status")
     await db.leads.create_index("verification_status")
@@ -113,10 +106,6 @@ async def startup():
     await db.uploaded_files.create_index("is_deleted")
     await db.blog_views.create_index([("post_slug", 1), ("visitor_id", 1), ("date", 1)])
     await db.blog_views.create_index("date")
-    await db.lead_call_logs.create_index("id", unique=True)
-    await db.lead_call_logs.create_index("lead_id")
-    await db.lead_call_logs.create_index("conversation_id")
-    await db.lead_call_logs.create_index("initiated_at")
     await db.clinic_applications.create_index("id", unique=True)
     await db.clinic_applications.create_index("status")
     await db.lead_verifications.create_index("token", unique=True)
