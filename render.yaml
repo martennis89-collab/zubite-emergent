@@ -3,7 +3,9 @@ services:
     name: zubite-api
     runtime: docker
     region: frankfurt
-    plan: starter
+    # Start without a billing dependency; upgrade to Starter before launch if
+    # always-on capacity is required.
+    plan: free
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     healthCheckPath: /health
