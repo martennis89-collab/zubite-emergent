@@ -16,6 +16,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Loader2, MessageCircle, Check, Info } from 'lucide-react'
 import { ClinicShell } from '@/components/ClinicShell'
+import { OrientationAvailabilityManager } from '@/components/clinic/OrientationAvailabilityManager'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -94,6 +95,8 @@ export default function ClinicSettingsPage() {
         )}
 
         {profile && <ViberChannelCard profile={profile} onSaved={load} />}
+
+        <OrientationAvailabilityManager />
 
         {profile && (
           <section

@@ -19,7 +19,6 @@ import {
   RefreshCw, Phone, Mail, MessageSquare, Clock,
 } from 'lucide-react'
 import { ClinicShell } from '@/components/ClinicShell'
-import { OrientationAvailabilityManager } from '@/components/clinic/OrientationAvailabilityManager'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -78,10 +77,13 @@ const TERMINAL = new Set([
 const PENDING = new Set(['pending_clinic_confirmation'])
 const CONFIRMED = new Set(['confirmed_by_clinic', 'scheduled'])
 
+type Tab = 'pending' | 'confirmed' | 'past'
+
 export default function ClinicOrientationBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
+  const [activeTab, setActiveTab] = useState<Tab>('pending')
 
   const load = useCallback(async () => {
     setLoading(true); setErr('')
@@ -116,6 +118,14 @@ export default function ClinicOrientationBookingsPage() {
   const confirmed = bookings.filter((b) => CONFIRMED.has(b.status))
   const past = bookings.filter((b) => TERMINAL.has(b.status))
 
+  const TABS: Array<{ key: Tab; label: string; count: number }> = [
+    { key: 'pending', label: 'Чакат потвърждение', count: pending.length },
+    { key: 'confirmed', label: 'Потвърдени / насрочени', count: confirmed.length },
+    { key: 'past', label: 'История', count: past.length },
+  ]
+  const activeGroup =
+    activeTab === 'pending' ? pending : activeTab === 'confirmed' ? confirmed : past
+
   return (
     <ClinicShell>
       <div className="space-y-6" data-testid="clinic-orient-bookings-page">
@@ -137,10 +147,6 @@ export default function ClinicOrientationBookingsPage() {
           </button>
         </header>
 
-        {/* Availability first: a clinic with no windows set will never get
-            a request, so the fix for an empty list below lives up here. */}
-        <OrientationAvailabilityManager />
-
         {loading ? (
           <div className="inline-flex items-center gap-2 text-sm text-slate-500" data-testid="clinic-orient-loading">
             <Loader2 className="w-4 h-4 animate-spin" /> Зареждане…
@@ -151,9 +157,40 @@ export default function ClinicOrientationBookingsPage() {
           </div>
         ) : (
           <>
-            <BookingsGroup title={`Чакат потвърждение (${pending.length})`} bookings={pending} act={act} variant="pending" testid="clinic-orient-pending-group" />
-            <BookingsGroup title={`Потвърдени / насрочени (${confirmed.length})`} bookings={confirmed} act={act} variant="confirmed" testid="clinic-orient-confirmed-group" />
-            <BookingsGroup title={`История (${past.length})`} bookings={past} act={act} variant="past" testid="clinic-orient-past-group" />
+            {/* Tabs — was three always-stacked sections, which meant
+                scrolling past pending + history just to see what's actually
+                confirmed and coming up. Each tab is its own focused list. */}
+            <div
+              className="inline-flex bg-slate-100 rounded-lg p-1"
+              role="tablist"
+              aria-label="Статус на заявките"
+            >
+              {TABS.map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === t.key}
+                  onClick={() => setActiveTab(t.key)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    activeTab === t.key
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                  data-testid={`clinic-orient-tab-${t.key}`}
+                >
+                  {t.label} ({t.count})
+                </button>
+              ))}
+            </div>
+
+            <BookingsGroup
+              title={TABS.find((t) => t.key === activeTab)!.label}
+              bookings={activeGroup}
+              act={act}
+              variant={activeTab}
+              testid={`clinic-orient-${activeTab}-group`}
+            />
           </>
         )}
       </div>
