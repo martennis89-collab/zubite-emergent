@@ -14,14 +14,18 @@
  *     <object>, <embed>, inline event handlers like onclick=, javascript:
  *     URLs, raw <style> tags, etc.)
  *
- * DOMPurify is used because it is battle-tested, has both a JSDOM-based
- * server build (`isomorphic-dompurify`) and a browser build, and is the
- * recommended sanitizer for React `dangerouslySetInnerHTML` content.
+ * Uses `sanitize-html` (pure JS, no DOM dependency) rather than
+ * isomorphic-dompurify. The latter wraps jsdom, whose transitive dependency
+ * `html-encoding-sniffer` -> `@exodus/bytes` ships as an ESM-only package
+ * that Node's `require()` cannot load — this crashed every blog article
+ * page in Vercel's production serverless runtime (`ERR_REQUIRE_ESM`) while
+ * working fine locally under `next dev`, since Vercel's bundler resolves
+ * the dependency tree differently. sanitize-html has no such dependency.
  *
  * SEC-003 reference: blog raw-HTML render sink hardening.
  */
 
-import DOMPurify from 'isomorphic-dompurify'
+import sanitizeHtml from 'sanitize-html'
 
 const ALLOWED_TAGS = [
   // Structure
@@ -42,47 +46,14 @@ const ALLOWED_TAGS = [
   'pre', 'kbd', 'samp',
 ]
 
-const ALLOWED_ATTR = [
-  'href', 'target', 'rel', 'title',
-  'src', 'alt', 'loading', 'width', 'height', 'srcset', 'sizes',
-  'class', 'id',
-  'colspan', 'rowspan', 'align', 'scope',
-  'lang', 'dir',
-]
+const COMMON_ATTR = ['class', 'id', 'title', 'lang', 'dir']
 
-// Hooks add safety beyond what the default DOMPurify config provides.
-let hooksInstalled = false
-function ensureHooks() {
-  if (hooksInstalled) return
-  DOMPurify.addHook('afterSanitizeAttributes', (node: Element) => {
-    // Force every external link to open safely.
-    if (node.tagName === 'A') {
-      const href = node.getAttribute('href') || ''
-      // Block javascript:, data: (except data:image/* on <img>), vbscript:
-      if (/^\s*(javascript|vbscript|data):/i.test(href)) {
-        node.removeAttribute('href')
-      }
-      // If link leaves the site, add rel and target safely.
-      if (/^https?:/i.test(href)) {
-        node.setAttribute('rel', 'noopener noreferrer nofollow')
-        if (!node.getAttribute('target')) {
-          node.setAttribute('target', '_blank')
-        }
-      }
-    }
-    // <img> may only use http(s) or data:image/*
-    if (node.tagName === 'IMG') {
-      const src = node.getAttribute('src') || ''
-      if (
-        !/^https?:/i.test(src) &&
-        !/^\//.test(src) &&
-        !/^data:image\//i.test(src)
-      ) {
-        node.removeAttribute('src')
-      }
-    }
-  })
-  hooksInstalled = true
+const ALLOWED_ATTRIBUTES: sanitizeHtml.IOptions['allowedAttributes'] = {
+  a: ['href', 'target', 'rel', ...COMMON_ATTR],
+  img: ['src', 'alt', 'loading', 'width', 'height', 'srcset', 'sizes', ...COMMON_ATTR],
+  th: ['colspan', 'rowspan', 'align', 'scope', ...COMMON_ATTR],
+  td: ['colspan', 'rowspan', 'align', ...COMMON_ATTR],
+  '*': COMMON_ATTR,
 }
 
 /**
@@ -92,19 +63,43 @@ function ensureHooks() {
  */
 export function sanitizeArticleHtml(dirty: string): string {
   if (!dirty) return ''
-  ensureHooks()
-  return DOMPurify.sanitize(dirty, {
-    ALLOWED_TAGS,
-    ALLOWED_ATTR,
-    // Explicit deny-list as defence-in-depth (DOMPurify already strips
-    // these but being explicit makes the intent obvious in audits).
-    FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'button', 'link', 'meta'],
-    FORBID_ATTR: ['style', 'onerror', 'onclick', 'onload', 'onmouseover', 'onfocus', 'onblur'],
-    ALLOW_DATA_ATTR: false,
-    KEEP_CONTENT: true,
-    // Use the default html profile (no SVG/MathML — we don't need them
-    // and they are common XSS vectors).
-    USE_PROFILES: { html: true },
+  return sanitizeHtml(dirty, {
+    allowedTags: ALLOWED_TAGS,
+    allowedAttributes: ALLOWED_ATTRIBUTES,
+    // Only http(s) hrefs; javascript:/vbscript:/data: are blocked by
+    // omission (the attribute is stripped, not the whole element).
+    allowedSchemes: ['http', 'https'],
+    allowedSchemesByTag: {
+      // <img src="data:image/..."> is a legitimate inline-image case; no
+      // other tag gets the data: scheme.
+      img: ['http', 'https', 'data'],
+    },
+    allowedSchemesAppliedToAttributes: ['href', 'src'],
+    // Disallowed tags are stripped but their text content is kept
+    // (matches the previous DOMPurify KEEP_CONTENT: true behaviour).
+    // script/style content is always fully discarded regardless.
+    disallowedTagsMode: 'discard',
+    exclusiveFilter: (frame) => {
+      // Belt-and-braces beyond scheme filtering: reject any <img src>
+      // that isn't http(s), root-relative, or a real data:image/* URI.
+      if (frame.tag === 'img') {
+        const src = frame.attribs.src || ''
+        return !!src && !/^https?:/i.test(src) && !/^\//.test(src) && !/^data:image\//i.test(src)
+      }
+      return false
+    },
+    transformTags: {
+      // Force every external link to open safely.
+      a: (tagName, attribs) => {
+        const isExternal = /^https?:/i.test(attribs.href || '')
+        return {
+          tagName,
+          attribs: isExternal
+            ? { ...attribs, rel: 'noopener noreferrer nofollow', target: attribs.target || '_blank' }
+            : attribs,
+        }
+      },
+    },
   })
 }
 

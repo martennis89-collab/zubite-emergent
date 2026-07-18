@@ -66,13 +66,6 @@ const nextConfig = {
   // This is a self-contained Vercel project rooted at frontend/. Avoid
   // monorepo lockfiles outside this directory influencing standalone traces.
   outputFileTracingRoot: __dirname,
-  // isomorphic-dompurify wraps jsdom, which has many dynamically-required
-  // internal files. Vercel's serverless file-tracing bundler doesn't always
-  // pick all of them up, causing a 500 in production while `next dev` (which
-  // runs unbundled against the full node_modules tree) works fine. Marking
-  // it external skips bundling and resolves it from node_modules at runtime
-  // instead. Only used by lib/sanitizeHtml.ts (blog article rendering).
-  serverExternalPackages: ['isomorphic-dompurify'],
   images: {
     domains: [],
     unoptimized: false,
