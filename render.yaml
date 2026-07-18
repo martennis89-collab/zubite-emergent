@@ -10,7 +10,6 @@ services:
     dockerContext: ./backend
     healthCheckPath: /health
     autoDeployTrigger: commit
-    maxShutdownDelaySeconds: 30
     buildFilter:
       paths:
         - backend/**
@@ -48,8 +47,6 @@ services:
         value: lax
       - key: AUDIT_LOGS_ENABLED
         value: "1"
-      - key: RESEND_API_KEY
-        sync: false
       - key: SENDER_EMAIL
         value: hello@zubite.bg
       - key: ZUBITE_ADMIN_NOTIFICATION_EMAIL
