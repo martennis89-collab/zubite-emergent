@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
-  Appointment, APPOINTMENT_TYPE_LABELS, apptStatusLabel,
+  Appointment, APPOINTMENT_TYPE_LABELS, APPT_STATUS_TONES, apptStatusLabel,
   WEEKDAY_NAMES_SHORT_BG, addDays, isSameLocalDay,
 } from '@/lib/consultationLabels'
 
@@ -12,6 +12,8 @@ const HOUR_END = 20        // 20:00
 const ROW_HEIGHT = 56      // px per hour
 const TOTAL_HEIGHT = (HOUR_END - HOUR_START) * ROW_HEIGHT
 
+// Block (week-grid cell) tones share the same statuses as APPT_STATUS_TONES
+// but need a border + background pairing rather than a flat badge fill.
 const STATUS_BLOCK_CLS: Record<string, string> = {
   booked: 'bg-teal-50 border-teal-300 text-teal-900',
   confirmed: 'bg-emerald-50 border-emerald-300 text-emerald-900',
@@ -20,16 +22,9 @@ const STATUS_BLOCK_CLS: Record<string, string> = {
   no_show: 'bg-rose-50 border-rose-300 text-rose-900',
   cancelled: 'bg-slate-50 border-slate-300 text-slate-500 line-through opacity-70',
   completed: 'bg-emerald-50 border-emerald-400 text-emerald-900',
-}
-
-const STATUS_BADGE_CLS: Record<string, string> = {
-  booked: 'bg-teal-100 text-teal-700',
-  confirmed: 'bg-emerald-100 text-emerald-700',
-  rescheduled: 'bg-amber-100 text-amber-800',
-  attended: 'bg-emerald-100 text-emerald-700',
-  no_show: 'bg-rose-100 text-rose-700',
-  cancelled: 'bg-slate-200 text-slate-500',
-  completed: 'bg-emerald-100 text-emerald-700',
+  pending_clinic_confirmation: 'bg-amber-50 border-amber-300 text-amber-900',
+  confirmed_by_clinic: 'bg-emerald-50 border-emerald-300 text-emerald-900',
+  scheduled: 'bg-emerald-50 border-emerald-300 text-emerald-900',
 }
 
 function fmtHHMM(d: Date): string {
@@ -202,7 +197,7 @@ function AppointmentBlock({ a }: { a: Appointment }) {
   const blockCls =
     STATUS_BLOCK_CLS[a.status] || 'bg-slate-50 border-slate-300 text-slate-800'
   const badgeCls =
-    STATUS_BADGE_CLS[a.status] || 'bg-slate-100 text-slate-600'
+    APPT_STATUS_TONES[a.status] || 'bg-slate-100 text-slate-600'
   const typeLabel = APPOINTMENT_TYPE_LABELS[a.appointment_type] || a.appointment_type
 
   const inner = (
@@ -233,6 +228,13 @@ function AppointmentBlock({ a }: { a: Appointment }) {
         href={`/clinic/dashboard/requests/${a.consultation_request_id}`}
         className="block"
       >
+        {inner}
+      </Link>
+    )
+  }
+  if (a.online_orientation_booking_id) {
+    return (
+      <Link href="/clinic/dashboard/online-orientation" className="block">
         {inner}
       </Link>
     )

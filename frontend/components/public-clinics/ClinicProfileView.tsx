@@ -930,6 +930,7 @@ export default function ClinicProfileView({ clinic, chatContext }: Props) {
                   clinic={clinic}
                   sourcePath={sourcePath}
                   onStateResolved={setSchedulerState}
+                  hasQuizContext={!!chatContext}
                 />
               </div>
 
@@ -954,6 +955,7 @@ export default function ClinicProfileView({ clinic, chatContext }: Props) {
           consultationType={contactCtx.consultationType}
           prefillCity={clinic.city_slug}
           prefillTreatment={clinic.treatments[0]}
+          hasQuizContext={!!chatContext}
           onClose={() => setContactCtx(null)}
         />
       )}

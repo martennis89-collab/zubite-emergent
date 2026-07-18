@@ -10,7 +10,7 @@ import { ClinicShell } from '@/components/ClinicShell'
 import { WeekCalendar } from '@/components/clinic/WeekCalendar'
 import {
   Appointment, formatDateOnly, apptStatusLabel,
-  APPOINTMENT_TYPE_LABELS, APPOINTMENT_TYPES, APPT_STATUS_LABELS,
+  APPOINTMENT_TYPE_LABELS, APPOINTMENT_TYPES, APPT_STATUS_LABELS, APPT_STATUS_TONES,
   getMondayOfWeek, addDays, formatWeekRange, isSameLocalDay,
 } from '@/lib/consultationLabels'
 
@@ -26,15 +26,7 @@ const STATUS_OPTS = [
   { value: 'cancelled', label: 'Отменени' },
 ]
 
-const STATUS_BADGE: Record<string, string> = {
-  booked: 'bg-teal-100 text-teal-700',
-  confirmed: 'bg-emerald-100 text-emerald-700',
-  rescheduled: 'bg-amber-100 text-amber-800',
-  attended: 'bg-emerald-100 text-emerald-700',
-  no_show: 'bg-rose-100 text-rose-700',
-  cancelled: 'bg-slate-100 text-slate-500',
-  completed: 'bg-emerald-100 text-emerald-700',
-}
+const STATUS_BADGE = APPT_STATUS_TONES
 
 type View = 'week' | 'list'
 
@@ -344,6 +336,14 @@ export default function ClinicCalendarPage() {
                             className="text-sm text-teal-600 hover:text-teal-700 font-medium"
                           >
                             Заявка
+                          </Link>
+                        )}
+                        {a.online_orientation_booking_id && (
+                          <Link
+                            href="/clinic/dashboard/online-orientation"
+                            className="text-sm text-teal-600 hover:text-teal-700 font-medium"
+                          >
+                            Потвърди / откажи
                           </Link>
                         )}
                       </li>

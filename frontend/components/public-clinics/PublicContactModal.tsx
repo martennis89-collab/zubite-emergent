@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import {
   X, Loader2, ShieldCheck, CheckCircle2, AlertCircle, Phone,
 } from 'lucide-react'
-import type { PublicClinic } from '@/lib/publicClinics'
+import { treatmentLabel, type PublicClinic } from '@/lib/publicClinics'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -14,6 +14,12 @@ interface Props {
   consultationType: 'general' | 'online'
   prefillCity?: string | null
   prefillTreatment?: string | null
+  // True only when the patient arrived via the diagnostic quiz (a real
+  // leadId/chatContext exists) — the quiz already asked what they want to
+  // consult about, so the reason dropdown below would be redundant. Every
+  // other entry point (browsing clinics cold, a clinic's own profile page)
+  // defaults to false and gets asked.
+  hasQuizContext?: boolean
   onClose: () => void
   onSuccess?: () => void
 }
@@ -33,12 +39,14 @@ export default function PublicContactModal({
   consultationType,
   prefillCity,
   prefillTreatment,
+  hasQuizContext = false,
   onClose,
   onSuccess,
 }: Props) {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
+  const [consultationReason, setConsultationReason] = useState('')
   const [consent, setConsent] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [err, setErr] = useState<string | null>(null)
@@ -47,6 +55,20 @@ export default function PublicContactModal({
   const dialogRef = useRef<HTMLDivElement>(null)
   const firstFieldRef = useRef<HTMLInputElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
+
+  const askForReason = !hasQuizContext
+  const reasonOptions = useMemo(() => {
+    const seen = new Set<string>()
+    const opts: Array<{ value: string; label: string }> = []
+    for (const c of clinics) {
+      for (const t of c.treatments || []) {
+        if (seen.has(t)) continue
+        seen.add(t)
+        opts.push({ value: t, label: treatmentLabel(t) })
+      }
+    }
+    return opts
+  }, [clinics])
 
   useEffect(() => {
     previousFocusRef.current = document.activeElement as HTMLElement | null
@@ -96,6 +118,10 @@ export default function PublicContactModal({
       setErr('Моля попълни име и телефон.')
       return
     }
+    if (askForReason && reasonOptions.length > 0 && !consultationReason) {
+      setErr('Моля избери за какво искаш консултация.')
+      return
+    }
     if (!consent) {
       setErr('Моля потвърди съгласие за обработка на данни.')
       return
@@ -114,12 +140,16 @@ export default function PublicContactModal({
               city_slug:
                 prefillCity || c.city_slug || 'sofia',
               treatment_type:
-                prefillTreatment || c.treatments[0] || 'general',
+                consultationReason || prefillTreatment || c.treatments[0] || 'general',
               answers: {
                 public_clinic_id: c.id,
                 public_clinic_name: c.name,
                 public_clinic_slug: c.slug,
                 consultation_type: consultationType,
+                // Kept as plain text alongside treatment_type (which also
+                // drives lead scoring) so anyone reading the raw lead sees
+                // the patient's stated reason without decoding a score.
+                consultation_reason: consultationReason || null,
               },
               name: name.trim(),
               phone: phone.trim(),
@@ -232,6 +262,35 @@ export default function PublicContactModal({
                 ))}
               </ul>
             </div>
+
+            {askForReason && reasonOptions.length > 0 && (
+              <div>
+                <label
+                  htmlFor="pcm-reason"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
+                  За какво искаш консултация? <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  id="pcm-reason"
+                  value={consultationReason}
+                  onChange={(e) => setConsultationReason(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 rounded-md ring-1 ring-slate-300 focus:ring-2 focus:ring-teal-500 outline-none bg-white"
+                  data-testid="public-contact-reason"
+                >
+                  <option value="" disabled>
+                    Избери…
+                  </option>
+                  {reasonOptions.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                  <option value="not_sure">Не съм сигурен/а</option>
+                </select>
+              </div>
+            )}
 
             {consultationType === 'online' && (
               <p

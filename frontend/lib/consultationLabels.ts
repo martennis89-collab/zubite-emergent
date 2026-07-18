@@ -27,6 +27,9 @@ export const APPOINTMENT_TYPE_LABELS: Record<string, string> = {
   cosmetic_consultation: 'Естетика',
   full_mouth_rehab_consultation: 'Цяла уста',
   general_consultation: 'Обща',
+  // Synthetic type for online_orientation_bookings adapted into the
+  // Appointment shape — see clinic_list_appointments in consultations.py.
+  online_orientation: 'Онлайн ориентация',
 }
 
 export const TREATMENT_LABELS: Record<string, string> = {
@@ -233,6 +236,28 @@ export const APPT_STATUS_LABELS: Record<string, string> = {
   attended: 'Посетила',
   no_show: 'Не се яви',
   cancelled: 'Отменена',
+  // online_orientation_bookings statuses — kept as their native strings
+  // (not force-mapped onto the vocabulary above) since the distinction
+  // between "pending" and "confirmed" is exactly the action item on the
+  // calendar. Tones for these live in APPT_STATUS_TONES below.
+  pending_clinic_confirmation: 'Чака потвърждение',
+  confirmed_by_clinic: 'Потвърдена',
+  scheduled: 'Насрочена',
+}
+
+// Badge/block color classes for appointment statuses, shared between the
+// week-grid and list views. Falls back to a neutral slate tone.
+export const APPT_STATUS_TONES: Record<string, string> = {
+  booked: 'bg-teal-100 text-teal-700',
+  confirmed: 'bg-emerald-100 text-emerald-700',
+  rescheduled: 'bg-amber-100 text-amber-800',
+  attended: 'bg-emerald-100 text-emerald-700',
+  no_show: 'bg-rose-100 text-rose-700',
+  cancelled: 'bg-slate-200 text-slate-500',
+  completed: 'bg-emerald-100 text-emerald-700',
+  pending_clinic_confirmation: 'bg-amber-100 text-amber-800',
+  confirmed_by_clinic: 'bg-emerald-100 text-emerald-700',
+  scheduled: 'bg-emerald-100 text-emerald-700',
 }
 
 export const ACTION_SUCCESS_MESSAGES: Record<string, string> = {
@@ -433,6 +458,10 @@ export interface Appointment {
   id: string
   clinic_id: string
   consultation_request_id?: string | null
+  // Set only for rows adapted from online_orientation_bookings — links back
+  // to the "Онлайн ориентация" actions page, the only place confirm/reject
+  // actually happens for these.
+  online_orientation_booking_id?: string | null
   patient_name: string
   patient_phone: string
   treatment_category?: string | null
@@ -465,6 +494,7 @@ export const APPOINTMENT_TYPES: Array<{ value: string; label: string }> = [
   { value: 'cosmetic_consultation', label: 'Естетика' },
   { value: 'full_mouth_rehab_consultation', label: 'Цяла уста' },
   { value: 'general_consultation', label: 'Обща' },
+  { value: 'online_orientation', label: 'Онлайн ориентация' },
 ]
 
 // Patient-flow request type (driven by `created_from` on the consultation_request

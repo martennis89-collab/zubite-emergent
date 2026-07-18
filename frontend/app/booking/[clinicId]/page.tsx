@@ -373,6 +373,7 @@ export default function BookingPage() {
         consultationType="general"
         prefillCity={publicClinic.city_slug}
         prefillTreatment={publicClinic.treatments[0]}
+        hasQuizContext={!!leadId}
         onClose={() => setContactOpen(false)}
       />
     )}

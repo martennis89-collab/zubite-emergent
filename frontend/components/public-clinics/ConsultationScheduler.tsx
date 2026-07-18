@@ -57,6 +57,8 @@ interface Props {
    *  is invoked once whenever the state changes; never with intermediate
    *  loading/error so the parent gets stable values. */
   onStateResolved?: (state: AvailabilityResponse['state'] | null) => void
+  /** Forwarded to the PublicContactModal fallback — see its own doc. */
+  hasQuizContext?: boolean
 }
 
 type LoadState =
@@ -103,7 +105,7 @@ function groupSlotsByDate(slots: Slot[]): Array<{ key: string; label: string; sl
     }))
 }
 
-export default function ConsultationScheduler({ clinic, sourcePath, onStateResolved }: Props) {
+export default function ConsultationScheduler({ clinic, sourcePath, onStateResolved, hasQuizContext }: Props) {
   const [state, setState] = useState<LoadState>({ kind: 'loading' })
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
   const [contactFallbackOpen, setContactFallbackOpen] = useState(false)
@@ -235,6 +237,7 @@ export default function ConsultationScheduler({ clinic, sourcePath, onStateResol
           consultationType="general"
           prefillCity={clinic.city_slug}
           prefillTreatment={clinic.treatments[0]}
+          hasQuizContext={hasQuizContext}
           onClose={() => setContactFallbackOpen(false)}
         />
       )}

@@ -1791,18 +1791,87 @@ async def clinic_perform_action(
 
 # ─── Clinic: Calendar / Appointments ──────────────────────
 
+def _orientation_booking_to_appointment(b: Dict[str, Any]) -> Dict[str, Any]:
+    """Adapt an `online_orientation_bookings` row into the `Appointment`
+    shape the clinic calendar UI already renders, so free online-orientation
+    slots booked from a clinic's public profile show up alongside manually
+    created in-clinic appointments instead of only being visible on the
+    separate "Онлайн ориентация" actions page. `online_orientation_booking_id`
+    (rather than reusing `consultation_request_id`) tells the frontend to
+    link back to that actions page, since that's still where confirm/reject
+    actually happens — this endpoint stays read-only for these rows.
+    """
+    scheduled_at = b.get("scheduled_at") or b.get("created_at")
+    duration = int(b.get("duration_minutes") or 20)
+    end_time = scheduled_at
+    try:
+        start_dt = datetime.fromisoformat(str(scheduled_at).replace("Z", "+00:00"))
+        end_time = (start_dt + timedelta(minutes=duration)).isoformat()
+    except (ValueError, TypeError):
+        pass
+    return {
+        "id": b["id"],
+        "clinic_id": b.get("clinic_id"),
+        "consultation_request_id": None,
+        "online_orientation_booking_id": b["id"],
+        "patient_name": b.get("patient_name") or "Пациент",
+        "patient_phone": b.get("patient_phone") or "",
+        "treatment_category": b.get("treatment_category"),
+        "appointment_type": "online_orientation",
+        "start_time": scheduled_at,
+        "end_time": end_time,
+        "status": b.get("status"),
+        "notes": b.get("patient_note"),
+        "created_at": b.get("created_at"),
+        "updated_at": b.get("updated_at"),
+    }
+
+
+# Terminal/dead statuses excluded from the calendar — matches the "История"
+# (history) grouping on the online-orientation actions page. The calendar is
+# forward-looking; finished bookings would just be noise.
+_ORIENTATION_CALENDAR_TERMINAL_STATUSES = {
+    "completed", "no_show", "converted_to_in_clinic", "not_suitable",
+    "cancelled_by_patient", "cancelled_by_clinic", "rejected_by_clinic",
+    "expired_pending_confirmation",
+}
+
+
 @router.get("/clinic/appointments")
 async def clinic_list_appointments(
     clinic=Depends(get_current_clinic),
     status: Optional[str] = None,
     appointment_type: Optional[str] = None,
 ):
-    q: Dict[str, Any] = {"clinic_id": clinic["id"]}
-    if isinstance(status, str) and status:
-        q["status"] = status
-    if isinstance(appointment_type, str) and appointment_type:
-        q["appointment_type"] = appointment_type
-    appts = await db.clinic_appointments.find(q, {"_id": 0}).sort("start_time", 1).to_list(2000)
+    # "online_orientation" is a synthetic type that only ever exists on
+    # adapted rows below — it never matches a real clinic_appointments doc,
+    # so filtering by it skips that collection entirely rather than
+    # (correctly, but confusingly) always returning zero rows.
+    wants_orientation_only = appointment_type == "online_orientation"
+    wants_real_type_only = bool(appointment_type) and not wants_orientation_only
+
+    appts: List[Dict[str, Any]] = []
+    if not wants_orientation_only:
+        q: Dict[str, Any] = {"clinic_id": clinic["id"]}
+        if isinstance(status, str) and status:
+            q["status"] = status
+        if wants_real_type_only:
+            q["appointment_type"] = appointment_type
+        appts = await db.clinic_appointments.find(q, {"_id": 0}).sort("start_time", 1).to_list(2000)
+
+    if not wants_real_type_only:
+        orientation_q: Dict[str, Any] = {
+            "clinic_id": clinic["id"],
+            "status": {"$nin": list(_ORIENTATION_CALENDAR_TERMINAL_STATUSES)},
+        }
+        if isinstance(status, str) and status:
+            orientation_q["status"] = status
+        orientation_rows = await db.online_orientation_bookings.find(
+            orientation_q, {"_id": 0},
+        ).to_list(2000)
+        appts.extend(_orientation_booking_to_appointment(b) for b in orientation_rows)
+        appts.sort(key=lambda a: a.get("start_time") or "")
+
     return {"appointments": appts}
 
 
