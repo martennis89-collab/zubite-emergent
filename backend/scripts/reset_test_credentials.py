@@ -31,7 +31,7 @@ from database import client, db
 
 # id -> (collection, human label). Add future test accounts here explicitly
 # rather than widening this into a query.
-TARGET_ADMIN_USERNAMES = ["admin"]
+TARGET_ADMIN_USERNAMES = ["admin", "admin@zubite.bg"]
 TARGET_CLINIC_IDS = ["demo-growth-clinic", "demo-verified-clinic"]
 
 
