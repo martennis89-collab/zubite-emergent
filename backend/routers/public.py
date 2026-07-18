@@ -202,8 +202,24 @@ async def create_lead(data: LeadCreate):
 
     score_total, band, score_breakdown = calculate_score(data.treatment_type, data.answers, data.can_travel)
 
+    # A patient submitting the contact form on a SPECIFIC clinic's public
+    # profile (PublicContactModal) has already made an explicit choice —
+    # that choice must win over the auto-matcher below, which exists only
+    # to pick a clinic for quiz-driven leads that never named one. Without
+    # this, `answers.public_clinic_id` was recorded but never promoted to
+    # `assigned_clinic_id`, so the request silently never appeared in that
+    # clinic's dashboard (which queries `assigned_clinic_id` exclusively).
     assigned_clinic_id = None
-    if band == "GREEN":
+    explicit_clinic_id = data.answers.get("public_clinic_id")
+    if explicit_clinic_id:
+        explicit_clinic = await db.clinics.find_one(
+            {"id": explicit_clinic_id, "is_active": True, "archived": {"$ne": True}},
+            {"_id": 0, "id": 1},
+        )
+        if explicit_clinic:
+            assigned_clinic_id = explicit_clinic["id"]
+
+    if assigned_clinic_id is None and band == "GREEN":
         # Match clinics on either canonical `treatments_supported` or the
         # legacy `treatments_offered` mirror. New writes populate both;
         # legacy/unmigrated docs may have only one. (Feb 2026 cleanup.)

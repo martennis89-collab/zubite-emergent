@@ -865,6 +865,13 @@ async def public_create_consultation_booking(
         # Strict labels — see _PUBLIC_SCHEDULER_LEAD_LABELS.
         **_PUBLIC_SCHEDULER_LEAD_LABELS,
         "clinic_id": clinic["id"],
+        # The clinic-facing dashboard (`GET /clinic/leads`, `GET
+        # /clinic/dashboard`) filters exclusively on `assigned_clinic_id`,
+        # never `clinic_id`. A patient booking a slot straight from this
+        # clinic's own public profile has already made an explicit choice —
+        # no admin triage needed — so assign immediately rather than
+        # leaving the lead invisible to the clinic until someone notices.
+        "assigned_clinic_id": clinic["id"],
         "source": "clinic_profile_scheduler",
         "source_path": payload.source_path,
         # Attribution (best-effort).
