@@ -1,13 +1,38 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
+import { toPng } from 'html-to-image'
 import { QRCodeCanvas } from 'qrcode.react'
 import { ClinicShell } from '@/components/ClinicShell'
-import { ReviewPoster } from '@/components/ReviewPoster'
+import { ReviewPoster, type PaperSize } from '@/components/ReviewPoster'
 import {
-  Loader2, Copy, Check, Printer, Star, ShieldCheck, Clock,
-  CheckCircle2, XCircle, Inbox, Eye, ExternalLink,
+  Loader2, Copy, Check, Star, ShieldCheck, Clock,
+  CheckCircle2, XCircle, Inbox, Eye, ExternalLink, Download,
 } from 'lucide-react'
+
+// Print CSS renders at 96 CSS-px/inch; scaling captured output to a target
+// DPI produces a print-quality file from the same mm-dimensioned DOM node
+// the browser already lays out normally. A3 is capped lower than A4's
+// 300 DPI (a ~17-megapixel canvas) because html-to-image's rasterization
+// is synchronous and was measured to hang the tab's main thread for that
+// size in this environment. 150 DPI is standard professional print
+// quality for large-format posters viewed at a distance — the resolution
+// drop isn't visible in practice, only the file-size/render-time is.
+const PRINT_DPI: Record<PaperSize, number> = { A4: 300, A3: 150 }
+const pixelRatioFor = (paperSize: PaperSize) => PRINT_DPI[paperSize] / 96
+
+// html-to-image's default font auto-discovery clones and scans every
+// stylesheet on the page to find @font-face rules to embed — against this
+// app's 5000+ line globals.css that hangs indefinitely. Passing the exact
+// @font-face rules the poster actually uses (mirrored from globals.css)
+// as `fontEmbedCss` skips that scan entirely.
+const POSTER_FONT_EMBED_CSS = `
+@font-face { font-family: 'Manrope'; src: url('/fonts/taste/Manrope-Regular.ttf') format('truetype'); font-weight: 400; font-style: normal; }
+@font-face { font-family: 'Manrope'; src: url('/fonts/taste/Manrope-Medium.ttf') format('truetype'); font-weight: 500 600; font-style: normal; }
+@font-face { font-family: 'Manrope'; src: url('/fonts/taste/Manrope-Bold.ttf') format('truetype'); font-weight: 700 800; font-style: normal; }
+@font-face { font-family: 'Playfair Display'; src: url('/fonts/taste/PlayfairDisplay-SemiBold.ttf') format('truetype'); font-weight: 600; font-style: normal; }
+@font-face { font-family: 'IBM Plex Mono'; src: url('/fonts/taste/IBMPlexMono-Regular.ttf') format('truetype'); font-weight: 400; font-style: normal; }
+`
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -59,6 +84,11 @@ export default function ClinicReviewsPage() {
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
   const [showPosterPreview, setShowPosterPreview] = useState(false)
+  const [downloadingPoster, setDownloadingPoster] = useState<PaperSize | null>(null)
+  const [downloadingQr, setDownloadingQr] = useState(false)
+  const [downloadPaperSize, setDownloadPaperSize] = useState<PaperSize>('A4')
+  const posterExportRef = useRef<HTMLDivElement>(null)
+  const qrExportRef = useRef<HTMLCanvasElement>(null)
 
   // The backend default base URL ("https://zubite.bg") is a deployment
   // placeholder — it 404s in preview environments. The QR code MUST
@@ -114,8 +144,53 @@ export default function ClinicReviewsPage() {
     } catch { /* noop */ }
   }
 
-  const handlePrint = () => {
-    if (typeof window !== 'undefined') window.print()
+  const triggerDownload = (dataUrl: string, filename: string) => {
+    const a = document.createElement('a')
+    a.href = dataUrl
+    a.download = filename
+    a.click()
+  }
+
+  // Clinic names are Bulgarian (Cyrillic) — [^a-z0-9]+ strips every
+  // character from a Cyrillic string, leaving an empty/dash-only
+  // filename. Fall back to the stable clinic_id (always ASCII) rather
+  // than silently producing "--poster-A4.png".
+  const clinicFileSlug = () => {
+    const fromName = (link?.clinic_name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+    return fromName || link?.clinic_id || 'zubite-clinic'
+  }
+
+  const downloadPoster = async (paperSize: PaperSize) => {
+    setDownloadingPoster(paperSize)
+    try {
+      // The export node renders off-screen at whatever paperSize is
+      // currently set — flip it first and let React commit before
+      // capturing, or html-to-image would snapshot the previous size.
+      setDownloadPaperSize(paperSize)
+      await new Promise((resolve) => setTimeout(resolve, 60))
+      const node = posterExportRef.current
+      if (!node) return
+      const dataUrl = await toPng(node, {
+        pixelRatio: pixelRatioFor(paperSize),
+        cacheBust: true,
+        fontEmbedCss: POSTER_FONT_EMBED_CSS,
+      })
+      triggerDownload(dataUrl, `${clinicFileSlug()}-poster-${paperSize}.png`)
+    } finally {
+      setDownloadingPoster(null)
+    }
+  }
+
+  const downloadQrOnly = async () => {
+    setDownloadingQr(true)
+    try {
+      const canvas = qrExportRef.current
+      if (!canvas) return
+      const dataUrl = canvas.toDataURL('image/png')
+      triggerDownload(dataUrl, `${clinicFileSlug()}-qr-code.png`)
+    } finally {
+      setDownloadingQr(false)
+    }
   }
 
   const filtered = filter === 'all'
@@ -196,14 +271,47 @@ export default function ClinicReviewsPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={handlePrint}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium"
-                  data-testid="clinic-review-print-btn"
+                  onClick={() => downloadPoster('A4')}
+                  disabled={!reviewUrl || downloadingPoster !== null}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium disabled:opacity-50"
+                  data-testid="clinic-review-download-a4-btn"
                 >
-                  <Printer className="w-3.5 h-3.5" />
-                  Принтиране на постер
+                  {downloadingPoster === 'A4' ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5" />
+                  )}
+                  Изтегли постер A4
                 </button>
-                <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-500">
+                <button
+                  type="button"
+                  onClick={() => downloadPoster('A3')}
+                  disabled={!reviewUrl || downloadingPoster !== null}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-medium disabled:opacity-50"
+                  data-testid="clinic-review-download-a3-btn"
+                >
+                  {downloadingPoster === 'A3' ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5" />
+                  )}
+                  Изтегли постер A3
+                </button>
+                <button
+                  type="button"
+                  onClick={downloadQrOnly}
+                  disabled={!reviewUrl || downloadingQr}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-medium disabled:opacity-50"
+                  data-testid="clinic-review-download-qr-btn"
+                >
+                  {downloadingQr ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5" />
+                  )}
+                  Само QR код
+                </button>
+                <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-500 basis-full">
                   <ShieldCheck className="w-3.5 h-3.5" />
                   Само админ преглежда мненията.
                 </span>
@@ -373,38 +481,38 @@ export default function ClinicReviewsPage() {
           </div>
         )}
 
-        {/* Print poster (only visible during print) */}
+        {/* Off-screen export sources — laid out at full physical size (not
+            display:none, which would give html-to-image nothing to
+            measure) but positioned far outside the viewport so the clinic
+            never sees them. downloadPoster() flips downloadPaperSize, waits
+            a tick for the resize to commit, then captures this node. */}
         {link && (
-          <div className="hidden print:block" data-testid="clinic-review-print-poster">
-            <ReviewPoster
-              clinicName={link.clinic_name}
-              cityName={link.city_name}
-              reviewUrl={reviewUrl}
-              variant="print"
+          <div
+            aria-hidden
+            style={{ position: 'fixed', top: 0, left: '-9999px', zIndex: -1 }}
+          >
+            <div ref={posterExportRef} data-testid="clinic-review-poster-export">
+              <ReviewPoster
+                clinicName={link.clinic_name}
+                cityName={link.city_name}
+                reviewUrl={reviewUrl}
+                variant="print"
+                paperSize={downloadPaperSize}
+              />
+            </div>
+            {/* Large enough to be a genuinely usable standalone QR file —
+                the on-screen 144px canvas above is a thumbnail, not this. */}
+            <QRCodeCanvas
+              ref={qrExportRef}
+              value={reviewUrl}
+              size={1024}
+              level="M"
+              includeMargin={false}
+              bgColor="#ffffff"
+              fgColor="#0A0A0A"
             />
           </div>
         )}
-
-        <style jsx global>{`
-          @media print {
-            @page {
-              size: A4 portrait;
-              margin: 0;
-            }
-            html, body {
-              background: white !important;
-              margin: 0 !important;
-              padding: 0 !important;
-            }
-            nav, aside, header { display: none !important; }
-            .review-poster {
-              page-break-after: avoid;
-              page-break-inside: avoid;
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
-            }
-          }
-        `}</style>
       </section>
     </ClinicShell>
   )
