@@ -17,11 +17,11 @@ import uuid
 
 sys.path.insert(0, "/app")
 
-from storage import init_storage, put_object, get_object, _bucket  # noqa: E402
+import storage  # noqa: E402
 
 
 def main() -> int:
-    client = init_storage()
+    client = storage.init_storage()
     if not client:
         print("FAIL: R2 not configured — set R2_* in backend/.env and restart.")
         return 1
@@ -30,11 +30,11 @@ def main() -> int:
     payload = "зъби — r2 smoke ✅".encode("utf-8")
 
     try:
-        res = put_object(key, payload, "text/plain; charset=utf-8")
+        res = storage.put_object(key, payload, "text/plain; charset=utf-8")
         print(f"  put   -> path={res['path']} size={res['size']}")
         assert res["path"] == key and res["size"] == len(payload)
 
-        data, ctype = get_object(key)
+        data, ctype = storage.get_object(key)
         print(f"  get   -> {len(data)} bytes, content_type={ctype}")
         assert data == payload, "bytes differ after round-trip"
         assert "text/plain" in ctype, f"unexpected content type: {ctype}"
@@ -43,7 +43,11 @@ def main() -> int:
         print(f"  body  -> {data.decode('utf-8')}")
     finally:
         try:
-            client.delete_object(Bucket=_bucket, Key=key)
+            # Read `storage._bucket` off the module at call time, not via
+            # `from storage import _bucket` — that binds the name at
+            # import time, before init_storage() has set it, and silently
+            # keeps pointing at the stale None forever.
+            client.delete_object(Bucket=storage._bucket, Key=key)
             print("  clean -> smoke object deleted")
         except Exception as e:
             print(f"  WARNING: could not delete {key}: {e}")

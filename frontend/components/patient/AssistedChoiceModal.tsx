@@ -240,21 +240,9 @@ function FormBody({
   return (
     <>
       <p className="text-sm text-slate-700 leading-relaxed mb-5">
-        Ако не сте сигурни коя клиника да изберете, Zubite може да прегледа
-        информацията от оценката ви и да ви помогне с по-ясна следваща стъпка.
+        Ако не си сигурен коя клиника да избереш, Zubite може да прегледа
+        информацията от оценката ти и да помогне с по-ясна следваща стъпка.
       </p>
-
-      <div
-        className="mb-5 rounded-lg border border-teal-100 bg-teal-50/60 p-3 flex items-start gap-2.5"
-        data-testid="assisted-choice-care-pass-note"
-      >
-        <ShieldCheck className="w-4 h-4 mt-0.5 flex-shrink-0 text-teal-600" />
-        <p className="text-xs text-slate-700 leading-relaxed">
-          Ако след помощ от Zubite заявите и посетите консултация през
-          платформата, клиниката ще ви предостави{' '}
-          <span className="font-semibold text-slate-900">Zubite Care Pass</span>.
-        </p>
-      </div>
 
       {showConfirm ? (
         <div
@@ -262,7 +250,7 @@ function FormBody({
           data-testid="assisted-choice-contact-confirm"
         >
           <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
-            Ще се свържем с вас на:
+            Ще се свържем с теб на:
           </p>
           <ul className="space-y-1.5 text-sm text-slate-800">
             {prefillName && (
@@ -312,7 +300,7 @@ function FormBody({
           />
           {phone.length > 0 && !phoneOk && (
             <p className="mt-1.5 text-[11px] text-rose-600">
-              Моля, въведете телефон с поне 6 цифри.
+              Въведи телефон с поне 6 цифри.
             </p>
           )}
         </>
@@ -326,7 +314,7 @@ function FormBody({
         onChange={(e) => setMessage(e.target.value.slice(0, 1000))}
         rows={3}
         maxLength={1000}
-        placeholder="Може да добавите какво ви притеснява или какво е важно за вас."
+        placeholder="Може да добавиш какво те притеснява или какво е важно за теб."
         disabled={submitting}
         className="w-full px-4 py-3 border border-slate-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-teal-200 focus:border-teal-300 disabled:opacity-60"
         data-testid="assisted-choice-message-input"
@@ -358,7 +346,7 @@ function FormBody({
           data-testid="assisted-choice-inline-error"
         >
           <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-          <span>{error.message || 'Възникна грешка. Опитайте отново.'}</span>
+          <span>{error.message || 'Не успяхме да изпратим заявката. Опитай отново.'}</span>
         </div>
       )}
 
@@ -395,26 +383,13 @@ function SuccessBody({ onClose }: { onClose: () => void }) {
         <CheckCircle2 className="w-5 h-5 text-emerald-600 mt-0.5 flex-shrink-0" />
         <div>
           <p className="text-sm font-medium text-emerald-900">
-            Изпратихте заявка към Zubite.
+            Изпрати заявка към Zubite.
           </p>
           <p className="text-xs text-emerald-800 mt-1 leading-relaxed">
-            Ще използваме информацията от оценката ви, за да ви помогнем с
+            Ще използваме информацията от оценката ти, за да помогнем с
             по-ясна следваща стъпка.
           </p>
         </div>
-      </div>
-
-      <div
-        className="rounded-lg bg-teal-50/70 border border-teal-100 p-3 mb-4 flex items-start gap-2.5"
-        data-testid="assisted-choice-success-care-pass"
-      >
-        <ShieldCheck className="w-4 h-4 mt-0.5 flex-shrink-0 text-teal-600" />
-        <p className="text-xs text-slate-700 leading-relaxed">
-          Следващата стъпка е да уточним подходящия път.{' '}
-          <span className="font-semibold text-slate-900">Zubite Care Pass</span>{' '}
-          се предоставя от клиниката след реално посетена консултация през
-          Zubite.bg.
-        </p>
       </div>
 
       <button
@@ -444,7 +419,7 @@ function DuplicateClinicBody({
         <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
         <div>
           <p className="text-sm font-medium text-amber-900">
-            Вече сте изпратили заявка към избрана клиника.
+            Вече изпрати заявка към избрана клиника.
           </p>
           {clinic?.name && (
             <p className="text-xs text-amber-800 mt-1 leading-relaxed">

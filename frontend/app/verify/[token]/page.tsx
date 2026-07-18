@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle, XCircle, Loader2, AlertTriangle } from 'lucide-react'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
-export default function VerifyPage({ params }: { params: { token: string } }) {
+export default function VerifyPage() {
+  const params = useParams<{ token: string }>()
   const searchParams = useSearchParams()
   const responseParam = searchParams.get('response')
   const [status, setStatus] = useState<'loading' | 'success' | 'already' | 'error' | 'choose'>('loading')
@@ -48,6 +49,7 @@ export default function VerifyPage({ params }: { params: { token: string } }) {
         <Link href="/" className="inline-block font-serif text-2xl font-semibold text-slate-900 mb-8">
           Zubite<span className="text-teal-500">.bg</span>
         </Link>
+        <h1 className="sr-only">Потвърждение за контакт с клиника</h1>
 
         {status === 'loading' && (
           <div className="bg-white rounded-2xl border border-slate-200 p-10 shadow-sm" data-testid="verify-loading">

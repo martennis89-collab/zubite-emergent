@@ -6,6 +6,11 @@ services:
       - "27018:27017"
     volumes:
       - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
 
   backend:
     build: ./backend
@@ -14,12 +19,14 @@ services:
       - ./backend/.env
     environment:
       MONGO_URL: mongodb://mongo:27017
+    command: uvicorn server:app --host 0.0.0.0 --port 8001 --reload
     ports:
       - "8010:8001"
     volumes:
       - ./backend:/app
     depends_on:
-      - mongo
+      mongo:
+        condition: service_healthy
 
   frontend:
     build: ./frontend
@@ -41,6 +48,7 @@ services:
       # where nothing listens). Production is unaffected: the real API is
       # https, so it matches `https:`.
       NEXT_PUBLIC_API_URL: ""
+      BACKEND_INTERNAL_URL: http://backend:8001
     ports:
       - "3000:3000"
     volumes:

@@ -61,14 +61,14 @@ export default function AdminLoginPage() {
   
   if (checkingAuth) {
     return (
-      <main className="min-h-screen bg-[#FCFAF8] flex items-center justify-center">
+      <main className="taste-admin-login min-h-screen bg-[#FCFAF8] flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-teal-500 animate-spin" />
       </main>
     )
   }
   
   return (
-    <main className="min-h-screen bg-[#FCFAF8] flex items-center justify-center p-4">
+    <main className="taste-admin-login min-h-screen bg-[#FCFAF8] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-teal-100 rounded-2xl mb-4">
@@ -85,11 +85,13 @@ export default function AdminLoginPage() {
         <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label htmlFor="admin-username" className="block text-sm font-medium text-slate-700 mb-2">
                 Потребителско име
               </label>
               <input
+                id="admin-username"
                 type="text"
+                autoComplete="username"
                 value={username}
                 onChange={e => setUsername(e.target.value)}
                 className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
@@ -100,11 +102,13 @@ export default function AdminLoginPage() {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label htmlFor="admin-password" className="block text-sm font-medium text-slate-700 mb-2">
                 Парола
               </label>
               <input
+                id="admin-password"
                 type="password"
+                autoComplete="current-password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
@@ -115,7 +119,7 @@ export default function AdminLoginPage() {
             </div>
             
             {error && (
-              <p className="text-red-500 text-sm bg-red-50 p-3 rounded-lg">{error}</p>
+              <p role="alert" className="text-red-500 text-sm bg-red-50 p-3 rounded-lg">{error}</p>
             )}
             
             <button

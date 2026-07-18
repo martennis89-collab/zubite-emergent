@@ -2,230 +2,168 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState, useEffect } from 'react'
-import { Menu, X, ArrowRight } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
-export function Header() {
-  const [isOpen, setIsOpen] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
+const NAV_ITEMS = [
+  {
+    id: 'about',
+    label: 'Какво е Zubite.bg',
+    href: '/#how-it-works',
+    match: ['/'],
+  },
+  {
+    id: 'symptoms',
+    label: 'Симптоми',
+    href: '/symptoms',
+    match: ['/symptoms', '/crooked-teeth'],
+  },
+  {
+    id: 'treatments',
+    label: 'Лечения',
+    href: '/treatments',
+    match: [
+      '/treatments',
+      '/orthodontics',
+      '/implants',
+      '/cosmetic-dentistry',
+      '/tmj',
+      '/sleep-airway',
+      '/breketi',
+      '/invisalign-bulgaria',
+      '/invisalign-price',
+      '/implant-price',
+      '/what-is-invisalign',
+      '/aligners-vs-braces',
+      '/aligners-comparison',
+    ],
+  },
+  {
+    id: 'articles',
+    label: 'Статии',
+    href: '/blog',
+    match: ['/blog'],
+  },
+] as const
+
+export function Header({ home = false }: { home?: boolean }) {
   const pathname = usePathname()
+  const [open, setOpen] = useState(false)
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 6)
-    handleScroll()
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+    setOpen(false)
+  }, [pathname])
 
-  // Close mobile menu on route change
-  useEffect(() => { setIsOpen(false) }, [pathname])
+  useEffect(() => {
+    if (!open) return
 
-  const isActive = (path: string) =>
-    path === '/' ? pathname === '/' : pathname === path || pathname.startsWith(path + '/')
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false)
+    }
 
-  // Public header navigation (Feb 2026 cleanup):
-  //   • No `Клиники` — clinic discovery is reached contextually through
-  //     symptoms/treatments/articles/quiz, not as a dominant global nav item.
-  //   • No persistent `Започни анализа` CTA — keeps the platform feeling
-  //     like a dental decision platform, not a quiz-conversion funnel.
-  //   • `Какво е Zubite.bg` first, as the informational anchor. Links to
-  //     the homepage explainer section (`#kakvo-e-zubite`) regardless of
-  //     which public route the header renders on.
-  const navLinks = [
-    { href: '/symptoms', label: 'Симптоми' },
-    { href: '/treatments', label: 'Лечения' },
-    { href: '/care-pass', label: 'Care Pass' },
-    { href: '/blog', label: 'Статии' },
-    { href: '/za-kliniki', label: 'За клиники' },
-    { href: '/#kakvo-e-zubite', label: 'Какво е Zubite.bg' },
-  ]
+    document.addEventListener('keydown', closeOnEscape)
+    return () => document.removeEventListener('keydown', closeOnEscape)
+  }, [open])
+
+  const activeFor = (item: (typeof NAV_ITEMS)[number]) => {
+    if (home) return false
+    return item.match.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
+  }
 
   return (
-    <div
-      className="fixed top-3 sm:top-4 inset-x-3 sm:inset-x-6 z-50 flex justify-center pointer-events-none"
+    <header
+      className="sticky top-0 z-50 bg-transparent px-4 py-3 sm:px-6"
       data-testid="site-nav"
     >
-      <header
-        className={
-          'pointer-events-auto w-full max-w-5xl rounded-3xl md:rounded-full transition-all duration-300 relative ' +
-          (scrolled
-            ? 'bg-white/15 backdrop-blur-[28px] ring-1 ring-white/40 shadow-[0_14px_44px_-12px_rgba(15,23,42,0.18),0_2px_8px_-2px_rgba(15,23,42,0.06)]'
-            : 'bg-white/10 backdrop-blur-[28px] ring-1 ring-white/35 shadow-[0_10px_36px_-12px_rgba(15,23,42,0.15),0_2px_8px_-2px_rgba(15,23,42,0.05)]')
-        }
-      >
-        {/* Liquid glass top highlight — strong specular like real glass */}
-        <div aria-hidden className="absolute inset-x-4 top-px h-1/2 rounded-t-full bg-gradient-to-b from-white/80 via-white/30 to-transparent pointer-events-none" />
-        {/* Liquid glass bottom shadow — refraction depth */}
-        <div aria-hidden className="absolute inset-x-6 bottom-px h-1/3 rounded-b-full bg-gradient-to-t from-white/20 to-transparent pointer-events-none" />
-        {/* Bottom inner thin line — subtle refraction edge */}
-        <div aria-hidden className="absolute inset-x-8 bottom-0.5 h-px rounded-full bg-gradient-to-r from-transparent via-slate-900/8 to-transparent pointer-events-none" />
+      <div className="mx-auto flex w-full max-w-[1280px] items-center justify-between gap-3">
+        <Link
+          href="/"
+          className="inline-flex min-h-12 shrink-0 items-center rounded-full border border-[#E5E5E5] bg-white px-4 font-display text-xl font-bold tracking-[-0.04em] text-[#0A0A0A] shadow-[0_6px_18px_-6px_rgba(15,15,15,0.18),0_1px_2px_rgba(0,0,0,0.04)] outline-none transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-0.5 hover:border-[#D4D4D4] focus-visible:ring-2 focus-visible:ring-[#007956] focus-visible:ring-offset-2 sm:text-2xl"
+          aria-label="Zubite.bg начало"
+          data-testid="logo"
+        >
+          Zubite<span className="text-[#007956]">.bg</span>
+        </Link>
 
-        <div className="px-4 sm:px-6 h-14 sm:h-15 flex items-center justify-between">
-          {/* Logo */}
-          <Link
-            href="/"
-            className="font-serif text-lg sm:text-xl font-semibold tracking-tight"
-            data-testid="logo"
+        <div className="ml-auto flex items-center gap-2">
+          <nav
+            className="hidden items-center gap-1 rounded-full border border-[#E5E5E5] bg-white p-1.5 shadow-[0_6px_18px_-6px_rgba(15,15,15,0.18),0_1px_2px_rgba(0,0,0,0.04)] lg:flex"
+            aria-label="Главна навигация"
           >
-            <span className="text-slate-900">Zubite</span>
-            <span className="text-teal-600">.bg</span>
-          </Link>
+            {NAV_ITEMS.map((item) => {
+              const active = activeFor(item)
 
-          {/* Desktop nav — tighter gap, smaller label size to fit 6 items
-              cleanly on a 5xl-max-w container without wrapping. */}
-          <nav className="hidden md:flex items-center gap-4 lg:gap-5 text-[13px]">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={
-                  'group/nav relative whitespace-nowrap transition-colors ' +
-                  (isActive(link.href)
-                    ? 'text-teal-700 font-medium'
-                    : 'text-slate-600 hover:text-slate-900')
-                }
-                data-testid={`nav-${link.label.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '')}`}
-              >
-                <span>{link.label}</span>
-                {/* Animated underline — grows from the left on hover.
-                    Hidden when the link is the active route (active
-                    state is conveyed by colour). */}
-                {!isActive(link.href) && (
-                  <span
-                    aria-hidden="true"
-                    className="absolute left-0 -bottom-1 h-px w-full origin-left scale-x-0 bg-teal-600 transition-transform duration-300 ease-out group-hover/nav:scale-x-100"
-                  />
-                )}
-              </Link>
-            ))}
+              return (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  aria-current={active ? 'page' : undefined}
+                  className={
+                    'relative inline-flex min-h-11 items-center rounded-full px-4 py-2 text-[13px] font-medium tracking-[-0.01em] outline-none transition-[color,transform,background-color] duration-200 hover:-translate-y-px focus-visible:ring-2 focus-visible:ring-[#007956] ' +
+                    (active
+                      ? 'bg-[#F5F4F2] text-[#0A0A0A]'
+                      : 'text-[#525252] hover:bg-[#F5F4F2] hover:text-[#0A0A0A]')
+                  }
+                  data-testid={`nav-${item.id}`}
+                >
+                  {item.label}
+                  {active && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-[#FF6B00]"
+                    />
+                  )}
+                </Link>
+              )
+            })}
           </nav>
 
-          {/* Right side — mobile menu button only (Feb 2026 cleanup:
-              removed persistent `Започни анализа` desktop CTA per brief). */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center rounded-full border border-[#E5E5E5] bg-white p-1.5 shadow-[0_6px_18px_-6px_rgba(15,15,15,0.18),0_1px_2px_rgba(0,0,0,0.04)] lg:hidden">
             <button
-              className="md:hidden p-2 text-slate-700 hover:text-slate-900 transition-colors"
-              onClick={() => setIsOpen(!isOpen)}
+              type="button"
+              className="grid h-11 w-11 place-items-center rounded-full border border-[#E5E5E5] text-[#0A0A0A] outline-none transition-colors hover:bg-[#F5F4F2] focus-visible:ring-2 focus-visible:ring-[#007956] lg:hidden"
+              onClick={() => setOpen((value) => !value)}
+              aria-expanded={open}
+              aria-controls="site-mobile-navigation"
+              aria-label={open ? 'Затвори менюто' : 'Отвори менюто'}
               data-testid="mobile-menu"
-              aria-label={isOpen ? 'Затвори меню' : 'Отвори меню'}
             >
-              {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {open ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
             </button>
           </div>
         </div>
+      </div>
 
-        {/* Mobile menu drawer — categorized */}
-        {isOpen && (
-          <nav
-            className="md:hidden border-t border-white/40 px-5 py-4 animate-fade-in-down max-h-[80vh] overflow-y-auto"
-            data-testid="mobile-menu-drawer"
-          >
-            {/* Primary */}
-            <div className="space-y-1">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={
-                    'block py-2 text-sm transition-colors ' +
-                    (isActive(link.href) ? 'text-teal-700 font-medium' : 'text-slate-700 hover:text-slate-900')
-                  }
-                  onClick={() => setIsOpen(false)}
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </div>
-
-            <MobileMenuGroup
-              label="Лечения"
-              links={[
-                { href: '/orthodontics', label: 'Ортодонтия' },
-                { href: '/implants', label: 'Импланти' },
-                { href: '/cosmetic-dentistry', label: 'Естетична стоматология' },
-                { href: '/tmj', label: 'TMJ / челюстни ставни' },
-                { href: '/sleep-airway', label: 'Сън и дишане' },
-              ]}
-              onLinkClick={() => setIsOpen(false)}
-              isActive={isActive}
-            />
-
-            <MobileMenuGroup
-              label="Ръководства"
-              links={[
-                { href: '/symptoms', label: 'Симптоми' },
-                { href: '/crooked-teeth', label: 'Криви зъби' },
-                { href: '/what-is-invisalign', label: 'Какво е Invisalign' },
-                { href: '/invisalign-bulgaria', label: 'Invisalign в България' },
-                { href: '/aligners-vs-braces', label: 'Алайнери vs Брекети' },
-                { href: '/aligners-comparison', label: 'Сравнение на алайнери' },
-              ]}
-              onLinkClick={() => setIsOpen(false)}
-              isActive={isActive}
-            />
-
-            <MobileMenuGroup
-              label="Цени"
-              links={[
-                { href: '/invisalign-price', label: 'Цена Invisalign' },
-                { href: '/implant-price', label: 'Цена импланти' },
-              ]}
-              onLinkClick={() => setIsOpen(false)}
-              isActive={isActive}
-            />
-
-            <MobileMenuGroup
-              label="Платформа"
-              links={[
-                { href: '/care-pass', label: 'Care Pass' },
-                { href: '/standart-za-kliniki', label: 'Zubite стандарт' },
-                { href: '/za-kliniki', label: 'За клиники' },
-                { href: '/contact', label: 'Контакти' },
-              ]}
-              onLinkClick={() => setIsOpen(false)}
-              isActive={isActive}
-            />
-
-            {/* Mobile drawer "Започни анализа" CTA removed Feb 2026 per
-                user request — keeps the drawer focused on navigation,
-                not conversion. Quiz is reachable from in-page hero and
-                section CTAs across the site. */}
-          </nav>
-        )}
-      </header>
-    </div>
-  )
-}
-
-
-interface MobileMenuGroupProps {
-  label: string
-  links: { href: string; label: string }[]
-  onLinkClick: () => void
-  isActive: (path: string) => boolean
-}
-
-function MobileMenuGroup({ label, links, onLinkClick, isActive }: MobileMenuGroupProps) {
-  return (
-    <div className="mt-3 pt-3 border-t border-slate-200/60">
-      <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-semibold px-1 mb-1.5">
-        {label}
-      </p>
-      {links.map((link) => (
-        <Link
-          key={link.href}
-          href={link.href}
-          onClick={onLinkClick}
-          className={
-            'block py-1.5 px-1 text-[13.5px] transition-colors ' +
-            (isActive(link.href)
-              ? 'text-teal-700 font-medium'
-              : 'text-slate-700 hover:text-slate-900')
-          }
+      {open && (
+        <nav
+          id="site-mobile-navigation"
+          className="mx-auto mt-3 max-w-[1280px] rounded-2xl border border-[#E5E5E5] bg-white px-5 py-5 shadow-[0_14px_32px_-8px_rgba(0,0,0,0.18)] lg:hidden"
+          aria-label="Мобилна навигация"
+          data-testid="mobile-menu-drawer"
         >
-          {link.label}
-        </Link>
-      ))}
-    </div>
+          <div className="mx-auto flex max-w-[1280px] flex-col">
+            {NAV_ITEMS.map((item) => {
+              const active = activeFor(item)
+
+              return (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  aria-current={active ? 'page' : undefined}
+                  onClick={() => setOpen(false)}
+                  className={
+                    'flex min-h-11 items-center border-b border-[#E5E5E5] py-3 text-base outline-none transition-colors last:border-0 focus-visible:ring-2 focus-visible:ring-[#007956] ' +
+                    (active ? 'font-semibold text-[#006A61]' : 'text-[#171717] hover:text-[#006A61]')
+                  }
+                  data-testid={`mobile-nav-${item.id}`}
+                >
+                  {item.label}
+                </Link>
+              )
+            })}
+          </div>
+        </nav>
+      )}
+    </header>
   )
 }

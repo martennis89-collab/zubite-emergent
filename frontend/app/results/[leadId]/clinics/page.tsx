@@ -20,7 +20,6 @@ import {
 import { ClinicRecommendationCard } from '@/components/patient/ClinicRecommendationCard'
 import { ClinicMatchEmptyState } from '@/components/patient/ClinicMatchEmptyState'
 import { AssistedChoiceModal } from '@/components/patient/AssistedChoiceModal'
-import { CarePassPanel } from '@/components/patient/CarePassPanel'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
 import { getStoredLeadContact } from '@/lib/leadContact'
 
@@ -140,14 +139,14 @@ export default function ClinicMatchPage() {
   // the locked-redirect transition isn't a flash of clinic content.
   if (!gateChecked) {
     return (
-      <main className="min-h-screen bg-[#FCFAF8] flex items-center justify-center" data-testid="clinic-match-gate-loading">
+      <main className="taste-results-state min-h-screen bg-[#FCFAF8] flex items-center justify-center" data-testid="clinic-match-gate-loading">
         <Loader2 className="w-8 h-8 text-teal-600 animate-spin" />
       </main>
     )
   }
 
   return (
-    <main className="min-h-screen bg-[#FCFAF8] overflow-x-hidden relative" data-testid="clinic-match-page">
+    <main className="taste-recommendations-page min-h-screen bg-[#FCFAF8] overflow-x-hidden relative" data-testid="clinic-match-page">
       {/* Warm ivory backdrop + soft teal blobs (same language as homepage / results) */}
       <div
         aria-hidden
@@ -189,10 +188,6 @@ export default function ClinicMatchPage() {
             <p className="text-slate-600 mt-3 text-[15px] sm:text-base leading-relaxed" data-testid="match-subtitle">
               Показваме ограничен брой клиники според локация, релевантност към избраната категория, налична информация в профила и Zubite доверителни сигнали. Това не е диагноза и не означава, че една клиника е клинично „най-добра" за всеки случай.
             </p>
-            {/* Title trust chips — Feb 2026: Care Pass chip removed
-                (Care Pass is universal in our partner network — repeating
-                it here adds noise next to the dedicated Care Pass strip
-                further down the page). */}
             <ul className="mt-5 flex flex-wrap gap-2" data-testid="match-title-chips">
               {[
                 { l: 'Ориентир, не диагноза', icon: ShieldCheck },
@@ -209,11 +204,6 @@ export default function ClinicMatchPage() {
               ))}
             </ul>
           </div>
-
-          {/* Care Pass clarification banner removed Feb 2026 —
-              `<CarePassPanel variant="compact" />` further down covers
-              the Care Pass story with the new universal-benefit copy,
-              so a separate banner here was duplicate noise. */}
 
           {/* Body */}
           {loading ? (
@@ -245,7 +235,7 @@ export default function ClinicMatchPage() {
                   data-testid="match-placement-note"
                 >
                   Някои партньорски клиники могат да имат допълнителна видимост
-                  в Zubite. Препоръките се съобразяват с вашия град и тип
+                  в Zubite. Препоръките се съобразяват с твоя град и тип
                   заявка.
                 </p>
               )}
@@ -259,12 +249,12 @@ export default function ClinicMatchPage() {
                   <CheckCircle2 className="w-5 h-5 text-emerald-600 mt-0.5 flex-shrink-0" />
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-emerald-900">
-                      Вече избрахте клиника
+                      Вече избра клиника
                     </p>
                     <p className="text-xs text-emerald-800 mt-1 leading-relaxed">
                       Заявката е изпратена към{' '}
-                      <strong>{selection.clinic.name}</strong>. Тя ще може да се
-                      свърже с вас според процеса си за обработка на заявки.
+                      <strong>{selection.clinic.name}</strong>. Клиниката ще се
+                      свърже с теб според процеса си за обработка на заявки.
                     </p>
                   </div>
                 </div>
@@ -312,15 +302,6 @@ export default function ClinicMatchPage() {
                     </p>
                   </div>
                 </div>
-              </div>
-
-              {/* Care Pass benefit strip — premium dark navy-teal panel */}
-              <div className="mb-6" data-testid="care-pass-benefit-strip">
-                <CarePassPanel
-                  variant="compact"
-                  showLearnMore
-                  testid="care-pass-benefit-strip-panel"
-                />
               </div>
 
               {/* Partner-status trust note — sits directly above the cards it describes. */}
@@ -485,13 +466,13 @@ function ErrorPanel({
   }
   const bodyMap: Record<typeof kind, string> = {
     not_found:
-      'Възможно е връзката, която следвахте, да е остаряла. Опитайте да попълните оценката отново.',
+      'Възможно е връзката да е остаряла. Попълни оценката отново, за да получиш нови препоръки.',
     expired:
-      'Препоръките на Zubite са валидни за ограничен период. Моля, попълнете оценката отново, за да получите нови препоръки.',
+      'Препоръките на Zubite са валидни за ограничен период. Попълни оценката отново, за да получиш нови препоръки.',
     rate_limited:
-      'Изпратихте твърде много заявки за кратко време. Опитайте отново след малко.',
+      'Изпрати твърде много заявки за кратко време. Изчакай малко и опитай отново.',
     generic:
-      'Нещо се обърка при свързване със сървъра. Опитайте отново или ни пишете.',
+      'Не успяхме да се свържем със сървъра. Провери връзката си и опитай отново.',
   }
   const showRestart = kind === 'not_found' || kind === 'expired'
 

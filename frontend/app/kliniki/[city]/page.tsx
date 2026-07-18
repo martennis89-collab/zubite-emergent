@@ -2,7 +2,7 @@ import { Metadata } from 'next'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import ClinicListingPage from '@/components/public-clinics/ClinicListingPage'
-import { cityDisplay, listPublicClinics } from '@/lib/publicClinics'
+import { cityDisplay, clinicFiltersFromSearchParams, listPublicClinics, type ClinicDirectorySearchParams } from '@/lib/publicClinics'
 import {
   buildClinicListingJsonLd, buildClinicBreadcrumbJsonLd, safeJsonLd,
 } from '@/lib/seo/clinicJsonLd'
@@ -11,6 +11,7 @@ export const dynamic = 'force-dynamic'
 
 interface PageProps {
   params: Promise<{ city: string }>
+  searchParams: Promise<ClinicDirectorySearchParams>
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -24,8 +25,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export default async function KlinikiByCity({ params }: PageProps) {
+export default async function KlinikiByCity({ params, searchParams }: PageProps) {
   const { city } = await params
+  const initialFilters = clinicFiltersFromSearchParams(await searchParams)
   const cityName = cityDisplay(city)
   let clinics: Awaited<ReturnType<typeof listPublicClinics>>['clinics'] = []
   try {
@@ -55,6 +57,7 @@ export default async function KlinikiByCity({ params }: PageProps) {
       <Header />
       <ClinicListingPage
         initialCity={city}
+        initialFilters={initialFilters}
         syncToUrl={{ basePath: '/kliniki' }}
       />
       <Footer />

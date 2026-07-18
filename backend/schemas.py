@@ -161,6 +161,14 @@ class SaveCarePassEmailBody(BaseModel):
     name: Optional[str] = Field(default=None, max_length=200)
 
 
+class QuickChatLeadCreate(BaseModel):
+    """Bootstraps a minimal, quiz-less lead so a patient who lands on a
+    clinic's public profile without ever taking the quiz can still start
+    a chat — the name is the only thing the clinic needs to call them."""
+    model_config = ConfigDict(extra="ignore")
+    name: str = Field(min_length=1, max_length=120)
+
+
 # ─── MVP unlock-mechanic (June 2026, Phase B) ────────────────────
 # Body for POST /api/leads/{lead_id}/unlock-result.
 #
@@ -803,6 +811,25 @@ class ClinicProfileTreatmentDetail(BaseModel):
     note: Optional[str] = Field(default=None, max_length=500)
 
 
+class ClinicProfileTreatmentCaseCount(BaseModel):
+    """Clinic-declared completed-case total for one treatment.
+
+    These totals are separate from ``case_library``: the latter contains a
+    small set of consented, publishable examples, while this model records
+    aggregate experience supplied by the clinic. The public UI labels the
+    source explicitly and never presents it as independently verified.
+    """
+    model_config = ConfigDict(extra="ignore")
+
+    treatment: str = Field(min_length=1, max_length=80)
+    completed_cases: int = Field(ge=1, le=1_000_000)
+    as_of_year: Optional[int] = Field(
+        default=None,
+        ge=2000,
+        le=datetime.now(timezone.utc).year,
+    )
+
+
 class ClinicReviewSources(BaseModel):
     """Nested mirror of the flat top-level review fields. The flat
     fields remain canonical for `_build_review_signals` compatibility;
@@ -834,7 +861,13 @@ class ClinicProfile(BaseModel):
 
     short_description: Optional[str] = Field(default=None, max_length=500)
     patient_intro: Optional[str] = Field(default=None, max_length=500)
+    founded_year: Optional[int] = Field(
+        default=None,
+        ge=1900,
+        le=datetime.now(timezone.utc).year,
+    )
     treatment_focus: Optional[List[str]] = None
+    treatment_case_counts: Optional[List[ClinicProfileTreatmentCaseCount]] = None
 
     hero_image_url: Optional[str] = Field(default=None, max_length=500)
     clinic_video_url: Optional[str] = Field(default=None, max_length=500)
@@ -849,7 +882,9 @@ class ClinicProfile(BaseModel):
     environment_image_url: Optional[str] = Field(default=None, max_length=500)
 
     doctor_spotlight_name: Optional[str] = Field(default=None, max_length=200)
+    doctor_spotlight_kind: Optional[Literal["owner", "lead_doctor"]] = None
     doctor_spotlight_role: Optional[str] = Field(default=None, max_length=200)
+    doctor_spotlight_specialties: Optional[List[str]] = Field(default=None, max_length=8)
     doctor_spotlight_bio: Optional[str] = Field(default=None, max_length=1000)
     team_note: Optional[str] = Field(default=None, max_length=500)
 

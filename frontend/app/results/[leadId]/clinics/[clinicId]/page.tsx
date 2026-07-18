@@ -36,7 +36,7 @@ import Link from 'next/link'
 import axios from 'axios'
 import {
   ArrowLeft, AlertCircle, Compass, Loader2, CheckCircle2, ShieldCheck,
-  Gift, MapPin,
+  MapPin,
 } from 'lucide-react'
 import { ResultsHeader } from '@/components/ResultsHeader'
 import { Footer } from '@/components/Footer'
@@ -114,7 +114,7 @@ export default function ClinicProfilePage() {
         getRecommendedClinics(leadId, 3),
         getSelectionState(leadId).catch(() => null),
       ])
-      const match = r.clinics.find((c) => c.id === clinicId)
+      const match = r.clinics.find((c) => c.id === clinicId || c.slug === clinicId)
       if (!match) {
         setErr('clinic_not_in_list')
         setRecommended(null)
@@ -162,7 +162,7 @@ export default function ClinicProfilePage() {
   if (!gateChecked) {
     return (
       <main
-        className="min-h-screen bg-[#FCFAF8] flex items-center justify-center"
+        className="taste-results-state min-h-screen bg-[#FCFAF8] flex items-center justify-center"
         data-testid="lead-profile-gate-loading"
       >
         <Loader2 className="w-8 h-8 text-teal-600 animate-spin" />
@@ -171,7 +171,7 @@ export default function ClinicProfilePage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#FCFAF8] relative" data-testid="lead-clinic-profile-page">
+    <main className="taste-recommendation-detail-page min-h-screen bg-[#FCFAF8] relative" data-testid="lead-clinic-profile-page">
       <ResultsHeader />
 
       {/* Lead-context wrapper — sits ABOVE the public ClinicProfileView so
@@ -218,7 +218,7 @@ export default function ClinicProfilePage() {
           The exact same `<ClinicProfileView />` powering
           `/kliniki/[city]/[specialty]/[clinicSlug]`. Public CTAs intact. */}
       {publicProfile && !err && (
-        <ClinicProfileView clinic={publicProfile} />
+        <ClinicProfileView clinic={publicProfile} chatContext={{ leadId }} />
       )}
 
       {/* When the public profile is unavailable but the lead-context
@@ -245,7 +245,6 @@ function RecommendationReasonBanner({
   // grid card so the journey feels continuous.
   const chips: { icon: typeof ShieldCheck; label: string; testid: string }[] = []
   if (clinic.same_city) chips.push({ icon: MapPin, label: 'В твоя град', testid: 'reason-chip-same-city' })
-  if (clinic.care_pass_partner) chips.push({ icon: Gift, label: 'Care Pass участваща', testid: 'reason-chip-care-pass' })
   if (clinic.placement_label) chips.push({ icon: ShieldCheck, label: clinic.placement_label, testid: 'reason-chip-placement' })
 
   return (

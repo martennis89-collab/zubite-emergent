@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350" role="img" aria-labelledby="title desc">
+  <title id="title">Care Pass портретен шаблон Zubite.bg</title>
+  <desc id="desc">Обяснение, че Care Pass се предоставя след консултация и не е отстъпка от лечение.</desc>
+  <defs>
+    <style>
+      @font-face{font-family:Manrope;src:url('../../fonts/taste/Manrope-Regular.ttf')}@font-face{font-family:Manrope;src:url('../../fonts/taste/Manrope-Bold.ttf');font-weight:700}@font-face{font-family:Playfair;src:url('../../fonts/taste/PlayfairDisplay-Regular.ttf')}@font-face{font-family:Plex;src:url('../../fonts/taste/IBMPlexMono-Medium.ttf');font-weight:600}
+      .display{font-family:Manrope,Arial,sans-serif;font-weight:700;letter-spacing:-5px}.body{font-family:Manrope,Arial,sans-serif}.label{font-family:Plex,monospace;font-weight:600;letter-spacing:2.8px}.accent{font-family:Playfair,Georgia,serif;font-style:italic}.brand{font-family:Manrope,Arial,sans-serif;font-weight:700;letter-spacing:-2.4px}
+    </style>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FFFFFF"/><stop offset="1" stop-color="#D0FAE5"/></linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%"><feDropShadow dx="0" dy="26" stdDeviation="28" flood-color="#005E45" flood-opacity=".20"/></filter>
+  </defs>
+  <rect width="1080" height="1350" fill="#F5F4F2"/>
+  <path d="M716 0H1080V430C954 352 838 208 716 0Z" fill="#D0FAE5"/>
+  <circle cx="990" cy="144" r="134" fill="none" stroke="#007956" stroke-opacity=".18" stroke-width="3"/>
+
+  <g transform="translate(72 72)">
+    <text class="brand" x="0" y="34" font-size="38" fill="#0A0A0A">Zubite<tspan fill="#007956">.bg</tspan></text>
+    <g transform="translate(0 76)"><rect width="278" height="42" rx="21" fill="#FFFFFF" stroke="#B9DDCF" stroke-width="2"/><circle cx="24" cy="21" r="6" fill="#00D294"/><text class="label" x="44" y="27" font-size="17" fill="#007956">СЛЕД КОНСУЛТАЦИЯТА</text></g>
+
+    <text class="display" x="0" y="264" font-size="88" fill="#0A0A0A">
+      <tspan x="0">Zubite</tspan>
+      <tspan class="accent" x="0" dy="92" fill="#007956" letter-spacing="-1.6">Care Pass.</tspan>
+    </text>
+    <text class="body" x="0" y="466" font-size="29" fill="#525252">
+      <tspan x="0">Партньорски ползи за продукти за</tspan>
+      <tspan x="0" dy="44">ежедневна орална грижа.</tspan>
+    </text>
+
+    <g transform="translate(330 578) rotate(-5)" filter="url(#shadow)">
+      <rect width="606" height="330" rx="36" fill="url(#card)" stroke="#B9DDCF" stroke-width="2"/>
+      <circle cx="530" cy="70" r="112" fill="#007956" opacity=".07"/>
+      <text class="brand" x="36" y="62" font-size="30" fill="#0A0A0A">Zubite<tspan fill="#007956">.bg</tspan></text>
+      <text class="label" x="36" y="112" font-size="16" fill="#007956">ПАРТНЬОРСКИ ПОЛЗИ</text>
+      <text class="display" x="36" y="204" font-size="64" fill="#0A0A0A" letter-spacing="-3.5">Care <tspan class="accent" fill="#007956">Pass</tspan></text>
+      <line x1="36" y1="242" x2="570" y2="242" stroke="#B9DDCF" stroke-width="2"/>
+      <text class="body" x="36" y="284" font-size="20" font-weight="700" fill="#525252">Ежедневна грижа · партньорски предложения</text>
+    </g>
+
+    <g transform="translate(0 952)">
+      <rect width="936" height="182" rx="30" fill="#FFFFFF" stroke="#E5E5E5" stroke-width="2"/>
+      <circle cx="58" cy="58" r="28" fill="#D0FAE5"/><path d="m46 58 8 8 18-22" fill="none" stroke="#007956" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      <text class="body" x="108" y="52" font-size="24" font-weight="700" fill="#0A0A0A">Кога го получаваш?</text>
+      <text class="body" x="108" y="89" font-size="20" fill="#737373">След реална консултация, заявена през Zubite.bg.</text>
+      <rect x="34" y="120" width="404" height="42" rx="21" fill="#FFF0E5"/>
+      <text class="label" x="236" y="147" font-size="16" fill="#CC5400" text-anchor="middle">НЕ Е ОТСТЪПКА ОТ ЛЕЧЕНИЕ</text>
+    </g>
+
+    <g transform="translate(0 1194)">
+      <text class="body" x="0" y="25" font-size="20" font-weight="700" fill="#007956">Полза след посещението.</text>
+      <rect x="642" width="294" height="58" rx="29" fill="#0A0A0A"/>
+      <text class="body" x="789" y="37" font-size="20" font-weight="700" fill="#FFFFFF" text-anchor="middle">Как работи →</text>
+    </g>
+  </g>
+</svg>

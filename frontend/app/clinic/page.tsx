@@ -49,7 +49,7 @@ export default function ClinicLoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#FCFAF8] flex items-center justify-center px-4 py-10">
+    <main className="taste-clinic-login min-h-screen bg-[#FCFAF8] flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
         {/* Left: brand + value props (hidden on mobile, shown on lg+) */}
         <section className="hidden lg:flex flex-col gap-8" data-testid="clinic-login-brand">

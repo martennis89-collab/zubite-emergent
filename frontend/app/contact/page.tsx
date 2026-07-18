@@ -45,7 +45,7 @@ export default function ContactPage() {
               <div className="w-12 h-12 rounded-2xl bg-teal-50/80 ring-1 ring-teal-100 flex items-center justify-center mx-auto mb-4 group-hover:bg-teal-100 transition-colors">
                 <Mail className="w-5 h-5 text-teal-700" />
               </div>
-              <h3 className="font-medium text-slate-900 mb-1.5">Имейл</h3>
+              <h2 className="font-medium text-slate-900 mb-1.5">Имейл</h2>
               <p className="text-sm text-slate-600 group-hover:text-teal-700 transition-colors">
                 info@zubite.bg
               </p>
@@ -55,7 +55,7 @@ export default function ContactPage() {
               <div className="w-12 h-12 rounded-2xl bg-teal-50/80 ring-1 ring-teal-100 flex items-center justify-center mx-auto mb-4">
                 <MapPin className="w-5 h-5 text-teal-700" />
               </div>
-              <h3 className="font-medium text-slate-900 mb-1.5">Локация</h3>
+              <h2 className="font-medium text-slate-900 mb-1.5">Локация</h2>
               <p className="text-sm text-slate-600">
                 София, България
               </p>

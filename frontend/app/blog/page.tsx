@@ -39,7 +39,14 @@ const CATEGORY_NAMES: Record<string, string> = {
 
 async function getBlogPosts(): Promise<{ posts: BlogPost[], total: number }> {
   try {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || process.env.REACT_APP_BACKEND_URL || ''
+    // Server components cannot use a relative `/api` URL. In Docker the
+    // browser uses the same-origin rewrite, while SSR reaches FastAPI through
+    // the internal service hostname.
+    const API_URL =
+      process.env.BACKEND_INTERNAL_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      process.env.REACT_APP_BACKEND_URL ||
+      'http://localhost:8001'
 
     const response = await fetch(`${API_URL}/api/blog/posts?limit=20`, {
       next: { revalidate: 60 },

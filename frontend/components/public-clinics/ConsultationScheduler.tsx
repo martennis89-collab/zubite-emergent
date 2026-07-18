@@ -276,7 +276,7 @@ function AvailableSlots({
                   key={s.slot_id}
                   type="button"
                   onClick={() => onPick(s)}
-                  className="px-3 py-2 rounded-full bg-white ring-1 ring-slate-200 text-sm text-slate-800 hover:ring-teal-400 hover:bg-teal-50 transition-colors min-w-[64px]"
+                  className="min-h-11 min-w-[64px] px-3 py-2 rounded-full bg-white ring-1 ring-slate-200 text-sm text-slate-800 hover:ring-teal-400 hover:bg-teal-50 transition-colors"
                   data-testid={`scheduler-slot-${s.slot_id}`}
                   data-slot-iso={s.scheduled_at}
                 >
@@ -331,7 +331,7 @@ function NoSlotsPanel({ onFallback }: { onFallback: () => void }) {
         type="button"
         onClick={onFallback}
         data-testid="scheduler-fallback-contact"
-        className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-full text-white text-xs font-medium hover:-translate-y-0.5 transition-all flex-shrink-0 shadow-[0_8px_18px_-8px_rgba(13,148,136,0.45)]"
+        className="inline-flex min-h-11 items-center justify-center gap-1.5 px-3.5 py-2 rounded-full text-white text-xs font-medium hover:-translate-y-0.5 transition-all flex-shrink-0 shadow-[0_8px_18px_-8px_rgba(13,148,136,0.45)]"
         style={{
           backgroundImage: 'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)',
         }}

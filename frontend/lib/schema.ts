@@ -6,7 +6,7 @@ export function generateOrganizationSchema() {
     '@type': 'Organization',
     name: 'Zubite.bg',
     url: 'https://zubite.bg',
-    logo: 'https://zubite.bg/logo.png',
+    logo: 'https://zubite.bg/icon.png',
     description: 'Навигатор за дентални решения в България',
     address: {
       '@type': 'PostalAddress',
@@ -32,15 +32,7 @@ export function generateWebSiteSchema() {
     name: 'Zubite.bg',
     url: 'https://zubite.bg',
     description: 'Навигатор за дентални решения в България - ортодонтия, импланти, естетична стоматология',
-    inLanguage: 'bg',
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: {
-        '@type': 'EntryPoint',
-        urlTemplate: 'https://zubite.bg/search?q={search_term_string}'
-      },
-      'query-input': 'required name=search_term_string'
-    }
+    inLanguage: 'bg'
   };
 }
 

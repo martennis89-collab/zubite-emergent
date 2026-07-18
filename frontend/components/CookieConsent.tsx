@@ -104,7 +104,7 @@ export function CookieConsent() {
       <div className="fixed inset-0 bg-black/30 z-[9998] animate-fade-in pointer-events-none" />
       
       {/* Banner */}
-      <div className="fixed bottom-0 left-0 right-0 z-[9999] p-4 animate-slide-up">
+      <div className="fixed bottom-0 left-0 right-0 z-[9999] p-4 animate-slide-up" data-testid="cookie-consent-banner">
         <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
           {/* Header */}
           <div className="p-6 pb-4">

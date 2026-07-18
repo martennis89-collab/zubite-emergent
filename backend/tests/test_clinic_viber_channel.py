@@ -213,3 +213,25 @@ def test_public_payload_publishes_viber_only_when_earned_and_on():
     assert _public_viber_phone({**on, "base_package": "verified_profile"}) is None
     # Enabled with no number stored.
     assert _public_viber_phone({"viber_enabled": True, "base_package": "growth_partner"}) is None
+
+
+def test_public_entitlements_expose_patient_chat_channels():
+    """The results-page chat CTA gates on `entitlements.patient_chat_channels`
+    — independent of the Viber number, since a clinic can offer in-platform
+    chat without configuring Viber at all."""
+    async def runner():
+        growth = await _new_clinic("growth_partner")
+        verified = await _new_clinic("verified_profile")
+        try:
+            r = requests.get(f"{API_URL}/api/public/clinics/{growth}", timeout=10)
+            assert r.status_code == 200, r.text
+            assert r.json()["entitlements"]["patient_chat_channels"] is True
+
+            r = requests.get(f"{API_URL}/api/public/clinics/{verified}", timeout=10)
+            assert r.status_code == 200, r.text
+            assert r.json()["entitlements"]["patient_chat_channels"] is False
+        finally:
+            await _drop_clinic(growth)
+            await _drop_clinic(verified)
+
+    asyncio.run(runner())

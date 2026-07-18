@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import { HomeContent } from '../components/HomeContent'
+import { TasteHome } from '../components/taste/TasteHome'
 
 export const metadata: Metadata = {
   title: 'Zubite.bg — На кой етап е захапката ти? Провери за 60 секунди',
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     type: 'website',
     images: [
       {
-        url: 'https://zubite.bg/og-image.png',
+        url: 'https://zubite.bg/og/og-home.jpg',
         width: 1200,
         height: 630,
         alt: 'Zubite.bg — ориентир за етапа на захапката',
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     title: 'На кой етап е захапката ти? Провери за 60 секунди | Zubite.bg',
     description:
       'Кривите зъби и неправилната захапка рядко болят. Разбери дали си в ранен, развиващ се или напреднал етап — кратък въпросник, без диагноза.',
-    images: ['https://zubite.bg/og-image.png'],
+    images: ['https://zubite.bg/og/og-home.jpg'],
   },
   robots: {
     index: true,
@@ -50,56 +50,9 @@ export const metadata: Metadata = {
 // longer blocks render on a backend call. /blog remains the blog surface.
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-[#FCFAF8] text-slate-900 overflow-x-clip" data-testid="home-main">
-      <HomeContent />
+    <div className="min-h-screen bg-[#FCFAF8] text-slate-900 overflow-x-clip" data-testid="home-main">
+      <TasteHome />
 
-      {/* Structured Data for SEO */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'WebSite',
-            name: 'Zubite.bg',
-            description:
-              'Zubite.bg ти помага да се ориентираш дали има сигнал за дентален проблем, какви решения съществуват и каква следваща стъпка има смисъл за твоя случай.',
-            url: 'https://zubite.bg',
-            potentialAction: {
-              '@type': 'SearchAction',
-              target: 'https://zubite.bg/search?q={search_term_string}',
-              'query-input': 'required name=search_term_string',
-            },
-          }),
-        }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'Organization',
-            name: 'Zubite.bg',
-            url: 'https://zubite.bg',
-            logo: 'https://zubite.bg/og-image.png',
-            description:
-              'Zubite.bg помага на хората да се ориентират дали има сигнал за дентален проблем, какви решения съществуват и към какъв тип специалист има смисъл да се насочат.',
-            areaServed: {
-              '@type': 'Country',
-              name: 'България',
-            },
-            knowsAbout: [
-              'Ортодонтия',
-              'Алайнери',
-              'Брекети',
-              'Дентални импланти',
-              'Естетична стоматология',
-              'Орална хигиена',
-              'Дентални симптоми',
-              'Захапка',
-            ],
-          }),
-        }}
-      />
       {/* Service schema — Zubite is NOT a clinical provider. We describe the
           platform as a *dental orientation and clinic-matching* Service so
           Google/AI surfaces understand the offering without inferring that
@@ -141,8 +94,7 @@ export default function HomePage() {
               { q: 'Колко струва използването?', a: 'Попълването на въпросника е безплатно. Ако решиш да продължиш към клиника, ще видиш каква е следващата стъпка и дали има цена за консултация според конкретната клиника.' },
               { q: 'Как избирате клиники?', a: 'Гледаме категория лечение, град, описан случай, налични услуги и релевантност. Целта е да не получиш случаен списък, а по-подходяща посока според това, което си описал.' },
               { q: 'Какво се случва с моите данни?', a: 'Използваме данните ти, за да подготвим обобщение и, ако поискаш, да те насочим към клиника. Не изпращаме данни към клиника без твое действие за продължаване.' },
-              { q: 'Как получавам Zubite Care Pass?', a: 'След като заявиш насочване чрез Zubite.bg и посетиш консултация в партньорска клиника, клиниката ще ти предостави Zubite Care Pass.' },
-              { q: 'Какво включва Care Pass?', a: 'Care Pass съдържа отстъпки за партньорски продукти за орална хигиена — например продукти за ежедневна грижа за зъбите и венците. Той не е отстъпка от лечение и не заменя препоръка от стоматолог.' },
+              { q: 'Какво е Care Pass и кога го получавам?', a: 'След реално посетена консултация чрез Zubite.bg партньорската клиника ти предоставя Care Pass с предложения за продукти за орална хигиена. Не е отстъпка от лечение и не заменя препоръка от стоматолог.' },
             ].map((f) => ({
               '@type': 'Question',
               name: f.q,
@@ -151,6 +103,6 @@ export default function HomePage() {
           }),
         }}
       />
-    </main>
+    </div>
   )
 }

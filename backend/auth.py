@@ -28,6 +28,7 @@ from __future__ import annotations
 import re
 import os as _os
 import uuid
+import asyncio
 from typing import Optional, Tuple
 from urllib.parse import urlparse
 
@@ -40,6 +41,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from config import (
     JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRATION_HOURS,
     AUTH_COOKIE_NAME_ADMIN, AUTH_COOKIE_NAME_CLINIC,
+    logger,
 )
 from database import db
 from schemas import AdminUser
@@ -60,6 +62,14 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 # How often last_seen_at is refreshed on protected reads (seconds).
 _LAST_SEEN_DEBOUNCE_SECONDS = 60
+
+# How long a revoked session row is kept before the cleanup loop deletes
+# it — a brief audit window, not a permanent record (see audit_log for
+# that). Expired-but-never-revoked rows (a session nobody explicitly
+# logged out of) have no such grace period: once `expires_at` has
+# passed, the row was never valid again, so it's deleted on the next
+# sweep regardless of how it got there.
+_REVOKED_SESSION_RETENTION_DAYS = 30
 
 
 def _now_utc() -> datetime:
@@ -174,6 +184,67 @@ async def cleanup_expired_auth_sessions() -> int:
         {"$set": {"revoked_at": now, "revoked_reason": "expired"}},
     )
     return res.modified_count
+
+
+async def delete_stale_auth_sessions() -> int:
+    """Permanently remove rows the soft-revoke step above deliberately
+    leaves behind — nothing else does. `create_token`/`create_clinic_token`
+    insert a fresh row on every login and nothing ever deleted one, so a
+    clinic that logs in daily accumulates one row forever; a single
+    dev-testing session already produced 8 rows for one clinic (see
+    `routers/public_clinics.py::_compute_online_clinic_ids`, which has to
+    defend against exactly this backlog when computing chat presence).
+
+    Two independent delete conditions — a session can qualify via either
+    without ever having gone through the soft-revoke step:
+      - `expires_at` has passed. An expired session was never valid
+        again the moment it expired, revoked or not, so there is no
+        grace period here.
+      - `revoked_at` is set and older than `_REVOKED_SESSION_RETENTION_DAYS`
+        — a short audit window, not a security boundary (revoked already
+        means unusable; `_validate_auth_session` checks that in Python
+        regardless of whether this row still physically exists).
+
+    A straight Mongo string-range query on the ISO timestamps is fine
+    here, unlike the presence window in `_compute_online_clinic_ids`:
+    the retention margins are hours/days wide, so the microsecond-
+    formatting quirk that made a Python-side parse necessary there
+    (`datetime.isoformat()` drops the fraction when it's exactly zero)
+    cannot flip a result that isn't already within a fraction of a
+    second of the boundary — inconsequential for a garbage sweep.
+    """
+    now_iso = _now_utc().isoformat()
+    revoked_cutoff_iso = (
+        _now_utc() - timedelta(days=_REVOKED_SESSION_RETENTION_DAYS)
+    ).isoformat()
+    res = await db.auth_sessions.delete_many({
+        "$or": [
+            {"expires_at": {"$lt": now_iso}},
+            {"revoked_at": {"$ne": None, "$lt": revoked_cutoff_iso}},
+        ],
+    })
+    return res.deleted_count
+
+
+_AUTH_SESSION_CLEANUP_LOOP_STARTED = False
+
+
+async def auth_session_cleanup_loop(interval_seconds: int = 21600) -> None:
+    """Background: every `interval_seconds` (default 6h), delete stale
+    auth_sessions rows. Started once at app boot — see server.py."""
+    global _AUTH_SESSION_CLEANUP_LOOP_STARTED
+    if _AUTH_SESSION_CLEANUP_LOOP_STARTED:
+        return
+    _AUTH_SESSION_CLEANUP_LOOP_STARTED = True
+    logger.info(f"[auth-session-cleanup] started; interval={interval_seconds}s")
+    while True:
+        try:
+            n = await delete_stale_auth_sessions()
+            if n:
+                logger.info(f"[auth-session-cleanup] removed {n} stale session(s)")
+        except Exception as exc:
+            logger.warning(f"[auth-session-cleanup] iteration error: {exc}")
+        await asyncio.sleep(interval_seconds)
 
 
 async def create_token(user_id: str, username: str) -> Tuple[str, str]:

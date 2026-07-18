@@ -4,7 +4,7 @@ import { Footer } from '@/components/Footer'
 import ClinicListingPage from '@/components/public-clinics/ClinicListingPage'
 import {
   cityDisplay, resolveSpecialtySlug, specialtyCityHeading, specialtyCityMetaTitle,
-  listPublicClinics,
+  clinicFiltersFromSearchParams, listPublicClinics, type ClinicDirectorySearchParams,
 } from '@/lib/publicClinics'
 import {
   buildClinicListingJsonLd, buildClinicBreadcrumbJsonLd, safeJsonLd,
@@ -14,6 +14,7 @@ export const dynamic = 'force-dynamic'
 
 interface PageProps {
   params: Promise<{ city: string; specialty: string }>
+  searchParams: Promise<ClinicDirectorySearchParams>
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -30,8 +31,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export default async function KlinikiByCitySpecialty({ params }: PageProps) {
+export default async function KlinikiByCitySpecialty({ params, searchParams }: PageProps) {
   const { city, specialty } = await params
+  const initialFilters = clinicFiltersFromSearchParams(await searchParams)
   const canonicalSpecialty = resolveSpecialtySlug(specialty) || specialty
   const cityName = cityDisplay(city)
   const heading = specialtyCityHeading(specialty, cityName)
@@ -68,6 +70,7 @@ export default async function KlinikiByCitySpecialty({ params }: PageProps) {
       <ClinicListingPage
         initialCity={city}
         initialSpecialty={canonicalSpecialty}
+        initialFilters={initialFilters}
         headingOverride={heading}
         syncToUrl={{ basePath: '/kliniki' }}
       />

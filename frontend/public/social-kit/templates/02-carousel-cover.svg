@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350" role="img" aria-labelledby="title desc">
+  <title id="title">Корица за образователна въртележка Zubite.bg</title>
+  <desc id="desc">Редакционна корица с пет въпроса преди първа консултация.</desc>
+  <defs>
+    <style>
+      @font-face{font-family:Manrope;src:url('../../fonts/taste/Manrope-Regular.ttf')}@font-face{font-family:Manrope;src:url('../../fonts/taste/Manrope-Bold.ttf');font-weight:700}@font-face{font-family:Playfair;src:url('../../fonts/taste/PlayfairDisplay-Regular.ttf')}@font-face{font-family:Plex;src:url('../../fonts/taste/IBMPlexMono-Medium.ttf');font-weight:600}
+      .display{font-family:Manrope,Arial,sans-serif;font-weight:700;letter-spacing:-5px}.body{font-family:Manrope,Arial,sans-serif}.label{font-family:Plex,monospace;font-weight:600;letter-spacing:2.8px}.accent{font-family:Playfair,Georgia,serif;font-style:italic}.brand{font-family:Manrope,Arial,sans-serif;font-weight:700;letter-spacing:-2.4px}
+    </style>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%"><feDropShadow dx="0" dy="26" stdDeviation="26" flood-color="#0A0A0A" flood-opacity=".15"/></filter>
+  </defs>
+  <rect width="1080" height="1350" fill="#0A0A0A"/>
+  <path d="M676 -40C878 96 980 234 1080 450V0H676Z" fill="#007956"/>
+  <circle cx="951" cy="196" r="108" fill="none" stroke="#D0FAE5" stroke-opacity=".25" stroke-width="3"/>
+  <circle cx="951" cy="196" r="64" fill="#00D294" opacity=".20"/>
+  <path d="M0 1122C230 1030 394 1070 574 1350H0Z" fill="#FF6B00"/>
+
+  <g transform="translate(72 72)">
+    <text class="brand" x="0" y="34" font-size="38" fill="#FFFFFF">Zubite<tspan fill="#00D294">.bg</tspan></text>
+    <text class="label" x="0" y="126" font-size="18" fill="#9FF0D2">ПОДГОТВИ СЕ · КАРУСЕЛ 01/06</text>
+
+    <text class="display" x="0" y="316" font-size="106" fill="#FFFFFF">
+      <tspan x="0">5 въпроса</tspan>
+      <tspan x="0" dy="104">преди първата</tspan>
+      <tspan class="accent" x="0" dy="110" fill="#FF6B00" letter-spacing="-2">консултация.</tspan>
+    </text>
+    <text class="body" x="0" y="690" font-size="32" fill="#D4D4D4">
+      <tspan x="0">За да излезеш от кабинета с яснота,</tspan>
+      <tspan x="0" dy="48">а не с още въпроси.</tspan>
+    </text>
+
+    <g transform="translate(520 790) rotate(-4)" filter="url(#shadow)">
+      <rect width="416" height="328" rx="34" fill="#FFFFFF"/>
+      <text class="label" x="34" y="56" font-size="17" fill="#CC5400">ВЪПРОС 01</text>
+      <text class="display" x="34" y="134" font-size="52" fill="#0A0A0A" letter-spacing="-2.8">
+        <tspan x="34">Какви са</tspan>
+        <tspan x="34" dy="60">реалните</tspan>
+        <tspan x="34" dy="60">варианти?</tspan>
+      </text>
+      <circle cx="356" cy="270" r="28" fill="#D0FAE5"/>
+      <path d="M345 270h22m-8-8 8 8-8 8" fill="none" stroke="#007956" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+
+    <g transform="translate(0 1193)">
+      <text class="body" x="0" y="24" font-size="21" font-weight="700" fill="#FFFFFF">Плъзни за въпросите</text>
+      <g transform="translate(245 11)" fill="#FFFFFF"><circle cx="0" cy="0" r="5"/><circle cx="24" cy="0" r="5" opacity=".28"/><circle cx="48" cy="0" r="5" opacity=".28"/><circle cx="72" cy="0" r="5" opacity=".28"/><circle cx="96" cy="0" r="5" opacity=".28"/><circle cx="120" cy="0" r="5" opacity=".28"/></g>
+      <text class="body" x="936" y="24" font-size="19" fill="#BDBDBD" text-anchor="end">Ориентир, не диагноза.</text>
+    </g>
+  </g>
+</svg>

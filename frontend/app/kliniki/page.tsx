@@ -5,7 +5,7 @@ import ClinicListingPage from '@/components/public-clinics/ClinicListingPage'
 import {
   buildClinicListingJsonLd, buildClinicBreadcrumbJsonLd, safeJsonLd,
 } from '@/lib/seo/clinicJsonLd'
-import { listPublicClinics } from '@/lib/publicClinics'
+import { clinicFiltersFromSearchParams, listPublicClinics, type ClinicDirectorySearchParams } from '@/lib/publicClinics'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,7 +16,8 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://zubite.bg/kliniki' },
 }
 
-export default async function KlinikiRoot() {
+export default async function KlinikiRoot({ searchParams }: { searchParams: Promise<ClinicDirectorySearchParams> }) {
+  const initialFilters = clinicFiltersFromSearchParams(await searchParams)
   // Server-side fetch for ItemList enrichment. Failure is non-fatal —
   // the page still renders without an enriched ItemList in that case.
   let clinics: Awaited<ReturnType<typeof listPublicClinics>>['clinics'] = []
@@ -44,7 +45,7 @@ export default async function KlinikiRoot() {
         />
       ))}
       <Header />
-      <ClinicListingPage syncToUrl={{ basePath: '/kliniki' }} />
+      <ClinicListingPage initialFilters={initialFilters} syncToUrl={{ basePath: '/kliniki' }} />
       <Footer />
     </>
   )

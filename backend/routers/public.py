@@ -6,7 +6,7 @@ import uuid
 
 from database import db
 from aligner_brands import public_aligner_brand_chips
-from schemas import Clinic, LeadCreate, LeadContactUpdate, Lead, RequestCallBody, RequestZubiteHelpBody, SaveCarePassEmailBody, UnlockResultBody
+from schemas import Clinic, LeadCreate, LeadContactUpdate, Lead, RequestCallBody, RequestZubiteHelpBody, SaveCarePassEmailBody, UnlockResultBody, QuickChatLeadCreate
 from auth import hash_password
 from config import CITIES, logger
 from scoring import calculate_score
@@ -450,6 +450,123 @@ async def update_lead_contact(lead_id: str, data: LeadContactUpdate):
     return lead
 
 
+async def _mint_lead_access_token(lead_id: str) -> tuple[str, datetime]:
+    """Issue a fresh magic-link token for a lead. Shared by the care-pass
+    email flow and the chat-token bootstrap endpoint below.
+
+    Always mints a NEW token rather than reusing an active one: only the
+    SHA-256 hash is ever persisted (`lead_access_tokens.token_hash`), so
+    the raw value handed to a previous caller cannot be recovered to give
+    to a new one. A lead can end up with more than one valid token at a
+    time — that's fine, each is independently scoped to the same
+    `lead_id` and still bounded by the 90-day expiry.
+    """
+    import secrets as _secrets
+    import hashlib as _hashlib
+    access_token = _secrets.token_urlsafe(32)
+    token_hash = _hashlib.sha256(access_token.encode("utf-8")).hexdigest()
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(days=90)
+    await db.lead_access_tokens.insert_one({
+        "token_hash": token_hash,
+        "lead_id": lead_id,
+        "created_at": now.isoformat(),
+        "expires_at": expires_at.isoformat(),
+        "revoked_at": None,
+        "last_accessed_at": None,
+        "access_count": 0,
+    })
+    return access_token, expires_at
+
+
+# ─── Patient layer: chat-token bootstrap ─────────────────────────────
+#
+# POST /leads/{lead_id}/chat-access-token
+#
+# Silently mints a magic-link token for a lead that has ALREADY unlocked
+# its result (the same gate `/results/[leadId]/clinics/[clinicId]` already
+# enforces client-side: `full_result_unlocked AND contact_details_submitted`).
+# The browser holding a bare `lead_id` is not a strong identity — `GET
+# /leads/{lead_id}` is public and already returns quiz answers on that
+# basis — but consultation chat carries patient messages and file
+# uploads, which can include a real X-ray, so it authenticates via the
+# same hashed/revocable token every other patient-facing surface uses
+# rather than the raw id. This endpoint is what bridges the two: it
+# converts the weak "I have this leadId" capability into a real token,
+# gated on the same unlock flags the results page already requires.
+#
+# Unlike `/email-care-pass`, the token is returned directly in the JSON
+# response — there is no inbox to prove control of here, only the unlock
+# gate — so no email is sent and no `consent_to_email` is required.
+@router.post(
+    "/leads/{lead_id}/chat-access-token",
+    dependencies=[Depends(rate_limit("chat_access_token", 10, 300))],
+)
+async def mint_chat_access_token(lead_id: str):
+    lead = await db.leads.find_one(
+        {"id": lead_id},
+        {"_id": 0, "id": 1, "full_result_unlocked": 1, "contact_details_submitted": 1},
+    )
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    if not (lead.get("full_result_unlocked") and lead.get("contact_details_submitted")):
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "result_not_unlocked",
+                "message": "Резултатът все още не е отключен.",
+            },
+        )
+    access_token, expires_at = await _mint_lead_access_token(lead_id)
+    return {"access_token": access_token, "expires_at": expires_at.isoformat()}
+
+
+# ─── Patient layer: quick-chat lead (no quiz taken) ──────────────────
+#
+# POST /leads/quick-chat
+#
+# The chat CTA on a public clinic profile is unconditional per package
+# entitlement — a visitor who never ran the quiz can still click it. That
+# visitor has no `lead_id` at all, so this creates the thinnest possible
+# lead (just a name) and mints its chat token in one round trip, rather
+# than making the frontend call two endpoints in sequence.
+#
+# `full_result_unlocked`/`contact_details_submitted` are set True on
+# creation: those flags exist to gate access to an EXISTING lead's quiz
+# answers via a bare `lead_id` (see `mint_chat_access_token` above) — a
+# concern that doesn't apply here since this lead is created fresh, with
+# no quiz answers to protect, and owned by nobody else.
+@router.post(
+    "/leads/quick-chat",
+    dependencies=[Depends(rate_limit("quick_chat_lead", 10, 300))],
+)
+async def create_quick_chat_lead(body: QuickChatLeadCreate):
+    name = body.name.strip()
+    if not name:
+        raise HTTPException(status_code=422, detail="Name is required")
+    lead_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+    await db.leads.insert_one({
+        "id": lead_id,
+        "name": name,
+        "city_slug": None,
+        "treatment_type": None,
+        "answers": {},
+        "band": None,
+        "score_total": None,
+        "source": "chat_quick_start",
+        "created_at": now.isoformat(),
+        "full_result_unlocked": True,
+        "contact_details_submitted": True,
+    })
+    access_token, expires_at = await _mint_lead_access_token(lead_id)
+    return {
+        "lead_id": lead_id,
+        "access_token": access_token,
+        "expires_at": expires_at.isoformat(),
+    }
+
+
 # ─── Patient layer: Save Care Pass by email ─────────────────────────
 #
 # POST /leads/{lead_id}/email-care-pass
@@ -495,23 +612,7 @@ async def email_care_pass(lead_id: str, body: SaveCarePassEmailBody):
 
     name = (body.name or "").strip() or (lead.get("name") or "").strip() or None
 
-    # Generate secure magic-link token: 256-bit URL-safe random.
-    # Store ONLY the SHA-256 hash so a DB read can't be replayed.
-    import secrets as _secrets
-    import hashlib as _hashlib
-    access_token = _secrets.token_urlsafe(32)
-    token_hash = _hashlib.sha256(access_token.encode("utf-8")).hexdigest()
-    now = datetime.now(timezone.utc)
-    expires_at = now + timedelta(days=90)
-    await db.lead_access_tokens.insert_one({
-        "token_hash": token_hash,
-        "lead_id": lead_id,
-        "created_at": now.isoformat(),
-        "expires_at": expires_at.isoformat(),
-        "revoked_at": None,
-        "last_accessed_at": None,
-        "access_count": 0,
-    })
+    access_token, expires_at = await _mint_lead_access_token(lead_id)
 
     sent = await send_care_pass_summary_email(
         to_email=body.email,

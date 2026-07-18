@@ -20,7 +20,7 @@
  */
 
 import { useState } from 'react'
-import { Lock, ShieldCheck, Sparkles, ArrowRight, Loader2, AlertTriangle, CheckCircle2, MapPin } from 'lucide-react'
+import { Lock, ShieldCheck, ArrowRight, Loader2, AlertTriangle, CheckCircle2, MapPin } from 'lucide-react'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
 
 // City slug → display name map. Mirrors the labels used elsewhere across
@@ -125,7 +125,6 @@ export function ResultUnlockGate({ leadId, defaultName, citySlug, onUnlocked }: 
             'Персонален резултат според отговорите ти',
             'Подходящи партньорски клиники близо до теб',
             'Възможност за онлайн ориентация, когато клиниката предлага свободни часове',
-            'Zubite Care Pass — включен за всеки наш пациент при посещение в партньорска клиника',
           ].map((item, i) => (
             <li key={i} className="flex items-start gap-2.5" data-testid={`result-unlock-value-${i}`}>
               <CheckCircle2 className="w-4 h-4 text-teal-600 mt-0.5 flex-shrink-0" />
@@ -133,21 +132,6 @@ export function ResultUnlockGate({ leadId, defaultName, citySlug, onUnlocked }: 
             </li>
           ))}
         </ul>
-
-        {/* Care Pass note — calm, single-paragraph framing. Replaces the
-            old "ще отключиш" promise that implied online consultation
-            unlocked benefits (Feb 2026 brief). */}
-        <div className="mt-5 rounded-2xl bg-teal-50/70 ring-1 ring-teal-100 p-4">
-          <div className="flex items-start gap-3">
-            <Sparkles className="w-4 h-4 text-teal-700 mt-0.5 flex-shrink-0" />
-            <div className="text-[13px] text-slate-700 leading-relaxed">
-              <strong>Care Pass</strong> е включен в партньорската ни мрежа.
-              Всеки Zubite пациент получава Care Pass при посещение в
-              партньорска клиника. Не е застраховка и не е автоматична отстъпка
-              от лечение.
-            </div>
-          </div>
-        </div>
 
         <p className="mt-3 text-[11px] text-slate-400 leading-relaxed">
           Онлайн ориентация е налична при избрани партньорски клиники
@@ -231,16 +215,6 @@ export function ResultUnlockGate({ leadId, defaultName, citySlug, onUnlocked }: 
               и Zubite.bg и избраната партньорска клиника да се свържат с мен.
             </span>
           </label>
-
-          {/* Care Pass clarification — placed near the consent area so the
-              expectation is set BEFORE submit. Wording is calm, not a legal
-              wall, and explicitly reverses common patient assumptions. */}
-          <p
-            className="text-[11.5px] text-slate-500 leading-relaxed bg-slate-50/80 ring-1 ring-slate-200/60 rounded-lg px-3 py-2.5"
-            data-testid="care-pass-contact-clarification"
-          >
-            Care Pass е включен в партньорската ни мрежа. Всеки Zubite пациент получава Care Pass при посещение в партньорска клиника. Не е застраховка и не е автоматична отстъпка от лечение.
-          </p>
 
           {error && (
             <div role="alert" className="flex items-start gap-2 rounded-lg bg-rose-50 ring-1 ring-rose-200 px-3 py-2 text-[13px] text-rose-700" data-testid="result-unlock-error">

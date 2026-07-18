@@ -139,7 +139,7 @@ export function AdminHeader({ backHref, backLabel, pageTitle }: Props) {
 
   return (
     <header
-      className="bg-white border-b border-slate-200 sticky top-0 z-40"
+      className="taste-admin-header bg-white border-b border-slate-200 sticky top-0 z-40"
       data-testid="admin-header"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

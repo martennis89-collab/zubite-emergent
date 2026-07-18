@@ -59,7 +59,9 @@ export type ReviewSummary = {
 
 export type DoctorSpotlight = {
   name: string | null
+  kind: 'owner' | 'lead_doctor'
   role: string | null
+  specialties: string[]
   bio: string | null
 }
 
@@ -79,6 +81,12 @@ export type ProfileTreatmentDetail = {
   note: string | null
 }
 
+export type TreatmentCaseCount = {
+  treatment: string
+  completed_cases: number
+  as_of_year: number | null
+}
+
 export type PublicClinic = {
   id: string
   slug: string
@@ -90,7 +98,10 @@ export type PublicClinic = {
   specialties: string[]
   short_description: string | null
   patient_intro: string | null
+  founded_year: number | null
+  years_in_business: number | null
   treatment_focus: string[]
+  treatment_case_counts: TreatmentCaseCount[]
   hero_image_url: string | null
   doctor_spotlight_image_url: string | null
   team_image_url: string | null
@@ -126,6 +137,9 @@ export type PublicClinic = {
     max_treatment_sections: number
     case_library_eligibility: boolean
     expert_qa: boolean
+    /** Gates the "Съобщение до клиниката" chat CTA. Independent of
+     *  `viber_phone` above. */
+    patient_chat_channels: boolean
   }
   public_status_label: string
   /** Feb 2026 booking engine — when true, patient can open the
@@ -139,6 +153,14 @@ export type PublicClinic = {
    * `entitlements` or `base_package` here.
    */
   viber_phone?: string | null
+  /**
+   * 'online' | 'accepting' | null. 'online' means the clinic has been
+   * active within the last 15 minutes (a real signal, not literal
+   * live-presence — see `_chat_presence` server-side); 'accepting' means
+   * the chat channel is entitled but the clinic hasn't been seen
+   * recently; null means don't render a presence badge at all.
+   */
+  chat_presence?: 'online' | 'accepting' | null
   review: ReviewSummary | null
   long_description: string | null
   consultation_process: string | null
@@ -191,6 +213,28 @@ export type PublicClinicFilters = {
   accepts_children?: boolean
 }
 
+export const CLINIC_CONTACT_ACTION_COPY = {
+  label: 'Заяви контакт',
+  description: 'Клиниката ще се свърже с теб.',
+} as const
+
+export type ClinicDirectorySearchParams = Record<string, string | string[] | undefined>
+
+export function clinicFiltersFromSearchParams(
+  params: ClinicDirectorySearchParams,
+): PublicClinicFilters {
+  const first = (key: string) => {
+    const value = params[key]
+    return Array.isArray(value) ? value[0] : value
+  }
+  return {
+    specialty: first('specialty') || undefined,
+    online_consultation: first('online') === '1',
+    accepts_adults: first('adults') === '1',
+    accepts_children: first('children') === '1',
+  }
+}
+
 function buildQuery(f: PublicClinicFilters): string {
   const sp = new URLSearchParams()
   if (f.city) sp.set('city', f.city)
@@ -231,6 +275,7 @@ export const TREATMENT_LABELS: Record<string, string> = {
   aligners: 'Алайнери',
   ortodontia: 'Ортодонтия',
   orthodontics: 'Ортодонтия',
+  ortho: 'Ортодонтия',
   implants: 'Импланти',
   implantologia: 'Импланти',
   dentalni_implanti: 'Дентални импланти',

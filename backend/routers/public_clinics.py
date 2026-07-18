@@ -113,6 +113,11 @@ _PUBLIC_ENTITLEMENT_KEYS = (
     "structured_trust_signals",
     "treatment_service_map",
     "max_treatment_sections",
+    # Gates the "Message this clinic" chat CTA. Independent of
+    # `viber_phone` presence below — a clinic can have chat without a
+    # Viber number configured, so the frontend must check this flag
+    # rather than infer chat availability from the Viber field.
+    "patient_chat_channels",
 )
 
 
@@ -147,6 +152,76 @@ def _public_entitlements(clinic: dict) -> dict:
     return out
 
 
+# ─── Chat presence ("Онлайн сега" / "Приема онлайн консултации") ────
+#
+# Deliberately NOT a strict "is someone staring at the screen right this
+# second" signal — that would need a heartbeat we don't have, and a
+# false "offline" the instant a clinic looks away would undersell a
+# clinic that responds within minutes of the notification email. Instead
+# this reuses the debounced `last_seen_at` that `_validate_auth_session`
+# (auth.py) already stamps on every authenticated clinic request,
+# treating "active within the last 15 minutes" as "online" and anything
+# entitled-but-quieter as "accepting" — true either way, never a claim
+# nobody could back up if a patient asked.
+_PRESENCE_WINDOW_MINUTES = 15
+
+
+async def _compute_online_clinic_ids(clinic_ids: list) -> set:
+    """One query for a whole page of clinics — never N+1 per listing row.
+
+    `auth_sessions` rows are never purged once expired, so a clinic
+    accumulates them indefinitely. A `.to_list(small_fixed_cap)` with no
+    sort — the first version of this function — could silently drop the
+    one row that's actually still fresh once a clinic has enough
+    historical logins: Mongo doesn't return matches in insertion order,
+    so truncation has no guarantee of keeping the recent ones. Filtering
+    `expires_at` server-side shrinks the accumulated backlog first (a JWT
+    is only valid for `JWT_EXPIRATION_HOURS`, hours away from "now" —
+    plenty of margin for the microsecond-formatting quirk below to not
+    matter here), then sorting newest-first makes any remaining cap safe.
+
+    The actual 15-minute presence cutoff is still checked by parsing
+    `last_seen_at` in Python, not via a second Mongo range query:
+    `datetime.isoformat()` omits the microsecond fraction when it happens
+    to be exactly zero, which would make a naive string `$gte` comparison
+    silently misorder rows THAT close together. `_validate_auth_session`
+    parses the same field the same way for the same reason.
+    """
+    if not clinic_ids:
+        return set()
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(minutes=_PRESENCE_WINDOW_MINUTES)
+    rows = await db.auth_sessions.find(
+        {
+            "user_type": "clinic",
+            "user_id": {"$in": clinic_ids},
+            "revoked_at": None,
+            "expires_at": {"$gte": now.isoformat()},
+        },
+        {"_id": 0, "user_id": 1, "last_seen_at": 1},
+    ).sort("last_seen_at", -1).to_list(1000)
+    online = set()
+    for row in rows:
+        raw = row.get("last_seen_at")
+        try:
+            seen_at = datetime.fromisoformat(raw) if isinstance(raw, str) else None
+            if seen_at and seen_at.tzinfo is None:
+                seen_at = seen_at.replace(tzinfo=timezone.utc)
+        except Exception:
+            seen_at = None
+        if seen_at and seen_at >= cutoff:
+            online.add(row["user_id"])
+    return online
+
+
+def _chat_presence(clinic: dict, entitlements: dict, online_ids: set) -> Optional[str]:
+    """Returns 'online' | 'accepting' | None. None means: don't render a
+    chat-presence badge for this clinic at all (not entitled)."""
+    if not entitlements.get("patient_chat_channels"):
+        return None
+    return "online" if clinic.get("id") in online_ids else "accepting"
+
+
 def _public_viber_phone(clinic: dict) -> Optional[str]:
     """The clinic's Viber number, only when it should actually be shown.
 
@@ -172,6 +247,44 @@ def _public_viber_phone(clinic: dict) -> Optional[str]:
 # onboarded clinic. `evaluation_partner` is a vetted pilot clinic and is
 # included by design (per agreed scope §1).
 _PUBLIC_STATUSES = ("active_partner", "evaluation_partner")
+
+
+def _public_visibility_query() -> dict[str, Any]:
+    """Return the shared visibility predicate for every public surface."""
+    query: dict[str, Any] = {
+        "clinic_status": {"$in": list(_PUBLIC_STATUSES)},
+        "archived": {"$ne": True},
+        # Legacy partner records may not have this field yet. Only an
+        # explicit false value makes a clinic inactive.
+        "is_active": {"$ne": False},
+        "is_addons_showcase": {"$ne": True},
+    }
+    if not _demo_clinics_enabled():
+        query["is_demo"] = {"$ne": True}
+    return query
+
+
+_SPECIALTY_GROUPS: dict[str, tuple[str, ...]] = {
+    "orthodontics": (
+        "orthodontics", "ortho", "ortodontia", "ortodontiya",
+        "invisalign", "aligners", "braces", "breketi",
+    ),
+    "implants": (
+        "implants", "implantologia", "dentalni_implanti",
+        "dentalni-implanti",
+    ),
+    "cosmetic": (
+        "cosmetic", "aesthetic", "estetichna_stomatologia",
+        "estetichna-stomatologia", "veneers", "whitening", "bonding",
+    ),
+}
+
+
+def _specialty_values(specialty: str | None) -> tuple[str, ...]:
+    key = (specialty or "").strip().lower()
+    if not key:
+        return ()
+    return _SPECIALTY_GROUPS.get(key, (key,))
 
 _CYR_TRANSLIT = str.maketrans(
     {
@@ -232,11 +345,15 @@ def resolve_city_slug(clinic: dict) -> Optional[str]:
     return _CITY_NAME_TO_SLUG.get(city)
 
 
-def _public_clinic_payload(clinic: dict) -> dict:
+def _public_clinic_payload(clinic: dict, online_ids: Optional[set] = None) -> dict:
     """Build a safe, marketing-honest public payload from a clinic doc.
 
     Never claims "best", never fakes review data, never invents online
     consultation. Fields absent from the doc are simply omitted.
+
+    `online_ids` is precomputed ONCE per request by the caller
+    (`_compute_online_clinic_ids`) — never queried per-clinic here, which
+    would turn a listing page into an N+1 auth_sessions lookup.
     """
     tier_raw = (clinic.get("partner_tier") or "standard").lower()
     tier = tier_raw if tier_raw in _PUBLIC_STATUS_LABEL else "standard"
@@ -270,6 +387,32 @@ def _public_clinic_payload(clinic: dict) -> dict:
 
     treatments = clinic.get("treatments_supported") or []
 
+    # Growth trust signals are derived from validated source facts so they
+    # cannot become stale free-text claims. A clinic founded this year has
+    # zero completed years in business, which the frontend phrases as a new
+    # practice rather than displaying "0 years".
+    current_year = datetime.now(timezone.utc).year
+    founded_year_raw = profile.get("founded_year")
+    founded_year = (
+        founded_year_raw
+        if _ent.get("enhanced_clinic_profile")
+        and isinstance(founded_year_raw, int)
+        and not isinstance(founded_year_raw, bool)
+        and 1900 <= founded_year_raw <= current_year
+        else None
+    )
+    doctor_specialties_raw = profile.get("doctor_spotlight_specialties") or []
+    if not isinstance(doctor_specialties_raw, list):
+        doctor_specialties_raw = []
+    doctor_specialties = [
+        item.strip()
+        for item in doctor_specialties_raw[:8]
+        if isinstance(item, str) and item.strip() and len(item.strip()) <= 80
+    ]
+    doctor_kind = profile.get("doctor_spotlight_kind")
+    if doctor_kind not in ("owner", "lead_doctor"):
+        doctor_kind = "lead_doctor"
+
     # Defensive: derive a list of "why this clinic appears" reasons from
     # static clinic fields. No fake reasoning.
     why: list[str] = []
@@ -297,9 +440,39 @@ def _public_clinic_payload(clinic: dict) -> dict:
         "specialties": clinic.get("specialties") or [],
         "short_description": profile.get("short_description"),
         "patient_intro": profile.get("patient_intro"),
+        "founded_year": founded_year,
+        "years_in_business": current_year - founded_year if founded_year is not None else None,
         "treatment_focus": profile.get("treatment_focus") or [],
+        # Growth-only aggregate experience. These clinic-declared totals are
+        # intentionally separate from the consented public `case_library`.
+        # Validate defensively here too: older rows may have bypassed the
+        # current admin schema through a direct database import.
+        "treatment_case_counts": [
+            {
+                "treatment": row.get("treatment").strip(),
+                "completed_cases": row.get("completed_cases"),
+                "as_of_year": (
+                    row.get("as_of_year")
+                    if isinstance(row.get("as_of_year"), int)
+                    and not isinstance(row.get("as_of_year"), bool)
+                    and 2000 <= row.get("as_of_year") <= datetime.now(timezone.utc).year
+                    else None
+                ),
+            }
+            for row in (profile.get("treatment_case_counts") or [])
+            if isinstance(row, dict)
+            and isinstance(row.get("treatment"), str)
+            and row.get("treatment").strip()
+            and isinstance(row.get("completed_cases"), int)
+            and not isinstance(row.get("completed_cases"), bool)
+            and 0 < row.get("completed_cases") <= 1_000_000
+        ] if _ent.get("enhanced_clinic_profile") else [],
         "hero_image_url": profile.get("hero_image_url"),
-        "doctor_spotlight_image_url": profile.get("doctor_spotlight_image_url"),
+        "doctor_spotlight_image_url": (
+            profile.get("doctor_spotlight_image_url")
+            if _ent.get("enhanced_clinic_profile")
+            else None
+        ),
         "team_image_url": profile.get("team_image_url"),
         "environment_image_url": profile.get("environment_image_url"),
         "best_for": clinic.get("best_for") or profile.get("treatment_focus") or [],
@@ -335,6 +508,8 @@ def _public_clinic_payload(clinic: dict) -> dict:
         # switched it on — see `_public_viber_phone`. Null means "do not
         # render a Viber CTA", with no flags for the frontend to combine.
         "viber_phone": _public_viber_phone(clinic),
+        # 'online' | 'accepting' | null — see `_chat_presence`.
+        "chat_presence": _chat_presence(clinic, _ent, online_ids or set()),
         # Canonical, entitlement-derived render flags. The frontend gates
         # sections on these — NOT on `partner_tier` above, which is a
         # legacy audit field and is "standard" for every post-revamp clinic.
@@ -348,10 +523,12 @@ def _public_clinic_payload(clinic: dict) -> dict:
         "doctor_spotlight": (
             {
                 "name": profile.get("doctor_spotlight_name"),
+                "kind": doctor_kind,
                 "role": profile.get("doctor_spotlight_role"),
+                "specialties": doctor_specialties,
                 "bio": profile.get("doctor_spotlight_bio"),
             }
-            if profile.get("doctor_spotlight_name")
+            if _ent.get("enhanced_clinic_profile") and profile.get("doctor_spotlight_name")
             else None
         ),
         "team_note": profile.get("team_note"),
@@ -405,7 +582,8 @@ def _ranking_score(clinic: dict, specialty: str | None) -> tuple:
     tier = (clinic.get("partner_tier") or "standard").lower()
     tier_boost = {"premium": 3, "featured": 2, "standard": 1}.get(tier, 0)
     treatments = clinic.get("treatments_supported") or []
-    has_specialty = bool(specialty and specialty in treatments)
+    accepted_specialties = set(_specialty_values(specialty))
+    has_specialty = bool(accepted_specialties.intersection(treatments))
     profile_complete = (clinic.get("clinic_profile") or {}).get("profile_status") == "published"
     # Higher tuple = better. Python sorts ascending by default → negate.
     return (
@@ -426,22 +604,7 @@ async def list_public_clinics(
     accepts_children: Optional[str] = Query(default=None),
     limit: int = Query(default=50, ge=1, le=100),
 ):
-    query: dict[str, Any] = {
-        "clinic_status": {"$in": list(_PUBLIC_STATUSES)},
-        "archived": {"$ne": True},
-        # Legacy admin-created docs may lack `is_active` entirely; only
-        # exclude clinics explicitly set to False. `clinic_status` above
-        # is the authoritative positive signal.
-        "is_active": {"$ne": False},
-    }
-    # Production environments don't set ZUBITE_INCLUDE_DEMO_CLINICS, so any
-    # clinic flagged `is_demo: true` stays out of the public list. Preview
-    # / dev enables the env var so QA can exercise the tier-aware UI.
-    if not _demo_clinics_enabled():
-        query["is_demo"] = {"$ne": True}
-    # Phase C2 — the dedicated visual add-ons showcase clinic is ALWAYS
-    # hidden from listings (direct URL only), regardless of demo gate.
-    query["is_addons_showcase"] = {"$ne": True}
+    query = _public_visibility_query()
     if city:
         # Match both canonical slug and free-text (BG/Latin) forms so
         # legacy admin-created docs are included. Case-insensitive on
@@ -457,7 +620,10 @@ async def list_public_clinics(
             )
         query["$or"] = or_clauses
     if specialty:
-        query["treatments_supported"] = specialty.lower()
+        values = _specialty_values(specialty)
+        query["treatments_supported"] = (
+            values[0] if len(values) == 1 else {"$in": list(values)}
+        )
     if _bool_filter(online_consultation) is True:
         query["online_consultation"] = True
     if _bool_filter(care_pass) is True:
@@ -469,7 +635,9 @@ async def list_public_clinics(
 
     docs = await db.clinics.find(query, {"_id": 0}).to_list(limit)
     docs.sort(key=lambda c: _ranking_score(c, (specialty or "").lower() or None))
-    payloads = [_public_clinic_payload(c) for c in docs]
+    # One query for the whole page's presence, not one per card.
+    online_ids = await _compute_online_clinic_ids([d.get("id") for d in docs if d.get("id")])
+    payloads = [_public_clinic_payload(c, online_ids) for c in docs]
     # Drop entries that have no resolvable name or city — the frontend
     # route `/kliniki/[city]/[specialty]/[slug]` can't handle either.
     payloads = [p for p in payloads if p.get("name") and p.get("city_slug")]
@@ -488,14 +656,7 @@ async def list_public_clinics(
 async def get_public_clinic(slug_or_id: str):
     """Lookup by slug (slugified from name) OR by clinic id (UUID). Returns
     only clinics in a public-displayable status."""
-    base = {
-        "is_active": {"$ne": False},
-        "clinic_status": {"$in": list(_PUBLIC_STATUSES)},
-        "archived": {"$ne": True},
-    }
-    # Hide demo records from production lookups (same gate as the list).
-    if not _demo_clinics_enabled():
-        base["is_demo"] = {"$ne": True}
+    base = _public_visibility_query()
     # Try id match first (fast index).
     doc = await db.clinics.find_one({**base, "id": slug_or_id}, {"_id": 0})
     if not doc:
@@ -512,7 +673,8 @@ async def get_public_clinic(slug_or_id: str):
             "code": "clinic_not_found",
             "message": "Clinic not found or not publicly listed.",
         })
-    return _public_clinic_payload(doc)
+    online_ids = await _compute_online_clinic_ids([doc["id"]])
+    return _public_clinic_payload(doc, online_ids)
 
 
 
@@ -533,14 +695,7 @@ _PUBLIC_SCHEDULER_LEAD_LABELS = {
 
 
 async def _load_clinic_for_public_scheduler(clinic_id: str) -> dict:
-    base = {
-        "is_active": True,
-        "clinic_status": {"$in": list(_PUBLIC_STATUSES)},
-        "archived": {"$ne": True},
-        "id": clinic_id,
-    }
-    if not _demo_clinics_enabled():
-        base["is_demo"] = {"$ne": True}
+    base = {**_public_visibility_query(), "id": clinic_id}
     doc = await db.clinics.find_one(base, {"_id": 0, "password_hash": 0})
     if not doc:
         raise HTTPException(

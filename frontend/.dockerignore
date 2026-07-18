@@ -1,7 +1,7 @@
-node_modules
-.next
 .env
 .env.*
 !.env.example
-.claude
-.impeccable
+.next/
+node_modules/
+npm-debug.log*
+*.tsbuildinfo

@@ -23,11 +23,7 @@ export interface HomeBlogPost {
 // ─── Shared constants ──────────────────────────────────────────────
 export const QUIZ_URL = '/quiz'
 
-// Last remaining Emergent-hosted decorative asset. Only the (currently
-// unrendered) CarePassTeaser references it; /care-pass has its own copy.
-// Replace with a locally-hosted asset if the teaser ever returns.
-export const ASSET_E_CARE_PASS_CARD =
-  'https://customer-assets.emergentagent.com/job_25b55d94-1ed6-49c7-af05-4dd6f19863cf/artifacts/kyba9eaq_ChatGPT%20Image%20May%2017%2C%202026%2C%2010_21_45%20AM.png'
+export const ASSET_E_CARE_PASS_CARD = '/images/stitch/care-pass.webp'
 
 // ─── Reveal-on-scroll helper ───────────────────────────────────────
 export function useReveal<T extends HTMLElement>() {

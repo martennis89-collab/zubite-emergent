@@ -693,31 +693,6 @@ export default function BreketiPage() {
         </div>
       </section>
 
-      {/* ─── Care Pass strip ──────────────────────────── */}
-      <section className="relative py-10 sm:py-14" data-testid="breketi-care-pass-strip">
-        <div className="max-w-4xl mx-auto px-5 sm:px-8">
-          <div className="relative rounded-2xl bg-white/70 backdrop-blur-xl ring-1 ring-white/80 shadow-[0_8px_30px_-20px_rgba(15,23,42,0.18)] p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
-            <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-teal-50 text-teal-700 ring-1 ring-teal-100 shrink-0">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
-            <p className="flex-1 text-sm sm:text-[15px] text-slate-700 leading-relaxed">
-              <span className="font-medium text-slate-900">Care Pass</span>{' '}
-              е включен в партньорската ни мрежа. Всеки Zubite пациент
-              получава Care Pass при посещение в партньорска клиника. Не е
-              застраховка и не е автоматична отстъпка от лечение.
-            </p>
-            <Link
-              href="/care-pass"
-              data-testid="breketi-care-pass-link"
-              className="inline-flex items-center justify-center gap-1 text-sm font-medium text-teal-700 hover:text-teal-800 transition-colors whitespace-nowrap"
-            >
-              Виж как работи Care Pass
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
       {/* ─── FAQ ──────────────────────────────────────── */}
       <section className="relative py-16 sm:py-20" data-testid="breketi-faq">
         <div className="max-w-3xl mx-auto px-5 sm:px-8">

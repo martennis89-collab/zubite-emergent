@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, ReactNode } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowRight, ArrowLeft, Loader2, CheckCircle, MapPin, X, User, Users, Baby, ShieldCheck } from 'lucide-react'
+import { ArrowRight, ArrowLeft, Bot, Loader2, CheckCircle, MapPin, X, User, Users, Baby, ShieldCheck } from 'lucide-react'
 import {
   trackQuizStart,
   trackQuestionAnswered,
@@ -494,14 +494,6 @@ const STAGE_BY_BAND: Record<ResultBand, string> = {
   high: 'Напреднал етап',
 }
 
-const getBandStyles = (band: ResultBand) => {
-  switch (band) {
-    case 'low': return { bgGradient: 'from-emerald-50 to-emerald-100/30', borderColor: 'border-emerald-200', textColor: 'text-emerald-800', accentBg: 'bg-emerald-100', dotColor: 'bg-emerald-500', labelBg: 'bg-emerald-100', labelText: 'text-emerald-700' }
-    case 'moderate': return { bgGradient: 'from-amber-50 to-amber-100/30', borderColor: 'border-amber-200', textColor: 'text-amber-800', accentBg: 'bg-amber-100', dotColor: 'bg-amber-500', labelBg: 'bg-amber-100', labelText: 'text-amber-700' }
-    case 'high': return { bgGradient: 'from-red-50 to-red-100/30', borderColor: 'border-red-200', textColor: 'text-red-800', accentBg: 'bg-red-100', dotColor: 'bg-red-500', labelBg: 'bg-red-100', labelText: 'text-red-700' }
-  }
-}
-
 const generateSessionId = () => `quiz_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
 // ─── Intake context (Clinical Brief) ──────────────────────────────
@@ -664,7 +656,7 @@ export function MasterQuiz() {
 
   const questions = segment ? QUESTION_SETS[segment] : []
   const totalQ = questions.length
-  const progress = result ? 100 : segment ? ((currentQuestion) / totalQ) * 100 : 0
+  const progress = result ? 100 : segment ? ((currentQuestion + 1) / totalQ) * 100 : 0
 
   const handleAnswer = (questionId: string, value: string, score: number, tags?: string[]) => {
     const timeSpent = Date.now() - questionStartTime.current
@@ -815,25 +807,17 @@ export function MasterQuiz() {
 
   // ─── Header ────────────────────────────────────────────
   const Header = ({ showCount }: { showCount?: boolean }) => (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-[#FCFAF8]/80 backdrop-blur-xl border-b border-white/40">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6">
-        <div className="flex items-center justify-between h-14 gap-3">
-          <Link href="/" className="font-serif text-xl font-semibold tracking-tight text-slate-900 shrink-0">Zubite<span className="text-teal-600">.bg</span></Link>
-          <span
-            className="hidden sm:inline-flex items-center gap-1 rounded-full bg-teal-50 ring-1 ring-teal-100 text-teal-700 text-[10px] uppercase tracking-[0.16em] font-semibold px-2.5 py-1"
-            data-testid="quiz-safety-chip"
-            title="Ориентир, не диагноза"
-          >
-            <ShieldCheck className="w-3 h-3" /> Ориентир, не диагноза
-          </span>
-          {showCount && (
-            <span className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.16em] text-slate-500 shrink-0">
-              <span className="font-medium text-slate-700">{currentQuestion + 1}</span>
-              <span className="text-slate-400">/</span>
-              <span>{totalQ}</span>
-            </span>
-          )}
-        </div>
+    <header className="taste-quiz-header">
+      <div className="taste-quiz-header-inner">
+        <Link href="/" className="taste-quiz-back" aria-label="Назад към началната страница">
+          <ArrowLeft aria-hidden /> <span>Назад</span>
+        </Link>
+        <Link href="/" className="taste-quiz-logo" aria-label="Zubite.bg — начало">Zubite<span>.bg</span></Link>
+        {showCount ? (
+          <span className="taste-quiz-count"><strong>{currentQuestion + 1}</strong> / {totalQ}</span>
+        ) : (
+          <span className="taste-quiz-safety"><ShieldCheck aria-hidden /> Ориентир, не диагноза</span>
+        )}
       </div>
     </header>
   )
@@ -841,49 +825,55 @@ export function MasterQuiz() {
   // ─── SEGMENT SELECT ────────────────────────────────────
   if (step === 'segment') {
     return (
-      <main className="min-h-screen bg-[#FCFAF8]">
+      <main className="taste-site taste-quiz-page">
         <Header />
-        <div className="pt-14 min-h-screen flex items-center justify-center px-4 py-12">
-          <div className={`w-full max-w-lg transition-all duration-200 ${isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
-            <div className="text-center mb-8">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/70 ring-1 ring-teal-100 text-teal-700 text-[10px] font-semibold px-3 py-1 uppercase tracking-[0.18em]" data-testid="quiz-intro-eyebrow">
-                Първоначален онлайн анализ на зъбите
-              </span>
-              <p className="mt-4 text-slate-500 text-sm leading-relaxed max-w-sm mx-auto" data-testid="quiz-intro-subhead">
-                Отговори спокойно. Това не е диагноза — целта е да получиш
-                ориентир дали има нещо, което си струва да провериш със
-                специалист.
-              </p>
-              <h1 className="mt-6 font-serif text-2xl sm:text-3xl font-semibold text-slate-900 mb-3" data-testid="segment-heading">
-                За кого попълваш този тест?
-              </h1>
-              <p className="text-slate-500 text-sm">Въпросите ще бъдат адаптирани</p>
+        <section className={`taste-quiz-intro ${isTransitioning ? 'is-leaving' : ''}`}>
+          <div className="taste-quiz-intro-copy">
+            <span className="taste-quiz-kicker" data-testid="quiz-intro-eyebrow"><i /> Кратък здравен ориентир</span>
+            <h1 data-testid="segment-heading">Нека започнем от <em>правилното място.</em></h1>
+            <p data-testid="quiz-intro-subhead">
+              Отговори спокойно. За няколко минути ще подредим това, което
+              забелязваш, и ще ти покажем коя следваща стъпка има смисъл.
+            </p>
+            <div className="taste-quiz-intro-notes" aria-label="Информация за теста">
+              <span><strong>2–3 мин</strong> средно време</span>
+              <span><strong>Безплатно</strong> без ангажимент</span>
+              <span><strong>Поверително</strong> и недиагностично</span>
             </div>
-            <div className="space-y-3">
+          </div>
+
+          <div className="taste-quiz-segment-panel">
+            <div className="taste-quiz-panel-heading">
+              <span>01 / 03</span>
+              <div>
+                <p>Първо уточнение</p>
+                <h2>За кого попълваш теста?</h2>
+              </div>
+            </div>
+            <div className="taste-quiz-segment-list">
               {([
-                { seg: 'adult' as Segment, icon: <User className="w-6 h-6" />, label: 'За мен', sub: 'възрастен' },
-                { seg: 'teen' as Segment, icon: <Users className="w-6 h-6" />, label: 'За тийнейджър', sub: '12–17 години' },
-                { seg: 'child' as Segment, icon: <Baby className="w-6 h-6" />, label: 'За дете', sub: 'под 12 години' },
+                { seg: 'adult' as Segment, icon: <User />, label: 'За мен', sub: 'Възрастен' },
+                { seg: 'teen' as Segment, icon: <Users />, label: 'За тийнейджър', sub: '12–17 години' },
+                { seg: 'child' as Segment, icon: <Baby />, label: 'За дете', sub: 'Под 12 години' },
               ]).map(({ seg, icon, label, sub }) => (
                 <button
                   key={seg}
                   onClick={() => handleSegmentSelect(seg)}
-                  className="w-full flex items-center gap-4 p-5 sm:p-6 bg-white/70 backdrop-blur-xl rounded-2xl ring-1 ring-white/80 hover:ring-teal-300/60 hover:bg-white/90 hover:-translate-y-0.5 transition-all duration-200 group text-left shadow-[0_8px_30px_-20px_rgba(15,23,42,0.18)] hover:shadow-[0_16px_44px_-22px_rgba(13,148,136,0.30)]"
+                  className="taste-quiz-segment-option"
                   data-testid={`segment-${seg}`}
                 >
-                  <div className="w-12 h-12 rounded-xl bg-teal-50/80 ring-1 ring-teal-100 group-hover:bg-teal-100 flex items-center justify-center text-teal-700 transition-colors shrink-0">
-                    {icon}
-                  </div>
+                  <span className="taste-quiz-segment-icon">{icon}</span>
                   <div>
-                    <p className="text-base sm:text-lg font-medium text-slate-800">{label}</p>
-                    <p className="text-sm text-slate-400">{sub}</p>
+                    <strong>{label}</strong>
+                    <small>{sub}</small>
                   </div>
-                  <ArrowRight className="w-5 h-5 text-slate-300 group-hover:text-teal-400 ml-auto transition-colors" />
+                  <ArrowRight aria-hidden />
                 </button>
               ))}
             </div>
+            <p className="taste-quiz-panel-note"><ShieldCheck aria-hidden /> Въпросите се адаптират към избрания възрастов профил.</p>
           </div>
-        </div>
+        </section>
       </main>
     )
   }
@@ -891,21 +881,20 @@ export function MasterQuiz() {
   // ─── INSIGHT SCREEN ────────────────────────────────────
   if (step === 'insight') {
     return (
-      <main className="min-h-screen bg-[#FCFAF8]">
+      <main className="taste-site taste-quiz-page">
         <Header />
-        <div className="pt-14 min-h-screen flex items-center justify-center px-4 py-12">
-          <div className="w-full max-w-lg animate-fade-in-up">
-            <div className="bg-slate-800 rounded-2xl p-8 sm:p-10 text-center shadow-xl">
-              <p className="text-white/90 text-lg sm:text-xl leading-relaxed mb-8 font-light">
-                „{currentInsight}"
-              </p>
-              <button onClick={handleInsightContinue} className="inline-flex items-center gap-2 px-8 py-4 bg-white text-slate-900 font-medium rounded-full hover:bg-slate-100 transition-all duration-300 group" data-testid="insight-continue-btn">
-                <span>Продължи</span>
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+        <section className="taste-quiz-centered">
+          <div className="taste-quiz-insight-card animate-fade-in-up">
+            <span className="taste-quiz-insight-index">Добре е да знаеш</span>
+            <p>„{currentInsight}&quot;</p>
+            <div>
+              <span>Луми подрежда отговорите ти постепенно.</span>
+              <button onClick={handleInsightContinue} className="taste-quiz-primary" data-testid="insight-continue-btn">
+                Продължи <ArrowRight aria-hidden />
               </button>
             </div>
           </div>
-        </div>
+        </section>
       </main>
     )
   }
@@ -916,84 +905,72 @@ export function MasterQuiz() {
     const isVisual = q.type === 'visual'
 
     return (
-      <main className="min-h-screen bg-[#FCFAF8]">
+      <main className="taste-site taste-quiz-page">
         <Header showCount />
-        <div className="pt-14 min-h-screen flex flex-col">
-          {/* Progress */}
-          <div className="sticky top-14 z-40 bg-[#FCFAF8]/80 backdrop-blur-xl">
-            <div className="relative h-1.5 bg-slate-200/50 overflow-hidden">
-              <div
-                className="absolute inset-y-0 left-0 transition-all duration-500 ease-out rounded-r-full"
-                style={{
-                  width: `${progress}%`,
-                  backgroundImage: 'linear-gradient(90deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)',
-                  boxShadow: '0 0 12px rgba(20,184,166,0.5)',
-                }}
-              />
-              {/* Glossy shine line on top of progress */}
-              <div aria-hidden className="absolute inset-x-0 top-0 h-px bg-white/40" />
+        <section className="taste-quiz-question-wrap">
+          <div className="taste-quiz-progress-row">
+            <span>Твоят ориентир</span>
+            <div className="taste-quiz-progress-track" aria-label={`${Math.round(progress)}% завършено`}>
+              <i style={{ width: `${progress}%` }} />
             </div>
-            <p className="text-center text-[10.5px] uppercase tracking-[0.18em] text-slate-400 py-2">Проверяваме ситуацията…</p>
+            <strong>{Math.round(progress)}%</strong>
           </div>
 
-          <div className="flex-1 flex items-center justify-center px-4 py-8 sm:py-12">
-            <div className="w-full max-w-xl">
-              <div className={`transition-all duration-200 ${isTransitioning ? 'opacity-0 translate-x-4' : 'opacity-100 translate-x-0'}`}>
-                <div className="relative bg-white/75 backdrop-blur-2xl rounded-2xl ring-1 ring-white/80 shadow-[0_18px_50px_-20px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.85)] p-6 sm:p-8">
-                  {/* Inner top gloss */}
-                  <div aria-hidden className="absolute inset-x-6 top-0.5 h-1/3 rounded-full bg-gradient-to-b from-white/55 to-transparent pointer-events-none opacity-70" />
-                  <h1 className="relative font-serif text-xl sm:text-2xl font-semibold text-slate-900 mb-6 sm:mb-8 leading-relaxed" data-testid="question-text">
-                    {q.question}
-                  </h1>
-
-                  {isVisual ? (
-                    /* Visual grid */
-                    <div className="relative grid grid-cols-3 gap-3 sm:gap-4">
-                      {q.options.map((opt) => (
-                        <button
-                          key={opt.value}
-                          onClick={() => handleAnswer(q.id, opt.value, opt.score, opt.tags)}
-                          className="flex flex-col items-center gap-2 p-3 sm:p-4 rounded-xl bg-white/70 backdrop-blur-xl ring-1 ring-white/80 hover:ring-teal-300/70 hover:bg-white/90 hover:-translate-y-0.5 transition-all duration-200 group shadow-[0_6px_24px_-16px_rgba(15,23,42,0.18)]"
-                          data-testid={`option-${opt.value}`}
-                        >
-                          <div className="w-full aspect-square flex items-center justify-center">
-                            {opt.visual}
-                          </div>
-                          <span className="text-xs sm:text-sm font-medium text-slate-700 text-center group-hover:text-teal-700 transition-colors">{opt.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    /* Text options */
-                    <div className="relative space-y-3">
-                      {q.options.map((opt, idx) => (
-                        <button
-                          key={opt.value}
-                          onClick={() => handleAnswer(q.id, opt.value, opt.score, opt.tags)}
-                          className="w-full text-left p-4 sm:p-5 rounded-xl bg-white/70 backdrop-blur-xl ring-1 ring-white/80 text-slate-800 hover:ring-teal-300/70 hover:bg-white/95 hover:-translate-y-0.5 transition-all duration-200 group shadow-[0_6px_24px_-16px_rgba(15,23,42,0.18)] hover:shadow-[0_14px_36px_-18px_rgba(13,148,136,0.30)]"
-                          data-testid={`option-${opt.value}`}
-                        >
-                          <span className="flex items-center gap-3">
-                            <span className="w-8 h-8 rounded-full bg-teal-50 ring-1 ring-teal-200 flex items-center justify-center text-sm font-semibold text-teal-700 group-hover:bg-teal-100 group-hover:ring-teal-300 transition-colors shrink-0">
-                              {String.fromCharCode(65 + idx)}
-                            </span>
-                            <span className="text-base sm:text-lg">{opt.label}</span>
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {currentQuestion > 0 && (
-                    <button onClick={handleBack} className="mt-6 flex items-center gap-2 text-slate-400 hover:text-slate-600 transition-colors text-sm" data-testid="quiz-back-btn">
-                      <ArrowLeft className="w-4 h-4" /> Назад
-                    </button>
-                  )}
-                </div>
+          <div className={`taste-quiz-question-card ${isTransitioning ? 'is-leaving' : ''}`}>
+            <aside className="taste-quiz-question-rail" aria-hidden>
+              <span className="taste-quiz-question-number">{String(currentQuestion + 1).padStart(2, '0')}</span>
+              <div>
+                <Bot />
+                <p><strong>Луми</strong> подрежда отговорите ти, за да изведе ясен следващ ход.</p>
               </div>
+              <span className="taste-quiz-question-note">Няма грешен отговор</span>
+            </aside>
+
+            <div className="taste-quiz-question-content">
+              <span className="taste-quiz-mobile-step">Въпрос {currentQuestion + 1} от {totalQ}</span>
+              <h1 data-testid="question-text">{q.question}</h1>
+              <p>Избери отговора, който най-точно описва ситуацията в момента.</p>
+
+              {isVisual ? (
+                <div className="taste-quiz-visual-options">
+                  {q.options.map((opt, idx) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => handleAnswer(q.id, opt.value, opt.score, opt.tags)}
+                      className="taste-quiz-visual-option"
+                      data-testid={`option-${opt.value}`}
+                    >
+                      <span className="taste-quiz-option-letter">{String.fromCharCode(65 + idx)}</span>
+                      <span className="taste-quiz-visual-art">{opt.visual}</span>
+                      <strong>{opt.label}</strong>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="taste-quiz-text-options">
+                  {q.options.map((opt, idx) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => handleAnswer(q.id, opt.value, opt.score, opt.tags)}
+                      className="taste-quiz-text-option"
+                      data-testid={`option-${opt.value}`}
+                    >
+                      <span>{String.fromCharCode(65 + idx)}</span>
+                      <strong>{opt.label}</strong>
+                      <ArrowRight aria-hidden />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {currentQuestion > 0 && (
+                <button onClick={handleBack} className="taste-quiz-question-back" data-testid="quiz-back-btn">
+                  <ArrowLeft aria-hidden /> Предишен въпрос
+                </button>
+              )}
             </div>
           </div>
-        </div>
+        </section>
       </main>
     )
   }
@@ -1001,42 +978,46 @@ export function MasterQuiz() {
   // ─── RESULT SCREEN ─────────────────────────────────────
   if (step === 'result' && result && segment) {
     const content = RESULT_CONTENT[segment][result.band]
-    const styles = getBandStyles(result.band)
 
     return (
-      <main className="min-h-screen bg-[#FCFAF8]">
+      <main className="taste-site taste-quiz-page">
         <Header />
-        <div className="pt-14 min-h-screen px-4 py-8 sm:py-12">
-          <div className="w-full max-w-2xl mx-auto">
-            <div className={`bg-gradient-to-br ${styles.bgGradient} rounded-2xl border-2 ${styles.borderColor} p-6 sm:p-8 mb-6 animate-fade-in-up`} data-testid="result-card">
+        <section className="taste-quiz-result-wrap">
+          <div className="taste-quiz-result-shell animate-fade-in-up">
+            <article className={`taste-quiz-result-card taste-quiz-band-${result.band}`} data-testid="result-card">
               {/* Primary output — named orientation stage (July 2026).
                   Leads the card; severity band + explanation remain below as
                   supporting detail. The badge keeps it explicitly non-diagnostic. */}
-              <div className="mb-5">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/70 ring-1 ring-slate-200 text-slate-700 text-[11px] font-medium px-3 py-1" data-testid="result-stage-badge">
-                  <ShieldCheck className="w-3 h-3 text-teal-600" /> Ориентир, не диагноза
-                </span>
-                <p className="mt-3 text-[11px] uppercase tracking-[0.18em] text-slate-500 font-semibold">Твоят ориентир</p>
-                <h1 className={`font-serif text-3xl sm:text-4xl font-semibold ${styles.textColor} leading-tight`} data-testid="result-stage-title">
+              <div className="taste-quiz-result-topline">
+                <span data-testid="result-stage-badge"><ShieldCheck aria-hidden /> Ориентир, не диагноза</span>
+                <span>Резултат за: {SEGMENT_LABELS[segment]}</span>
+              </div>
+
+              <div className="taste-quiz-result-heading">
+                <div>
+                  <p>Твоят ориентир</p>
+                  <h1 data-testid="result-stage-title">
                   {STAGE_BY_BAND[result.band]}
-                </h1>
+                  </h1>
+                </div>
+                <span className="taste-quiz-band-label"><i /> {content.bandLabel}</span>
               </div>
-              <div className="flex items-center gap-2 mb-6">
-                <span className={`w-2.5 h-2.5 rounded-full ${styles.dotColor}`} />
-                <span className={`text-sm font-semibold ${styles.labelText} ${styles.labelBg} px-3 py-1 rounded-full`}>{content.bandLabel}</span>
-                <span className="text-xs text-slate-400 ml-auto">Сегмент: {SEGMENT_LABELS[segment]}</span>
+
+              <div className="taste-quiz-result-summary">
+                <h2>{content.headline}</h2>
+                <p>{content.explanation}</p>
               </div>
-              <h2 className={`font-serif text-2xl sm:text-3xl font-semibold ${styles.textColor} mb-6 leading-tight`}>{content.headline}</h2>
-              <p className="text-slate-700 text-base sm:text-lg leading-relaxed mb-6">{content.explanation}</p>
-              <div className={`${styles.accentBg} rounded-xl p-4 mb-6`}>
-                <p className={`${styles.textColor} font-medium`}>{content.urgency}</p>
+
+              <div className="taste-quiz-urgency">
+                <span>Следващ ход</span>
+                <p>{content.urgency}</p>
               </div>
 
               {/* Flags */}
               {result.flags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-6">
+                <div className="taste-quiz-flags" aria-label="Забелязани сигнали">
                   {result.flags.map(f => (
-                    <span key={f} className="text-xs px-2.5 py-1 rounded-full bg-white/60 text-slate-600 border border-slate-200">
+                    <span key={f}>
                       {{ crowding: 'Струпване', bite_issue: 'Захапка', airway: 'Дишане', tension: 'Напрежение', wear: 'Износване', development: 'Развитие' }[f] || f}
                     </span>
                   ))}
@@ -1059,59 +1040,57 @@ export function MasterQuiz() {
                   contradict the advice sitting right above it. There is no
                   approved pricing for interceptive treatment, so the child
                   segment gets an honest qualitative note instead of numbers. */}
-              <div className="border-t border-slate-200/50 pt-6 mb-6">
+              <div className="taste-quiz-market-orientation">
                 {segment === 'child' ? (
-                  <>
-                    <p className="text-[11px] uppercase tracking-[0.14em] text-slate-500 font-semibold">
-                      За цената
-                    </p>
-                    <p className="mt-2 text-sm text-slate-600 leading-relaxed">
+                  <div className="taste-quiz-child-price-note">
+                    <span>За цената</span>
+                    <p>
                       При деца под 12 г. лечението често не е брекети, а
                       насочване на растежа. Затова цената и срокът зависят
                       силно от подхода и се определят след преглед.
                     </p>
-                  </>
+                  </div>
                 ) : (
                   <>
-                    <p className="text-[11px] uppercase tracking-[0.14em] text-slate-500 font-semibold">
-                      Ориентировъчни цени в България
-                    </p>
-                    <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="rounded-xl bg-white/60 ring-1 ring-slate-200 p-3">
-                        <p className="text-[11px] text-slate-500">Прозрачни алайнери</p>
-                        <p className="mt-1 font-serif text-lg text-slate-900">
+                    <div className="taste-quiz-market-heading">
+                      <span>Пазарен ориентир</span>
+                      <p>Общи диапазони за България, не персонална оферта.</p>
+                    </div>
+                    <div className="taste-quiz-price-grid">
+                      <div>
+                        <span>Прозрачни алайнери</span>
+                        <strong>
                           {formatPrice(TREATMENT_PRICES['orthodontics-aligners'])}
-                        </p>
+                        </strong>
                       </div>
-                      <div className="rounded-xl bg-white/60 ring-1 ring-slate-200 p-3">
-                        <p className="text-[11px] text-slate-500">Брекети</p>
-                        <p className="mt-1 font-serif text-lg text-slate-900">
+                      <div>
+                        <span>Брекети</span>
+                        <strong>
                           {formatPrice(TREATMENT_PRICES['orthodontics-braces'])}
-                        </p>
+                        </strong>
+                      </div>
+                      <div>
+                        <span>Обичайна продължителност</span>
+                        <strong>{result.band === 'low' ? ORTHO_DURATION.mild : ORTHO_DURATION.typical}</strong>
+                        <small>
+                          {result.band === 'low'
+                            ? 'Леките случаи обикновено се коригират по-бързо. ' + ORTHO_DURATION.note
+                            : ORTHO_DURATION.note}
+                        </small>
                       </div>
                     </div>
-                    <div className="mt-3 rounded-xl bg-white/60 ring-1 ring-slate-200 p-3">
-                      <p className="text-[11px] text-slate-500">Продължителност</p>
-                      <p className="mt-1 font-serif text-lg text-slate-900">
-                        {result.band === 'low' ? ORTHO_DURATION.mild : ORTHO_DURATION.typical}
-                      </p>
-                      <p className="mt-1 text-[11px] text-slate-500 leading-snug">
-                        {result.band === 'low'
-                          ? 'Леките случаи обикновено се коригират по-бързо. ' + ORTHO_DURATION.note
-                          : ORTHO_DURATION.note}
-                      </p>
-                    </div>
-                    <p className="mt-3 text-[11px] text-slate-500 leading-relaxed">
+                    <p className="taste-quiz-price-disclaimer">
                       {PRICE_NOT_PERSONAL_NOTE} {PRICE_DISCLAIMER}
                     </p>
                   </>
                 )}
               </div>
 
-              <p className="text-slate-600 text-sm leading-relaxed border-t border-slate-200/50 pt-6">{content.education}</p>
-            </div>
+              <p className="taste-quiz-result-education">{content.education}</p>
+            </article>
 
-            <div className="text-center animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+            <div className="taste-quiz-result-action animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+              <p>Следващата стъпка е да избереш град. Контакт се иска едва когато решиш да отключиш препоръките.</p>
               <button
                 onClick={() => {
                   // Bypass the redundant "Искаш ли да видиш опциите?" soft-commit
@@ -1125,15 +1104,14 @@ export function MasterQuiz() {
                   trackSoftCommit(true)
                   setStep('form')
                 }}
-                className="inline-flex items-center gap-2 px-8 py-4 bg-teal-500 text-white font-medium rounded-full hover:bg-teal-600 hover:shadow-lg hover:shadow-teal-500/25 transition-all duration-300 group"
+                className="taste-quiz-primary"
                 data-testid="result-continue-btn"
               >
-                <span>Продължи към опциите</span>
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                Продължи към опциите <ArrowRight aria-hidden />
               </button>
             </div>
           </div>
-        </div>
+        </section>
       </main>
     )
   }
@@ -1141,29 +1119,23 @@ export function MasterQuiz() {
   // ─── SOFT COMMIT ───────────────────────────────────────
   if (step === 'soft_commit') {
     return (
-      <main className="min-h-screen bg-[#FCFAF8]">
+      <main className="taste-site taste-quiz-page">
         <Header />
-        <div className="pt-14 min-h-screen flex items-center justify-center px-4 py-12">
-          <div className="w-full max-w-lg animate-fade-in-up">
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-lg p-8 sm:p-10 text-center">
-              <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-slate-900 mb-4">
-                {segment === 'adult' ? 'Искаш ли да видиш какви са опциите ти?' : 'Искате ли да видите подходящите опции?'}
-              </h1>
-              <p className="text-slate-600 text-base sm:text-lg leading-relaxed mb-10">
-                {MANUAL_RECOMMENDATION_COPY.shortIntro}
-              </p>
-              <div className="space-y-4">
-                <button onClick={() => { trackEvent('soft_commit', { choice: 'yes' }); trackSoftCommit(true); setStep('form') }} className="w-full px-8 py-4 bg-teal-500 text-white font-medium rounded-full hover:bg-teal-600 hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 group" data-testid="soft-commit-yes">
-                  <span>Да, покажете ми опциите</span>
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </button>
-                <button onClick={() => { trackEvent('soft_commit', { choice: 'no' }); trackSoftCommit(false); setStep('exit') }} className="w-full px-8 py-4 text-slate-500 font-medium rounded-full hover:text-slate-700 hover:bg-slate-100 transition-all duration-300" data-testid="soft-commit-no">
-                  Не сега
-                </button>
-              </div>
+        <section className="taste-quiz-centered">
+          <div className="taste-quiz-decision-card animate-fade-in-up">
+            <span className="taste-quiz-kicker"><i /> Следваща стъпка</span>
+            <h1>{segment === 'adult' ? 'Искаш ли да видиш какви са опциите ти?' : 'Искате ли да видите подходящите опции?'}</h1>
+            <p>{MANUAL_RECOMMENDATION_COPY.shortIntro}</p>
+            <div className="taste-quiz-decision-actions">
+              <button onClick={() => { trackEvent('soft_commit', { choice: 'yes' }); trackSoftCommit(true); setStep('form') }} className="taste-quiz-primary" data-testid="soft-commit-yes">
+                Да, покажете ми опциите <ArrowRight aria-hidden />
+              </button>
+              <button onClick={() => { trackEvent('soft_commit', { choice: 'no' }); trackSoftCommit(false); setStep('exit') }} className="taste-quiz-secondary" data-testid="soft-commit-no">
+                Не сега
+              </button>
             </div>
           </div>
-        </div>
+        </section>
       </main>
     )
   }
@@ -1171,23 +1143,18 @@ export function MasterQuiz() {
   // ─── EXIT ──────────────────────────────────────────────
   if (step === 'exit') {
     return (
-      <main className="min-h-screen bg-[#FCFAF8]">
+      <main className="taste-site taste-quiz-page">
         <Header />
-        <div className="pt-14 min-h-screen flex items-center justify-center px-4 py-12">
-          <div className="w-full max-w-lg animate-fade-in-up">
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 sm:p-10 text-center">
-              <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-6">
-                <X className="w-7 h-7 text-slate-400" />
-              </div>
-              <p className="text-slate-600 text-lg leading-relaxed mb-8">
-                {segment === 'adult' ? 'Можеш да провериш отново по всяко време.' : 'Можете да проверите отново по всяко време.'}
-              </p>
-              <Link href="/" className="inline-flex items-center gap-2 px-8 py-4 bg-slate-100 text-slate-700 font-medium rounded-full hover:bg-slate-200 transition-all duration-300" data-testid="exit-home-btn">
-                Обратно към началото
-              </Link>
-            </div>
+        <section className="taste-quiz-centered">
+          <div className="taste-quiz-decision-card taste-quiz-exit-card animate-fade-in-up">
+            <span className="taste-quiz-exit-icon"><X aria-hidden /></span>
+            <h1>Ориентирът ти остава достъпен.</h1>
+            <p>{segment === 'adult' ? 'Можеш да провериш отново по всяко време.' : 'Можете да проверите отново по всяко време.'}</p>
+            <Link href="/" className="taste-quiz-secondary" data-testid="exit-home-btn">
+              <ArrowLeft aria-hidden /> Обратно към началото
+            </Link>
           </div>
-        </div>
+        </section>
       </main>
     )
   }
@@ -1199,53 +1166,56 @@ export function MasterQuiz() {
   // name/phone/email twice and keeps Manual Recommendation Mode intact.
   if (step === 'form') {
     return (
-      <main className="min-h-screen bg-[#FCFAF8]">
+      <main className="taste-site taste-quiz-page">
         <Header />
-        <div className="pt-14 min-h-screen px-4 py-8 sm:py-12">
-          <div className="w-full max-w-lg mx-auto">
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 animate-fade-in-up">
-              <div className="text-center mb-8 pb-6 border-b border-slate-100">
-                <h2 className="font-serif text-xl sm:text-2xl font-semibold text-slate-900 mb-3">
-                  Къде търсиш консултация?
-                </h2>
-                <p className="text-slate-600 text-sm sm:text-base">
-                  Използваме града, за да покажем първо релевантни клиники близо до теб.
-                </p>
-              </div>
-              <div className="space-y-5">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Град <span className="text-red-500">*</span></label>
-                  <div className="grid grid-cols-2 gap-3">
-                    {CITIES.map(c => (
-                      <button key={c.value} type="button" onClick={() => setFormData(p => ({ ...p, city: c.value }))}
-                        className={`p-4 rounded-xl border-2 transition-all duration-200 flex items-center justify-center gap-2 font-medium ${formData.city === c.value ? 'bg-teal-50 border-teal-500 text-teal-700' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'}`}
-                        data-testid={`city-${c.value}`}>
-                        <MapPin className="w-4 h-4" />{c.label}
-                      </button>
-                    ))}
-                  </div>
+        <section className="taste-quiz-form-wrap">
+          <div className="taste-quiz-form-card animate-fade-in-up">
+            <div className="taste-quiz-form-heading">
+              <span>Последна стъпка</span>
+              <h1>Къде търсиш <em>консултация?</em></h1>
+              <p>Използваме града, за да покажем първо релевантни клиники близо до теб.</p>
+            </div>
+            <div className="taste-quiz-form-body">
+              <div className="taste-quiz-city-block">
+                <div className="taste-quiz-field-heading">
+                  <label>Избери град <span>*</span></label>
+                  <small>Задължително</small>
                 </div>
+                <div className="taste-quiz-city-grid">
+                  {CITIES.map(c => (
+                    <button key={c.value} type="button" onClick={() => { setFormData(p => ({ ...p, city: c.value })); setError('') }}
+                      className={`taste-quiz-city-option ${formData.city === c.value ? 'is-selected' : ''}`}
+                      data-testid={`city-${c.value}`}
+                      aria-pressed={formData.city === c.value}>
+                      <MapPin aria-hidden />{c.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
                 {/* Optional intake — helps the clinic prepare. Explicitly
                     marked optional and visually secondary to the city step
                     so it never reads as a wall of required questions. */}
-                <div className="pt-5 border-t border-slate-100" data-testid="intake-block">
-                  <p className="text-sm font-medium text-slate-700">
-                    Няколко бързи въпроса{' '}
-                    <span className="font-normal text-slate-400">· по избор</span>
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500 leading-relaxed">
+                <div className="taste-quiz-intake-block" data-testid="intake-block">
+                  <div className="taste-quiz-intake-heading">
+                    <div>
+                      <span>По избор</span>
+                      <h2>Помогни на клиниката да се подготви</h2>
+                    </div>
+                    <p>
                     Помагат на клиниката да се подготви, преди да се свърже с теб.
                     Можеш да ги пропуснеш.
-                  </p>
+                    </p>
+                  </div>
 
-                  <div className="mt-4 space-y-4">
+                  <div className="taste-quiz-intake-fields">
                     {INTAKE_FIELDS.map((f) => (
-                      <div key={f.key}>
-                        <label className="block text-[13px] text-slate-700 mb-1.5">{f.label}</label>
+                      <div className="taste-quiz-intake-field" key={f.key}>
+                        <label>{f.label}</label>
                         {f.hint && (
-                          <p className="text-[11px] text-slate-400 mb-1.5 leading-snug">{f.hint}</p>
+                          <p>{f.hint}</p>
                         )}
-                        <div className="flex flex-wrap gap-1.5">
+                        <div>
                           {f.options.map((o) => {
                             const cur = intake[f.key]
                             const selected = f.multi
@@ -1276,12 +1246,7 @@ export function MasterQuiz() {
                                     }
                                   })
                                 }
-                                className={
-                                  'px-3 py-1.5 rounded-full text-[13px] ring-1 transition-all ' +
-                                  (selected
-                                    ? 'bg-teal-50 ring-teal-400 text-teal-800 font-medium'
-                                    : 'bg-white ring-slate-200 text-slate-600 hover:ring-slate-300')
-                                }
+                                className={`taste-quiz-intake-option ${selected ? 'is-selected' : ''}`}
                                 data-testid={`intake-${f.key}-${o.value}`}
                                 aria-pressed={selected}
                               >
@@ -1295,17 +1260,16 @@ export function MasterQuiz() {
                   </div>
                 </div>
 
-                {error && <p className="text-red-600 text-sm bg-red-50 border border-red-200 p-3 rounded-xl">{error}</p>}
+                {error && <p className="taste-quiz-error" role="alert">{error}</p>}
                 <button onClick={handleSubmit} disabled={isSubmitting}
-                  className="w-full mt-4 px-8 py-4 bg-teal-500 text-white font-semibold rounded-full hover:bg-teal-600 hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="taste-quiz-primary taste-quiz-submit"
                   data-testid="submit-btn">
-                  {isSubmitting ? <><Loader2 className="w-5 h-5 animate-spin" />Изпращане...</> : <>Продължи<ArrowRight className="w-5 h-5" /></>}
+                  {isSubmitting ? <><Loader2 className="animate-spin" />Изпращане...</> : <>Продължи към резултата<ArrowRight aria-hidden /></>}
                 </button>
-                <p className="text-center text-xs text-slate-500 mt-6 leading-relaxed">{MANUAL_RECOMMENDATION_COPY.safetyNote}</p>
-              </div>
+                <p className="taste-quiz-form-safety"><ShieldCheck aria-hidden /> {MANUAL_RECOMMENDATION_COPY.safetyNote}</p>
             </div>
           </div>
-        </div>
+        </section>
       </main>
     )
   }

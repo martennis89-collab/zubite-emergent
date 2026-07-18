@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, HTTPException
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 import os
@@ -20,7 +20,13 @@ app = FastAPI(title="Zubite.bg API")
 
 @app.get("/health")
 async def health_check():
-    return {"status": "ok"}
+    """Render readiness probe: the process is ready only when MongoDB is."""
+    try:
+        await db.command("ping")
+    except Exception as exc:
+        logger.error("Health check failed: MongoDB is unavailable (%s)", type(exc).__name__)
+        raise HTTPException(status_code=503, detail="database unavailable") from exc
+    return {"status": "ok", "database": "connected"}
 
 
 # Build the /api router and include all sub-routers
@@ -171,6 +177,9 @@ async def startup():
 
     init_storage()
     asyncio.create_task(auto_verification_loop())
+
+    from auth import auth_session_cleanup_loop
+    asyncio.create_task(auth_session_cleanup_loop())
 
     # Booking engine (Feb 2026) — indexes + 24h reminder loop.
     from routers.bookings import reminder_loop

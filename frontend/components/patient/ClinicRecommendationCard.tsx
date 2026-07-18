@@ -3,13 +3,19 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Building2, MapPin, ShieldCheck, Sparkle, Sparkles, ArrowRight, CheckCircle2, ChevronDown, Gift, Video } from 'lucide-react'
+import dynamic from 'next/dynamic'
+import { Building2, MapPin, ShieldCheck, Sparkle, Sparkles, ArrowRight, CheckCircle2, ChevronDown, Video } from 'lucide-react'
 import type { RecommendedClinic } from '@/lib/api'
 import { TREATMENT_LABELS } from '@/lib/consultationLabels'
-import { RequestCallModal } from '@/components/patient/RequestCallModal'
 import { AlignerBrandChips } from '@/components/patient/AlignerBrandChips'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
 import { getStoredLeadContact } from '@/lib/leadContact'
+import { CLINIC_CONTACT_ACTION_COPY } from '@/lib/publicClinics'
+
+const RequestCallModal = dynamic(
+  () => import('@/components/patient/RequestCallModal').then((module) => module.RequestCallModal),
+  { ssr: false },
+)
 
 interface Props {
   clinic: RecommendedClinic
@@ -96,7 +102,7 @@ export function ClinicRecommendationCard({
 
   return (
     <article
-      className="group relative rounded-2xl bg-white/80 backdrop-blur-xl ring-1 ring-white/80 overflow-hidden flex flex-col h-full shadow-[0_10px_30px_-22px_rgba(15,23,42,0.20)] hover:-translate-y-1 hover:bg-white/90 hover:shadow-[0_22px_50px_-22px_rgba(13,148,136,0.28)] hover:ring-teal-200/60 transition-all duration-300"
+      className="taste-recommendation-card group relative rounded-2xl bg-white/80 backdrop-blur-xl ring-1 ring-white/80 overflow-hidden flex flex-col h-full shadow-[0_10px_30px_-22px_rgba(15,23,42,0.20)] hover:-translate-y-1 hover:bg-white/90 hover:shadow-[0_22px_50px_-22px_rgba(13,148,136,0.28)] hover:ring-teal-200/60 transition-all duration-300"
       data-testid={`clinic-card-${clinic.id}`}
       data-tier={tier || 'standard'}
       aria-label={`Препоръка ${position}: ${clinic.name}`}
@@ -113,6 +119,7 @@ export function ClinicRecommendationCard({
             alt={clinic.name}
             width={480}
             height={144}
+            sizes="(max-width: 767px) calc(100vw - 40px), (max-width: 1180px) 50vw, 380px"
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
             unoptimized
           />
@@ -164,10 +171,8 @@ export function ClinicRecommendationCard({
           </p>
         </div>
 
-      {/* Treatments + city/Care Pass chip row.
+      {/* Treatments + city chip row.
 
-          The Care Pass chip renders ONLY when `clinic.care_pass_partner === true`
-          (Feb 2026 brief): we never imply that every clinic participates.
           A separate "В твоя град" chip surfaces when the backend has confirmed
           the same-city match (all recommended clinics pass this filter today,
           but we gate on the explicit flag in case the contract evolves). */}
@@ -181,15 +186,6 @@ export function ClinicRecommendationCard({
           </span>
         )}
         {treatmentBadges}
-        {clinic.care_pass_partner === true && (
-          <span
-            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-700 ring-1 ring-teal-100 text-[11px] font-medium"
-            data-testid={`clinic-card-carepass-chip-${clinic.id}`}
-            title="Възможни ползи след физическа консултация."
-          >
-            <Gift className="w-3 h-3" /> Care Pass
-          </span>
-        )}
       </div>
 
       {/* Aligner brand chips — compact form, omitted when no brands. */}
@@ -237,9 +233,6 @@ export function ClinicRecommendationCard({
               <li className="flex items-start gap-1.5"><span className="text-teal-500 mt-1">•</span><span>Работи с тази категория случаи</span></li>
               <li className="flex items-start gap-1.5"><span className="text-teal-500 mt-1">•</span><span>Релевантна е спрямо посоката от въпросника</span></li>
               <li className="flex items-start gap-1.5"><span className="text-teal-500 mt-1">•</span><span>В твоя град / близо до избраната локация</span></li>
-              {clinic.care_pass_partner === true && (
-                <li className="flex items-start gap-1.5"><span className="text-teal-500 mt-1">•</span><span>Участваща в Care Pass — ползи може да се отключат след физическа консултация</span></li>
-              )}
             </ul>
           </div>
         </div>
@@ -298,7 +291,7 @@ export function ClinicRecommendationCard({
             className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-slate-100/80 text-slate-400 text-sm font-medium rounded-full cursor-not-allowed"
             data-testid={`clinic-card-locked-by-assisted-${clinic.id}`}
           >
-            Вече поискахте помощ от Zubite
+            Вече поиска помощ от Zubite
           </button>
         ) : hasAnySelection ? (
           <button
@@ -316,7 +309,7 @@ export function ClinicRecommendationCard({
             className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-slate-100/80 text-slate-400 text-sm font-medium rounded-full cursor-not-allowed"
             data-testid={`clinic-card-disabled-${clinic.id}`}
           >
-            Вече избрахте клиника
+            Вече избра клиника
           </button>
         ) : (
           <button
@@ -331,10 +324,10 @@ export function ClinicRecommendationCard({
               })
               setModalOpen(true)
             }}
-            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-white/65 backdrop-blur-xl ring-1 ring-white/80 text-slate-800 text-sm font-medium rounded-full hover:bg-white hover:-translate-y-0.5 transition-all shadow-[0_8px_24px_-14px_rgba(15,23,42,0.18)]"
+            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-white/65 backdrop-blur-xl ring-1 ring-white/80 text-slate-800 rounded-2xl hover:bg-white hover:-translate-y-0.5 transition-all shadow-[0_8px_24px_-14px_rgba(15,23,42,0.18)]"
             data-testid={`clinic-card-cta-${clinic.id}`}
           >
-            Заяви контакт
+            <span className="text-left"><strong className="block text-sm font-medium">{CLINIC_CONTACT_ACTION_COPY.label}</strong><small className="mt-0.5 block text-[11px] font-normal text-slate-500">{CLINIC_CONTACT_ACTION_COPY.description}</small></span>
           </button>
         )}
       </div>

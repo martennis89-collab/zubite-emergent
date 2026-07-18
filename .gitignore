@@ -4,6 +4,13 @@
 .idea/
 .vscode/
 
+# Local agent and design-tool workspaces (never deploy or commit).
+.claude/
+.codex/
+.codex-tmp/
+.impeccable/
+tasteskill-design/
+
 # Dependencies
 node_modules/
 /node_modules
@@ -32,18 +39,10 @@ next-env.d.ts
 dist/
 dist
 
-# Environment files
-# NOTE: Emergent production deployment expects `.env` files to be
-# committed (they are auto-rewritten during deploy). Only exclude
-# example/template files, and any obviously secret ones (tokens,
-# credentials JSON).
-!.env
-!.env.*
-!*.env
-!backend/.env
-!backend/.env.*
-!frontend/.env
-!frontend/.env.*
+# Environment files: keep real credentials local and commit templates only.
+.env
+.env.*
+*.env
 !.env.example
 !**/.env.example
 !.env.*.example
@@ -119,6 +118,3 @@ frontend/node_modules/@next/swc-linux-arm64-musl/next-swc.linux-arm64-musl.node
 credentials.json
 *.key
 .credentials
-.env
-.env.*
-*.env

@@ -43,6 +43,15 @@ from auth import get_current_clinic
 from audit import audit_log
 from config import APP_NAME, logger
 from entitlements import compute_entitlements
+# Reused, not reimplemented — `PatientContextSection.tsx` on the frontend
+# already renders exactly this shape for consultation_requests, and these
+# helpers are pure functions of a `lead` dict (no DB access), so sharing
+# them here keeps quiz-answer rendering rules defined in ONE place.
+from routers.consultations import (
+    _safe_quiz_summary,
+    _safe_quiz_signals,
+    _safe_source_context,
+)
 from rate_limit import rate_limit
 from storage import put_object, get_object
 
@@ -131,6 +140,52 @@ async def _require_chat_clinic(clinic_id: str) -> Dict[str, Any]:
     return clinic
 
 
+# Every field `_safe_quiz_summary` / `_safe_quiz_signals` /
+# `_safe_source_context` read off a lead doc — kept as one constant so
+# the projection can't silently drift out of sync with what those
+# functions actually need.
+_LEAD_CONTEXT_PROJECTION = {
+    "_id": 0, "answers": 1, "band": 1,
+    "first_article_title": 1, "first_article_slug": 1,
+    "latest_article_title": 1, "latest_article_slug": 1,
+    "first_utm_source": 1, "first_utm_campaign": 1, "first_utm_ad": 1,
+    "latest_utm_source": 1, "latest_utm_campaign": 1, "latest_utm_ad": 1,
+    "first_landing_page_type": 1, "latest_landing_page_type": 1,
+    "first_landing_page": 1, "first_referrer": 1,
+    "pages_viewed_before_conversion": 1, "blog_assisted_conversion": 1,
+}
+
+
+def _patient_context_for_lead(lead: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Same shape `PatientContextSection.tsx` already renders for
+    consultation_requests, minus the Clinical Brief intake fields
+    (treatment_interest/readiness/urgency/main_concern/patient_message) —
+    a chat has no brief behind it, only whatever the quiz captured.
+
+    Returns None when there is nothing to show at all — a quick-chat
+    lead (see `POST /leads/quick-chat`) has `answers: {}`, and rendering
+    an empty "Отговори от въпросника" section for a patient who
+    explicitly skipped the quiz would be clutter, not signal.
+    """
+    signals = _safe_quiz_signals(lead)
+    quiz_summary = _safe_quiz_summary(lead)
+    if not signals["stage_label"] and not signals["flags"] and not quiz_summary:
+        return None
+    return {
+        "label": "Информация от въпросника",
+        "treatment_interest": None,
+        "city": None,
+        "readiness": None,
+        "urgency": None,
+        "main_concern": None,
+        "patient_message": None,
+        "stage_label": signals["stage_label"],
+        "signal_flags": signals["flags"],
+        "quiz_summary": quiz_summary,
+        "source_context": _safe_source_context(lead),
+    }
+
+
 async def _get_or_create_chat(lead: Dict[str, Any], clinic: Dict[str, Any]) -> Dict[str, Any]:
     existing = await db.get_collection(CHATS_COL).find_one(
         {"lead_id": lead["id"], "clinic_id": clinic["id"]}, {"_id": 0},
@@ -171,18 +226,21 @@ def _message_out(m: Dict[str, Any], files_by_id: Dict[str, Dict[str, Any]]) -> D
     }
 
 
+async def _files_by_id(file_ids: List[str]) -> Dict[str, Dict[str, Any]]:
+    if not file_ids:
+        return {}
+    cur = db.get_collection(FILES_COL).find(
+        {"id": {"$in": file_ids}, "is_deleted": False}, {"_id": 0},
+    )
+    return {f["id"]: f async for f in cur}
+
+
 async def _messages_for(chat_id: str) -> List[Dict[str, Any]]:
     rows = await db.get_collection(MESSAGES_COL).find(
         {"chat_id": chat_id}, {"_id": 0},
     ).sort("created_at", 1).to_list(500)
     file_ids = [fid for r in rows for fid in (r.get("attachments") or [])]
-    files_by_id: Dict[str, Dict[str, Any]] = {}
-    if file_ids:
-        cur = db.get_collection(FILES_COL).find(
-            {"id": {"$in": file_ids}, "is_deleted": False}, {"_id": 0},
-        )
-        for f in await cur.to_list(500):
-            files_by_id[f["id"]] = f
+    files_by_id = await _files_by_id(file_ids)
     return [_message_out(m, files_by_id) for m in rows]
 
 
@@ -341,6 +399,31 @@ async def patient_get_chat(access_token: str, chat_id: str):
             "messages": await _messages_for(chat_id)}
 
 
+@router.get(
+    "/patient-chat/{access_token}/clinics/{clinic_id}",
+    dependencies=[Depends(rate_limit("patient_chat_read", 60, 300))],
+)
+async def patient_get_chat_by_clinic(access_token: str, clinic_id: str):
+    """Resolve the patient's thread with a specific clinic WITHOUT
+    creating one — a chat should only start to exist once a message has
+    actually been sent (see `_get_or_create_chat`, only called from the
+    send/upload paths). This is what a "message this clinic" entry point
+    calls to open a panel: `chat: null` means an empty composer with no
+    history, not an error.
+    """
+    lead = await _lead_from_token(access_token)
+    chat = await db.get_collection(CHATS_COL).find_one(
+        {"lead_id": lead["id"], "clinic_id": clinic_id}, {"_id": 0},
+    )
+    if not chat:
+        return {"chat": None, "messages": []}
+    await db.get_collection(CHATS_COL).update_one(
+        {"id": chat["id"]}, {"$set": {"patient_unread": 0}},
+    )
+    return {"chat": {"id": chat["id"], "status": chat.get("status")},
+            "messages": await _messages_for(chat["id"])}
+
+
 @router.post(
     "/patient-chat/{access_token}/clinics/{clinic_id}/files",
     dependencies=[Depends(rate_limit("patient_chat_upload", 20, 300))],
@@ -378,7 +461,8 @@ async def patient_send_message(
     )
     if first_from_patient:
         await _notify_clinic_new_chat(chat, clinic, lead)
-    return {"message": _message_out(msg, {})}
+    files_by_id = await _files_by_id(msg.get("attachments") or [])
+    return {"message": _message_out(msg, files_by_id)}
 
 
 @router.get("/patient-chat/{access_token}/files/{file_id}")
@@ -426,10 +510,13 @@ async def clinic_get_chat(chat_id: str, clinic=Depends(get_current_clinic)):
     await db.get_collection(CHATS_COL).update_one(
         {"id": chat_id}, {"$set": {"clinic_unread": 0}},
     )
-    lead = await db.leads.find_one({"id": chat["lead_id"]}, {"_id": 0, "name": 1})
+    lead = await db.leads.find_one(
+        {"id": chat["lead_id"]}, {**_LEAD_CONTEXT_PROJECTION, "name": 1},
+    )
     return {
         "chat": {"id": chat["id"], "status": chat.get("status"),
                  "patient_name": (lead or {}).get("name") or "Пациент"},
+        "patient_context": _patient_context_for_lead(lead) if lead else None,
         "messages": await _messages_for(chat_id),
     }
 
@@ -467,7 +554,8 @@ async def clinic_send_message(
         chat, sender="clinic", body=payload.body,
         attachment_ids=payload.attachment_ids,
     )
-    return {"message": _message_out(msg, {})}
+    files_by_id = await _files_by_id(msg.get("attachments") or [])
+    return {"message": _message_out(msg, files_by_id)}
 
 
 @router.get("/clinic/chats/{chat_id}/files/{file_id}")

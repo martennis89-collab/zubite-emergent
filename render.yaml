@@ -1,0 +1,54 @@
+services:
+  - type: web
+    name: zubite-api
+    runtime: docker
+    region: frankfurt
+    plan: starter
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    maxShutdownDelaySeconds: 30
+    buildFilter:
+      paths:
+        - backend/**
+        - render.yaml
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: DB_NAME
+        value: zubite
+      - key: MONGO_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: REVALIDATE_SECRET
+        sync: false
+      - key: R2_ENDPOINT
+        sync: false
+      - key: R2_BUCKET
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: FRONTEND_URL
+        value: https://zubite.bg
+      - key: PRODUCTION_URL
+        value: https://zubite.bg
+      - key: CORS_ORIGINS
+        value: https://zubite.bg,https://www.zubite.bg
+      - key: AUTH_COOKIE_SECURE
+        value: "1"
+      - key: AUTH_COOKIE_SAMESITE
+        value: lax
+      - key: AUDIT_LOGS_ENABLED
+        value: "1"
+      - key: RESEND_API_KEY
+        sync: false
+      - key: SENDER_EMAIL
+        value: hello@zubite.bg
+      - key: ZUBITE_ADMIN_NOTIFICATION_EMAIL
+        value: info@zubite.bg

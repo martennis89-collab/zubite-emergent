@@ -614,6 +614,45 @@ async def admin_update_clinic(
                 if not isinstance(item, str) or len(item) > 80:
                     raise HTTPException(status_code=400, detail="Invalid treatment_focus item")
 
+        doctor_specialties = profile.get("doctor_spotlight_specialties") or []
+        if isinstance(doctor_specialties, list):
+            if len(doctor_specialties) > 8:
+                raise HTTPException(
+                    status_code=400,
+                    detail="doctor_spotlight_specialties exceeds 8 items",
+                )
+            seen_specialties: set[str] = set()
+            for item in doctor_specialties:
+                if not isinstance(item, str) or not item.strip() or len(item) > 80:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Invalid doctor_spotlight_specialties item",
+                    )
+                specialty_key = item.strip().casefold()
+                if specialty_key in seen_specialties:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="doctor_spotlight_specialties contains duplicates",
+                    )
+                seen_specialties.add(specialty_key)
+
+        treatment_case_counts = profile.get("treatment_case_counts") or []
+        if isinstance(treatment_case_counts, list):
+            if len(treatment_case_counts) > 12:
+                raise HTTPException(
+                    status_code=400,
+                    detail="treatment_case_counts exceeds 12 items",
+                )
+            seen_treatments: set[str] = set()
+            for row in treatment_case_counts:
+                treatment_key = (row.get("treatment") or "").strip().casefold()
+                if treatment_key in seen_treatments:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="treatment_case_counts contains duplicate treatments",
+                    )
+                seen_treatments.add(treatment_key)
+
         cases = profile.get("case_library") or []
         if isinstance(cases, list):
             if len(cases) > 12:
@@ -832,6 +871,7 @@ async def admin_get_consultation_request(
         "clinic_city": clinic_city,
         "appointment": appointment,
         "lead": lead,
+        "patient_context": await _build_patient_context(req),
     }
 
 

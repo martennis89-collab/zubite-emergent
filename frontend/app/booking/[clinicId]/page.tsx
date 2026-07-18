@@ -1,9 +1,16 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { CalendarDays, Clock, Loader2, CheckCircle2, AlertTriangle, ChevronLeft } from 'lucide-react'
+import type { PublicClinic } from '@/lib/publicClinics'
+
+const PublicContactModal = dynamic(
+  () => import('@/components/public-clinics/PublicContactModal'),
+  { ssr: false },
+)
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -30,8 +37,6 @@ function fmtTimeBg(iso: string): string {
 export default function BookingPage() {
   const params = useParams<{ clinicId: string; leadId?: string }>()
   const searchParams = useSearchParams()
-  const router = useRouter()
-
   const clinicId = params.clinicId as string
   const leadId = (params.leadId as string) || searchParams.get('leadId') || null
   const source = leadId ? 'quiz_result' : 'clinic_profile'
@@ -45,6 +50,9 @@ export default function BookingPage() {
   const [step, setStep] = useState<'calendar' | 'form' | 'success' | 'slot_taken'>('calendar')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [publicClinic, setPublicClinic] = useState<PublicClinic | null>(null)
+  const [contactOpen, setContactOpen] = useState(false)
 
   const [form, setForm] = useState({
     patient_name: '', patient_email: '', patient_phone: '',
@@ -55,17 +63,37 @@ export default function BookingPage() {
   })
   const [confirmed, setConfirmed] = useState<{ start: string; clinic: string; email: string; name: string } | null>(null)
 
+  const requestedReturnTo = searchParams.get('returnTo')
+  const backHref = useMemo(() => {
+    if (leadId) return `/results/${leadId}/clinics/${clinicId}`
+    if (
+      requestedReturnTo &&
+      requestedReturnTo.startsWith('/kliniki/') &&
+      !requestedReturnTo.startsWith('//')
+    ) return requestedReturnTo
+    return '/kliniki'
+  }, [clinicId, leadId, requestedReturnTo])
+
   const load = useCallback(async () => {
     setLoading(true)
+    setLoadError(null)
     try {
-      const r = await fetch(`${API_URL}/api/public/clinics/${clinicId}/booking-slots?days=30`, { cache: 'no-store' })
+      const [r, profileResponse] = await Promise.all([
+        fetch(`${API_URL}/api/public/clinics/${clinicId}/booking-slots?days=30`, { cache: 'no-store' }),
+        fetch(`${API_URL}/api/public/clinics/${clinicId}`, { cache: 'no-store' }),
+      ])
       if (r.ok) {
         const d = await r.json()
         setEnabled(!!d.booking_enabled)
         setClinicName(d.clinic_name || '')
         setAddress(d.address || '')
         setSlots(d.slots || [])
+      } else {
+        setLoadError('Не успяхме да заредим календара на клиниката.')
       }
+      if (profileResponse.ok) setPublicClinic(await profileResponse.json())
+    } catch {
+      setLoadError('Не успяхме да заредим календара. Провери връзката си и опитай отново.')
     } finally { setLoading(false) }
   }, [clinicId])
 
@@ -121,14 +149,34 @@ export default function BookingPage() {
     )
   }
 
+  if (loadError) {
+    return (
+      <BookingShell title={clinicName || 'Клиника'} backHref={backHref}>
+        <div className="rounded-2xl bg-white border border-slate-200 p-6 text-center" role="alert" data-testid="booking-load-error">
+          <AlertTriangle className="w-6 h-6 text-amber-600 mx-auto mb-3" aria-hidden="true" />
+          <h2 className="font-serif text-xl font-semibold text-slate-900 mb-1">Календарът не се зареди</h2>
+          <p className="text-sm text-slate-600 mb-4">{loadError}</p>
+          <div className="flex flex-wrap justify-center gap-2">
+            <button type="button" onClick={() => void load()} className="inline-flex min-h-11 items-center rounded-full bg-slate-900 px-5 text-sm font-medium text-white">
+              Опитай отново
+            </button>
+            <Link href={backHref} className="inline-flex min-h-11 items-center rounded-full border border-slate-300 px-5 text-sm font-medium text-slate-900">
+              Към профила
+            </Link>
+          </div>
+        </div>
+      </BookingShell>
+    )
+  }
+
   if (!enabled) {
     return (
-      <BookingShell title={clinicName || 'Клиника'} backHref={leadId ? `/results/${leadId}/clinics/${clinicId}` : `/klinika/${clinicId}`}>
+      <BookingShell title={clinicName || 'Клиника'} backHref={backHref}>
         <div className="rounded-2xl bg-white border border-slate-200 p-6 text-center" data-testid="booking-disabled">
           <AlertTriangle className="w-6 h-6 text-amber-500 mx-auto mb-3" />
           <h2 className="font-serif text-xl font-semibold text-slate-900 mb-1">Клиниката няма онлайн календар</h2>
           <p className="text-sm text-slate-600 mb-4">Тази клиника не приема онлайн заявки за час. Можеш да се свържеш директно с нея.</p>
-          <Link href={leadId ? `/results/${leadId}/clinics/${clinicId}` : `/klinika/${clinicId}`} className="inline-flex items-center gap-1.5 px-4 h-10 rounded-full bg-slate-900 text-white text-sm font-medium">
+          <Link href={backHref} className="inline-flex items-center gap-1.5 px-4 min-h-11 rounded-full bg-slate-900 text-white text-sm font-medium">
             <ChevronLeft className="w-4 h-4" /> Обратно към профила
           </Link>
         </div>
@@ -160,11 +208,11 @@ export default function BookingPage() {
 
   if (step === 'slot_taken') {
     return (
-      <BookingShell title={clinicName} backHref="#">
+      <BookingShell title={clinicName} backHref={backHref}>
         <div className="rounded-2xl bg-white border border-amber-200 p-6 text-center" data-testid="booking-slot-taken">
           <AlertTriangle className="w-6 h-6 text-amber-500 mx-auto mb-3" />
           <p className="text-sm text-slate-700">Този час вече не е свободен. Моля, избери друг.</p>
-          <button type="button" onClick={() => { setStep('calendar'); setSelected(null) }} className="mt-3 inline-flex items-center gap-1 px-4 h-9 rounded-full bg-slate-900 text-white text-sm">
+          <button type="button" onClick={() => { setStep('calendar'); setSelected(null) }} className="mt-3 inline-flex min-h-11 items-center gap-1 px-4 rounded-full bg-slate-900 text-white text-sm">
             Обратно към календара
           </button>
         </div>
@@ -173,7 +221,8 @@ export default function BookingPage() {
   }
 
   return (
-    <BookingShell title={clinicName} backHref={leadId ? `/results/${leadId}/clinics/${clinicId}` : `/klinika/${clinicId}`}>
+    <>
+    <BookingShell title={clinicName} backHref={backHref}>
       {step === 'calendar' && (
         <div className="space-y-4" data-testid="booking-calendar">
           <p className="text-[13px] text-slate-600 leading-relaxed">
@@ -183,8 +232,17 @@ export default function BookingPage() {
           <p className="text-[11px] text-slate-500">Всички часове са в българско време (Europe/Sofia).</p>
 
           {dates.length === 0 ? (
-            <div className="rounded-2xl bg-white border border-slate-200 p-6 text-center text-slate-500 text-sm" data-testid="booking-no-slots">
-              Клиниката няма свободни часове в момента. Можеш да изпратиш заявка или да провериш по-късно.
+            <div className="rounded-2xl bg-white border border-slate-200 p-6 text-center text-slate-600 text-sm" data-testid="booking-no-slots">
+              <p>Клиниката няма свободни часове в момента. Можеш да заявиш контакт или да провериш по-късно.</p>
+              {publicClinic ? (
+                <button type="button" onClick={() => setContactOpen(true)} className="mt-4 inline-flex min-h-11 items-center rounded-full bg-slate-900 px-5 font-medium text-white" data-testid="booking-no-slots-contact">
+                  Заяви контакт
+                </button>
+              ) : (
+                <Link href={backHref} className="mt-4 inline-flex min-h-11 items-center rounded-full bg-slate-900 px-5 font-medium text-white">
+                  Към профила на клиниката
+                </Link>
+              )}
             </div>
           ) : (
             <>
@@ -231,7 +289,7 @@ export default function BookingPage() {
 
       {step === 'form' && selected && (
         <form onSubmit={submit} className="space-y-4 rounded-2xl bg-white border border-slate-200 p-5 max-w-lg mx-auto" data-testid="booking-form">
-          <button type="button" onClick={() => { setSelected(null); setStep('calendar') }} className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800">
+          <button type="button" onClick={() => { setSelected(null); setStep('calendar') }} className="inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-xs text-slate-500 hover:text-slate-800">
             <ChevronLeft className="w-3.5 h-3.5" /> Обратно към календара
           </button>
           <div className="rounded-lg bg-teal-50/70 border border-teal-200 p-3 text-sm">
@@ -308,6 +366,17 @@ export default function BookingPage() {
         </form>
       )}
     </BookingShell>
+    {contactOpen && publicClinic && (
+      <PublicContactModal
+        clinics={[publicClinic]}
+        source="clinic_profile"
+        consultationType="general"
+        prefillCity={publicClinic.city_slug}
+        prefillTreatment={publicClinic.treatments[0]}
+        onClose={() => setContactOpen(false)}
+      />
+    )}
+    </>
   )
 }
 
@@ -316,8 +385,8 @@ function BookingShell({ title, backHref, children }: { title: string; backHref: 
     <main className="min-h-screen bg-[#FCFAF8] pb-24">
       <header className="sticky top-0 z-30 backdrop-blur-md bg-white/70 border-b border-slate-100">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
-          <Link href={backHref} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-500">
-            <ChevronLeft className="w-5 h-5" />
+          <Link href={backHref} aria-label="Обратно към профила на клиниката" className="grid min-h-11 min-w-11 place-items-center rounded-full hover:bg-slate-100 text-slate-600">
+            <ChevronLeft className="w-5 h-5" aria-hidden="true" />
           </Link>
           <div className="min-w-0 flex-1">
             <p className="text-[10px] uppercase tracking-wider font-semibold text-teal-700">Запази консултация</p>

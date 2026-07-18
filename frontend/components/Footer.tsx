@@ -50,11 +50,11 @@ const LEGAL: FooterLink[] = [
 function Column({ title, links }: { title: string; links: FooterLink[] }) {
   return (
     <div>
-      <p className="text-xs uppercase tracking-[0.18em] text-slate-500 font-semibold">{title}</p>
+      <p className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-[#6B6B6B]">{title}</p>
       <ul className="mt-4 space-y-2.5 text-sm">
         {links.map((l) => (
           <li key={l.href}>
-            <Link href={l.href} className="hover:text-teal-400 transition-colors">
+            <Link href={l.href} className="text-[#525252] transition-colors duration-300 hover:text-[#B84900]">
               {l.label}
             </Link>
           </li>
@@ -66,23 +66,19 @@ function Column({ title, links }: { title: string; links: FooterLink[] }) {
 
 export function Footer({ treatmentSlug: _treatmentSlug }: FooterProps) {
   return (
-    <footer className="relative bg-[#0E1A1A] text-slate-300 pt-16 pb-10 overflow-hidden" data-testid="site-footer">
-      {/* Subtle glassy top border */}
-      <div aria-hidden className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-teal-400/40 to-transparent" />
-      <div aria-hidden className="absolute -top-32 left-1/4 w-96 h-96 rounded-full bg-teal-500/8 blur-3xl pointer-events-none" />
-
-      <div className="relative max-w-[1600px] mx-auto px-6 sm:px-10 lg:px-16">
+    <footer className="relative overflow-hidden border-t border-[#E5E5E5] bg-[#F5F4F2] pb-10 pt-16 text-[#525252]" data-testid="site-footer">
+      <div className="relative mx-auto max-w-[1280px] px-5 sm:px-6">
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-[1.5fr_repeat(5,1fr)] gap-8 md:gap-10">
           {/* Brand */}
           <div className="col-span-2 md:col-span-4 lg:col-span-1">
             <Link href="/" className="inline-flex items-baseline">
-              <span className="font-serif text-2xl font-semibold text-white">Zubite</span>
-              <span className="font-serif text-2xl font-semibold text-teal-400">.bg</span>
+              <span className="font-sans text-2xl font-bold tracking-[-0.04em] text-[#0A0A0A]">Zubite</span>
+              <span className="font-sans text-2xl font-bold tracking-[-0.04em] text-[#007956]">.bg</span>
             </Link>
-            <p className="mt-4 text-sm text-slate-400 leading-relaxed max-w-xs">
+            <p className="mt-4 max-w-xs text-sm leading-relaxed text-[#525252]">
               Спокоен ориентир в денталното здраве. Първо яснота, после избор.
             </p>
-            <p className="mt-5 text-[11px] text-slate-500 leading-snug max-w-xs">
+            <p className="mt-5 max-w-xs text-[11px] leading-snug text-[#6B6B6B]">
               Не поставяме диагнози. Не заменяме професионален преглед.
               Информацията е ориентировъчна.
             </p>
@@ -99,7 +95,7 @@ export function Footer({ treatmentSlug: _treatmentSlug }: FooterProps) {
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-9 h-9 rounded-full bg-white/5 hover:bg-teal-500/15 ring-1 ring-white/10 hover:ring-teal-400/30 flex items-center justify-center text-slate-400 hover:text-teal-300 transition-all"
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-[#E5E5E5] bg-white text-[#6B6B6B] transition-[transform,border-color,color] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:-translate-y-0.5 hover:border-[#B84900] hover:text-[#B84900]"
                   aria-label={label}
                   data-testid={`footer-social-${label.toLowerCase()}`}
                 >
@@ -118,17 +114,17 @@ export function Footer({ treatmentSlug: _treatmentSlug }: FooterProps) {
           <div className="space-y-8">
             <Column title="За клиники" links={FOR_CLINICS} />
             <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-500 font-semibold">Право</p>
+              <p className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-[#6B6B6B]">Право</p>
               <ul className="mt-4 space-y-2.5 text-sm">
                 {LEGAL.map((l) => (
                   <li key={l.href}>
-                    <Link href={l.href} className="hover:text-teal-400 transition-colors">
+                    <Link href={l.href} className="text-[#525252] transition-colors duration-300 hover:text-[#B84900]">
                       {l.label}
                     </Link>
                   </li>
                 ))}
                 <li>
-                  <Link href="/contact" className="inline-flex items-center gap-1.5 hover:text-teal-400 transition-colors">
+                  <Link href="/contact" className="inline-flex items-center gap-1.5 text-[#525252] transition-colors duration-300 hover:text-[#B84900]">
                     <Mail className="w-3.5 h-3.5" /> Контакти
                   </Link>
                 </li>
@@ -137,7 +133,7 @@ export function Footer({ treatmentSlug: _treatmentSlug }: FooterProps) {
           </div>
         </div>
 
-        <div className="mt-12 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-[11px] text-slate-500">
+        <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-[#E5E5E5] pt-6 text-[11px] text-[#6B6B6B] sm:flex-row sm:items-center">
           <p>© {new Date().getFullYear()} Zubite.bg · Всички права запазени.</p>
           <p>Направено с грижа в България.</p>
         </div>

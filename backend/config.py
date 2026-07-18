@@ -49,12 +49,17 @@ ADMIN_EMAIL = (
 # Revalidation for Next.js ISR - fail fast if missing
 REVALIDATE_SECRET = os.environ.get('REVALIDATE_SECRET')
 if not REVALIDATE_SECRET or len(REVALIDATE_SECRET) < 16:
-    # Generate ephemeral one so server still boots, but log warning so revalidation must be re-configured
+    if IS_PRODUCTION:
+        raise RuntimeError(
+            "REVALIDATE_SECRET must be set and at least 16 characters long in production. "
+            "Use the same value on Render and Vercel."
+        )
+    # Keep local development bootable, but make the limitation explicit.
     import secrets as _secrets
     REVALIDATE_SECRET = _secrets.token_urlsafe(32)
     logging.warning(
-        "REVALIDATE_SECRET not set - generated ephemeral one. "
-        "Next.js ISR webhooks will fail until REVALIDATE_SECRET is configured in both backend/.env and frontend/.env"
+        "REVALIDATE_SECRET not set - generated an ephemeral development value. "
+        "Next.js ISR webhooks require the same configured value in both apps."
     )
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
 
@@ -76,6 +81,11 @@ R2_ENDPOINT = (os.environ.get('R2_ENDPOINT') or '').strip().rstrip('/')
 R2_BUCKET = (os.environ.get('R2_BUCKET') or '').strip()
 R2_ACCESS_KEY_ID = os.environ.get('R2_ACCESS_KEY_ID')
 R2_SECRET_ACCESS_KEY = os.environ.get('R2_SECRET_ACCESS_KEY')
+if IS_PRODUCTION and not all((R2_ENDPOINT, R2_BUCKET, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY)):
+    raise RuntimeError(
+        "Cloudflare R2 must be fully configured in production: R2_ENDPOINT, "
+        "R2_BUCKET, R2_ACCESS_KEY_ID, and R2_SECRET_ACCESS_KEY are required."
+    )
 APP_NAME = "zubite-bg"
 
 # Production URL

@@ -71,8 +71,36 @@ async def _new_lead_with_token(*, expired: bool = False, revoked: bool = False):
     return lead_id, token
 
 
+async def _new_lead(*, unlocked: bool) -> str:
+    """A lead with no token yet — for exercising the mint endpoint itself."""
+    lead_id = str(uuid.uuid4())
+    async with _mongo() as db:
+        await db.leads.insert_one({
+            "id": lead_id, "name": "Тест Пациент", "city_slug": "sofia",
+            "treatment_type": "orthodontics", "band": "moderate",
+            "created_at": datetime.now(_tz.utc).isoformat(),
+            "full_result_unlocked": unlocked,
+            "contact_details_submitted": unlocked,
+        })
+    return lead_id
+
+
 async def _cleanup(lead_ids, clinic_ids):
     async with _mongo() as db:
+        # Messages reference chat_id, not lead_id/clinic_id directly, so
+        # they must be resolved through the chats being deleted below —
+        # a bare `delete_many({})` here would wipe every other test's
+        # (or a real conversation's) messages too.
+        chat_ids = []
+        for lid in lead_ids:
+            async for c in db.consultation_chats.find({"lead_id": lid}, {"id": 1}):
+                chat_ids.append(c["id"])
+        for cid in clinic_ids:
+            async for c in db.consultation_chats.find({"clinic_id": cid}, {"id": 1}):
+                chat_ids.append(c["id"])
+        if chat_ids:
+            await db.consultation_chat_messages.delete_many({"chat_id": {"$in": chat_ids}})
+
         for lid in lead_ids:
             await db.leads.delete_one({"id": lid})
             await db.lead_access_tokens.delete_many({"lead_id": lid})
@@ -135,6 +163,140 @@ def test_patient_chat_rejects_bad_tokens():
             assert r.status_code == 404, r.text
         finally:
             await _cleanup(lead_ids, clinic_ids)
+
+    asyncio.run(runner())
+
+
+# ─── Chat-token bootstrap ──────────────────────────────────
+#
+# The results page (`/results/[leadId]/clinics/[clinicId]`) only has a
+# bare `leadId`, not a magic-link token — `POST /leads/{id}/chat-access-
+# token` bridges the two, gated on the same unlock flags that page
+# already checks client-side.
+
+def test_chat_token_requires_unlocked_result():
+    async def runner():
+        locked = await _new_lead(unlocked=False)
+        try:
+            r = requests.post(f"{API_URL}/api/leads/{locked}/chat-access-token", timeout=10)
+            assert r.status_code == 403, r.text
+            assert r.json()["detail"]["code"] == "result_not_unlocked"
+        finally:
+            await _cleanup([locked], [])
+
+    asyncio.run(runner())
+
+
+def test_chat_token_minted_for_unlocked_result_and_actually_works():
+    async def runner():
+        lead_id = await _new_lead(unlocked=True)
+        cid = await _new_clinic("growth_partner")
+        try:
+            r = requests.post(f"{API_URL}/api/leads/{lead_id}/chat-access-token", timeout=10)
+            assert r.status_code == 200, r.text
+            tok = r.json()["access_token"]
+            assert r.json()["expires_at"]
+
+            # The minted token must be a genuine, working magic link — not
+            # just a 200 with an opaque string.
+            r2 = requests.post(
+                f"{API_URL}/api/patient-chat/{tok}/clinics/{cid}/messages",
+                json={"body": "минат тест"}, timeout=10,
+            )
+            assert r2.status_code == 200, r2.text
+        finally:
+            await _cleanup([lead_id], [cid])
+
+    asyncio.run(runner())
+
+
+def test_unknown_lead_id_cannot_mint():
+    r = requests.post(f"{API_URL}/api/leads/{uuid.uuid4()}/chat-access-token", timeout=10)
+    assert r.status_code == 404, r.text
+
+
+# ─── Quick-chat: no quiz taken at all ──────────────────────
+#
+# A visitor who clicks "Message the clinic" on a public profile with no
+# lead/quiz history at all — POST /leads/quick-chat creates the thinnest
+# possible lead (just a name) and mints its chat token in one call.
+
+def test_quick_chat_creates_a_working_lead_and_token():
+    async def runner():
+        r = requests.post(
+            f"{API_URL}/api/leads/quick-chat", json={"name": "Тестов Пациент"}, timeout=10,
+        )
+        assert r.status_code == 200, r.text
+        body = r.json()
+        lead_id, tok = body["lead_id"], body["access_token"]
+        assert body["expires_at"]
+
+        cid = await _new_clinic("growth_partner")
+        try:
+            # A genuinely usable token, not just a 200 with an opaque string.
+            r2 = requests.post(
+                f"{API_URL}/api/patient-chat/{tok}/clinics/{cid}/messages",
+                json={"body": "нямам направен тест"}, timeout=10,
+            )
+            assert r2.status_code == 200, r2.text
+
+            async with _mongo() as db:
+                lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+            assert lead["name"] == "Тестов Пациент"
+            assert lead["source"] == "chat_quick_start"
+            assert lead["answers"] == {}
+        finally:
+            await _cleanup([lead_id], [cid])
+
+    asyncio.run(runner())
+
+
+def test_quick_chat_rejects_blank_name():
+    r = requests.post(f"{API_URL}/api/leads/quick-chat", json={"name": "   "}, timeout=10)
+    assert r.status_code == 422, r.text
+    r = requests.post(f"{API_URL}/api/leads/quick-chat", json={}, timeout=10)
+    assert r.status_code == 422, r.text
+
+
+# ─── Read a thread by clinic_id (no chat_id needed) ────────
+
+def test_read_by_clinic_returns_empty_state_without_creating_a_chat():
+    """Opening the chat panel must not itself create a chat row — only
+    sending/uploading should, so the clinic's inbox never shows a silent,
+    message-less thread."""
+    async def runner():
+        lead_id, tok = await _new_lead_with_token()
+        cid = await _new_clinic("growth_partner")
+        try:
+            r = requests.get(f"{API_URL}/api/patient-chat/{tok}/clinics/{cid}", timeout=10)
+            assert r.status_code == 200, r.text
+            assert r.json() == {"chat": None, "messages": []}
+
+            async with _mongo() as db:
+                assert await db.consultation_chats.count_documents({"lead_id": lead_id}) == 0
+        finally:
+            await _cleanup([lead_id], [cid])
+
+    asyncio.run(runner())
+
+
+def test_read_by_clinic_returns_thread_once_one_exists():
+    async def runner():
+        lead_id, tok = await _new_lead_with_token()
+        cid = await _new_clinic("growth_partner")
+        try:
+            requests.post(
+                f"{API_URL}/api/patient-chat/{tok}/clinics/{cid}/messages",
+                json={"body": "здравейте"}, timeout=10,
+            )
+            r = requests.get(f"{API_URL}/api/patient-chat/{tok}/clinics/{cid}", timeout=10)
+            assert r.status_code == 200, r.text
+            body = r.json()
+            assert body["chat"]["id"]
+            assert len(body["messages"]) == 1
+            assert body["messages"][0]["body"] == "здравейте"
+        finally:
+            await _cleanup([lead_id], [cid])
 
     asyncio.run(runner())
 
@@ -342,6 +504,91 @@ def test_upload_fails_closed_without_storage():
             assert r.status_code == 503, r.text
             async with _mongo() as db:
                 assert await db.consultation_files.count_documents({"lead_id": lead_id}) == 0
+        finally:
+            await _cleanup([lead_id], [cid])
+
+    asyncio.run(runner())
+
+
+# ─── Patient context (quiz answers) surfaced to the clinic ─
+
+def test_clinic_sees_quiz_answers_when_opening_a_chat():
+    """The clinic must not have to ask what the patient already told the
+    quiz — opening the thread should show it immediately."""
+    async def runner():
+        lead_id = str(uuid.uuid4())
+        token = secrets.token_urlsafe(32)
+        now = datetime.now(_tz.utc)
+        async with _mongo() as db:
+            await db.leads.insert_one({
+                "id": lead_id, "name": "Мария Иванова", "city_slug": "sofia",
+                "treatment_type": "orthodontics", "band": "moderate",
+                "created_at": now.isoformat(),
+                "answers": {
+                    "a1": "crowded", "a2": "yes",
+                    "quiz_band": "moderate", "quiz_flags": ["crowding", "bite_issue"],
+                },
+            })
+            await db.lead_access_tokens.insert_one({
+                "token_hash": hashlib.sha256(token.encode("utf-8")).hexdigest(),
+                "lead_id": lead_id, "created_at": now.isoformat(),
+                "expires_at": (now + timedelta(days=90)).isoformat(),
+                "revoked_at": None, "last_accessed_at": None, "access_count": 0,
+            })
+        cid = await _new_clinic("growth_partner")
+        try:
+            requests.post(
+                f"{API_URL}/api/patient-chat/{token}/clinics/{cid}/messages",
+                json={"body": "Кога мога да дойда?"}, timeout=10,
+            )
+            chats = requests.get(
+                f"{API_URL}/api/clinic/chats", headers=_h(await _clinic_token(cid)), timeout=10,
+            ).json()["chats"]
+            chat_id = chats[0]["id"]
+
+            r = requests.get(
+                f"{API_URL}/api/clinic/chats/{chat_id}",
+                headers=_h(await _clinic_token(cid)), timeout=10,
+            )
+            assert r.status_code == 200, r.text
+            ctx = r.json()["patient_context"]
+            assert ctx is not None
+            assert ctx["stage_label"] == "Развиващ се етап"
+            assert "Струпване" in ctx["signal_flags"]
+            assert "Захапка" in ctx["signal_flags"]
+            labels = {row["question_label"] for row in ctx["quiz_summary"]}
+            assert "Подредба на зъбите" in labels
+        finally:
+            await _cleanup([lead_id], [cid])
+
+    asyncio.run(runner())
+
+
+def test_quick_chat_lead_has_no_patient_context():
+    """A patient who skipped the quiz has nothing to show — must be null,
+    not an empty/placeholder section."""
+    async def runner():
+        r = requests.post(
+            f"{API_URL}/api/leads/quick-chat", json={"name": "Бърз Тест"}, timeout=10,
+        )
+        lead_id, token = r.json()["lead_id"], r.json()["access_token"]
+        cid = await _new_clinic("growth_partner")
+        try:
+            requests.post(
+                f"{API_URL}/api/patient-chat/{token}/clinics/{cid}/messages",
+                json={"body": "нямам направен тест"}, timeout=10,
+            )
+            chats = requests.get(
+                f"{API_URL}/api/clinic/chats", headers=_h(await _clinic_token(cid)), timeout=10,
+            ).json()["chats"]
+            chat_id = chats[0]["id"]
+
+            r2 = requests.get(
+                f"{API_URL}/api/clinic/chats/{chat_id}",
+                headers=_h(await _clinic_token(cid)), timeout=10,
+            )
+            assert r2.status_code == 200, r2.text
+            assert r2.json()["patient_context"] is None
         finally:
             await _cleanup([lead_id], [cid])
 

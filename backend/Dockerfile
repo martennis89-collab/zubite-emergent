@@ -1,5 +1,9 @@
 FROM python:3.11-slim
 
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -13,4 +17,6 @@ COPY . .
 
 EXPOSE 8001
 
-CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]
+# Keep one worker: this process owns the reminder and cleanup background loops.
+# Render injects PORT; local Docker falls back to the application's port.
+CMD ["sh", "-c", "exec uvicorn server:app --host 0.0.0.0 --port ${PORT:-8001} --proxy-headers --forwarded-allow-ips='*'"]
