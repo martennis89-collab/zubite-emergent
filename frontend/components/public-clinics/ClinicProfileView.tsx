@@ -110,6 +110,8 @@ export default function ClinicProfileView({ clinic, chatContext }: Props) {
   const [chatOpenSignal, setChatOpenSignal] = useState(0)
   const consultationRef = useRef<HTMLDivElement>(null)
   const sectionNavSentinelRef = useRef<HTMLDivElement>(null)
+  const sectionNavEndRef = useRef<HTMLDivElement>(null)
+  const sectionNavRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -255,7 +257,12 @@ export default function ClinicProfileView({ clinic, chatContext }: Props) {
 
   const anchorIds = useMemo(() => visibleAnchors.map((a) => a.id), [visibleAnchors])
   const activeAnchor = useActiveSection(anchorIds)
-  const sectionNavIsRail = useProfileSectionNavRail(sectionNavSentinelRef)
+  const sectionNavRailState = useProfileSectionNavRail(
+    sectionNavSentinelRef,
+    sectionNavEndRef,
+    sectionNavRef,
+  )
+  const sectionNavIsRail = sectionNavRailState.isRail
 
   return (
     <main
@@ -462,13 +469,25 @@ export default function ClinicProfileView({ clinic, chatContext }: Props) {
               It begins as a horizontal in-page menu. On wide screens,
               once this sentinel clears the site header, the same element
               reshapes into a fixed vertical rail in the left page gutter.
-              The placeholder preserves document flow while it is fixed. */}
+              The placeholder preserves document flow while it is fixed.
+              Past sectionNavEndRef (right after the closing disclaimer,
+              just before the footer) it docks — position: absolute instead
+              of fixed — so it stops scrolling with the viewport and settles
+              in place rather than floating on over the footer for the rest
+              of the page. */}
           <div ref={sectionNavSentinelRef} className="mt-6 h-px" aria-hidden="true" />
           {sectionNavIsRail && <div className="taste-profile-section-nav-placeholder" aria-hidden="true" />}
           <nav
+            ref={sectionNavRef}
             className="taste-profile-section-nav sticky top-20 z-20 -mx-4 overflow-x-auto border-y border-[#E5E5E5] bg-[#F5F4F2]/95 px-4 sm:mx-0 sm:rounded-xl sm:border"
             data-testid="profile-anchor-nav"
             data-layout={sectionNavIsRail ? 'rail' : 'horizontal'}
+            data-rail-docked={sectionNavRailState.isDocked ? 'true' : undefined}
+            style={
+              sectionNavRailState.isDocked
+                ? ({ '--rail-docked-top': `${sectionNavRailState.dockedTop}px` } as React.CSSProperties)
+                : undefined
+            }
             aria-label="Навигация в профила"
           >
             <ul className="inline-flex gap-6 py-3 px-1">
@@ -945,6 +964,7 @@ export default function ClinicProfileView({ clinic, chatContext }: Props) {
             Zubite.bg не поставя диагноза и не определя „най-добра" клиника.
             Окончателната оценка се прави от стоматолог или специалист.
           </p>
+          <div ref={sectionNavEndRef} className="h-px" aria-hidden="true" />
         </div>
       </section>
 
@@ -1822,16 +1842,34 @@ function useActiveSection(ids: string[]): string | null {
   return active
 }
 
+interface ProfileSectionNavRailState {
+  isRail: boolean
+  isDocked: boolean
+  dockedTop: number
+}
+
+const NAV_RAIL_STATE_UNSET: ProfileSectionNavRailState = { isRail: false, isDocked: false, dockedTop: 0 }
+
 /**
  * Switches the section menu from its horizontal in-page state to a fixed
  * left rail after its original position passes the site header. The rail is
  * reserved for wide screens where there is a real page gutter; tablets and
  * phones keep the horizontal sticky menu.
+ *
+ * Past `endSentinelRef` (placed right after the closing disclaimer, just
+ * before the footer) the rail docks: `position: absolute` instead of
+ * `fixed`, anchored via `endSentinel.offsetTop - railHeight` inside the
+ * nearest `position: relative` ancestor (the profile's own <section>) so it
+ * lines up exactly with wherever it was when it stopped being fixed —
+ * no jump — then scrolls away normally with the rest of the page instead
+ * of floating on over the footer.
  */
 function useProfileSectionNavRail(
   sentinelRef: React.RefObject<HTMLDivElement | null>,
-): boolean {
-  const [isRail, setIsRail] = useState(false)
+  endSentinelRef: React.RefObject<HTMLDivElement | null>,
+  navRef: React.RefObject<HTMLElement | null>,
+): ProfileSectionNavRailState {
+  const [state, setState] = useState<ProfileSectionNavRailState>(NAV_RAIL_STATE_UNSET)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -1843,12 +1881,29 @@ function useProfileSectionNavRail(
       window.cancelAnimationFrame(frame)
       frame = window.requestAnimationFrame(() => {
         const sentinel = sentinelRef.current
-        const next = Boolean(
+        const isRail = Boolean(
           wideViewport.matches
           && sentinel
           && sentinel.getBoundingClientRect().top <= 104,
         )
-        setIsRail((current) => current === next ? current : next)
+
+        let isDocked = false
+        let dockedTop = 0
+        const endSentinel = endSentinelRef.current
+        const nav = navRef.current
+        if (isRail && endSentinel && nav) {
+          const railHeight = nav.offsetHeight
+          if (endSentinel.getBoundingClientRect().top <= 104 + railHeight) {
+            isDocked = true
+            dockedTop = endSentinel.offsetTop - railHeight
+          }
+        }
+
+        setState((current) =>
+          current.isRail === isRail && current.isDocked === isDocked && current.dockedTop === dockedTop
+            ? current
+            : { isRail, isDocked, dockedTop },
+        )
       })
     }
 
@@ -1863,9 +1918,9 @@ function useProfileSectionNavRail(
       window.removeEventListener('resize', update)
       wideViewport.removeEventListener?.('change', update)
     }
-  }, [sentinelRef])
+  }, [sentinelRef, endSentinelRef, navRef])
 
-  return isRail
+  return state
 }
 
 /** Contextual partner benefit — deliberately not part of the action hierarchy. */
