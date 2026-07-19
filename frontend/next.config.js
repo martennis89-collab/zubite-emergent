@@ -80,6 +80,19 @@ const nextConfig = {
       },
     ]
   },
+  // Legacy Bulgarian routes → English canonicals. Permanent (301) so search
+  // engines transfer ranking and old links / QR codes keep working. The
+  // nested clinic-catalog path (`/kliniki/[city]/[specialty]/[slug]`) is
+  // covered by the `:path*` wildcard rule.
+  async redirects() {
+    return [
+      { source: '/kliniki', destination: '/clinics', permanent: true },
+      { source: '/kliniki/:path*', destination: '/clinics/:path*', permanent: true },
+      { source: '/breketi', destination: '/braces', permanent: true },
+      { source: '/za-kliniki', destination: '/for-clinics', permanent: true },
+      { source: '/standart-za-kliniki', destination: '/clinic-standard', permanent: true },
+    ]
+  },
   async headers() {
     return [
       {
