@@ -59,6 +59,7 @@ interface LinkPayload {
   clinic_id: string
   clinic_name?: string | null
   city_name?: string | null
+  logo_url?: string | null
   review_url: string
   qr_status: string
   qr_note?: string
@@ -173,7 +174,7 @@ export default function ClinicReviewsPage() {
       const dataUrl = await toPng(node, {
         pixelRatio: pixelRatioFor(paperSize),
         cacheBust: true,
-        fontEmbedCss: POSTER_FONT_EMBED_CSS,
+        fontEmbedCSS: POSTER_FONT_EMBED_CSS,
       })
       triggerDownload(dataUrl, `${clinicFileSlug()}-poster-${paperSize}.png`)
     } finally {
@@ -475,6 +476,7 @@ export default function ClinicReviewsPage() {
                 clinicName={link.clinic_name}
                 cityName={link.city_name}
                 reviewUrl={reviewUrl}
+                logoUrl={link.logo_url}
                 variant="preview"
               />
             </div>
@@ -496,6 +498,7 @@ export default function ClinicReviewsPage() {
                 clinicName={link.clinic_name}
                 cityName={link.city_name}
                 reviewUrl={reviewUrl}
+                logoUrl={link.logo_url}
                 variant="print"
                 paperSize={downloadPaperSize}
               />

@@ -56,6 +56,13 @@ interface Props {
    */
   variant?: 'print' | 'preview'
   paperSize?: PaperSize
+  /**
+   * Clinic-uploaded logo for co-branding. Placed small in the footer,
+   * labeled "С участието на" — SOCIAL_BRAND_KIT.md §5 is explicit that a
+   * clinic logo must never sit beside the Zubite wordmark as an equal
+   * lockup; Zubite stays the platform owner, the clinic a contributor.
+   */
+  logoUrl?: string | null
 }
 
 export function ReviewPoster({
@@ -64,6 +71,7 @@ export function ReviewPoster({
   reviewUrl,
   variant = 'print',
   paperSize = 'A4',
+  logoUrl,
 }: Props) {
   const isPreview = variant === 'preview'
   const { widthMm, heightMm, scale } = PAPER_DIMENSIONS[paperSize]
@@ -266,6 +274,31 @@ export function ReviewPoster({
           >
             Ориентир, не диагноза.
           </p>
+          {logoUrl && (
+            <div
+              className="flex items-center justify-center"
+              style={{ gap: isPreview ? 6 : mm(2), marginTop: isPreview ? 10 : mm(4) }}
+              data-testid="review-poster-co-brand"
+            >
+              <span
+                className="uppercase"
+                style={{
+                  fontFamily: MANROPE,
+                  color: FAINT,
+                  letterSpacing: '0.08em',
+                  fontSize: isPreview ? 8 : mm(2.6),
+                }}
+              >
+                С участието на
+              </span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={logoUrl}
+                alt=""
+                style={{ height: isPreview ? 16 : mm(5.5), width: 'auto', maxWidth: isPreview ? 60 : mm(22), objectFit: 'contain' }}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Request, Response
+from fastapi import APIRouter, HTTPException, Depends, Request, Response, UploadFile, File
 from datetime import datetime, timezone
 import os
 import uuid
@@ -16,7 +16,7 @@ from auth import (
     create_clinic_token, revoke_session_by_jti, revoke_all_sessions_for_user,
 )
 from config import (
-    RESEND_API_KEY, SENDER_EMAIL, ADMIN_EMAIL,
+    RESEND_API_KEY, SENDER_EMAIL, ADMIN_EMAIL, APP_NAME,
     AUTH_COOKIE_NAME_CLINIC, AUTH_COOKIE_SECURE, AUTH_COOKIE_SAMESITE,
     AUTH_COOKIE_MAX_AGE_SECONDS,
 )
@@ -24,12 +24,14 @@ from rate_limit import rate_limit
 from audit import audit_log
 from entitlements import compute_entitlements
 from phone_utils import normalize_msisdn_bg
+from storage import put_object, ALLOWED_IMAGE_TYPES
 from routers.public import _is_clinic_visible
 
 router = APIRouter()
 
 
 def _clinic_to_out(clinic: dict) -> ClinicUserOut:
+    logo_file_id = clinic.get("logo_file_id")
     return ClinicUserOut(
         id=clinic["id"], clinic_name=clinic["clinic_name"], city=clinic["city"],
         email=clinic["email"], phone=clinic["phone"], status=clinic["status"],
@@ -38,6 +40,7 @@ def _clinic_to_out(clinic: dict) -> ClinicUserOut:
         mol=clinic.get("mol"), description=clinic.get("description"),
         viber_enabled=bool(clinic.get("viber_enabled")),
         viber_phone=clinic.get("viber_phone"),
+        logo_url=f"/api/files/{logo_file_id}" if logo_file_id else None,
     )
 
 
@@ -508,6 +511,75 @@ async def update_clinic_profile(
     await db.clinics.update_one({"id": clinic["id"]}, {"$set": update_fields})
     updated = await db.clinics.find_one({"id": clinic["id"]}, {"_id": 0, "password_hash": 0})
     return _clinic_to_out(updated)
+
+
+@router.post("/clinic/logo")
+async def upload_clinic_logo(
+    request: Request,
+    file: UploadFile = File(...),
+    clinic=Depends(get_current_clinic),
+):
+    """Logo for co-branding clinic-facing exports (the review poster).
+    Mirrors the admin blog-image upload pattern (storage.py + uploaded_files
+    + /api/files/{id}) rather than clinic_files (that collection is
+    medical-record-shaped — see consultation_chat.py — a logo isn't)."""
+    content_type = file.content_type or "application/octet-stream"
+    if content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Невалиден тип файл. Позволени: {', '.join(ALLOWED_IMAGE_TYPES.keys())}",
+        )
+    ext = ALLOWED_IMAGE_TYPES[content_type]
+    file_data = await file.read()
+    if len(file_data) > 2 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Файлът е твърде голям. Максимум 2MB.")
+
+    file_id = str(uuid.uuid4())
+    storage_path = f"{APP_NAME}/clinic-logos/{file_id}.{ext}"
+    result = put_object(storage_path, file_data, content_type)
+    file_record = {
+        "id": file_id, "storage_path": result["path"], "original_filename": file.filename,
+        "content_type": content_type, "size": result["size"],
+        "uploaded_by": clinic["id"], "is_deleted": False,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.uploaded_files.insert_one(file_record)
+
+    previous_logo_file_id = clinic.get("logo_file_id")
+    await db.clinics.update_one({"id": clinic["id"]}, {"$set": {"logo_file_id": file_id}})
+    if previous_logo_file_id:
+        # Superseded, not referenced by anything else — soft-delete rather
+        # than leaving an orphaned object in the bucket indefinitely.
+        await db.uploaded_files.update_one(
+            {"id": previous_logo_file_id}, {"$set": {"is_deleted": True}},
+        )
+
+    await audit_log(
+        "clinic.logo_uploaded",
+        actor_type="clinic",
+        target_type="clinic", target_id=clinic["id"],
+        target_summary=clinic.get("clinic_name"),
+        metadata={"file_id": file_id, "size": result["size"], "content_type": content_type},
+        severity="info", request=request,
+    )
+    return {"logo_url": f"/api/files/{file_id}"}
+
+
+@router.delete("/clinic/logo")
+async def delete_clinic_logo(request: Request, clinic=Depends(get_current_clinic)):
+    logo_file_id = clinic.get("logo_file_id")
+    if not logo_file_id:
+        return {"status": "ok"}
+    await db.clinics.update_one({"id": clinic["id"]}, {"$unset": {"logo_file_id": ""}})
+    await db.uploaded_files.update_one({"id": logo_file_id}, {"$set": {"is_deleted": True}})
+    await audit_log(
+        "clinic.logo_removed",
+        actor_type="clinic",
+        target_type="clinic", target_id=clinic["id"],
+        target_summary=clinic.get("clinic_name"),
+        severity="info", request=request,
+    )
+    return {"status": "ok"}
 
 
 async def _apply_viber_update(

@@ -13,8 +13,8 @@
  * what Zubite promises patients stay admin-owned and are not rendered here.
  */
 
-import { useCallback, useEffect, useState } from 'react'
-import { Loader2, MessageCircle, Check, Info } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Loader2, MessageCircle, Check, Info, Image as ImageIcon, Trash2, Upload } from 'lucide-react'
 import { ClinicShell } from '@/components/ClinicShell'
 import { OrientationAvailabilityManager } from '@/components/clinic/OrientationAvailabilityManager'
 
@@ -29,6 +29,7 @@ interface ClinicProfile {
   website?: string | null
   viber_enabled: boolean
   viber_phone?: string | null
+  logo_url?: string | null
 }
 
 type Saving = 'idle' | 'saving' | 'saved'
@@ -95,6 +96,8 @@ export default function ClinicSettingsPage() {
         )}
 
         {profile && <ViberChannelCard profile={profile} onSaved={load} />}
+
+        {profile && <ClinicLogoCard profile={profile} onSaved={load} />}
 
         <OrientationAvailabilityManager />
 
@@ -262,6 +265,150 @@ function ViberChannelCard({
         <p
           className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-xl p-3"
           data-testid="viber-error"
+        >
+          {err}
+        </p>
+      )}
+    </section>
+  )
+}
+
+function ClinicLogoCard({
+  profile,
+  onSaved,
+}: {
+  profile: ClinicProfile
+  onSaved: () => Promise<void>
+}) {
+  const [uploading, setUploading] = useState(false)
+  const [removing, setRemoving] = useState(false)
+  const [err, setErr] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = '' // allow re-selecting the same file later
+    if (!file) return
+    if (file.size > 2 * 1024 * 1024) {
+      setErr('Файлът е твърде голям. Максимум 2MB.')
+      return
+    }
+    setErr('')
+    setUploading(true)
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      const r = await fetch(`${API_URL}/api/clinic/logo`, {
+        method: 'POST',
+        credentials: 'include' as RequestCredentials,
+        body: form,
+      })
+      if (!r.ok) {
+        let msg = 'Логото не бе качено.'
+        try { const j = await r.json(); if (j?.detail) msg = typeof j.detail === 'string' ? j.detail : msg } catch { /* noop */ }
+        setErr(msg)
+        return
+      }
+      await onSaved()
+    } catch {
+      setErr('Логото не бе качено.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleRemove = async () => {
+    setErr('')
+    setRemoving(true)
+    try {
+      const r = await fetch(`${API_URL}/api/clinic/logo`, {
+        method: 'DELETE',
+        credentials: 'include' as RequestCredentials,
+      })
+      if (!r.ok) {
+        setErr('Логото не бе премахнато.')
+        return
+      }
+      await onSaved()
+    } catch {
+      setErr('Логото не бе премахнато.')
+    } finally {
+      setRemoving(false)
+    }
+  }
+
+  return (
+    <section
+      className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 space-y-4"
+      data-testid="clinic-settings-logo"
+    >
+      <header className="space-y-1">
+        <h2 className="font-serif text-lg font-semibold text-slate-900 inline-flex items-center gap-2">
+          <ImageIcon className="w-4 h-4 text-teal-500" />
+          Лого на клиниката
+        </h2>
+        <p className="text-sm text-slate-500 leading-relaxed">
+          Използва се за съвместно брандиране на постера за обратна връзка
+          (страница „Ревюта“) — показва се дискретно като „С участието на“,
+          не наравно с логото на Zubite.
+        </p>
+      </header>
+
+      <div className="flex items-center gap-4">
+        <div className="w-20 h-20 rounded-xl border border-slate-200 bg-slate-50 grid place-items-center overflow-hidden flex-shrink-0">
+          {profile.logo_url ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={profile.logo_url}
+              alt="Лого на клиниката"
+              className="w-full h-full object-contain p-2"
+              data-testid="clinic-logo-preview"
+            />
+          ) : (
+            <ImageIcon className="w-6 h-6 text-slate-300" />
+          )}
+        </div>
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="inline-flex items-center gap-1.5 rounded-full bg-teal-500 px-4 py-2 text-sm font-medium text-white hover:bg-teal-600 disabled:opacity-50"
+              data-testid="clinic-logo-upload-btn"
+            >
+              {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+              {profile.logo_url ? 'Смени лого' : 'Качи лого'}
+            </button>
+            {profile.logo_url && (
+              <button
+                type="button"
+                onClick={handleRemove}
+                disabled={removing}
+                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                data-testid="clinic-logo-remove-btn"
+              >
+                {removing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                Премахни
+              </button>
+            )}
+          </div>
+          <p className="text-xs text-slate-400">PNG, JPG или WebP, до 2MB.</p>
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/gif"
+          onChange={handleFileChange}
+          className="hidden"
+          data-testid="clinic-logo-file-input"
+        />
+      </div>
+
+      {err && (
+        <p
+          className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-xl p-3"
+          data-testid="clinic-logo-error"
         >
           {err}
         </p>

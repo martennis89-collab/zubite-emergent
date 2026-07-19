@@ -397,6 +397,9 @@ class ClinicUserOut(BaseModel):
     # free-text formats the rest of the platform accepts.
     viber_enabled: bool = False
     viber_phone: Optional[str] = None
+    # Co-branding for clinic-facing exports (the review poster). Resolved
+    # from logo_file_id server-side — never stored/returned as a raw path.
+    logo_url: Optional[str] = None
 
 
 class ClinicTokenResponse(BaseModel):

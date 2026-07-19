@@ -291,10 +291,12 @@ async def clinic_review_link(clinic: Dict[str, Any] = Depends(get_current_clinic
     pending = await db.clinic_reviews.count_documents({"clinic_id": cid, "status": "pending"})
     approved = await db.clinic_reviews.count_documents({"clinic_id": cid, "status": "approved"})
     rejected = await db.clinic_reviews.count_documents({"clinic_id": cid, "status": "rejected"})
+    logo_file_id = clinic.get("logo_file_id")
     return {
         "clinic_id": cid,
         "clinic_name": clinic.get("clinic_name") or clinic.get("name") or "",
         "city_name": clinic.get("city_name"),
+        "logo_url": f"/api/files/{logo_file_id}" if logo_file_id else None,
         "review_url": _public_review_url(cid),
         "qr_status": "pending_dependency_decision",
         "qr_note": (
