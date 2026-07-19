@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   title: 'Дентални клиники в България | Zubite.bg',
   description:
     'Сравнете дентални клиники според локация, специализация и онлайн консултация. Профилна информация, прегледана от Zubite. Без фалшиви класации.',
-  alternates: { canonical: 'https://zubite.bg/kliniki' },
+  alternates: { canonical: 'https://zubite.bg/clinics' },
 }
 
 export default async function KlinikiRoot({ searchParams }: { searchParams: Promise<ClinicDirectorySearchParams> }) {
@@ -30,7 +30,7 @@ export default async function KlinikiRoot({ searchParams }: { searchParams: Prom
   const jsonLd = [
     ...buildClinicListingJsonLd({
       clinics,
-      canonicalPath: '/kliniki',
+      canonicalPath: '/clinics',
       pageName: 'Дентални клиники в България',
     }),
     buildClinicBreadcrumbJsonLd({}),
@@ -45,7 +45,7 @@ export default async function KlinikiRoot({ searchParams }: { searchParams: Prom
         />
       ))}
       <Header />
-      <ClinicListingPage initialFilters={initialFilters} syncToUrl={{ basePath: '/kliniki' }} />
+      <ClinicListingPage initialFilters={initialFilters} syncToUrl={{ basePath: '/clinics' }} />
       <Footer />
     </>
   )

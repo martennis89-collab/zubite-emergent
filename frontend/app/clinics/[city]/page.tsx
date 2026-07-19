@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title,
     description: `Сравнете дентални клиники в ${cityName} според специализация, онлайн консултация и Zubite доверителни сигнали.`,
-    alternates: { canonical: `https://zubite.bg/kliniki/${city}` },
+    alternates: { canonical: `https://zubite.bg/clinics/${city}` },
   }
 }
 
@@ -40,7 +40,7 @@ export default async function KlinikiByCity({ params, searchParams }: PageProps)
     ...buildClinicListingJsonLd({
       clinics,
       city,
-      canonicalPath: `/kliniki/${city}`,
+      canonicalPath: `/clinics/${city}`,
       pageName: `Дентални клиники в ${cityName}`,
     }),
     buildClinicBreadcrumbJsonLd({ city }),
@@ -58,7 +58,7 @@ export default async function KlinikiByCity({ params, searchParams }: PageProps)
       <ClinicListingPage
         initialCity={city}
         initialFilters={initialFilters}
-        syncToUrl={{ basePath: '/kliniki' }}
+        syncToUrl={{ basePath: '/clinics' }}
       />
       <Footer />
     </>

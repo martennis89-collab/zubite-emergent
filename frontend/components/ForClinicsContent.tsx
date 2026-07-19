@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * /za-kliniki — premium navy B2B SaaS partner-acquisition page.
+ * /for-clinics — premium navy B2B SaaS partner-acquisition page.
  *
  * Visual direction (Feb 2026):
  *   • Premium dark navy hero + governance + final CTA sections
@@ -631,7 +631,7 @@ function TrustSignalSection() {
             </div>
 
             <a
-              href="/standart-za-kliniki"
+              href="/clinic-standard"
               className="inline-flex items-center gap-1.5 pt-2 text-sm font-medium text-teal-700 hover:text-teal-800 transition-colors"
               data-testid="zk-trust-standard-link"
             >

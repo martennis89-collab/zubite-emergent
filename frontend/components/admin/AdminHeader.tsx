@@ -11,6 +11,7 @@ import {
   TrendingUp,
   Newspaper,
   Star,
+  MessageCircleQuestion,
   Sparkles,
   LogOut,
 } from 'lucide-react'
@@ -81,6 +82,13 @@ export const ADMIN_NAV: AdminNavItem[] = [
     icon: Star,
     testId: 'admin-nav-reviews',
     matchPrefix: '/admin/reviews',
+  },
+  {
+    href: '/admin/community',
+    label: 'Общност',
+    icon: MessageCircleQuestion,
+    testId: 'admin-nav-community',
+    matchPrefix: '/admin/community',
   },
   {
     href: '/admin/analytics',

@@ -5,12 +5,12 @@ export const metadata: Metadata = {
   title: 'За клиники | Партньорска програма | Zubite.bg',
   description: 'Получавайте подготвени пациенти, които вече разбират от какво имат нужда. Кандидатствайте за партньорство с Zubite.bg.',
   alternates: {
-    canonical: 'https://zubite.bg/za-kliniki',
+    canonical: 'https://zubite.bg/for-clinics',
   },
   openGraph: {
     title: 'За клиники | Zubite.bg',
     description: 'Zubite.bg не изпраща случайни запитвания. Пациентите преминават през оценка и образование преди да бъдат свързани с вас.',
-    url: 'https://zubite.bg/za-kliniki',
+    url: 'https://zubite.bg/for-clinics',
     siteName: 'Zubite.bg',
     locale: 'bg_BG',
     type: 'website',
@@ -33,7 +33,7 @@ export default function ForClinicsPage() {
             '@type': 'Service',
             name: 'Zubite.bg — Партньорска програма за дентални клиники',
             serviceType: 'Dental clinic partner program',
-            url: 'https://zubite.bg/za-kliniki',
+            url: 'https://zubite.bg/for-clinics',
             provider: { '@type': 'Organization', name: 'Zubite.bg', url: 'https://zubite.bg' },
             areaServed: { '@type': 'Country', name: 'България' },
             audience: {

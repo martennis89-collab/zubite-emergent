@@ -66,6 +66,114 @@ async def send_lead_notification_email(lead_data: dict):
         return None
 
 
+async def send_patient_otp_email(email: str, code: str):
+    """Send a passwordless one-time login code to a patient (Общност accounts).
+
+    OTP-only: the code is the sole credential. Kept deliberately plain and
+    fast; no tracking, no marketing. Returns the Resend result or None."""
+    if not RESEND_API_KEY:
+        logging.warning("RESEND_API_KEY not configured - skipping patient OTP email")
+        return None
+
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); padding: 24px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 22px;">Zubite.bg</h1>
+        </div>
+        <div style="padding: 28px 24px; background: #f8fafc; text-align: center;">
+            <p style="color: #0f172a; font-size: 16px; margin: 0 0 8px 0;">Вашият код за вход в Общността</p>
+            <p style="color: #64748b; font-size: 14px; margin: 0 0 20px 0;">Въведете този код, за да продължите. Валиден е 5 минути.</p>
+            <div style="display: inline-block; background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 28px;">
+                <span style="font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #0f172a;">{code}</span>
+            </div>
+            <p style="color: #94a3b8; font-size: 12px; margin: 24px 0 0 0;">
+                Ако не сте поискали този код, просто игнорирайте това съобщение.
+            </p>
+        </div>
+        <div style="background: #0f172a; padding: 16px; text-align: center;">
+            <p style="color: #94a3b8; font-size: 12px; margin: 0;">&copy; Zubite.bg</p>
+        </div>
+    </div>
+    """
+
+    params = {
+        "from": SENDER_EMAIL,
+        "to": [email],
+        "subject": f"Код за вход в Zubite: {code}",
+        "html": html_content,
+    }
+
+    try:
+        email_result = await asyncio.to_thread(resend.Emails.send, params)
+        logging.info(f"Patient OTP email sent to {email}, email_id: {email_result.get('id')}")
+        return email_result
+    except Exception as e:
+        logging.error(f"Failed to send patient OTP email: {str(e)}")
+        return None
+
+
+async def send_community_answer_email(
+    to_email: str, *, question_title: str, question_slug: str,
+    answerer_display: str, is_expert: bool,
+):
+    """Notify a patient their Общност question got a new answer.
+
+    Best-effort: like the other senders here, failures are logged and
+    swallowed rather than raised — a missed notification email must never
+    block the answer itself from publishing."""
+    if not RESEND_API_KEY:
+        logging.warning("RESEND_API_KEY not configured - skipping community answer email")
+        return None
+
+    base_url = "https://zubite.bg"
+    badge = (
+        '<span style="display:inline-block;background:#ccfbf1;color:#0f766e;'
+        'font-size:12px;font-weight:600;border-radius:9999px;padding:2px 10px;">'
+        "Проверена клиника</span>"
+        if is_expert else ""
+    )
+
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); padding: 24px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 22px;">Zubite.bg</h1>
+        </div>
+        <div style="padding: 28px 24px; background: #f8fafc;">
+            <p style="color: #0f172a; font-size: 16px; margin: 0 0 8px 0;">Има нов отговор на вашия въпрос</p>
+            <div style="background: white; border-radius: 12px; padding: 16px 20px; margin: 16px 0; border: 1px solid #e2e8f0;">
+                <p style="color: #0f172a; font-weight: 600; margin: 0 0 6px 0;">{question_title}</p>
+                <p style="color: #64748b; font-size: 14px; margin: 0;">Отговори {answerer_display} {badge}</p>
+            </div>
+            <div style="text-align: center; padding-top: 8px;">
+                <a href="{base_url}/community/v/{question_slug}"
+                   style="display:inline-block;background:#0d9488;color:white;text-decoration:none;
+                          padding:10px 22px;border-radius:8px;font-weight:600;">
+                    Виж отговора
+                </a>
+            </div>
+        </div>
+        <div style="background: #0f172a; padding: 16px; text-align: center;">
+            <p style="color: #94a3b8; font-size: 12px; margin: 0;">&copy; Zubite.bg</p>
+        </div>
+    </div>
+    """
+
+    params = {
+        "from": SENDER_EMAIL,
+        "to": [to_email],
+        "subject": f"Нов отговор: {question_title}",
+        "html": html_content,
+    }
+
+    try:
+        email_result = await asyncio.to_thread(resend.Emails.send, params)
+        logging.info(f"Community answer email sent to {to_email}, email_id: {email_result.get('id')}")
+        return email_result
+    except Exception as e:
+        logging.error(f"Failed to send community answer email: {str(e)}")
+        return None
+
+
 async def send_lead_confirmation_email(lead_data: dict):
     """Send confirmation email to the lead (patient) after quiz submission."""
     if not RESEND_API_KEY:

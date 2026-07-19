@@ -32,12 +32,12 @@ const PRICES: FooterLink[] = [
 const PLATFORM: FooterLink[] = [
   { label: 'Започни анализа', href: '/quiz' },
   { label: 'Care Pass', href: '/care-pass' },
-  { label: 'Zubite стандарт', href: '/standart-za-kliniki' },
+  { label: 'Zubite стандарт', href: '/clinic-standard' },
   { label: 'Журнал', href: '/blog' },
 ]
 
 const FOR_CLINICS: FooterLink[] = [
-  { label: 'Стани партньор', href: '/za-kliniki' },
+  { label: 'Стани партньор', href: '/for-clinics' },
   { label: 'Клиничен вход', href: '/clinic' },
 ]
 

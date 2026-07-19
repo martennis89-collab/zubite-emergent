@@ -5,7 +5,7 @@
  *
  * Feb 2026 — Pass B unification: this page now REUSES the same
  * `ClinicProfileView` component that powers the public profile route
- * (`/kliniki/[city]/[specialty]/[clinicSlug]`). Patients in the post-quiz
+ * (`/clinics/[city]/[specialty]/[clinicSlug]`). Patients in the post-quiz
  * funnel get the identical premium clinic profile experience, wrapped with
  * lead-context chrome only:
  *   • `ResultsHeader` (logo + „Ориентир, не диагноза" pill — no public nav)
@@ -216,7 +216,7 @@ export default function ClinicProfilePage() {
 
       {/* ─── Public profile body ─────────────────────────────────
           The exact same `<ClinicProfileView />` powering
-          `/kliniki/[city]/[specialty]/[clinicSlug]`. Public CTAs intact. */}
+          `/clinics/[city]/[specialty]/[clinicSlug]`. Public CTAs intact. */}
       {publicProfile && !err && (
         <ClinicProfileView clinic={publicProfile} chatContext={{ leadId }} />
       )}

@@ -305,7 +305,7 @@ export function TasteHome() {
                 <li><Check aria-hidden /> Релевантност към случая</li>
                 <li><Check aria-hidden /> Решението остава твое</li>
               </ul>
-              <Link href="/kliniki" className="taste-button taste-button-light">Разгледай клиники <ArrowRight aria-hidden className="taste-icon-sm" /></Link>
+              <Link href="/clinics" className="taste-button taste-button-light">Разгледай клиники <ArrowRight aria-hidden className="taste-icon-sm" /></Link>
             </div>
           </div>
         </section>

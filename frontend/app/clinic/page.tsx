@@ -88,8 +88,8 @@ export default function ClinicLoginPage() {
           <p className="text-xs text-slate-400">
             Партньорството в Zubite.bg е по покана. Ако още не сте партньор,
             кандидатствайте на{' '}
-            <Link href="/za-kliniki" className="underline hover:text-slate-600">
-              /za-kliniki
+            <Link href="/for-clinics" className="underline hover:text-slate-600">
+              /for-clinics
             </Link>
             .
           </p>

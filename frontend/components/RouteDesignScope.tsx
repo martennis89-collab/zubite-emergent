@@ -18,7 +18,7 @@ function routeFamily(pathname: string): RouteFamily {
   if (pathname === '/quiz') return 'quiz'
   if (pathname.startsWith('/quiz/')) return 'flow'
   if (pathname.startsWith('/results/')) return 'results'
-  if (pathname === '/kliniki' || pathname.startsWith('/kliniki/')) return 'directory'
+  if (pathname === '/clinics' || pathname.startsWith('/clinics/')) return 'directory'
   if (pathname === '/clinic' || pathname.startsWith('/clinic/')) return 'clinic'
   if (pathname === '/admin' || pathname.startsWith('/admin/')) return 'admin'
   if (pathname === '/blog' || pathname.startsWith('/blog/')) return 'editorial'

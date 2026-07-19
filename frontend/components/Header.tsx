@@ -29,7 +29,7 @@ const NAV_ITEMS = [
       '/cosmetic-dentistry',
       '/tmj',
       '/sleep-airway',
-      '/breketi',
+      '/braces',
       '/invisalign-bulgaria',
       '/invisalign-price',
       '/implant-price',
@@ -43,6 +43,12 @@ const NAV_ITEMS = [
     label: 'Статии',
     href: '/blog',
     match: ['/blog'],
+  },
+  {
+    id: 'community',
+    label: 'Общност',
+    href: '/community',
+    match: ['/community', '/ask'],
   },
 ] as const
 

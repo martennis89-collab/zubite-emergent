@@ -41,7 +41,7 @@ interface Props {
 
 /**
  * Patient-facing reusable trust block explaining the Zubite Clinic Standard.
- * Used on homepage, /standart-za-kliniki, and other patient surfaces. Style
+ * Used on homepage, /clinic-standard, and other patient surfaces. Style
  * stays inside the existing premium glass aesthetic (ivory bg, teal accents,
  * deep navy serif). NO new design primitives.
  */
@@ -118,7 +118,7 @@ export function ClinicStandardSection({ showExplainerLink = true, compact = fals
           {showExplainerLink && (
             <div className="mt-6">
               <Link
-                href="/standart-za-kliniki"
+                href="/clinic-standard"
                 className="inline-flex items-center gap-1.5 text-teal-700 hover:text-teal-800 text-sm font-medium transition-colors"
                 data-testid="clinic-standard-explainer-link"
               >
@@ -169,7 +169,7 @@ export function ClinicStandardMiniNote({ testId = 'clinic-standard-mini' }: { te
               <li className="flex items-start gap-1.5"><span className="text-teal-500 mt-1.5">•</span><span>Care Pass е стандартна полза в партньорската ни мрежа — всеки наш пациент го получава при посещение в партньорска клиника.</span></li>
             </ul>
             <Link
-              href="/standart-za-kliniki"
+              href="/clinic-standard"
               className="inline-flex items-center gap-1.5 mt-4 text-xs text-teal-700 hover:text-teal-800 font-medium"
             >
               Виж пълния Zubite стандарт

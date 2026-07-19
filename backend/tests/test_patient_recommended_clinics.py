@@ -270,7 +270,7 @@ ALLOWED_CLINIC_FIELDS = {
     # on participating clinics only. Never on every clinic.
     "care_pass_partner",
     # Public profile slug (Feb 2026) — surfaced for future profile-unification
-    # refactor; safe to expose (slug is already publicly visible on /kliniki).
+    # refactor; safe to expose (slug is already publicly visible on /clinics).
     "slug",
 }
 

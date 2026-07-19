@@ -40,7 +40,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from config import (
     JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRATION_HOURS,
-    AUTH_COOKIE_NAME_ADMIN, AUTH_COOKIE_NAME_CLINIC,
+    AUTH_COOKIE_NAME_ADMIN, AUTH_COOKIE_NAME_CLINIC, AUTH_COOKIE_NAME_PATIENT,
     logger,
 )
 from database import db
@@ -287,6 +287,26 @@ async def create_clinic_token(user_id: str, email: str) -> Tuple[str, str]:
     return token, jti
 
 
+async def create_patient_token(user_id: str, email: str) -> Tuple[str, str]:
+    """Issue a patient JWT and persist the matching auth_sessions row.
+    Returns (token, jti). Mirrors create_clinic_token; role/user_type='patient'."""
+    jti = str(uuid.uuid4())
+    expires_at = _now_utc() + timedelta(hours=JWT_EXPIRATION_HOURS)
+    payload = {
+        "sub": user_id,
+        "email": email,
+        "role": "patient",
+        "jti": jti,
+        "iat": int(_now_utc().timestamp()),
+        "exp": expires_at,
+    }
+    token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    await _create_auth_session(
+        user_id=user_id, user_type="patient", jti=jti, expires_at=expires_at,
+    )
+    return token, jti
+
+
 # ── CSRF / Origin guard (P2 E1) ───────────────────────────────────
 
 _UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
@@ -501,3 +521,64 @@ async def get_current_clinic(
         await _enforce_csrf_for_cookie_auth(request, actor_type="clinic")
 
     return clinic
+
+
+async def get_current_patient(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+):
+    """Patient auth dependency. Same AUTH_REQUIRE_COOKIE semantics as clinic.
+
+    Admin / clinic tokens are rejected. Returns the patient document
+    (without any sensitive fields — patients are OTP-only, no password).
+    """
+    import os as _os
+    cookie_required = (_os.environ.get('AUTH_REQUIRE_COOKIE', '0') == '1')
+
+    via_cookie = False
+    token: Optional[str] = None
+
+    if not cookie_required and credentials is not None and credentials.credentials:
+        token = credentials.credentials
+    else:
+        cookie_val = request.cookies.get(AUTH_COOKIE_NAME_PATIENT)
+        if cookie_val:
+            token = cookie_val
+            via_cookie = True
+        else:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+
+    payload = _decode_jwt(token)
+    if payload.get("role") != "patient":
+        raise HTTPException(status_code=403, detail="Not a patient user")
+
+    # E5 — server-side session governance
+    await _validate_auth_session(
+        jti=payload.get("jti"),
+        user_id=payload.get("sub"),
+        user_type="patient",
+    )
+
+    patient = await db.patients.find_one({"id": payload.get("sub")}, {"_id": 0})
+    if not patient:
+        raise HTTPException(status_code=401, detail="Patient not found")
+    if patient.get("status") == "banned":
+        raise HTTPException(status_code=403, detail="Account is disabled")
+
+    if via_cookie:
+        await _enforce_csrf_for_cookie_auth(request, actor_type="patient")
+
+    return patient
+
+
+async def get_current_patient_optional(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+):
+    """Like get_current_patient but returns None instead of raising when the
+    caller is not an authenticated patient. Used by public pages that
+    personalize when a patient is logged in (browse/read surfaces)."""
+    try:
+        return await get_current_patient(request, credentials)
+    except HTTPException:
+        return None

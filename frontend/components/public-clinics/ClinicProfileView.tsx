@@ -293,7 +293,7 @@ export default function ClinicProfileView({ clinic, chatContext }: Props) {
       <section className="relative pt-10 sm:pt-14 pb-8">
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10">
           <Link
-            href="/kliniki"
+            href="/clinics"
             className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-xs text-slate-500 hover:text-teal-700 mb-3 transition-colors"
             data-testid="profile-back-to-listing"
           >
@@ -1948,7 +1948,7 @@ function CarePassContextBlock() {
 // Renders inside the addons-showcase profile only (`is_addons_showcase`
 // flag). Purpose: give sales / QA / partners a visual reference of all
 // possible listing-tile add-on chips WITHOUT modifying the real
-// `PublicClinicCard` component or polluting `/kliniki` listings.
+// `PublicClinicCard` component or polluting `/clinics` listings.
 
 function ShowcaseListingCardPreview({ clinic }: { clinic: PublicClinic }) {
   return (
@@ -1966,7 +1966,7 @@ function ShowcaseListingCardPreview({ clinic }: { clinic: PublicClinic }) {
         <p className="mt-0.5 ml-8 text-[11px] text-slate-500 leading-snug">
           Визуализация на разширената listing-карта за партньори. Този
           модул се показва само в showcase профила и не променя реалните
-          `/kliniki` карти.
+          `/clinics` карти.
         </p>
       </header>
 

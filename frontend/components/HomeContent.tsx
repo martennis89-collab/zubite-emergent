@@ -552,7 +552,7 @@ function TrustReason() {
 // statement is the shared message (patients read "these clinics are
 // vetted", clinics read "there is a bar"), then the two audiences split
 // into their own paths. Clinic-side copy is a faithful condensation of
-// the approved /za-kliniki positioning — no new claims are made here.
+// the approved /for-clinics positioning — no new claims are made here.
 function ZubiteStandard() {
   return (
     <section className="relative py-20 sm:py-28 overflow-hidden" data-testid="home-zubite-standard">
@@ -589,7 +589,7 @@ function ZubiteStandard() {
                 на кого да се довериш.
               </p>
               <Link
-                href="/standart-za-kliniki"
+                href="/clinic-standard"
                 className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-teal-700 hover:text-teal-800 transition-colors"
                 data-testid="home-zubite-standard-link"
               >
@@ -607,7 +607,7 @@ function ZubiteStandard() {
                 за случая си — с контекст, не просто още едно запитване.
               </p>
               <Link
-                href="/za-kliniki"
+                href="/for-clinics"
                 onClick={() => { try { trackPatientEvent('home_cta_clicked', { cta_location: 'clinic_partner' }) } catch { /* noop */ } }}
                 className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-teal-700 hover:text-teal-800 transition-colors"
                 data-testid="home-za-kliniki-link"

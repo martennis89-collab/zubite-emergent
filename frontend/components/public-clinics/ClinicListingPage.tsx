@@ -131,7 +131,7 @@ export default function ClinicListingPage({ initialCity, initialSpecialty, initi
                 <Building2 className="mx-auto h-10 w-10 text-[#C6C6CD]" />
                 <p className="mt-4 font-display text-xl font-semibold text-black">Няма клиники, които съвпадат с филтрите.</p>
                 <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#45464D]">Опитай с друг град или премини през кратката оценка, за да получиш по-точна посока.</p>
-                <div className="mt-6 flex justify-center gap-3"><Link href="/quiz" className="rounded-full bg-black px-5 py-3 text-sm font-semibold text-white" data-testid="kliniki-empty-cta-quiz">Провери своя случай</Link><Link href="/kliniki" className="rounded-full border border-[#C6C6CD] px-5 py-3 text-sm font-semibold text-black" data-testid="kliniki-empty-cta-clear">Всички клиники</Link></div>
+                <div className="mt-6 flex justify-center gap-3"><Link href="/quiz" className="rounded-full bg-black px-5 py-3 text-sm font-semibold text-white" data-testid="kliniki-empty-cta-quiz">Провери своя случай</Link><Link href="/clinics" className="rounded-full border border-[#C6C6CD] px-5 py-3 text-sm font-semibold text-black" data-testid="kliniki-empty-cta-clear">Всички клиники</Link></div>
               </div>
             ) : (
               <div className="grid gap-6 md:grid-cols-2" data-testid="kliniki-grid">

@@ -1,4 +1,4 @@
-"""Public clinic directory — `/kliniki` listing surface (Feb 2026).
+"""Public clinic directory — `/clinics` listing surface (Feb 2026).
 
 Isolated from the quiz-driven `/results/[leadId]/clinics` flow. Reuses the
 existing `clinics` collection as the single source of truth. No new tier
@@ -367,7 +367,7 @@ def _public_clinic_payload(clinic: dict, online_ids: Optional[set] = None) -> di
     slug = slugify_clinic(name) or clinic_id or ""
 
     # Legacy admin-created docs may lack `city_slug`; derive from the
-    # free-text `city` field so /kliniki listing still surfaces them.
+    # free-text `city` field so /clinics listing still surfaces them.
     city_slug_resolved = resolve_city_slug(clinic)
 
     # Review data is shown only when both rating AND count exist (per spec).
@@ -639,7 +639,7 @@ async def list_public_clinics(
     online_ids = await _compute_online_clinic_ids([d.get("id") for d in docs if d.get("id")])
     payloads = [_public_clinic_payload(c, online_ids) for c in docs]
     # Drop entries that have no resolvable name or city — the frontend
-    # route `/kliniki/[city]/[specialty]/[slug]` can't handle either.
+    # route `/clinics/[city]/[specialty]/[slug]` can't handle either.
     payloads = [p for p in payloads if p.get("name") and p.get("city_slug")]
     return {
         "clinics": payloads,

@@ -191,7 +191,7 @@ function refHost(referrer: string): string {
 
 const BLOG_PATHS = ['/blog/', '/statii/', '/articles/']
 const CONTENT_PATHS = [
-  '/oralna-higiena', '/breketi', '/alaineri', '/invisalign',
+  '/oralna-higiena', '/braces', '/alaineri', '/invisalign',
   '/implantologia', '/estetichna-stomatologia', '/parodontologia',
   '/aligners-vs-braces', '/teen', '/airway', '/tmj', '/symptoms',
   '/sleep-airway', '/cosmetic-dentistry', '/orthodontics',
@@ -203,7 +203,7 @@ export function detectPageType(pathname: string): PageType {
   if (p.startsWith('/quiz') || p.includes('/assessment')) return 'quiz'
   if (BLOG_PATHS.some((b) => p.startsWith(b))) return 'blog'
   if (CONTENT_PATHS.some((c) => p.startsWith(c))) return 'internal_content' as PageType extends 'internal_content' ? PageType : never as PageType
-  if (p.startsWith('/clinic') || p.startsWith('/za-kliniki')) return 'clinic_page'
+  if (p.startsWith('/clinic') || p.startsWith('/for-clinics')) return 'clinic_page'
   if (p.startsWith('/contact') || p === '/contact') return 'contact_page'
   if (/^\/[a-z-]+\/[a-z-]+$/.test(p)) return 'city_page' // e.g. /sofia/orthodontics
   if (/^\/[a-z-]+\/(orthodontics|implants|invisalign|cosmetic-dentistry|tmj|sleep-airway)$/.test(p)) return 'treatment_page'

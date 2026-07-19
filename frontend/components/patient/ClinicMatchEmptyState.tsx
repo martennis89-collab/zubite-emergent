@@ -60,7 +60,7 @@ export function ClinicMatchEmptyState({
           <ArrowRight className="w-4 h-4" />
         </Link>
         <Link
-          href="/kliniki"
+          href="/clinics"
           className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-white/65 backdrop-blur-xl ring-1 ring-white/80 text-slate-700 text-sm font-medium hover:bg-white transition-all shadow-[0_8px_24px_-14px_rgba(15,23,42,0.18)]"
           data-testid="match-empty-public-catalog"
         >

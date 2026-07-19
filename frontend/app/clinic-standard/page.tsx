@@ -8,11 +8,11 @@ import { ShieldCheck, ArrowRight, AlertTriangle, Gift, RefreshCw, ChevronDown, S
 export const metadata: Metadata = {
   title: 'Стандарт за партньорски клиники | Zubite.bg',
   description: 'Виж как Zubite.bg подбира партньорските клиники според качество на работа, отношение към пациента и професионализъм. Ориентир, не диагноза.',
-  alternates: { canonical: 'https://zubite.bg/standart-za-kliniki' },
+  alternates: { canonical: 'https://zubite.bg/clinic-standard' },
   openGraph: {
     title: 'Стандарт за партньорски клиники | Zubite.bg',
     description: 'Как подбираме партньорските клиники: качество на работа, отношение към пациента, професионализъм.',
-    url: 'https://zubite.bg/standart-za-kliniki',
+    url: 'https://zubite.bg/clinic-standard',
     type: 'article',
   },
 }
@@ -62,7 +62,7 @@ const webPageJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'WebPage',
   name: 'Стандарт за партньорски клиники на Zubite.bg',
-  url: 'https://zubite.bg/standart-za-kliniki',
+  url: 'https://zubite.bg/clinic-standard',
   description:
     'Канонично обяснение на стандарта на Zubite.bg за подбор на партньорски клиники: качество на работа, отношение към пациента, професионализъм.',
   inLanguage: 'bg',

@@ -32,7 +32,19 @@ JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 24
 
 # Resend Email
+#
+# Fails fast in production rather than silently deploying a build where
+# every email send is a no-op — that includes patient OTP codes, which are
+# the *only* login path for Общност accounts (no password fallback exists).
+# A missing key here means patients can never log in, with no visible error
+# except a support inbox full of "I never got my code."
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
+if IS_PRODUCTION and not RESEND_API_KEY:
+    raise RuntimeError(
+        "RESEND_API_KEY must be set in production. Patient OTP login "
+        "(Общност accounts have no password fallback) and every other "
+        "transactional email depend on it."
+    )
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
 # Zubite admin notification mailbox — single source of truth for any
 # "new lead / new booking / Care Pass unlocked" alert sent to the
@@ -105,6 +117,7 @@ if AUTH_COOKIE_SAMESITE not in {'lax', 'strict', 'none'}:
     AUTH_COOKIE_SAMESITE = 'lax'
 AUTH_COOKIE_NAME_ADMIN = os.environ.get('AUTH_COOKIE_NAME_ADMIN', 'zubite_admin_session').strip() or 'zubite_admin_session'
 AUTH_COOKIE_NAME_CLINIC = os.environ.get('AUTH_COOKIE_NAME_CLINIC', 'zubite_clinic_session').strip() or 'zubite_clinic_session'
+AUTH_COOKIE_NAME_PATIENT = os.environ.get('AUTH_COOKIE_NAME_PATIENT', 'zubite_patient_session').strip() or 'zubite_patient_session'
 AUTH_COOKIE_MAX_AGE_SECONDS = JWT_EXPIRATION_HOURS * 3600
 # Reserved for E4 — when True, drop Bearer-header support entirely. Not enforced in E1.
 AUTH_REQUIRE_COOKIE = os.environ.get('AUTH_REQUIRE_COOKIE', '0') == '1'

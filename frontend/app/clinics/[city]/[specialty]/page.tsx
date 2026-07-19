@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title,
     description: `${heading} — сравнете клиники според лечение, локация, онлайн консултация, профилна информация и Zubite доверителни сигнали.`,
     alternates: {
-      canonical: `https://zubite.bg/kliniki/${city}/${specialty}`,
+      canonical: `https://zubite.bg/clinics/${city}/${specialty}`,
     },
   }
 }
@@ -52,7 +52,7 @@ export default async function KlinikiByCitySpecialty({ params, searchParams }: P
       clinics,
       city,
       specialty,
-      canonicalPath: `/kliniki/${city}/${specialty}`,
+      canonicalPath: `/clinics/${city}/${specialty}`,
       pageName: heading,
     }),
     buildClinicBreadcrumbJsonLd({ city, specialty }),
@@ -72,7 +72,7 @@ export default async function KlinikiByCitySpecialty({ params, searchParams }: P
         initialSpecialty={canonicalSpecialty}
         initialFilters={initialFilters}
         headingOverride={heading}
-        syncToUrl={{ basePath: '/kliniki' }}
+        syncToUrl={{ basePath: '/clinics' }}
       />
       <Footer />
     </>

@@ -470,6 +470,9 @@ export interface Appointment {
   end_time: string
   status: string
   notes?: string | null
+  // Staff-internal assignment (Phase 3) — never patient-chosen, never
+  // affects availability/slot generation.
+  doctor_id?: string | null
   created_at: string
   updated_at?: string
 }

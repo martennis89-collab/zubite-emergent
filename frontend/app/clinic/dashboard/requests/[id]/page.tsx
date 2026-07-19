@@ -201,6 +201,11 @@ export default function ClinicRequestDetailPage() {
                     <div className="text-xs text-emerald-700 mt-1">
                       Статус: <span className="font-medium">{apptStatusLabel(appt.status)}</span>
                     </div>
+                    <DoctorAssignSection
+                      appointmentId={appt.id}
+                      currentDoctorId={appt.doctor_id}
+                      treatmentInterest={req.treatment_interest}
+                    />
                   </div>
                 </div>
               </div>
@@ -460,6 +465,138 @@ function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: strin
         <div className="text-xs text-slate-500">{label}</div>
         <div className="text-slate-700">{value || '—'}</div>
       </div>
+    </div>
+  )
+}
+
+interface Doctor {
+  id: string
+  name: string
+  specialties: string[]
+  accepts_online: boolean
+  accepts_in_person: boolean
+  active: boolean
+}
+
+interface AssignConflict {
+  source: 'physical' | 'online'
+  patient_name?: string | null
+}
+
+// `treatment_interest` (consultation_requests) and doctor `specialties`
+// (ORIENTATION_TREATMENT_CATEGORIES) are two different vocabularies —
+// this bridges the common cases so the specialty-match star is actually
+// useful. Unmapped values (quiz sources, etc.) just get no highlight.
+const TREATMENT_TO_SPECIALTY: Record<string, string> = {
+  orthodontics: 'orthodontics',
+  braces: 'orthodontics',
+  aligners: 'aligners',
+  invisalign: 'aligners',
+  implants: 'implants',
+  whitening: 'cosmetic_dentistry',
+  cosmetic: 'cosmetic_dentistry',
+  'cosmetic-dentistry': 'cosmetic_dentistry',
+  full_mouth: 'general_orientation',
+  general: 'general_orientation',
+}
+
+/**
+ * Staff-internal doctor assignment on an already-booked appointment.
+ * Purely a routing label — never affects availability/slot generation
+ * (patients still see clinic-wide availability, unchanged). Assigning
+ * the same doctor to overlapping times is allowed, just surfaced as a
+ * non-blocking warning since nothing upstream prevents it anymore.
+ */
+function DoctorAssignSection({
+  appointmentId, currentDoctorId, treatmentInterest,
+}: {
+  appointmentId: string
+  currentDoctorId?: string | null
+  treatmentInterest?: string | null
+}) {
+  const [doctors, setDoctors] = useState<Doctor[]>([])
+  const [loaded, setLoaded] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [conflicts, setConflicts] = useState<AssignConflict[]>([])
+  const [err, setErr] = useState('')
+  // Local, optimistic-after-confirm copy of the assignment — kept out of
+  // the page's `load()` cycle deliberately: that function drives the
+  // full-page loading skeleton, which would unmount this section (and
+  // wipe the conflict warning) the instant a reload ran.
+  const [doctorId, setDoctorId] = useState(currentDoctorId || '')
+  useEffect(() => { setDoctorId(currentDoctorId || '') }, [currentDoctorId])
+
+  useEffect(() => {
+    let cancelled = false
+    fetch(`${API_URL}/api/clinic/doctors`, { credentials: 'include' as RequestCredentials })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (!cancelled && d) setDoctors(d.doctors || []) })
+      .finally(() => { if (!cancelled) setLoaded(true) })
+    return () => { cancelled = true }
+  }, [])
+
+  const assign = async (newDoctorId: string) => {
+    setErr(''); setConflicts([]); setSaving(true)
+    try {
+      const r = await fetch(`${API_URL}/api/clinic/appointments/${appointmentId}/assign-doctor`, {
+        method: 'PATCH',
+        credentials: 'include' as RequestCredentials,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ doctor_id: newDoctorId || null }),
+      })
+      if (!r.ok) { setErr('Лекарят не бе назначен.'); return }
+      const data = await r.json()
+      setDoctorId(data.doctor_id || '')
+      setConflicts(data.conflicts || [])
+    } catch {
+      setErr('Грешка при свързване със сървъра.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const inPersonDoctors = doctors.filter((d) => d.accepts_in_person && d.active)
+  const targetSpecialty = treatmentInterest ? TREATMENT_TO_SPECIALTY[treatmentInterest] : undefined
+  const sorted = [...inPersonDoctors].sort((a, b) => {
+    const aMatch = targetSpecialty ? a.specialties.includes(targetSpecialty) : false
+    const bMatch = targetSpecialty ? b.specialties.includes(targetSpecialty) : false
+    if (aMatch !== bMatch) return aMatch ? -1 : 1
+    return a.name.localeCompare(b.name)
+  })
+
+  if (!loaded || inPersonDoctors.length === 0) return null
+
+  return (
+    <div className="mt-3 pt-3 border-t border-emerald-100">
+      <label className="block text-xs text-emerald-800 mb-1" htmlFor="doctor-assign-select">
+        Лекар
+      </label>
+      <select
+        id="doctor-assign-select"
+        value={doctorId}
+        onChange={(e) => assign(e.target.value)}
+        disabled={saving}
+        className="w-full sm:w-64 border border-emerald-200 rounded-lg px-2 py-1.5 text-sm bg-white disabled:opacity-50"
+        data-testid="doctor-assign-select"
+      >
+        <option value="">— Не е назначен —</option>
+        {sorted.map((d) => (
+          <option key={d.id} value={d.id}>
+            {d.name}{targetSpecialty && d.specialties.includes(targetSpecialty) ? ' ★' : ''}
+          </option>
+        ))}
+      </select>
+      {conflicts.length > 0 && (
+        <p
+          className="mt-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5"
+          data-testid="doctor-assign-conflict"
+        >
+          Внимание: лекарят вече има {conflicts.length === 1 ? 'друг ангажимент' : `${conflicts.length} други ангажимента`} по това време.
+        </p>
+      )}
+      {err && (
+        <p className="mt-2 text-xs text-rose-700" data-testid="doctor-assign-error">{err}</p>
+      )}
     </div>
   )
 }

@@ -12,7 +12,7 @@ from database import db, client
 from storage import init_storage
 from emails import send_verification_email
 
-from routers import public, admin, blog, analytics, clinics, verification, seo, consultations, audit_logs, orientation_settings, orientation_bookings, content_automation, public_clinics, clinic_addons, bookings, consultation_chat
+from routers import public, admin, blog, analytics, clinics, verification, seo, consultations, audit_logs, orientation_settings, orientation_bookings, content_automation, public_clinics, clinic_addons, bookings, consultation_chat, patient_auth, community, doctors
 
 # Root-level health endpoint
 app = FastAPI(title="Zubite.bg API")
@@ -49,6 +49,9 @@ api_router.include_router(content_automation.router)
 api_router.include_router(public_clinics.router)
 api_router.include_router(clinic_addons.router)
 api_router.include_router(bookings.router)
+api_router.include_router(patient_auth.router)
+api_router.include_router(community.router)
+api_router.include_router(doctors.router)
 
 app.include_router(api_router)
 
@@ -117,6 +120,24 @@ async def startup():
     await db.lead_verifications.create_index("token", unique=True)
     await db.lead_verifications.create_index("lead_id")
     await db.lead_verifications.create_index("clinic_id")
+    # Patient accounts (Общност Phase 1 — OTP-only)
+    await db.patients.create_index("id", unique=True)
+    await db.patients.create_index("email", unique=True)
+    await db.patient_otps.create_index("email")
+    # TTL: Mongo auto-deletes OTP rows once expires_at passes.
+    await db.patient_otps.create_index("expires_at", expireAfterSeconds=0)
+    # Общност (Q&A) — questions / answers / reports
+    await db.qa_questions.create_index("id", unique=True)
+    await db.qa_questions.create_index("slug", unique=True)
+    await db.qa_questions.create_index([("status", 1), ("topic", 1), ("published_at", -1)])
+    await db.qa_questions.create_index("patient_id")
+    await db.qa_answers.create_index("id", unique=True)
+    await db.qa_answers.create_index([("question_id", 1), ("status", 1)])
+    await db.qa_answers.create_index([("author_type", 1), ("author_id", 1)])
+    await db.qa_reports.create_index([("target_type", 1), ("target_id", 1)])
+    await db.qa_answer_votes.create_index([("answer_id", 1), ("patient_id", 1)], unique=True)
+    await db.qa_notifications.create_index([("patient_id", 1), ("created_at", -1)])
+    await db.qa_notifications.create_index([("patient_id", 1), ("read", 1)])
 
     # Consultation workflow indexes (Feb 2026)
     await db.consultation_requests.create_index("id", unique=True)
@@ -203,6 +224,13 @@ async def startup():
     await db.clinic_availability_rules.create_index([("clinic_id", 1), ("day_of_week", 1)])
     await db.clinic_booking_exceptions.create_index([("clinic_id", 1), ("date", 1)])
     asyncio.create_task(reminder_loop())
+
+    # Multi-doctor booking system (Phase 1 — doctor roster).
+    await db.doctors.create_index("id", unique=True)
+    await db.doctors.create_index([("clinic_id", 1), ("active", 1)])
+    # Phase 3 — staff-internal doctor assignment + conflict lookups.
+    await db.clinic_appointments.create_index([("clinic_id", 1), ("doctor_id", 1)])
+    await db.online_orientation_bookings.create_index([("clinic_id", 1), ("doctor_id", 1)])
 
 
 async def auto_verification_loop():

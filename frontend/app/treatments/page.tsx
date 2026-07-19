@@ -135,7 +135,7 @@ const LIVE_CATEGORIES: LiveCategory[] = [
       'Метални, керамични, лингвални или само-лигиращи брекети — фиксирано ортодонтско лечение, което се планира и води от ортодонт.',
     relevant:
       'Когато обмисляш ортодонтско лечение и искаш да разбереш какви типове брекети има и как се сравняват с алайнери.',
-    href: '/breketi',
+    href: '/braces',
     icon: <AlignLeft className="w-4 h-4" />,
     secondary: { href: '/aligners-vs-braces', label: 'Сравнение с алайнери' },
   },
@@ -178,7 +178,7 @@ const FAQ = [
   },
   {
     q: 'Мога ли да видя клиники по категория?',
-    a: 'Да. Публичният каталог на партньорски клиники е достъпен на /kliniki и поддържа филтриране по град и категория. Zubite не подрежда клиниките като „най-добри" — каталогът е информационен.',
+    a: 'Да. Публичният каталог на партньорски клиники е достъпен на /clinics и поддържа филтриране по град и категория. Zubite не подрежда клиниките като „най-добри" — каталогът е информационен.',
   },
 ] as const
 
@@ -296,7 +296,7 @@ export default function TreatmentsPage() {
               </span>
             </Link>
             <Link
-              href="/kliniki"
+              href="/clinics"
               data-testid="treatments-hero-secondary-cta"
               className="relative inline-flex items-center gap-1.5 rounded-full bg-white/35 backdrop-blur-2xl text-slate-700 text-sm font-medium px-5 py-3 ring-1 ring-white/60 hover:bg-white/55 hover:-translate-y-0.5 transition-all shadow-[0_8px_24px_-12px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.95)] overflow-hidden"
             >

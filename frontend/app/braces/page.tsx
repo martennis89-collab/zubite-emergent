@@ -9,7 +9,7 @@ import {
   Smile, Sparkles, Layers, Eye, Activity, GraduationCap,
 } from 'lucide-react'
 
-// /breketi — Bulgarian patient-facing orientation page about braces.
+// /braces — Bulgarian patient-facing orientation page about braces.
 //
 // Purpose: help patients understand what braces are, when they MAY be
 // relevant, how they compare to aligners, what types exist, what
@@ -25,12 +25,12 @@ export const metadata: Metadata = {
   title: 'Брекети — ориентир за пациента: видове, цени, консултация | Zubite.bg',
   description:
     'Какво представляват брекетите, кога могат да са подходящи, какви видове има, ориентировъчни цени в България и какви въпроси да зададеш на ортодонт. Zubite.bg е ориентир, не диагноза.',
-  alternates: { canonical: 'https://zubite.bg/breketi' },
+  alternates: { canonical: 'https://zubite.bg/braces' },
   openGraph: {
     title: 'Брекети — ориентир преди консултация | Zubite.bg',
     description:
       'Видове брекети, ориентировъчни цени, сравнение с алайнери. Не диагноза, а насока за разговор с ортодонт.',
-    url: 'https://zubite.bg/breketi',
+    url: 'https://zubite.bg/braces',
     type: 'website',
     locale: 'bg_BG',
   },
@@ -259,8 +259,8 @@ const RELATED = [
 const medicalWebPageLd = {
   '@context': 'https://schema.org',
   '@type': 'MedicalWebPage',
-  '@id': `${SITE}/breketi`,
-  url: `${SITE}/breketi`,
+  '@id': `${SITE}/braces`,
+  url: `${SITE}/braces`,
   name: 'Брекети — ориентир за пациента',
   inLanguage: 'bg-BG',
   description:
@@ -276,7 +276,7 @@ const breadcrumbLd = {
   itemListElement: [
     { '@type': 'ListItem', position: 1, name: 'Начало', item: SITE },
     { '@type': 'ListItem', position: 2, name: 'Лечения', item: `${SITE}/treatments` },
-    { '@type': 'ListItem', position: 3, name: 'Брекети', item: `${SITE}/breketi` },
+    { '@type': 'ListItem', position: 3, name: 'Брекети', item: `${SITE}/braces` },
   ],
 }
 
@@ -791,7 +791,7 @@ export default function BreketiPage() {
                 </span>
               </Link>
               <Link
-                href="/kliniki/sofia/ortodontia"
+                href="/clinics/sofia/ortodontia"
                 data-testid="breketi-final-cta-secondary"
                 className="inline-flex items-center gap-1.5 rounded-full bg-white/55 backdrop-blur-md text-slate-700 text-sm font-medium px-5 py-3 ring-1 ring-white/70 hover:bg-white/75 transition-colors"
               >

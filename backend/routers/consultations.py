@@ -387,7 +387,7 @@ async def admin_create_clinic(
     import secrets as _secrets
     temp_password = _secrets.token_urlsafe(12)
     now = _now_iso()
-    # Public listing (`/kliniki`) expects a canonical `name` + `city_slug`
+    # Public listing (`/clinics`) expects a canonical `name` + `city_slug`
     # + `is_active` triple. Legacy admin docs only had `clinic_name` +
     # free-text `city`, which excluded them from the public list. Mirror
     # both fields on insert so new clinics surface immediately.
@@ -494,7 +494,7 @@ async def admin_update_clinic(
     if not update:
         raise HTTPException(status_code=400, detail="No fields to update")
     # Keep the canonical public-listing fields in sync when admin edits
-    # `clinic_name` or `city`. Public `/kliniki` filters on `name` +
+    # `clinic_name` or `city`. Public `/clinics` filters on `name` +
     # `city_slug` — legacy edits that only touched `clinic_name`/`city`
     # would otherwise leave stale values behind.
     if "clinic_name" in update:
@@ -1822,6 +1822,7 @@ def _orientation_booking_to_appointment(b: Dict[str, Any]) -> Dict[str, Any]:
         "end_time": end_time,
         "status": b.get("status"),
         "notes": b.get("patient_note"),
+        "doctor_id": b.get("doctor_id"),
         "created_at": b.get("created_at"),
         "updated_at": b.get("updated_at"),
     }

@@ -1,7 +1,7 @@
 /**
  * Public clinic directory — types, API helpers, and tier mapping.
  *
- * Single source of truth for `/kliniki` listing surface. Mirrors the
+ * Single source of truth for `/clinics` listing surface. Mirrors the
  * shape of `GET /api/public/clinics` and intentionally lives next to
  * `lib/api.ts` so the quiz-driven results flow stays untouched.
  */
@@ -285,7 +285,7 @@ export const TREATMENT_LABELS: Record<string, string> = {
   endodontics: 'Ендодонтия',
   pediatric: 'Детска стоматология',
   // Added 2026-07: these slugs are in active use (lib/pricing.ts keys,
-  // the /breketi + /aligners-vs-braces + /tmj + /sleep-airway routes) but
+  // the /braces + /aligners-vs-braces + /tmj + /sleep-airway routes) but
   // had no label, so `treatmentLabel()` fell through to its raw-slug
   // fallback and printed English ("braces", "veneers") to Bulgarian
   // patients. Labels below match the wording used elsewhere on the site.
@@ -335,7 +335,7 @@ export function resolveSpecialtySlug(urlSlug: string): string | null {
   return SPECIALTY_URL_MAP[k] || null
 }
 
-/** Specialty-aware page heading for `/kliniki/[city]/[specialty]`.
+/** Specialty-aware page heading for `/clinics/[city]/[specialty]`.
  *  Hand-crafted so SEO/intent matches natural Bulgarian search phrases. */
 export function specialtyCityHeading(specialtySlug: string, cityName: string): string {
   const k = specialtySlug.toLowerCase()
@@ -366,13 +366,13 @@ export function treatmentLabel(slug: string): string {
   return TREATMENT_LABELS[slug] || slug.replace(/_/g, ' ')
 }
 
-/** Build the canonical profile URL for a clinic — `/kliniki/[city]/[specialty]/[slug]`.
+/** Build the canonical profile URL for a clinic — `/clinics/[city]/[specialty]/[slug]`.
  *  `specialty` is the FIRST treatment slug from the clinic's list, or a
  *  generic `klinika` fallback if treatments is empty (still SEO-safe). */
 export function clinicProfileHref(c: PublicClinic): string {
   const city = c.city_slug || 'all'
   const specialty = c.treatments[0] || 'klinika'
-  return `/kliniki/${city}/${specialty}/${c.slug || c.id}`
+  return `/clinics/${city}/${specialty}/${c.slug || c.id}`
 }
 
 /** City slug → Bulgarian display name. Falls back to capitalising the

@@ -1394,7 +1394,7 @@ class OnlineOrientationBookingAdminAction(BaseModel):
 
 
 # ─── Public Clinic Profile Scheduler (Phase A — clinic homepage) ─────
-# A patient on /kliniki/<slug> (or any public clinic profile) can book a
+# A patient on /clinics/<slug> (or any public clinic profile) can book a
 # phone consultation directly without going through the quiz funnel.
 # We auto-create a minimal lead with strict labels so admin / clinic
 # can distinguish this source from quiz-qualified leads, then reuse the
@@ -1482,3 +1482,154 @@ class ClinicAddonUpdate(BaseModel):
     internal_owner: Optional[str] = Field(default=None, max_length=120)
     delivery_notes: Optional[str] = Field(default=None, max_length=2000)
     invoice_notes: Optional[str] = Field(default=None, max_length=2000)
+
+
+# ─── Patient accounts (Общност — Phase 1, OTP-only) ───────────────
+
+class PatientOtpRequest(BaseModel):
+    """Step 1 of passwordless login: ask for a one-time code by email."""
+    email: EmailStr
+
+
+class PatientOtpVerify(BaseModel):
+    """Step 2: exchange the emailed 6-digit code for a session."""
+    email: EmailStr
+    code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
+
+
+class PatientProfileUpdate(BaseModel):
+    """Patient self-service profile edit. All fields optional/partial."""
+    display_name: Optional[str] = Field(default=None, min_length=2, max_length=60)
+    city_slug: Optional[str] = Field(default=None, max_length=60)
+
+
+class PatientOut(BaseModel):
+    """Public-safe patient projection returned to the patient themselves."""
+    id: str
+    email: EmailStr
+    email_verified: bool = True
+    display_name: Optional[str] = None
+    city_slug: Optional[str] = None
+    reputation: int = 0
+    created_at: Optional[str] = None
+
+
+class PatientTokenResponse(BaseModel):
+    # access_token omitted in cookie-only mode (response_model_exclude_none).
+    access_token: Optional[str] = None
+    token_type: Optional[str] = None
+    user: PatientOut
+
+
+# ─── Общност (Q&A) — Phase 2 (questions + browse + moderation) ─────
+
+class QaQuestionCreate(BaseModel):
+    """A patient asking a question. Body is sanitized + PII-scrubbed server-side."""
+    topic: str = Field(min_length=2, max_length=40)
+    title: str = Field(min_length=10, max_length=160)
+    body: str = Field(min_length=20, max_length=4000)
+
+
+class QaReportCreate(BaseModel):
+    """Flag a question (or later, an answer) for moderator attention."""
+    reason: str = Field(min_length=3, max_length=500)
+
+
+class QaModerationBody(BaseModel):
+    moderation_notes: Optional[str] = Field(default=None, max_length=2000)
+
+
+class QaAnswerCreate(BaseModel):
+    """An answer from either a patient (peer) or a clinic (expert)."""
+    body: str = Field(min_length=10, max_length=3000)
+
+
+# ─── Multi-doctor booking system (Phase 1 — doctor roster) ─────────
+# A clinic-owned roster of doctors. Specialties reuse the same
+# treatment-category vocabulary as online orientation eligibility
+# (`ORIENTATION_TREATMENT_CATEGORIES`) so a request's treatment_category
+# can be matched against a doctor's specialties in assignment UI.
+# Deliberately deactivate-only (never hard-deleted) so historical
+# bookings keep a valid doctor reference.
+
+def _validate_doctor_specialties(v: List[str]) -> List[str]:
+    if not isinstance(v, list):
+        raise ValueError("specialties must be a list")
+    out: List[str] = []
+    for s in v:
+        if not isinstance(s, str):
+            raise ValueError("specialty must be a string")
+        ss = s.strip().lower()
+        if ss not in ORIENTATION_TREATMENT_CATEGORIES:
+            raise ValueError(
+                f"specialty '{s}' is not allowed; pick from {ORIENTATION_TREATMENT_CATEGORIES}"
+            )
+        if ss not in out:
+            out.append(ss)
+    return out
+
+
+class Doctor(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    clinic_id: str
+    name: str = Field(min_length=1, max_length=200)
+    title: Optional[str] = Field(default=None, max_length=200)
+    specialties: List[str] = Field(default_factory=list)
+    accepts_online: bool = True
+    accepts_in_person: bool = True
+    active: bool = True
+    photo_url: Optional[str] = None
+    bio: Optional[str] = Field(default=None, max_length=2000)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    @field_validator("specialties")
+    @classmethod
+    def _v_specialties(cls, v: List[str]) -> List[str]:
+        return _validate_doctor_specialties(v)
+
+
+class DoctorCreate(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    name: str = Field(min_length=1, max_length=200)
+    title: Optional[str] = Field(default=None, max_length=200)
+    specialties: List[str] = Field(default_factory=list)
+    accepts_online: bool = True
+    accepts_in_person: bool = True
+    photo_url: Optional[str] = None
+    bio: Optional[str] = Field(default=None, max_length=2000)
+
+    @field_validator("specialties")
+    @classmethod
+    def _v_specialties(cls, v: List[str]) -> List[str]:
+        return _validate_doctor_specialties(v)
+
+
+class DoctorUpdate(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    name: Optional[str] = Field(default=None, min_length=1, max_length=200)
+    title: Optional[str] = Field(default=None, max_length=200)
+    specialties: Optional[List[str]] = None
+    accepts_online: Optional[bool] = None
+    accepts_in_person: Optional[bool] = None
+    active: Optional[bool] = None
+    photo_url: Optional[str] = None
+    bio: Optional[str] = Field(default=None, max_length=2000)
+
+    @field_validator("specialties")
+    @classmethod
+    def _v_specialties(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        if v is None:
+            return v
+        return _validate_doctor_specialties(v)
+
+
+class DoctorAssignmentBody(BaseModel):
+    """Staff-internal doctor assignment on an already-existing booking
+    (physical appointment or online orientation booking). Availability
+    stays clinic-wide — this never affects slot generation, it only
+    labels which doctor is handling a booking that already exists.
+    `doctor_id=None` clears the assignment."""
+    model_config = ConfigDict(extra="ignore")
+    doctor_id: Optional[str] = None

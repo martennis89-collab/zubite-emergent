@@ -15,9 +15,7 @@
  * same proportions, so the clinic can see what they'll get before
  * downloading.
  */
-import type { ReactNode } from 'react'
 import { QRCodeCanvas } from 'qrcode.react'
-import { ShieldCheck, Sparkles, Eye } from 'lucide-react'
 
 // Brand kit tokens (SOCIAL_BRAND_KIT.md §3) — not in tailwind.config.js
 // since this poster is the only consumer of the full palette; inline
@@ -29,11 +27,9 @@ const BORDER = '#E5E5E5'
 const PAPER = '#F5F4F2'
 const ORANGE = '#FF6B00'
 const EMERALD = '#007956'
-const SOFT_TRUST = '#D0FAE5'
 
 const MANROPE = "'Manrope', sans-serif"
 const PLAYFAIR = "'Playfair Display', serif"
-const MONO = "'IBM Plex Mono', monospace"
 
 export type PaperSize = 'A4' | 'A3'
 
@@ -57,10 +53,9 @@ interface Props {
   variant?: 'print' | 'preview'
   paperSize?: PaperSize
   /**
-   * Clinic-uploaded logo for co-branding. Placed small in the footer,
-   * labeled "С участието на" — SOCIAL_BRAND_KIT.md §5 is explicit that a
-   * clinic logo must never sit beside the Zubite wordmark as an equal
-   * lockup; Zubite stays the platform owner, the clinic a contributor.
+   * Clinic-uploaded logo. Placed small in the footer, unlabeled — kept
+   * visually secondary to the Zubite wordmark up top rather than an
+   * equal lockup (SOCIAL_BRAND_KIT.md §5).
    */
   logoUrl?: string | null
 }
@@ -114,32 +109,16 @@ export function ReviewPoster({
       >
         {/* Wordmark — Manrope Extra Bold, Editorial Ink + Trust Emerald
             ".bg" (brand kit §5). Never the old serif/teal treatment. */}
-        <div className="flex items-center justify-between">
-          <div
-            className="font-extrabold tracking-tight leading-none"
-            style={{
-              fontFamily: MANROPE,
-              fontSize: isPreview ? 24 : mm(9),
-            }}
-            data-testid="review-poster-brand"
-          >
-            <span style={{ color: INK }}>Zubite</span>
-            <span style={{ color: EMERALD }}>.bg</span>
-          </div>
-          <span
-            className="inline-flex items-center gap-1.5 font-medium"
-            style={{
-              fontFamily: MANROPE,
-              backgroundColor: SOFT_TRUST,
-              color: EMERALD,
-              borderRadius: 999,
-              fontSize: isPreview ? 10 : mm(3.2),
-              padding: isPreview ? '4px 10px' : `${mm(1.6)}mm ${mm(3.2)}mm`,
-            }}
-          >
-            <ShieldCheck className={isPreview ? 'w-3 h-3' : ''} style={!isPreview ? { width: mm(3.5), height: mm(3.5) } : undefined} />
-            Платформа за орална грижа
-          </span>
+        <div
+          className="font-extrabold tracking-tight leading-none"
+          style={{
+            fontFamily: MANROPE,
+            fontSize: isPreview ? 24 : mm(9),
+          }}
+          data-testid="review-poster-brand"
+        >
+          <span style={{ color: INK }}>Zubite</span>
+          <span style={{ color: EMERALD }}>.bg</span>
         </div>
 
         {/* Thin precision divider — replaces the old dotted/blob motif. */}
@@ -216,12 +195,6 @@ export function ReviewPoster({
                 data-testid="review-poster-qr"
               />
             </div>
-            <p
-              className="mt-3 text-center break-all"
-              style={{ fontFamily: MONO, color: FAINT, fontSize: isPreview ? 8 : mm(2.6) }}
-            >
-              {reviewUrl}
-            </p>
           </div>
 
           <p
@@ -232,29 +205,13 @@ export function ReviewPoster({
           </p>
         </div>
 
-        {/* Trust strip — Trust Emerald signals, Soft Trust chip surfaces. */}
-        <div
-          className="flex items-center justify-center flex-wrap gap-x-3 gap-y-2"
-          style={{
-            fontFamily: MANROPE,
-            color: MUTED,
-            fontSize: isPreview ? 10 : mm(3.2),
-            marginTop: isPreview ? 8 : mm(5),
-          }}
-          data-testid="review-poster-trust"
-        >
-          <TrustChip icon={<ShieldCheck />} label="Около 60 секунди" isPreview={isPreview} mm={mm} />
-          <TrustChip icon={<Sparkles />} label="Без регистрация" isPreview={isPreview} mm={mm} />
-          <TrustChip icon={<Eye />} label="Преглежда се преди публикуване" isPreview={isPreview} mm={mm} />
-        </div>
-
         {/* Footer — brand sign-off line per SOCIAL_BRAND_KIT.md §1. */}
         <div
           className="text-center"
           style={{
             borderTop: `1px solid ${BORDER}`,
             paddingTop: isPreview ? 12 : mm(5),
-            marginTop: isPreview ? 12 : mm(6),
+            marginTop: isPreview ? 20 : mm(10),
           }}
         >
           <p
@@ -263,34 +220,12 @@ export function ReviewPoster({
             Вашето мнение помага на други пациенти да направят
             {!isPreview && <br />}{' '}по-информиран избор.
           </p>
-          <p
-            className="mt-1 font-medium uppercase"
-            style={{
-              fontFamily: MANROPE,
-              color: EMERALD,
-              letterSpacing: '0.1em',
-              fontSize: isPreview ? 9 : mm(2.8),
-            }}
-          >
-            Ориентир, не диагноза.
-          </p>
           {logoUrl && (
             <div
               className="flex items-center justify-center"
-              style={{ gap: isPreview ? 6 : mm(2), marginTop: isPreview ? 10 : mm(4) }}
+              style={{ marginTop: isPreview ? 10 : mm(4) }}
               data-testid="review-poster-co-brand"
             >
-              <span
-                className="uppercase"
-                style={{
-                  fontFamily: MANROPE,
-                  color: FAINT,
-                  letterSpacing: '0.08em',
-                  fontSize: isPreview ? 8 : mm(2.6),
-                }}
-              >
-                С участието на
-              </span>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={logoUrl}
@@ -302,34 +237,5 @@ export function ReviewPoster({
         </div>
       </div>
     </div>
-  )
-}
-
-function TrustChip({
-  icon, label, isPreview, mm,
-}: {
-  icon: ReactNode
-  label: string
-  isPreview: boolean
-  mm: (v: number) => number
-}) {
-  return (
-    <span
-      className="inline-flex items-center gap-1.5"
-      style={{
-        backgroundColor: SOFT_TRUST,
-        color: EMERALD,
-        borderRadius: 999,
-        padding: isPreview ? '3px 8px' : `${mm(1.2)}mm ${mm(3)}mm`,
-      }}
-    >
-      <span
-        className={isPreview ? 'w-3 h-3' : ''}
-        style={!isPreview ? { width: mm(3.2), height: mm(3.2) } : undefined}
-      >
-        {icon}
-      </span>
-      {label}
-    </span>
   )
 }

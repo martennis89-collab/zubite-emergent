@@ -36,7 +36,7 @@ function ensure(dir) { fs.mkdirSync(dir,{recursive:true}); }
 function face(family="Manrope",weight=400) { if(family==="Plex") return typefaces.manropeMedium; if(weight>=700) return typefaces.manropeBold; if(weight>=500) return typefaces.manropeMedium; return typefaces.manropeRegular; }
 function shaped(value,{size=32,family="Manrope",weight=400,letter=0}={}) { try { const font=face(family,weight), run=font.layout(String(value)), scale=size/font.unitsPerEm; const width=run.positions.reduce((sum,p)=>sum+p.xAdvance*scale,0)+Math.max(0,run.glyphs.length-1)*letter; return {font,run,scale,width}; } catch(error) { throw new Error(`Font shaping failed for ${family}/${weight}: ${String(value)}`,{cause:error}); } }
 function measureText(value,options={}) { return shaped(value,options).width; }
-function pathText(value,{x=0,y=0,size=32,family="Manrope",weight=400,letter=0,fill=colors.ink,anchor="start",opacity=1}={}) { const {run,scale,width}=shaped(value,{size,family,weight,letter}); let cursor=anchor==="end"?x-width:anchor==="middle"?x-width/2:x; return run.glyphs.map((glyph,i)=>{const pos=run.positions[i], gx=cursor+pos.xOffset*scale, gy=y-pos.yOffset*scale; cursor+=pos.xAdvance*scale+(i<run.glyphs.length-1?letter:0); return `<path d="${glyph.path.toSVG()}" transform="translate(${gx.toFixed(3)} ${gy.toFixed(3)}) scale(${scale.toFixed(6)} ${(-scale).toFixed(6)})" fill="${fill}" opacity="${opacity}"/>`;}).join(""); }
+function pathText(value,{x=0,y=0,size=32,family="Manrope",weight=400,letter=0,fill=colors.ink,anchor="start",opacity=1,maxWidth=Infinity}={}) { let fitted=size, result=shaped(value,{size:fitted,family,weight,letter}); if(result.width>maxWidth){fitted=size*maxWidth/result.width;result=shaped(value,{size:fitted,family,weight,letter});} const {run,scale,width}=result; let cursor=anchor==="end"?x-width:anchor==="middle"?x-width/2:x; return run.glyphs.map((glyph,i)=>{const pos=run.positions[i], gx=cursor+pos.xOffset*scale, gy=y-pos.yOffset*scale; cursor+=pos.xAdvance*scale+(i<run.glyphs.length-1?letter:0); return `<path d="${glyph.path.toSVG()}" transform="translate(${gx.toFixed(3)} ${gy.toFixed(3)}) scale(${scale.toFixed(6)} ${(-scale).toFixed(6)})" fill="${fill}" opacity="${opacity}"/>`;}).join(""); }
 function logo(x=72,y=82,dark=false,size=34) { const base=dark?colors.white:colors.ink, main="Zubite", gap=-1, mainWidth=measureText(main,{size,weight:700,letter:-2}); return `${pathText(main,{x,y,size,weight:700,letter:-2,fill:base})}${pathText(".bg",{x:x+mainWidth+gap,y,size,weight:700,letter:-2,fill:colors.emerald})}`; }
 function lineText(lines,{x,y,size=68,leading=1.02,fill=colors.ink,weight=700,anchor="start",family="Manrope",letter=-2.5,maxWidth=Infinity}={}) { const fitted=Math.min(size,...lines.map(line=>{const width=measureText(line,{size,family,weight,letter});return width>maxWidth?size*maxWidth/width:size;})); return lines.map((line,i)=>pathText(line,{x,y:y+i*fitted*leading,size:fitted,family,weight,letter,fill,anchor})).join(""); }
 function pill(x,y,text,{fill=colors.soft,color=colors.emerald,stroke="none",size=17}={}) { const label=text.toUpperCase(), w=Math.max(150,measureText(label,{size,family:"Plex",weight:600,letter:1.2})+42); return `<g><rect x="${x}" y="${y}" width="${w}" height="46" rx="23" fill="${fill}" stroke="${stroke}"/>${pathText(label,{x:x+21,y:y+30,size,family:"Plex",weight:600,letter:1.2,fill:color})}</g>`; }
@@ -52,8 +52,8 @@ function factSvg(post,w,h) {
     ${logo(72,88,true,34)}
     ${pill(72,118,"ПРОВЕРЕН ФАКТ",{fill:"rgba(0,121,86,.88)",color:colors.white,size:16})}
     <line x1="72" y1="${titleY-48}" x2="226" y2="${titleY-48}" stroke="${colors.orange}" stroke-width="8" stroke-linecap="round"/>
-    ${lineText(post.headline,{x:72,y:titleY,size:titleSize,leading:1.03,fill:colors.white,letter:-2.8})}
-    ${pathText(post.subline,{x:72,y:subY,size:story?29:24,weight:500,fill:"#E8E8E8"})}
+    ${lineText(post.headline,{x:72,y:titleY,size:titleSize,leading:1.03,fill:colors.white,letter:-2.8,maxWidth:w-144})}
+    ${pathText(post.subline,{x:72,y:subY,size:story?29:24,weight:500,fill:"#E8E8E8",maxWidth:w-144})}
     ${pill(72,ctaY,post.cta,{fill:colors.orange,color:colors.white,size:story?18:15})}
     ${pathText(`ИЗТОЧНИК: ${post.sourceShort.toUpperCase()}`,{x:72,y:sourceY,size:story?18:15,family:"Plex",weight:600,letter:1.2,fill:"#C8C8C8"})}
     ${pathText("AI-ГЕНЕРИРАНА ПРЕДСТАВИТЕЛНА ВИЗУАЛИЗАЦИЯ",{x:72,y:disclosureY,size:story?16:13,family:"Plex",weight:600,letter:.8,fill:"#9A9A9A"})}`;
@@ -72,8 +72,8 @@ function carouselCover(post,slide,index) {
     <clipPath id="coverclip"><rect x="620" y="176" width="372" height="986" rx="28"/></clipPath>
     <image href="${dataUri(path.join(assets,img))}" x="620" y="176" width="372" height="986" preserveAspectRatio="xMidYMid slice" clip-path="url(#coverclip)"/>
     ${pill(72,178,post.coverKicker||"КАРУСЕЛ",{fill:colors.soft,color:colors.emerald,size:15})}
-    ${lineText(slide.title,{x:72,y:360,size:66,leading:1.02,fill:colors.ink,letter:-3.2})}
-    ${lineText(slide.body,{x:72,y:690,size:32,leading:1.45,fill:colors.muted,weight:500,letter:-.7})}
+    ${lineText(slide.title,{x:72,y:360,size:66,leading:1.02,fill:colors.ink,letter:-3.2,maxWidth:476})}
+    ${lineText(slide.body,{x:72,y:690,size:32,leading:1.45,fill:colors.muted,weight:500,letter:-.7,maxWidth:476})}
     <line x1="72" y1="1120" x2="232" y2="1120" stroke="${colors.orange}" stroke-width="8" stroke-linecap="round"/>
     ${pathText("ПЛЪЗНИ НАЛЯВО →",{x:72,y:1180,size:16,family:"Plex",weight:600,letter:1.4,fill:colors.faint})}
     ${pathText(`ИЗТОЧНИК: ${post.sourceShort.toUpperCase()}`,{x:72,y:1274,size:14,family:"Plex",weight:600,letter:1,fill:colors.faint})}`;
@@ -96,11 +96,11 @@ function carouselContent(post,slide,index) {
     ${pathText(`${String(index+1).padStart(2,"0")} / 07`,{x:1008,y:80,size:17,family:"Plex",weight:600,letter:1.8,fill:colors.emerald,anchor:"end"})}
     ${pathText(slide.number,{x:72,y:390,size:150,family:"Plex",weight:600,letter:-8,fill:colors.soft})}
     ${imageBlock}
-    ${lineText(slide.title,{x:72,y:660,size:68,leading:1.05,fill:colors.ink,letter:-3.2})}
-    ${lineText(slide.body,{x:72,y:860,size:30,leading:1.55,fill:colors.muted,weight:500,letter:-.5})}
+    ${lineText(slide.title,{x:72,y:660,size:68,leading:1.05,fill:colors.ink,letter:-3.2,maxWidth:936})}
+    ${lineText(slide.body,{x:72,y:860,size:30,leading:1.55,fill:colors.muted,weight:500,letter:-.5,maxWidth:936})}
     <rect x="72" y="1056" width="936" height="142" rx="28" fill="${colors.white}" stroke="${colors.border}" stroke-width="2"/>
     <circle cx="112" cy="1098" r="9" fill="${colors.live}"/>${pathText("ПОЛЕЗНО УТОЧНЕНИЕ",{x:140,y:1106,size:16,family:"Plex",weight:600,letter:1.4,fill:colors.emerald})}
-    ${pathText(slide.note,{x:112,y:1158,size:25,weight:500,fill:colors.ink})}
+    ${pathText(slide.note,{x:112,y:1158,size:25,weight:500,fill:colors.ink,maxWidth:856})}
     ${pathText(`ИЗТОЧНИК: ${post.sourceShort.toUpperCase()}`,{x:72,y:1280,size:14,family:"Plex",weight:600,letter:1,fill:colors.faint})}`;
   return svgWrap(1080,1350,body);
 }
@@ -113,8 +113,8 @@ function carouselFinal(post,slide,index) {
     ${logo(72,86,true,34)}
     ${pathText(`${String(index+1).padStart(2,"0")} / 07`,{x:1008,y:84,size:17,family:"Plex",weight:600,letter:1.8,fill:colors.live,anchor:"end"})}
     <line x1="72" y1="350" x2="232" y2="350" stroke="${colors.orange}" stroke-width="8" stroke-linecap="round"/>
-    ${lineText(slide.title,{x:72,y:470,size:82,leading:1.03,fill:colors.white,letter:-3.7})}
-    ${lineText(slide.body,{x:72,y:820,size:34,leading:1.5,fill:"#D4D4D4",weight:500,letter:-.5})}
+    ${lineText(slide.title,{x:72,y:470,size:82,leading:1.03,fill:colors.white,letter:-3.7,maxWidth:936})}
+    ${lineText(slide.body,{x:72,y:820,size:34,leading:1.5,fill:"#D4D4D4",weight:500,letter:-.5,maxWidth:936})}
     ${pill(72,1040,post.cta,{fill:colors.orange,color:colors.white,size:16})}
     ${pathText("Ориентир, не диагноза.",{x:72,y:1214,size:24,weight:500,fill:"#C8C8C8"})}
     ${pathText(`ИЗТОЧНИК: ${post.sourceShort.toUpperCase()}`,{x:72,y:1274,size:14,family:"Plex",weight:600,letter:1,fill:"#8A8A8A"})}`;
@@ -131,8 +131,8 @@ function carouselStory(post) {
     <rect x="0" y="0" width="1080" height="1100" fill="url(#fade)"/>
     ${logo(84,100,true,34)}
     ${pill(84,1140,"НОВ КАРУСЕЛ",{fill:colors.soft,color:colors.emerald,size:18})}
-    ${lineText(title,{x:84,y:1280,size:82,leading:1.02,fill:colors.ink,letter:-3.7})}
-    ${pathText(post.coverKicker,{x:84,y:1650,size:31,weight:500,fill:colors.muted})}
+    ${lineText(title,{x:84,y:1280,size:82,leading:1.02,fill:colors.ink,letter:-3.7,maxWidth:912})}
+    ${pathText(post.coverKicker,{x:84,y:1650,size:31,weight:500,fill:colors.muted,maxWidth:912})}
     ${pill(84,1720,"Отвори публикацията",{fill:colors.orange,color:colors.white,size:18})}
     ${pathText(`ИЗТОЧНИК: ${post.sourceShort.toUpperCase()}`,{x:84,y:1850,size:16,family:"Plex",weight:600,letter:1.1,fill:colors.faint})}`;
   const defs=`<linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".15"/><stop offset=".72" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="${colors.paper}" stop-opacity="1"/></linearGradient>`;
@@ -160,28 +160,35 @@ async function writeSvgAndPng(svg,fileBase,w,h) {
   await sharp(Buffer.from(svg)).resize(w,h).png({compressionLevel:9}).toFile(`${fileBase}.png`);
 }
 
-async function buildPost(post) {
+async function writeSvgOnly(svg,fileBase) {
+  fs.writeFileSync(`${fileBase}.svg`,svg,"utf8");
+}
+
+async function buildPost(post,{raster=true}={}) {
   const dir=path.join(out,"posts",`${post.id}-${post.slug}`); ensure(dir);
+  const write=raster?writeSvgAndPng:writeSvgOnly;
   fs.writeFileSync(path.join(dir,"caption.txt"),post.caption+"\n","utf8");
   fs.writeFileSync(path.join(dir,"alt.txt"),post.alt+"\n","utf8");
   if(post.format==="Hyperreal Fact") {
-    await writeSvgAndPng(factSvg(post,1080,1350),path.join(dir,"feed"),1080,1350);
-    await writeSvgAndPng(factSvg(post,1080,1920),path.join(dir,"story"),1080,1920);
+    await write(factSvg(post,1080,1350),path.join(dir,"feed"),1080,1350);
+    await write(factSvg(post,1080,1920),path.join(dir,"story"),1080,1920);
   } else if(post.format==="Carousel") {
     const frames=path.join(dir,"carousel"); ensure(frames);
     for(let i=0;i<post.slides.length;i++) {
       const slide=post.slides[i];
       const svg=slide.kind==="cover"?carouselCover(post,slide,i):slide.kind==="final"?carouselFinal(post,slide,i):carouselContent(post,slide,i);
-      await writeSvgAndPng(svg,path.join(frames,`frame-${String(i+1).padStart(2,"0")}`),1080,1350);
+      await write(svg,path.join(frames,`frame-${String(i+1).padStart(2,"0")}`),1080,1350);
     }
-    await writeSvgAndPng(carouselStory(post),path.join(dir,"story"),1080,1920);
+    await write(carouselStory(post),path.join(dir,"story"),1080,1920);
   } else if(post.format==="Reel") {
     const frames=path.join(dir,"reel-frames"); ensure(frames);
-    for(let i=0;i<post.reelFrames.length;i++) await writeSvgAndPng(reelFrameSvg(post,post.reelFrames[i],i),path.join(frames,`frame-${String(i+1).padStart(2,"0")}`),1080,1920);
+    for(let i=0;i<post.reelFrames.length;i++) await write(reelFrameSvg(post,post.reelFrames[i],i),path.join(frames,`frame-${String(i+1).padStart(2,"0")}`),1080,1920);
     const coverSvg=reelFrameSvg(post,post.reelFrames[0],0);
-    await writeSvgAndPng(coverSvg,path.join(dir,"cover-story"),1080,1920);
-    await sharp(path.join(dir,"cover-story.png")).extract({left:0,top:285,width:1080,height:1350}).png().toFile(path.join(dir,"cover-feed.png"));
-    buildReel(post,dir);
+    await write(coverSvg,path.join(dir,"cover-story"),1080,1920);
+    if(raster) {
+      await sharp(path.join(dir,"cover-story.png")).extract({left:0,top:285,width:1080,height:1350}).png().toFile(path.join(dir,"cover-feed.png"));
+      buildReel(post,dir);
+    }
     writeSrt(post,dir);
     writeShotList(post,dir);
   }
@@ -216,7 +223,20 @@ function writeManifest() {
 function writeGallery() {
   const cards=batch.posts.map(p=>{ const dir=`posts/${p.id}-${p.slug}`; const preview=p.format==="Carousel"?`${dir}/carousel/frame-01.png`:p.format==="Reel"?`${dir}/cover-feed.png`:`${dir}/feed.png`; const downloads=p.format==="Carousel"?`<a href="${dir}/carousel/frame-01.png" download>Корица PNG</a><a href="${dir}/story.png" download>Story PNG</a>`:p.format==="Reel"?`<a href="${dir}/reel-1080x1920.mp4" download>Reel MP4</a><a href="${dir}/cover-feed.png" download>Корица PNG</a>`:`<a href="${dir}/feed.png" download>Feed PNG</a><a href="${dir}/story.png" download>Story PNG</a>`; return `<article class="card"><img src="${preview}" alt="${esc(p.alt)}"><div><span>${p.date} · ${esc(p.format)}</span><h2>${esc(p.topic)}</h2><p>${esc(p.cta)}</p><nav>${downloads}<a href="${dir}/caption.txt" download>Caption</a></nav></div></article>`;}).join("\n");
   const html=`<!doctype html><html lang="bg"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Zubite.bg · ${batch.title}</title><style>@font-face{font-family:Manrope;src:url('../../../fonts/taste/Manrope-Regular.ttf')}@font-face{font-family:Manrope;src:url('../../../fonts/taste/Manrope-Bold.ttf');font-weight:700}:root{--paper:#f5f4f2;--ink:#0a0a0a;--muted:#525252;--border:#e5e5e5;--orange:#ff6b00;--green:#007956;--soft:#d0fae5}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:Manrope,Arial,sans-serif}.shell{width:min(1420px,calc(100% - 40px));margin:auto;padding:52px 0 90px}header{display:grid;grid-template-columns:1fr auto;gap:30px;padding-bottom:34px;border-bottom:1px solid var(--border)}.brand{font-size:30px;font-weight:700;letter-spacing:-.05em}.brand b{color:var(--green)}h1{max-width:900px;margin:18px 0 10px;font-size:clamp(44px,6vw,82px);line-height:.98;letter-spacing:-.06em}header p{margin:0;color:var(--muted)}header nav{display:flex;flex-wrap:wrap;gap:8px;align-content:flex-start}a{display:inline-flex;min-height:42px;align-items:center;padding:0 14px;border:1px solid var(--border);border-radius:10px;background:white;color:var(--ink);font-size:13px;font-weight:700;text-decoration:none}a:hover{border-color:var(--green);background:var(--soft)}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px;margin-top:36px}.card{overflow:hidden;border:1px solid var(--border);border-radius:20px;background:#fff;box-shadow:0 22px 50px -42px #000}.card>img{display:block;width:100%;aspect-ratio:4/5;object-fit:cover;background:#111}.card>div{padding:18px}.card span{color:var(--green);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.card h2{margin:10px 0 6px;font-size:18px;line-height:1.2}.card p{margin:0;color:var(--muted);font-size:13px}.card nav{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:16px}.card nav a{justify-content:center;padding:0 8px;font-size:11px}@media(max-width:1050px){.grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:660px){.shell{width:min(100% - 24px,1420px);padding-top:28px}header{grid-template-columns:1fr}.grid{grid-template-columns:1fr}}</style></head><body><main class="shell"><header><div><div class="brand">Zubite<b>.bg</b></div><h1>${batch.title}</h1><p>${batch.subtitle} · предложен час ${batch.suggestedTime} · ${batch.timezone}</p></div><nav><a href="schedule.csv" download>График CSV</a><a href="captions.md" download>Всички текстове</a><a href="manifest.json" download>Manifest JSON</a><a href="../../index.html">Към brand kit</a></nav></header><section class="grid">${cards}</section></main></body></html>`;
-  fs.writeFileSync(path.join(out,"index.html"),html,"utf8");
+  const linked=html.replace('<a href="../../index.html">','<a href="svg-preview.html">SVG preview</a><a href="../../index.html">');
+  fs.writeFileSync(path.join(out,"index.html"),linked,"utf8");
+}
+
+function writeSvgGallery() {
+  const cards=batch.posts.map(p=>{
+    const dir=`posts/${p.id}-${p.slug}`;
+    const preview=p.format==="Carousel"?`${dir}/carousel/frame-01.svg`:p.format==="Reel"?`${dir}/cover-story.svg`:`${dir}/feed.svg`;
+    const story=p.format==="Carousel"||p.format==="Hyperreal Fact"?`${dir}/story.svg`:`${dir}/cover-story.svg`;
+    return `<article><img src="${preview}" alt="${esc(p.alt)}"><div><small>${p.date} · ${esc(p.format)}</small><h2>${esc(p.topic)}</h2><nav><a href="${preview}" download>SVG master</a><a href="${story}" download>Story SVG</a><a href="${dir}/caption.txt" download>Caption</a></nav></div></article>`;
+  }).join("\n");
+  const html=`<!doctype html><html lang="bg"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Zubite.bg · SVG master preview</title><style>@font-face{font-family:Manrope;src:url('../../../fonts/taste/Manrope-Regular.ttf')}@font-face{font-family:Manrope;src:url('../../../fonts/taste/Manrope-Bold.ttf');font-weight:700}:root{--paper:#f5f4f2;--ink:#0a0a0a;--muted:#525252;--border:#e5e5e5;--orange:#ff6b00;--green:#007956}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:Manrope,Arial,sans-serif}.shell{width:min(1420px,calc(100% - 40px));margin:auto;padding:48px 0 88px}header{display:flex;justify-content:space-between;gap:24px;align-items:end;padding-bottom:30px;border-bottom:1px solid var(--border)}h1{max-width:820px;margin:0;font-size:clamp(38px,6vw,76px);line-height:.98;letter-spacing:-.055em}header p{max-width:420px;margin:0;color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px;margin-top:34px}article{overflow:hidden;border:1px solid var(--border);border-radius:20px;background:#fff}article>img{display:block;width:100%;aspect-ratio:4/5;object-fit:cover;background:#111}article>div{padding:18px}small{color:var(--green);font-weight:700}h2{margin:9px 0 16px;font-size:18px;line-height:1.2}nav{display:grid;grid-template-columns:1fr 1fr;gap:7px}a{display:flex;min-height:40px;align-items:center;justify-content:center;padding:0 10px;border:1px solid var(--border);border-radius:10px;color:var(--ink);font-size:11px;font-weight:700;text-decoration:none}a:hover{border-color:var(--green)}@media(max-width:1050px){.grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:660px){.shell{width:min(100% - 24px,1420px);padding-top:28px}header{display:block}header p{margin-top:14px}.grid{grid-template-columns:1fr}}</style></head><body><main class="shell"><header><h1>SVG masters · проверка на подравняването</h1><p>Векторни прегледи без PNG рендериране. Всеки текстов блок е ограничен до безопасната зона.</p></header><section class="grid">${cards}</section></main></body></html>`;
+  const polished=html.replace("<h1>",'<h1 style="overflow-wrap:anywhere">');
+  fs.writeFileSync(path.join(out,"svg-preview.html"),polished,"utf8");
 }
 
 function writeTextPostFiles(post) {
@@ -229,10 +249,13 @@ function writeTextPostFiles(post) {
 async function main() {
   ensure(out);
   const render=process.argv.includes("--render");
-  if(render) for(const post of batch.posts) await buildPost(post);
+  const svgOnly=process.argv.includes("--svg-only");
+  if(render&&svgOnly) throw new Error("Choose either --render or --svg-only, not both.");
+  if(render||svgOnly) for(const post of batch.posts) await buildPost(post,{raster:render});
   else for(const post of batch.posts) writeTextPostFiles(post);
   writeManifest();
   writeGallery();
-  console.log(`${render?"Rendered":"Updated text for"} ${batch.posts.length} posts in ${out}`);
+  writeSvgGallery();
+  console.log(`${render?"Rendered":svgOnly?"Updated SVG masters for":"Updated text for"} ${batch.posts.length} posts in ${out}`);
 }
 main().catch(err=>{console.error(err);process.exit(1);});

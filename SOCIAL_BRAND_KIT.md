@@ -340,5 +340,6 @@ The editable SVG starter library lives in `frontend/public/social-kit/templates/
 7. Reel cover — 1080 × 1920.
 8. Care Pass explainer — 1080 × 1350.
 9. Hyperreal Fact — 1080 × 1350, with an original AI-generated background and verified source treatment.
+10. Review poster — A3 print (297 × 420 mm), for the clinic reception. A QR-code placeholder for the clinic's review link and a co-branding slot for the clinic logo as a contributor (`С участието на`), never an equal lockup with the Zubite wordmark.
 
 Open `frontend/public/social-kit/index.html` for a visual overview and download the SVG masters directly. The Hyperreal Fact background master lives in `frontend/public/social-kit/assets/` and remains separate from the editable typography overlay.

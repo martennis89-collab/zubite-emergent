@@ -6,9 +6,9 @@ This is a sales / QA / demo-only asset. The clinic is:
     ZUBITE_INCLUDE_DEMO_CLINICS preview gate).
   • `_is_clinic_visible` already blocks any `is_demo` clinic from
     quiz-driven recommendations.
-  • Direct URL `/kliniki/sofia/<specialty>/<slug>` resolves only when
+  • Direct URL `/clinics/sofia/<specialty>/<slug>` resolves only when
     the preview env enables demo clinics; in production the lookup
-    returns 404. Either way, sitemap.ts never lists `/kliniki/*` so
+    returns 404. Either way, sitemap.ts never lists `/clinics/*` so
     Google can't crawl into it.
 
 Run from `/app/backend`:

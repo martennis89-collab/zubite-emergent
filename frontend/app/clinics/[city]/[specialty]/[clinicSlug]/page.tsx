@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         c.patient_intro ||
         `Профил на дентална клиника в Zubite.bg${cityName ? ` (${cityName})` : ''}. Информацията е прегледана от Zubite.`,
       alternates: {
-        canonical: `https://zubite.bg/kliniki/${city}/${(await params).specialty}/${clinicSlug}`,
+        canonical: `https://zubite.bg/clinics/${city}/${(await params).specialty}/${clinicSlug}`,
       },
       // Phase C1 — demo/showcase clinic profiles must never be indexed.
       // Real clinics still inherit the global robots config (indexable).

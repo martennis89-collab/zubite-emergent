@@ -174,7 +174,7 @@ export default function ClinicMatchPage() {
             Към резултата
           </Link>
 
-          {/* Title block — `/za-kliniki` brand tokens applied */}
+          {/* Title block — `/for-clinics` brand tokens applied */}
           <div className="mb-6 max-w-3xl">
             <p className="font-sans text-[11px] font-semibold tracking-[0.2em] uppercase text-teal-700 mb-3" data-testid="match-eyebrow">
               Clinic match
@@ -294,7 +294,7 @@ export default function ClinicMatchPage() {
                     </h2>
                     <p className="mt-1.5 text-[13.5px] text-slate-600 leading-relaxed">
                       Показваме партньорски клиники, които покриват{' '}
-                      <Link href="/standart-za-kliniki" className="text-teal-700 hover:underline">Zubite стандарт</Link>{' '}
+                      <Link href="/clinic-standard" className="text-teal-700 hover:underline">Zubite стандарт</Link>{' '}
                       и съвпадат с посоката на твоя случай, града ти и
                       информацията, която сподели във въпросника. Това не е
                       класация „най-добри клиники" и не е диагноза — а
@@ -335,7 +335,7 @@ export default function ClinicMatchPage() {
 
               {/* Public catalog fallback link — secondary, after the cards */}
               <p className="mt-6 text-center text-[12px] text-slate-500" data-testid="public-catalog-link-row">
-                <Link href="/kliniki" className="text-teal-700 hover:text-teal-800 hover:underline font-medium">
+                <Link href="/clinics" className="text-teal-700 hover:text-teal-800 hover:underline font-medium">
                   Виж още клиники в публичния каталог
                 </Link>
               </p>

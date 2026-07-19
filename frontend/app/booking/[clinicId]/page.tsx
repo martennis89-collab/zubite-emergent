@@ -68,10 +68,10 @@ export default function BookingPage() {
     if (leadId) return `/results/${leadId}/clinics/${clinicId}`
     if (
       requestedReturnTo &&
-      requestedReturnTo.startsWith('/kliniki/') &&
+      requestedReturnTo.startsWith('/clinics/') &&
       !requestedReturnTo.startsWith('//')
     ) return requestedReturnTo
-    return '/kliniki'
+    return '/clinics'
   }, [clinicId, leadId, requestedReturnTo])
 
   const load = useCallback(async () => {

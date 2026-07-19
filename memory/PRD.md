@@ -151,6 +151,7 @@ Build and optimize **Zubite.bg**, an educational orthodontic platform for the Bu
 
 ### P1 — Frontend Backlog
 - Centralize data-fetching helper (DRY for fetch patterns across pages).
+- **Clinic dashboard — "Пациенти" section (patient CRM)**: new tab/section in the clinic dashboard aggregating all patients that came to the clinic through zubite.bg. Each patient gets a unique numeric ID + a mini profile on the platform (contact/quiz history, consultation/booking history, Care Pass status, notes) that the clinic's doctor can pull up readily. Needs: a `patient_id` sequence/assignment mechanism tied to lead→clinic association, a patients-list view + detail view in `/clinic/dashboard`, and backend aggregation across existing lead/booking/consultation collections (no new patient-identity collection exists yet — leads are currently keyed by `lead_id`, not a clinic-facing numeric ID).
 
 ### P2 — Localization
 - English version under `/en/...`.

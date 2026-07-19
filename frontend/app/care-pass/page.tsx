@@ -320,7 +320,7 @@ export default function CarePassPage() {
                   Surfaces partner clinics that show Care Pass on their
                   profiles. Care Pass guardrail copy below remains primary. */}
               <Link
-                href="/kliniki"
+                href="/clinics"
                 className="inline-flex items-center gap-1.5 rounded-full bg-white/65 backdrop-blur-md ring-1 ring-white/80 text-slate-700 text-sm font-medium px-4 py-2.5 hover:bg-white transition-all"
                 data-testid="care-pass-catalog-link"
               >

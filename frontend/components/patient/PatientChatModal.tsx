@@ -12,7 +12,7 @@
  * Two entry paths, both converging on the same `token` bootstrap:
  *   - `leadId` prop present (results-page context, quiz already taken) →
  *     mint/reuse a chat token for that lead directly.
- *   - `leadId` absent (public /kliniki profile, no quiz behind this
+ *   - `leadId` absent (public /clinics profile, no quiz behind this
  *     visitor) → a small name-gate view first. Submitting it creates a
  *     minimal lead server-side (`createQuickChatLead`) and caches it in
  *     sessionStorage, so opening chat with a DIFFERENT clinic later in
