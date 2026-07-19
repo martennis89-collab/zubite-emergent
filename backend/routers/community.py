@@ -44,7 +44,7 @@ import hashlib
 import html
 import re
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -57,6 +57,7 @@ from audit import audit_log
 from config import CITIES
 from community_safety import scan_red_flags, scrub_pii, strip_urls
 from community_topics import COMMUNITY_TOPICS, get_topic, is_valid_topic, topics_for_clinic
+from community_seed_content import PERSONAS, SEED_BATCH_ID, SEED_ITEMS
 from database import db
 from emails import send_community_answer_email
 from rate_limit import rate_limit
@@ -724,3 +725,119 @@ async def admin_reject_question(
     user: AdminUser = Depends(get_current_user),
 ):
     return await _moderate(question_id, "rejected", body.moderation_notes if body else None, user)
+
+
+# ─── ADMIN: launch content seeding (one-off) ───────────────────────
+
+@router.post("/admin/community/seed-demo-content")
+async def admin_seed_demo_content(user: AdminUser = Depends(get_current_user)):
+    """Seed the community with realistic, common patient questions + peer
+    answers so it doesn't look empty on launch. See community_seed_content.py
+    for the actual content and design notes.
+
+    Idempotent: a second click is a no-op if this batch already ran (checked
+    via `seed_batch` on qa_questions), so it's safe to press more than once.
+    Inserts directly with status="published" — no admin-approval gate, no
+    OTP signup flow, matching the "no gating" launch-content request.
+    """
+    already = await db.qa_questions.find_one({"seed_batch": SEED_BATCH_ID}, {"_id": 0, "id": 1})
+    if already:
+        return {"success": True, "already_seeded": True, "message": "Batch already seeded."}
+
+    now = datetime.now(timezone.utc)
+
+    # 1. Ensure every persona exists as a real `patients` doc (idempotent
+    # per-persona via email lookup, independent of the batch check above —
+    # a persona may already exist from a prior partial run).
+    persona_ids: Dict[str, str] = {}
+    for key, p in PERSONAS.items():
+        existing = await db.patients.find_one({"email": p["email"]}, {"_id": 0, "id": 1})
+        if existing:
+            persona_ids[key] = existing["id"]
+            continue
+        pid = str(uuid.uuid4())
+        await db.patients.insert_one({
+            "id": pid,
+            "email": p["email"],
+            "email_verified": True,
+            "display_name": p["display_name"],
+            "city_slug": p["city_slug"],
+            "reputation": 0,
+            "status": "active",
+            "created_at": (now - timedelta(days=30)).isoformat(),
+            "seed_batch": SEED_BATCH_ID,
+        })
+        persona_ids[key] = pid
+
+    # 2. Questions + answers.
+    created_questions = 0
+    created_answers = 0
+    for item in SEED_ITEMS:
+        q_created_at = now - timedelta(days=item["days_ago"])
+        q_persona = PERSONAS[item["persona"]]
+        answers = item["answers"]
+
+        qid = str(uuid.uuid4())
+        await db.qa_questions.insert_one({
+            "id": qid,
+            "slug": _slugify(item["title"]),
+            "topic": item["topic"],
+            "title": item["title"],
+            "body": item["body"],
+            "patient_id": persona_ids[item["persona"]],
+            "asker_display": q_persona["display_name"],
+            "city_slug": q_persona["city_slug"],
+            "status": "published",
+            "safety_flag": False,
+            "safety_terms": None,
+            "answer_count": len(answers),
+            "created_at": q_created_at.isoformat(),
+            "published_at": q_created_at.isoformat(),
+            "moderated_by": user.username,
+            "moderated_at": q_created_at.isoformat(),
+            "moderation_notes": "Launch content seed.",
+            "ip_hash": None,
+            "user_agent_hash": None,
+            "seed_batch": SEED_BATCH_ID,
+        })
+        created_questions += 1
+
+        for a in answers:
+            a_persona = PERSONAS[a["persona"]]
+            a_created_at = q_created_at + timedelta(days=a["days_after"])
+            await db.qa_answers.insert_one({
+                "id": str(uuid.uuid4()),
+                "question_id": qid,
+                "author_type": "patient",
+                "author_id": persona_ids[a["persona"]],
+                "author_display": a_persona["display_name"],
+                "is_expert": False,
+                "body": a["body"],
+                "status": "published",
+                "upvotes": a["upvotes"],
+                "report_count": 0,
+                "created_at": a_created_at.isoformat(),
+                "seed_batch": SEED_BATCH_ID,
+            })
+            created_answers += 1
+
+    await audit_log(
+        "community.seed_demo_content",
+        actor_type="admin",
+        target_type="qa_question",
+        target_id=None,
+        metadata={
+            "seed_batch": SEED_BATCH_ID,
+            "personas": len(persona_ids),
+            "questions": created_questions,
+            "answers": created_answers,
+        },
+        severity="info",
+    )
+    return {
+        "success": True,
+        "already_seeded": False,
+        "personas_created": len(persona_ids),
+        "questions_created": created_questions,
+        "answers_created": created_answers,
+    }

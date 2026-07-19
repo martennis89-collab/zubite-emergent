@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, CheckCircle2, XCircle, AlertTriangle, Inbox } from 'lucide-react'
+import { Loader2, CheckCircle2, XCircle, AlertTriangle, Inbox, Sparkles } from 'lucide-react'
 import { AdminHeader } from '@/components/admin/AdminHeader'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
@@ -56,6 +56,8 @@ export default function AdminCommunityPage() {
   const [loading, setLoading] = useState(true)
   const [actingId, setActingId] = useState<string | null>(null)
   const [notes, setNotes] = useState<Record<string, string>>({})
+  const [seeding, setSeeding] = useState(false)
+  const [seedResult, setSeedResult] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -96,15 +98,54 @@ export default function AdminCommunityPage() {
     }
   }
 
+  const seedDemoContent = async () => {
+    setSeeding(true)
+    setSeedResult(null)
+    try {
+      const r = await fetch(`${API_URL}/api/admin/community/seed-demo-content`, {
+        method: 'POST',
+        credentials: 'include' as RequestCredentials,
+      })
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok) {
+        setSeedResult('Грешка при зареждане на примерно съдържание.')
+      } else if (j.already_seeded) {
+        setSeedResult('Вече е заредено — няма нужда да се повтаря.')
+      } else {
+        setSeedResult(
+          `Заредено: ${j.questions_created} въпроса, ${j.answers_created} отговора, ${j.personas_created} нови профила.`,
+        )
+        await load()
+      }
+    } catch {
+      setSeedResult('Грешка при връзка със сървъра.')
+    } finally {
+      setSeeding(false)
+    }
+  }
+
   return (
     <>
       <AdminHeader />
       <main className="mx-auto max-w-4xl px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-slate-900">Общност — модерация</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Прегледайте въпросите преди публикуване. Сигнализираните за спешност са маркирани.
-          </p>
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Общност — модерация</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Прегледайте въпросите преди публикуване. Сигнализираните за спешност са маркирани.
+            </p>
+          </div>
+          <div className="shrink-0 text-right">
+            <button
+              onClick={seedDemoContent}
+              disabled={seeding}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-3 py-1.5 text-sm font-medium text-teal-700 hover:bg-teal-100 disabled:opacity-60"
+            >
+              {seeding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              Зареди примерно съдържание
+            </button>
+            {seedResult && <p className="mt-1 text-xs text-slate-500">{seedResult}</p>}
+          </div>
         </div>
 
         <div className="mb-5 flex flex-wrap gap-2">

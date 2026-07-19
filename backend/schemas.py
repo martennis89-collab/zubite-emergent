@@ -306,6 +306,18 @@ class Lead(BaseModel):
     # Audit trail for the explicit "unlock" event.
     contact_details_submitted_at: Optional[str] = None
 
+    # ─── Clinic "Пациенти" section (global numeric patient ID) ──
+    # patient_number is a stable, platform-wide unique identifier assigned
+    # lazily the first time any clinic's patients list is loaded for a lead
+    # that has an assigned_clinic_id. See routers/clinic_patients.py.
+    patient_number: Optional[int] = None
+    patient_number_assigned_at: Optional[str] = None
+    # Free-text note the owning clinic keeps on this patient. Cleared on
+    # clinic reassignment (routers/admin.py admin_update_lead) so it never
+    # leaks to a different clinic.
+    clinic_internal_note: Optional[str] = None
+    clinic_internal_note_updated_at: Optional[str] = None
+
 
 # ─── Admin Models ──────────────────────────────────────────
 
@@ -332,6 +344,12 @@ class LeadUpdate(BaseModel):
     @classmethod
     def _validate_status(cls, v: Optional[str]) -> Optional[str]:
         return _validate_lead_status(v)
+
+
+class ClinicPatientNoteUpdate(BaseModel):
+    """Body for PUT /api/clinic/patients/{patient_number}/note — a full
+    replace of the clinic's free-text internal note on that patient."""
+    note: str = Field(max_length=5000)
 
 
 # ─── Lead status allow-list (Phase 2A) ────────────────────────────
