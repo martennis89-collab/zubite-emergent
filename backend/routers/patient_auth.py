@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 import secrets
 import uuid
 from datetime import datetime, timezone, timedelta
@@ -178,6 +179,44 @@ async def patient_verify_otp(data: PatientOtpVerify, request: Request, response:
             {"$set": {"email_verified": True, "last_login_at": now.isoformat()}},
         )
 
+    # ── Persistent lead access: link this patient to their past quiz
+    # results (see PRODUCT_QA_PLAN.md-adjacent "persistent patient access"
+    # feature) ──
+    #
+    # 1. Retroactive: any lead whose `email` matches this account and isn't
+    #    already claimed by someone else. Lead.email is not lowercased at
+    #    write time (unlike patients.email), so match case-insensitively.
+    #    The `patient_id: None` filter means this can never steal a lead
+    #    already claimed by a different account.
+    await db.leads.update_many(
+        {
+            "email": {"$regex": f"^{re.escape(email)}$", "$options": "i"},
+            "patient_id": None,
+        },
+        {"$set": {"patient_id": patient["id"]}},
+    )
+
+    # 2. Explicit: a specific lead the frontend asked to claim (e.g. the
+    # /results/[leadId] save banner) — covers leads with no email yet
+    # (pre-contact-capture). Never raises on a conflict; login must always
+    # succeed even if this particular claim couldn't be applied.
+    claim_result: Optional[str] = None
+    if data.claim_lead_id:
+        target = await db.leads.find_one(
+            {"id": data.claim_lead_id}, {"_id": 0, "id": 1, "patient_id": 1},
+        )
+        if not target:
+            claim_result = "lead_not_found"
+        elif target.get("patient_id") == patient["id"]:
+            claim_result = "already_mine"
+        elif target.get("patient_id") is None:
+            await db.leads.update_one(
+                {"id": data.claim_lead_id}, {"$set": {"patient_id": patient["id"]}},
+            )
+            claim_result = "claimed"
+        else:
+            claim_result = "already_claimed_by_other"
+
     token, _jti = await create_patient_token(patient["id"], email)
     response.set_cookie(
         key=AUTH_COOKIE_NAME_PATIENT,
@@ -191,8 +230,10 @@ async def patient_verify_otp(data: PatientOtpVerify, request: Request, response:
 
     cookie_required = os.environ.get('AUTH_REQUIRE_COOKIE', '0') == '1'
     if cookie_required:
-        return PatientTokenResponse(user=_patient_out(patient))
-    return PatientTokenResponse(access_token=token, token_type="bearer", user=_patient_out(patient))
+        return PatientTokenResponse(user=_patient_out(patient), claim_result=claim_result)
+    return PatientTokenResponse(
+        access_token=token, token_type="bearer", user=_patient_out(patient), claim_result=claim_result,
+    )
 
 
 # ─── Session teardown ─────────────────────────────────────────────

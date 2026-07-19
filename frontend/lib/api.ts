@@ -30,7 +30,9 @@ export const createLead = async (leadData: Lead) => {
   try {
     if (typeof window !== 'undefined') attribution = attachAttributionToLead() as Record<string, unknown>;
   } catch { /* never block lead submission */ }
-  const response = await api.post('/leads', { ...leadData, ...attribution });
+  // withCredentials so an already-logged-in patient's session cookie rides
+  // along — the backend auto-links the new lead to their account when present.
+  const response = await api.post('/leads', { ...leadData, ...attribution }, { withCredentials: true });
   return response.data;
 };
 
@@ -44,7 +46,30 @@ export const getLead = async (leadId: string) => {
   // prefix when NEXT_PUBLIC_API_URL is set to a full domain in preview.
   // Same pattern as getRecommendedClinics below.
   const base = process.env.NEXT_PUBLIC_API_URL || ''
-  const response = await axios.get(`${base}/api/leads/${leadId}`);
+  const response = await axios.get(`${base}/api/leads/${leadId}`, { withCredentials: true });
+  return response.data;
+};
+
+// ── Persistent patient access to leads ────────────────────────
+export const claimLead = async (leadId: string) => {
+  const base = process.env.NEXT_PUBLIC_API_URL || ''
+  const response = await axios.post(`${base}/api/leads/${leadId}/claim`, {}, { withCredentials: true });
+  return response.data;
+};
+
+export interface MyLead {
+  id: string;
+  city_slug: string;
+  treatment_type: string;
+  band: string;
+  score_total: number;
+  full_result_unlocked: boolean;
+  created_at: string | null;
+}
+
+export const getMyLeads = async (): Promise<{ items: MyLead[] }> => {
+  const base = process.env.NEXT_PUBLIC_API_URL || ''
+  const response = await axios.get(`${base}/api/patient/leads/mine`, { withCredentials: true });
   return response.data;
 };
 

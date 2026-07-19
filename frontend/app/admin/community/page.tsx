@@ -23,6 +23,7 @@ interface Question {
   report_count?: number
   created_at?: string
   moderation_notes?: string | null
+  photos?: { id: string; content_type: string }[]
 }
 
 interface ListResponse {
@@ -200,6 +201,19 @@ export default function AdminCommunityPage() {
 
                 <h3 className="font-semibold text-slate-900">{q.title}</h3>
                 <p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">{q.body}</p>
+
+                {q.photos && q.photos.length > 0 && (
+                  <div className="mt-3 flex gap-2">
+                    {q.photos.map((p) => (
+                      <img
+                        key={p.id}
+                        src={`${API_URL}/api/admin/community/questions/${q.id}/photos/${p.id}`}
+                        alt="Снимка към въпроса"
+                        className="h-20 w-20 rounded-lg object-cover ring-1 ring-slate-200"
+                      />
+                    ))}
+                  </div>
+                )}
 
                 {q.safety_flag && q.safety_terms && q.safety_terms.length > 0 && (
                   <p className="mt-2 text-xs text-red-600">Задействани маркери: {q.safety_terms.join(', ')}</p>

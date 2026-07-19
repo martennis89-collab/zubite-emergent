@@ -7,7 +7,8 @@ import uuid
 from database import db
 from aligner_brands import public_aligner_brand_chips
 from schemas import Clinic, LeadCreate, LeadContactUpdate, Lead, RequestCallBody, RequestZubiteHelpBody, SaveCarePassEmailBody, UnlockResultBody, QuickChatLeadCreate
-from auth import hash_password
+from auth import hash_password, get_current_patient, get_current_patient_optional
+from audit import audit_log
 from config import CITIES, logger
 from scoring import calculate_score
 from emails import (
@@ -194,7 +195,10 @@ async def get_clinics():
 
 
 @router.post("/leads", response_model=Lead, dependencies=[Depends(rate_limit("create_lead", 5, 300))])
-async def create_lead(data: LeadCreate):
+async def create_lead(
+    data: LeadCreate,
+    patient: Optional[Dict[str, Any]] = Depends(get_current_patient_optional),
+):
     # Quiz / recommendation flows require name + phone + email upfront
     # so the clinic on the receiving end has the contact info to follow
     # up. Friendly Bulgarian errors via HTTP 422 with a structured code.
@@ -253,6 +257,9 @@ async def create_lead(data: LeadCreate):
         "is_potential_duplicate": is_dup,
         "duplicate_reason": dup_reason,
         "possible_duplicate_lead_id": dup_lead_id,
+        # Auto-link to the logged-in patient account, if any. Never trusted
+        # from the client payload — LeadCreate has no patient_id field.
+        "patient_id": patient["id"] if patient else None,
     })
     # MVP unlock flags (Phase A/B) — determined by whether contact
     # details arrived alongside the quiz answers:
@@ -312,7 +319,7 @@ async def create_lead(data: LeadCreate):
 
 
 @router.get("/leads/{lead_id}")
-async def get_lead(lead_id: str):
+async def get_lead(lead_id: str, patient: Optional[Dict[str, Any]] = Depends(get_current_patient_optional)):
     """Public lead lookup. Returns only minimal, non-PII fields (used by
     quiz success / result-unlock pages). The MVP unlock-mechanic flags
     are included so the frontend can decide whether to render the
@@ -328,7 +335,8 @@ async def get_lead(lead_id: str):
          "clinic_confirmed_consultation": 1, "consultation_type": 1,
          # Echo a partial name only — first word, never phone/email,
          # so result page can greet the patient if they're returning.
-         "name": 1}
+         "name": 1,
+         "patient_id": 1}
     )
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
@@ -338,7 +346,62 @@ async def get_lead(lead_id: str):
     if lead.get("name"):
         first = (lead["name"] or "").strip().split(" ")[0]
         lead["name"] = first[:30] if first else None
+    # Never echo the raw patient_id to any caller — only whether it's
+    # THIS caller's own account, computed server-side.
+    lead["is_claimed_by_me"] = bool(patient) and lead.get("patient_id") == patient["id"]
+    lead.pop("patient_id", None)
     return lead
+
+
+@router.post(
+    "/leads/{lead_id}/claim",
+    dependencies=[Depends(rate_limit("claim_lead", 10, 300))],
+)
+async def claim_lead(lead_id: str, request: Request, patient: Dict[str, Any] = Depends(get_current_patient)):
+    """Link an already-created lead to the logged-in patient account —
+    the explicit path for a patient who is already logged in and lands
+    on a results page for a lead not yet linked to them (the OTP-verify
+    flow itself handles the "not logged in yet" case via claim_lead_id)."""
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0, "id": 1, "patient_id": 1})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    existing = lead.get("patient_id")
+    if existing == patient["id"]:
+        return {"success": True, "claimed": True, "already_mine": True}
+    if existing is not None:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "lead_claimed_by_other_account",
+                "message": "Този резултат вече е свързан с друг акаунт.",
+            },
+        )
+    await db.leads.update_one({"id": lead_id}, {"$set": {"patient_id": patient["id"]}})
+    await audit_log(
+        "lead.claimed",
+        actor_type="patient",
+        target_type="lead",
+        target_id=lead_id,
+        metadata={"patient_id": patient["id"]},
+        severity="info",
+        request=request,
+    )
+    return {"success": True, "claimed": True, "already_mine": False}
+
+
+@router.get("/patient/leads/mine")
+async def my_leads(patient: Dict[str, Any] = Depends(get_current_patient)):
+    """Backs the /profile 'Моите резултати' section — every lead linked
+    to the current patient account, newest first."""
+    cursor = db.leads.find(
+        {"patient_id": patient["id"]},
+        {"_id": 0, "id": 1, "city_slug": 1, "treatment_type": 1, "band": 1,
+         "score_total": 1, "full_result_unlocked": 1, "created_at": 1},
+    ).sort("created_at", -1).limit(100)
+    # created_at is stored as an ISO string (see create_lead), same as
+    # every other timestamp field this router returns raw — no conversion.
+    items = [lead async for lead in cursor]
+    return {"items": items}
 
 
 # ─── MVP unlock-mechanic (Phase B) ────────────────────────────────

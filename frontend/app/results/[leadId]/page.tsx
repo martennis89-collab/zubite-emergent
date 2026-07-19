@@ -10,6 +10,7 @@ import {
 import { ResultsHeader } from '@/components/ResultsHeader'
 import { Footer } from '@/components/Footer'
 import { ResultUnlockGate } from '@/components/patient/ResultUnlockGate'
+import { SaveResultBanner } from '@/components/patient/SaveResultBanner'
 import { getLead } from '@/lib/api'
 
 interface Lead {
@@ -21,6 +22,7 @@ interface Lead {
   name?: string
   answers?: Record<string, unknown>
   full_result_unlocked?: boolean
+  is_claimed_by_me?: boolean
 }
 
 type Segment = 'adult' | 'teen' | 'child'
@@ -166,6 +168,13 @@ export default function ResultsPage() {
             )}
 
             <p className="mt-4 text-center text-xs text-[#64748B]">Не изисква плащане сега. Отмяна е възможна по всяко време.</p>
+
+            <SaveResultBanner
+              leadId={lead.id}
+              isClaimedByMe={!!lead.is_claimed_by_me}
+              onSaved={() => window.location.reload()}
+            />
+
             <p className="mt-6 border-t border-[#E2E8F0] pt-5 text-xs leading-5 text-[#64748B]">
               След реално посещение в партньорска клиника получаваш Care Pass за предложения за продукти за орална хигиена.{' '}
               <Link href="/care-pass" className="font-semibold text-[#006A61] hover:underline">Как работи</Link>

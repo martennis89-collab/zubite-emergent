@@ -2,12 +2,21 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Loader2, MessageCircleQuestion, AlertTriangle, CheckCircle2, ArrowRight } from 'lucide-react'
+import {
+  Loader2, MessageCircleQuestion, AlertTriangle, CheckCircle2, ArrowRight,
+  ImagePlus, X,
+} from 'lucide-react'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { OtpLoginModal } from '@/components/OtpLoginModal'
 import { getMe, type PatientMe } from '@/lib/patientAuth'
-import { listTopics, askQuestion, type CommunityTopic, type AskResult } from '@/lib/community'
+import {
+  listTopics, askQuestion, uploadQuestionPhoto,
+  type CommunityTopic, type AskResult,
+} from '@/lib/community'
+
+const MAX_PHOTOS = 3
+const MAX_PHOTO_BYTES = 8 * 1024 * 1024
 
 export default function AskPage() {
   const [loadingAuth, setLoadingAuth] = useState(true)
@@ -18,10 +27,13 @@ export default function AskPage() {
   const [topic, setTopic] = useState('')
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
+  const [photos, setPhotos] = useState<File[]>([])
+  const [photoError, setPhotoError] = useState('')
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState<AskResult | null>(null)
+  const [photoWarning, setPhotoWarning] = useState('')
 
   useEffect(() => {
     listTopics().then(setTopics).catch(() => setTopics([]))
@@ -30,6 +42,24 @@ export default function AskPage() {
       .catch(() => setPatient(null))
       .finally(() => setLoadingAuth(false))
   }, [])
+
+  const onPickPhotos = (files: FileList | null) => {
+    setPhotoError('')
+    const picked = Array.from(files || [])
+    const valid = picked.filter((f) => f.type.startsWith('image/') && f.size <= MAX_PHOTO_BYTES)
+    if (valid.length < picked.length) {
+      setPhotoError('Приемаме само снимки до 8 MB.')
+    }
+    const combined = [...photos, ...valid].slice(0, MAX_PHOTOS)
+    if (photos.length + valid.length > MAX_PHOTOS) {
+      setPhotoError(`Максимум ${MAX_PHOTOS} снимки.`)
+    }
+    setPhotos(combined)
+  }
+
+  const removePhoto = (index: number) => {
+    setPhotos((list) => list.filter((_, i) => i !== index))
+  }
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -42,6 +72,19 @@ export default function AskPage() {
     try {
       const res = await askQuestion({ topic, title, body })
       setResult(res)
+      if (photos.length > 0) {
+        const outcomes = await Promise.allSettled(
+          photos.map((f) => uploadQuestionPhoto(res.id, f)),
+        )
+        const failed = outcomes.filter((o) => o.status === 'rejected').length
+        if (failed > 0) {
+          setPhotoWarning(
+            failed === photos.length
+              ? 'Въпросът е изпратен, но снимките не се качиха.'
+              : `Въпросът е изпратен, но ${failed} снимка/и не се качиха.`,
+          )
+        }
+      }
     } catch (err) {
       if (err instanceof Error && err.message === 'AUTH_REQUIRED') {
         setPatient(null)
@@ -72,6 +115,7 @@ export default function AskPage() {
             <CheckCircle2 className="mx-auto mb-3 h-10 w-10 text-teal-600" />
             <h1 className="text-xl font-semibold text-slate-900">Въпросът е изпратен</h1>
             <p className="mt-2 text-slate-600">{result.message}</p>
+            {photoWarning && <p className="mt-2 text-sm text-amber-600">{photoWarning}</p>}
             <div className="mt-6 flex justify-center gap-3">
               <Link href="/community" className="rounded-lg border border-slate-200 px-4 py-2 text-slate-700 hover:bg-slate-50">
                 Към Общността
@@ -145,6 +189,53 @@ export default function AskPage() {
               className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-slate-900 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
             />
             <span className="mt-1 block text-xs text-slate-400">{body.length}/4000</span>
+          </label>
+
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-medium text-slate-700">
+              Снимки (по избор, до {MAX_PHOTOS}) — захапка, зъби или челюст
+            </span>
+            <span className="mb-2 block text-xs text-slate-400">
+              Снимките ще са видими публично, ако въпросът бъде одобрен — точно както текста на въпроса.
+            </span>
+            {photos.length < MAX_PHOTOS && (
+              <label className="flex w-fit cursor-pointer items-center gap-2 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-sm text-slate-600 hover:border-teal-400 hover:text-teal-700">
+                <ImagePlus className="h-4 w-4" />
+                Добави снимка
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    onPickPhotos(e.target.files)
+                    e.target.value = ''
+                  }}
+                />
+              </label>
+            )}
+            {photoError && <p className="mt-1 text-xs text-red-600">{photoError}</p>}
+            {photos.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {photos.map((f, i) => (
+                  <div key={i} className="relative h-16 w-16">
+                    <img
+                      src={URL.createObjectURL(f)}
+                      alt=""
+                      className="h-16 w-16 rounded-lg object-cover ring-1 ring-slate-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(i)}
+                      className="absolute -right-1.5 -top-1.5 rounded-full bg-slate-900 p-0.5 text-white"
+                      aria-label="Премахни снимката"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </label>
 
           {error && <p className="text-sm text-red-600">{error}</p>}

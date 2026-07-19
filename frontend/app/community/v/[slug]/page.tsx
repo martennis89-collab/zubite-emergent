@@ -5,7 +5,7 @@ import { ArrowLeft, MessageCircleQuestion, Compass } from 'lucide-react'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { QuestionThread } from '@/components/community/QuestionThread'
-import { getQuestion } from '@/lib/community'
+import { getQuestion, questionPhotoUrl } from '@/lib/community'
 import { buildQuestionJsonLd } from '@/lib/seo/communityJsonLd'
 import { safeJsonLd } from '@/lib/seo/clinicJsonLd'
 
@@ -60,6 +60,18 @@ export default async function QuestionPage({ params }: { params: Promise<Params>
           </div>
           <h1 className="text-2xl font-bold text-slate-900">{q.title}</h1>
           <p className="mt-3 whitespace-pre-wrap text-slate-700">{q.body}</p>
+          {q.photos.length > 0 && (
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              {q.photos.map((p) => (
+                <img
+                  key={p.id}
+                  src={questionPhotoUrl(q.id, p.id)}
+                  alt="Снимка към въпроса"
+                  className="aspect-square w-full rounded-lg object-cover ring-1 ring-slate-200"
+                />
+              ))}
+            </div>
+          )}
           {q.topic_related_path && (
             <Link
               href={q.topic_related_path}

@@ -4,10 +4,11 @@ import { useEffect, useState, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import {
   Calendar as CalIcon, Filter, ChevronLeft, ChevronRight,
-  LayoutGrid, List, AlertCircle,
+  LayoutGrid, List, Users, AlertCircle,
 } from 'lucide-react'
 import { ClinicShell } from '@/components/ClinicShell'
 import { WeekCalendar } from '@/components/clinic/WeekCalendar'
+import { DoctorLaneCalendar } from '@/components/clinic/DoctorLaneCalendar'
 import {
   Appointment, formatDateOnly, apptStatusLabel,
   APPOINTMENT_TYPE_LABELS, APPOINTMENT_TYPES, APPT_STATUS_LABELS, APPT_STATUS_TONES,
@@ -15,6 +16,12 @@ import {
 } from '@/lib/consultationLabels'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+
+interface Doctor {
+  id: string
+  name: string
+  active: boolean
+}
 
 const STATUS_OPTS = [
   { value: '', label: 'Всички статуси' },
@@ -28,16 +35,24 @@ const STATUS_OPTS = [
 
 const STATUS_BADGE = APPT_STATUS_TONES
 
-type View = 'week' | 'list'
+type View = 'week' | 'list' | 'doctors'
 
 export default function ClinicCalendarPage() {
   const [appts, setAppts] = useState<Appointment[]>([])
+  const [doctors, setDoctors] = useState<Doctor[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
   const [view, setView] = useState<View>('week')
   const [weekStart, setWeekStart] = useState<Date>(() => getMondayOfWeek(new Date()))
+  const [selectedDay, setSelectedDay] = useState<Date>(() => new Date())
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/clinic/doctors`, { credentials: 'include' as RequestCredentials })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d) setDoctors(d.doctors || []) })
+  }, [])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -160,6 +175,20 @@ export default function ClinicCalendarPage() {
             >
               <List className="w-4 h-4" /> Списък
             </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === 'doctors'}
+              onClick={() => setView('doctors')}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                view === 'doctors'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+              data-testid="calendar-view-doctors"
+            >
+              <Users className="w-4 h-4" /> По лекар
+            </button>
           </div>
         </header>
 
@@ -229,6 +258,48 @@ export default function ClinicCalendarPage() {
               </button>
             </div>
           )}
+
+          {view === 'doctors' && (
+            <div className="ml-auto flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setSelectedDay((d) => addDays(d, -1))}
+                className="p-1.5 rounded-md hover:bg-slate-100 text-slate-600"
+                aria-label="Предишен ден"
+                data-testid="calendar-prev-day"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span
+                className="text-sm font-medium text-slate-900 min-w-[160px] text-center"
+                data-testid="calendar-day-label"
+              >
+                {formatDateOnly(selectedDay.toISOString())}
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedDay((d) => addDays(d, 1))}
+                className="p-1.5 rounded-md hover:bg-slate-100 text-slate-600"
+                aria-label="Следващ ден"
+                data-testid="calendar-next-day"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedDay(new Date())}
+                disabled={isSameLocalDay(selectedDay, new Date())}
+                className={`text-sm font-medium px-3 py-1.5 rounded-md border ${
+                  isSameLocalDay(selectedDay, new Date())
+                    ? 'text-slate-400 border-slate-200 cursor-not-allowed'
+                    : 'text-teal-700 border-teal-200 hover:bg-teal-50'
+                }`}
+                data-testid="calendar-today-day-btn"
+              >
+                Днес
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Body */}
@@ -271,6 +342,8 @@ export default function ClinicCalendarPage() {
           ) : (
             <WeekCalendar appointments={inDisplayedWeek} weekStart={weekStart} />
           )
+        ) : view === 'doctors' ? (
+          <DoctorLaneCalendar appointments={filtered} doctors={doctors} day={selectedDay} />
         ) : grouped.length === 0 ? (
           <EmptyState
             testid="calendar-list-empty"

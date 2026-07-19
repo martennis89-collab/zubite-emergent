@@ -410,6 +410,29 @@ export function isSameLocalDay(a: Date, b: Date): boolean {
   )
 }
 
+// Deterministic per-doctor color, used to give each doctor's calendar
+// lane a distinct accent without needing to store a color on the Doctor
+// record. Same doctor id always maps to the same swatch across renders.
+const DOCTOR_COLOR_PALETTE = [
+  { dot: 'bg-teal-500', text: 'text-teal-700' },
+  { dot: 'bg-violet-500', text: 'text-violet-700' },
+  { dot: 'bg-amber-500', text: 'text-amber-700' },
+  { dot: 'bg-rose-500', text: 'text-rose-700' },
+  { dot: 'bg-sky-500', text: 'text-sky-700' },
+  { dot: 'bg-lime-500', text: 'text-lime-700' },
+  { dot: 'bg-fuchsia-500', text: 'text-fuchsia-700' },
+  { dot: 'bg-orange-500', text: 'text-orange-700' },
+]
+
+export function doctorColor(doctorId: string): { dot: string; text: string } {
+  let hash = 0
+  for (let i = 0; i < doctorId.length; i++) {
+    hash = (hash * 31 + doctorId.charCodeAt(i)) | 0
+  }
+  const idx = Math.abs(hash) % DOCTOR_COLOR_PALETTE.length
+  return DOCTOR_COLOR_PALETTE[idx]
+}
+
 export interface ConsultationRequest {
   id: string
   patient_name: string

@@ -9,6 +9,8 @@ Public / patient:
     POST /api/community/questions/{id}/answers    (patient) peer answer — post-moderated
     POST /api/community/answers/{id}/upvote       (patient) "това ми помогна"
     POST /api/community/answers/{id}/report       (patient) flag an answer
+    POST /api/community/questions/{id}/photos              (patient, owner) attach a photo
+    GET  /api/community/questions/{id}/photos/{photo_id}   published-or-owner
 
 Clinic:
     GET  /api/clinic/community/questions          queue matched to the clinic's treatments
@@ -19,6 +21,7 @@ Admin:
     GET  /api/admin/community/questions/{id}
     POST /api/admin/community/questions/{id}/approve
     POST /api/admin/community/questions/{id}/reject
+    GET  /api/admin/community/questions/{id}/photos/{photo_id}   bypasses visibility gate
 
 Design (mirrors clinic_reviews):
 - Hybrid moderation on QUESTIONS: every question is `pending` until an admin
@@ -37,6 +40,13 @@ Design (mirrors clinic_reviews):
 - PII (emails/phones) scrubbed before storage on every free-text field.
 - Asker/answerer identity is anonymised to a display snapshot.
 - IP/UA stored as SHA-256 hashes only; never raw.
+- Question photos live in their own `qa_question_photos` collection, served
+  through a purpose-built path (not the public blog `uploaded_files`/
+  `/api/files/{id}` pattern, which is unconditionally public the instant
+  it's uploaded — wrong here, since a photo must stay private until its
+  parent question clears moderation). Public GET only serves once the
+  question is `published`, or to the owning patient; admin GET bypasses
+  that gate entirely so moderators can review pending photos.
 """
 from __future__ import annotations
 
@@ -47,14 +57,15 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, UploadFile
+from starlette.concurrency import run_in_threadpool
 
 from auth import (
     get_current_patient, get_current_patient_optional, get_current_user,
     get_current_clinic,
 )
 from audit import audit_log
-from config import CITIES
+from config import APP_NAME, CITIES
 from community_safety import scan_red_flags, scrub_pii, strip_urls
 from community_topics import COMMUNITY_TOPICS, get_topic, is_valid_topic, topics_for_clinic
 from community_seed_content import PERSONAS, SEED_BATCH_ID, SEED_ITEMS
@@ -62,12 +73,15 @@ from database import db
 from emails import send_community_answer_email
 from rate_limit import rate_limit
 from schemas import AdminUser, QaQuestionCreate, QaReportCreate, QaModerationBody, QaAnswerCreate
+from storage import ALLOWED_IMAGE_TYPES, get_object, put_object
 
 router = APIRouter()
 
 _QUESTION_STATUSES = {"pending", "published", "rejected"}
 _MAX_CLINIC_ANSWERS_PER_QUESTION = 1
 _ANSWER_REPORT_HIDE_THRESHOLD = 3
+_MAX_QUESTION_PHOTOS = 3
+_MAX_QUESTION_PHOTO_BYTES = 8 * 1024 * 1024  # 8MB — bite/teeth photos, not medical scans
 
 # Emergency guidance shown when a question trips the red-flag scan.
 _EMERGENCY_INTERSTITIAL = {
@@ -290,6 +304,14 @@ async def get_question(slug: str, patient=Depends(get_current_patient_optional))
         for a in answer_docs
     )
     out["can_answer"] = bool(patient) and not already_answered
+    # doc["status"] == "published" here unconditionally (the find_one filter
+    # above), so every photo attached to it is inherently public-safe —
+    # no separate gating needed for this list, same reasoning as `answers`.
+    photos_cursor = db.qa_question_photos.find(
+        {"question_id": doc["id"], "is_deleted": False},
+        {"_id": 0, "id": 1, "content_type": 1, "display_order": 1},
+    ).sort("display_order", 1)
+    out["photos"] = [{"id": p["id"], "content_type": p["content_type"]} async for p in photos_cursor]
     return out
 
 
@@ -315,6 +337,106 @@ async def report_question(
     })
     await db.qa_questions.update_one({"id": question_id}, {"$inc": {"report_count": 1}})
     return {"success": True, "message": "Благодарим. Сигналът е получен."}
+
+
+# ─── PUBLIC: question photos ───────────────────────────────────────
+
+@router.post(
+    "/community/questions/{question_id}/photos",
+    dependencies=[Depends(rate_limit("community_photo_upload", 10, 600))],
+)
+async def upload_question_photo(
+    question_id: str, file: UploadFile = File(...),
+    patient=Depends(get_current_patient),
+):
+    """Attach a photo to a question the caller asked. Always called AFTER
+    the question itself was already created via POST /community/questions —
+    a failed upload here never blocks or rolls back question creation."""
+    q = await db.qa_questions.find_one(
+        {"id": question_id, "patient_id": patient["id"]}, {"_id": 0, "id": 1},
+    )
+    if not q:
+        raise HTTPException(status_code=404, detail="Въпросът не е намерен")
+
+    existing_count = await db.qa_question_photos.count_documents(
+        {"question_id": question_id, "is_deleted": False},
+    )
+    if existing_count >= _MAX_QUESTION_PHOTOS:
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "too_many_photos",
+                    "message": f"Максимум {_MAX_QUESTION_PHOTOS} снимки на въпрос."},
+        )
+
+    content_type = (file.content_type or "").lower()
+    if content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "unsupported_file_type",
+                    "message": "Приемаме снимки (JPG, PNG, WEBP, GIF)."},
+        )
+    data = await file.read()
+    if not data:
+        raise HTTPException(status_code=400, detail={"code": "empty_file"})
+    if len(data) > _MAX_QUESTION_PHOTO_BYTES:
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "file_too_large", "message": "Максималният размер е 8 MB."},
+        )
+
+    photo_id = str(uuid.uuid4())
+    ext = ALLOWED_IMAGE_TYPES[content_type]
+    storage_path = f"{APP_NAME}/community/questions/{question_id}/{photo_id}.{ext}"
+    # put_object is blocking boto3 — offload so it doesn't stall the event loop.
+    await run_in_threadpool(put_object, storage_path, data, content_type)
+
+    await db.qa_question_photos.insert_one({
+        "id": photo_id,
+        "question_id": question_id,
+        "patient_id": patient["id"],
+        "storage_path": storage_path,
+        "original_filename": file.filename,
+        "content_type": content_type,
+        "size": len(data),
+        "display_order": existing_count,
+        "is_deleted": False,
+        "created_at": _now(),
+    })
+    return {"id": photo_id, "content_type": content_type, "size": len(data)}
+
+
+async def _serve_question_photo(record: Dict[str, Any]) -> Response:
+    data, content_type = await run_in_threadpool(get_object, record["storage_path"])
+    return Response(
+        content=data,
+        media_type=record.get("content_type") or content_type,
+        headers={"X-Content-Type-Options": "nosniff"},
+    )
+
+
+@router.get("/community/questions/{question_id}/photos/{photo_id}")
+async def get_question_photo(
+    question_id: str, photo_id: str,
+    patient=Depends(get_current_patient_optional),
+):
+    photo = await db.qa_question_photos.find_one(
+        {"id": photo_id, "question_id": question_id, "is_deleted": False}, {"_id": 0},
+    )
+    if not photo:
+        raise HTTPException(status_code=404, detail="Not found")
+    q = await db.qa_questions.find_one(
+        {"id": question_id}, {"_id": 0, "status": 1, "patient_id": 1},
+    )
+    is_published = bool(q) and q.get("status") == "published"
+    is_owner = bool(patient) and bool(q) and q.get("patient_id") == patient["id"]
+    if not (is_published or is_owner):
+        # 404, not 403 — never confirm existence of a pending/foreign photo.
+        raise HTTPException(status_code=404, detail="Not found")
+    resp = await _serve_question_photo(photo)
+    resp.headers["Cache-Control"] = (
+        "public, max-age=3600" if is_published else "private, no-store, max-age=0"
+    )
+    return resp
 
 
 # ─── PUBLIC: peer answers, upvotes, answer reports ────────────────
@@ -653,6 +775,25 @@ async def my_community_activity(patient=Depends(get_current_patient)):
 
 # ─── ADMIN: moderation ────────────────────────────────────────────
 
+async def _attach_photos(items: List[Dict[str, Any]]) -> None:
+    """Mutates `items` in place, adding a lightweight `photos` list to each
+    — used by both the moderation list and single-question admin views so
+    reviewers can see attached images before approving/rejecting."""
+    ids = [it["id"] for it in items]
+    if not ids:
+        return
+    photos_by_q: Dict[str, List[Dict[str, Any]]] = {}
+    async for p in db.qa_question_photos.find(
+        {"question_id": {"$in": ids}, "is_deleted": False},
+        {"_id": 0, "id": 1, "question_id": 1, "content_type": 1, "display_order": 1},
+    ).sort("display_order", 1):
+        photos_by_q.setdefault(p["question_id"], []).append(
+            {"id": p["id"], "content_type": p["content_type"]}
+        )
+    for it in items:
+        it["photos"] = photos_by_q.get(it["id"], [])
+
+
 @router.get("/admin/community/questions")
 async def admin_list_questions(
     status: Optional[str] = Query(None),
@@ -665,6 +806,7 @@ async def admin_list_questions(
         q["status"] = status
     cursor = db.qa_questions.find(q, {"_id": 0}).sort("created_at", -1).limit(500)
     items = [doc async for doc in cursor]
+    await _attach_photos(items)
     return {
         "items": items,
         "counts": {
@@ -683,7 +825,24 @@ async def admin_get_question(question_id: str, user: AdminUser = Depends(get_cur
     doc = await db.qa_questions.find_one({"id": question_id}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Not found")
+    await _attach_photos([doc])
     return doc
+
+
+@router.get("/admin/community/questions/{question_id}/photos/{photo_id}")
+async def admin_get_question_photo(
+    question_id: str, photo_id: str, user: AdminUser = Depends(get_current_user),
+):
+    """Bypasses the published-or-owner visibility rule entirely — admins
+    must be able to review a photo regardless of the question's status."""
+    photo = await db.qa_question_photos.find_one(
+        {"id": photo_id, "question_id": question_id, "is_deleted": False}, {"_id": 0},
+    )
+    if not photo:
+        raise HTTPException(status_code=404, detail="Not found")
+    resp = await _serve_question_photo(photo)
+    resp.headers["Cache-Control"] = "private, no-store, max-age=0"
+    return resp
 
 
 async def _moderate(question_id: str, new_status: str, notes: Optional[str], user: AdminUser):

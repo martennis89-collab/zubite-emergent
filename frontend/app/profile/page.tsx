@@ -9,14 +9,16 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
   Loader2, User, LogOut, MessageCircleQuestion, Bell, ShieldCheck,
-  Clock, CheckCircle2, XCircle,
+  Clock, CheckCircle2, XCircle, FileText,
 } from 'lucide-react'
 import { getMe, updateMe, logout, type PatientMe } from '@/lib/patientAuth'
+import { getMyLeads, type MyLead } from '@/lib/api'
 import { OtpLoginModal } from '@/components/OtpLoginModal'
 import {
   getMyActivity, getNotifications, markNotificationRead, markAllNotificationsRead,
   type MyQuestion, type MyAnswer, type CommunityNotification,
 } from '@/lib/community'
+import { TREATMENT_LABELS } from '@/lib/consultationLabels'
 
 const QUESTION_STATUS_LABEL: Record<MyQuestion['status'], string> = {
   pending: 'В преглед',
@@ -52,6 +54,7 @@ export default function ProfilePage() {
   const [myAnswers, setMyAnswers] = useState<MyAnswer[]>([])
   const [notifications, setNotifications] = useState<CommunityNotification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
+  const [myLeads, setMyLeads] = useState<MyLead[]>([])
 
   const loadActivity = () => {
     getMyActivity().then((d) => {
@@ -62,6 +65,7 @@ export default function ProfilePage() {
       setNotifications(d.items)
       setUnreadCount(d.unread_count)
     })
+    getMyLeads().then((d) => setMyLeads(d.items)).catch(() => setMyLeads([]))
   }
 
   useEffect(() => {
@@ -212,6 +216,27 @@ export default function ProfilePage() {
           </p>
         )}
       </form>
+
+      {myLeads.length > 0 && (
+        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5">
+          <div className="mb-3 flex items-center gap-2">
+            <FileText className="h-5 w-5 text-teal-600" />
+            <h3 className="font-medium text-slate-900">Моите резултати</h3>
+          </div>
+          <ul className="space-y-2">
+            {myLeads.map((l) => (
+              <li key={l.id}>
+                <Link href={`/results/${l.id}`} className="text-sm font-medium text-slate-800 hover:text-teal-700">
+                  {TREATMENT_LABELS[l.treatment_type] || l.treatment_type}
+                </Link>
+                <div className="mt-0.5 text-xs text-slate-400">
+                  {timeAgo(l.created_at)} · {l.full_result_unlocked ? 'Отключен резултат' : 'В очакване на контакт'}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         {/* Моите въпроси */}

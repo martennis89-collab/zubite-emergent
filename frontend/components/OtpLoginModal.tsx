@@ -15,9 +15,12 @@ interface Props {
   onSuccess: (patient: PatientMe) => void
   /** Optional context line, e.g. "за да зададете въпрос". */
   reason?: string
+  /** Link this specific lead to the account on successful login — see
+   *  SaveResultBanner / verifyOtp. */
+  claimLeadId?: string
 }
 
-export function OtpLoginModal({ open, onClose, onSuccess, reason }: Props) {
+export function OtpLoginModal({ open, onClose, onSuccess, reason, claimLeadId }: Props) {
   const [step, setStep] = useState<'email' | 'code'>('email')
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
@@ -65,7 +68,7 @@ export function OtpLoginModal({ open, onClose, onSuccess, reason }: Props) {
     setError('')
     setLoading(true)
     try {
-      const patient = await verifyOtp(email, code)
+      const patient = await verifyOtp(email, code, claimLeadId)
       onSuccess(patient)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Възникна грешка')

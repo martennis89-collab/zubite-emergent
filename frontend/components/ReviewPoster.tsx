@@ -70,11 +70,14 @@ export function ReviewPoster({
 }: Props) {
   const isPreview = variant === 'preview'
   const { widthMm, heightMm, scale } = PAPER_DIMENSIONS[paperSize]
-  // mm() scales a "designed at A4" value up for A3; on-screen preview
-  // keeps everything at the A4 scale since it's already a fixed-width
-  // scaled-down render (the aspect ratio, not absolute size, is what
-  // needs to change between paper sizes there).
-  const mm = (a4Value: number) => (isPreview ? a4Value : a4Value * scale)
+  // mmValue() scales a "designed at A4" value up for A3 and returns the
+  // raw millimeter quantity (only useful for manual px math, e.g. the
+  // QRCodeCanvas pixel size below). mm() wraps that in the CSS "mm" unit
+  // so the browser does the mm->px conversion itself at layout time —
+  // every style property below must use mm(), never mmValue() directly,
+  // or the value silently becomes bare (and far too small) pixels.
+  const mmValue = (a4Value: number) => a4Value * scale
+  const mm = (a4Value: number) => `${mmValue(a4Value)}mm`
 
   return (
     <div
@@ -105,7 +108,7 @@ export function ReviewPoster({
 
       <div
         className="relative h-full flex flex-col"
-        style={{ padding: isPreview ? '7%' : `${mm(18)}mm` }}
+        style={{ padding: isPreview ? '7%' : mm(18) }}
       >
         {/* Wordmark — Manrope Extra Bold, Editorial Ink + Trust Emerald
             ".bg" (brand kit §5). Never the old serif/teal treatment. */}
@@ -173,7 +176,7 @@ export function ReviewPoster({
             labeled next step (brand kit §7 composition system, layer 3). */}
         <div
           className="relative mt-auto mb-auto self-center w-full"
-          style={{ maxWidth: isPreview ? undefined : `${mm(115)}mm` }}
+          style={{ maxWidth: isPreview ? undefined : mm(115) }}
         >
           <div
             className="relative mx-auto bg-white"
@@ -187,7 +190,7 @@ export function ReviewPoster({
             <div className="grid place-items-center">
               <QRCodeCanvas
                 value={reviewUrl}
-                size={isPreview ? 180 : Math.round(mm(38) * 3.78)}
+                size={isPreview ? 180 : Math.round(mmValue(38) * 3.78)}
                 level="M"
                 includeMargin={false}
                 bgColor="#ffffff"

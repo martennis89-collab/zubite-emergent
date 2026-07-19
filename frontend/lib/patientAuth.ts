@@ -40,12 +40,18 @@ export async function requestOtp(email: string): Promise<void> {
   }
 }
 
-/** Step 2 — exchange the code for a session. Sets the httpOnly cookie. */
-export async function verifyOtp(email: string, code: string): Promise<PatientMe> {
+/** Step 2 — exchange the code for a session. Sets the httpOnly cookie.
+ *  `claimLeadId`, when passed, asks the backend to link that specific lead
+ *  to this account even if it has no email yet (see SaveResultBanner). */
+export async function verifyOtp(email: string, code: string, claimLeadId?: string): Promise<PatientMe> {
   const res = await fetch(`${API_URL}/api/patient/auth/verify-otp`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: email.trim().toLowerCase(), code: code.trim() }),
+    body: JSON.stringify({
+      email: email.trim().toLowerCase(),
+      code: code.trim(),
+      ...(claimLeadId ? { claim_lead_id: claimLeadId } : {}),
+    }),
     credentials: 'include' as RequestCredentials,
   })
   if (!res.ok) {

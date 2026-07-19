@@ -96,6 +96,7 @@ async def startup():
     # Phase 2C: soft-duplicate detection lookups
     await db.leads.create_index([("phone", 1), ("created_at", -1)])
     await db.leads.create_index([("email", 1), ("created_at", -1)])
+    await db.leads.create_index("patient_id")
     await db.clinics.create_index("id", unique=True)
     await db.clinics.create_index("city_slug")
     await db.clinics.create_index("email")
@@ -138,6 +139,9 @@ async def startup():
     await db.qa_answer_votes.create_index([("answer_id", 1), ("patient_id", 1)], unique=True)
     await db.qa_notifications.create_index([("patient_id", 1), ("created_at", -1)])
     await db.qa_notifications.create_index([("patient_id", 1), ("read", 1)])
+    await db.qa_question_photos.create_index("id", unique=True)
+    await db.qa_question_photos.create_index([("question_id", 1), ("display_order", 1)])
+    await db.qa_question_photos.create_index("patient_id")
 
     # Consultation workflow indexes (Feb 2026)
     await db.consultation_requests.create_index("id", unique=True)

@@ -197,6 +197,12 @@ class Lead(BaseModel):
     band: str = "RED"
     status: str = "NEW"
     assigned_clinic_id: Optional[str] = None
+    # Общност OTP patient account that owns this lead (see `patients`
+    # collection / patient_auth.py) — distinct from `patient_number` below,
+    # which is a clinic-facing sequential display id. Never accepted from
+    # the client; only ever set server-side via create_lead's auth
+    # dependency, the OTP-verify retroactive link, or POST /leads/{id}/claim.
+    patient_id: Optional[str] = None
     name: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
@@ -1513,6 +1519,10 @@ class PatientOtpVerify(BaseModel):
     """Step 2: exchange the emailed 6-digit code for a session."""
     email: EmailStr
     code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
+    # Optional: link this specific lead to the account being logged into,
+    # even if the lead has no email yet (e.g. a patient on /results/[leadId]
+    # who hasn't reached contact-capture). See patient_verify_otp.
+    claim_lead_id: Optional[str] = Field(default=None, max_length=64)
 
 
 class PatientProfileUpdate(BaseModel):
@@ -1537,6 +1547,9 @@ class PatientTokenResponse(BaseModel):
     access_token: Optional[str] = None
     token_type: Optional[str] = None
     user: PatientOut
+    # Only set when the request carried claim_lead_id. One of:
+    # "claimed" | "already_mine" | "already_claimed_by_other" | "lead_not_found"
+    claim_result: Optional[str] = None
 
 
 # ─── Общност (Q&A) — Phase 2 (questions + browse + moderation) ─────

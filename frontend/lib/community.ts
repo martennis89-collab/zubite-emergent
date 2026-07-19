@@ -49,11 +49,17 @@ export interface Answer {
   has_upvoted: boolean
 }
 
+export interface QuestionPhoto {
+  id: string
+  content_type: string
+}
+
 export interface QuestionDetail extends QuestionListItem {
   body: string
   topic_related_path: string | null
   answers: Answer[]
   can_answer: boolean
+  photos: QuestionPhoto[]
 }
 
 export interface QuestionListResponse {
@@ -135,6 +141,44 @@ export async function askQuestion(payload: {
   }
   if (!res.ok) throw new Error(await parseError(res, 'Неуспешно изпращане на въпроса'))
   return (await res.json()) as AskResult
+}
+
+/** Public URL for a question photo. Serves publicly once the question is
+ *  published; while pending, only the owning patient's session can fetch
+ *  it (same-origin `/api` proxy carries the cookie on the <img> request).
+ *
+ *  Deliberately does NOT use the module-level `API_URL` (server/client-aware
+ *  `resolveApiUrl()`) — this function's result is embedded in rendered HTML
+ *  for the BROWSER to request independently (an <img src>), including when
+ *  called from a server component during SSR. Using the server-side
+ *  INTERNAL_API_URL there would bake the Docker-internal hostname
+ *  (`http://backend:8001`) into the page, which the browser can never
+ *  reach. Always resolve against the public var so the result is either a
+ *  browser-reachable absolute URL or a same-origin relative `/api/...`
+ *  path that Next's rewrite proxies through — correct in both contexts. */
+export function questionPhotoUrl(questionId: string, photoId: string): string {
+  const publicBase = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '')
+  return `${publicBase}/api/community/questions/${encodeURIComponent(questionId)}/photos/${encodeURIComponent(photoId)}`
+}
+
+export interface UploadedPhoto {
+  id: string
+  content_type: string
+  size: number
+}
+
+/** Always called AFTER askQuestion() already succeeded — a failed upload
+ *  here never implies the question itself failed to post. */
+export async function uploadQuestionPhoto(questionId: string, file: File): Promise<UploadedPhoto> {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await fetch(
+    `${API_URL}/api/community/questions/${encodeURIComponent(questionId)}/photos`,
+    { method: 'POST', body: form, credentials: 'include' as RequestCredentials },
+  )
+  if (res.status === 401 || res.status === 403) throw new Error('AUTH_REQUIRED')
+  if (!res.ok) throw new Error(await parseError(res, 'Неуспешно качване на снимка'))
+  return (await res.json()) as UploadedPhoto
 }
 
 export async function reportQuestion(questionId: string, reason: string): Promise<void> {
