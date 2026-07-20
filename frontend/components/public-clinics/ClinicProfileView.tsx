@@ -198,7 +198,8 @@ export default function ClinicProfileView({ clinic, chatContext }: Props) {
         description: 'Запазваш посещение в клиниката. Екипът потвърждава избрания час.',
         onClick: () => {
           const returnTo = encodeURIComponent(window.location.pathname)
-          window.location.href = `/booking/${clinic.id}?returnTo=${returnTo}`
+          const leadParam = chatContext?.leadId ? `&leadId=${encodeURIComponent(chatContext.leadId)}` : ''
+          window.location.href = `/booking/${clinic.id}?returnTo=${returnTo}${leadParam}`
         },
         kind: 'visit',
         testId: 'clinic-book-consultation-cta',
@@ -218,7 +219,7 @@ export default function ClinicProfileView({ clinic, chatContext }: Props) {
       onClick: openContact,
       kind: 'contact',
     }
-  }, [clinic.booking_enabled, clinic.id, schedulerState, openContact, scrollTo])
+  }, [clinic.booking_enabled, clinic.id, schedulerState, openContact, scrollTo, chatContext?.leadId])
 
   const heroSecondary: ClinicActionVariant | null = useMemo(() => {
     if (heroPrimary.kind !== 'contact') {

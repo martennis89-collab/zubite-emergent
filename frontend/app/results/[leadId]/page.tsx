@@ -12,6 +12,7 @@ import { Footer } from '@/components/Footer'
 import { ResultUnlockGate } from '@/components/patient/ResultUnlockGate'
 import { SaveResultBanner } from '@/components/patient/SaveResultBanner'
 import { getLead } from '@/lib/api'
+import { setStoredLeadContact } from '@/lib/leadContact'
 
 interface Lead {
   id: string
@@ -163,7 +164,15 @@ export default function ResultsPage() {
               </Link>
             ) : (
               <div className="mt-6" data-testid="partial-locked-teaser">
-                <ResultUnlockGate leadId={lead.id} defaultName={lead.name} citySlug={lead.city_slug} onUnlocked={() => window.location.reload()} />
+                <ResultUnlockGate
+                  leadId={lead.id}
+                  defaultName={lead.name}
+                  citySlug={lead.city_slug}
+                  onUnlocked={(contact) => {
+                    setStoredLeadContact(lead.id, contact)
+                    window.location.reload()
+                  }}
+                />
               </div>
             )}
 

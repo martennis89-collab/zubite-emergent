@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic'
 import { CalendarDays, Clock, Loader2, CheckCircle2, AlertTriangle, ChevronLeft } from 'lucide-react'
 import type { PublicClinic } from '@/lib/publicClinics'
 import { SaveBookingBanner } from '@/components/patient/SaveBookingBanner'
+import { getStoredLeadContact } from '@/lib/leadContact'
 
 const PublicContactModal = dynamic(
   () => import('@/components/public-clinics/PublicContactModal'),
@@ -63,6 +64,21 @@ export default function BookingPage() {
     consent_confirmed: false, not_emergency_confirmed: false,
   })
   const [confirmed, setConfirmed] = useState<{ start: string; clinic: string; email: string; name: string } | null>(null)
+
+  // Prefill from what the patient already gave at the /results contact-
+  // capture step (ResultUnlockGate), cached client-side in leadContact.ts.
+  // Only fills fields still blank — never clobbers in-progress typing.
+  useEffect(() => {
+    if (!leadId) return
+    const cached = getStoredLeadContact(leadId)
+    if (!cached) return
+    setForm((f) => ({
+      ...f,
+      patient_name: f.patient_name || cached.name || '',
+      patient_email: f.patient_email || cached.email || '',
+      patient_phone: f.patient_phone || cached.phone || '',
+    }))
+  }, [leadId])
 
   const requestedReturnTo = searchParams.get('returnTo')
   const backHref = useMemo(() => {
