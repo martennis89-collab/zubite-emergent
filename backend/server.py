@@ -225,6 +225,7 @@ async def startup():
     except Exception as exc:  # index may already exist under an older name
         print(f"[bookings] uniq_active_slot index skipped: {exc}")
     await db.clinic_bookings.create_index("reminder_email_scheduled_for")
+    await db.clinic_bookings.create_index("patient_id")
     await db.clinic_availability_rules.create_index([("clinic_id", 1), ("day_of_week", 1)])
     await db.clinic_booking_exceptions.create_index([("clinic_id", 1), ("date", 1)])
     asyncio.create_task(reminder_loop())
@@ -235,6 +236,7 @@ async def startup():
     # Phase 3 — staff-internal doctor assignment + conflict lookups.
     await db.clinic_appointments.create_index([("clinic_id", 1), ("doctor_id", 1)])
     await db.online_orientation_bookings.create_index([("clinic_id", 1), ("doctor_id", 1)])
+    await db.online_orientation_bookings.create_index("patient_id")
 
 
 async def auto_verification_loop():

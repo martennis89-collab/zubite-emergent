@@ -404,6 +404,70 @@ async def my_leads(patient: Dict[str, Any] = Depends(get_current_patient)):
     return {"items": items}
 
 
+@router.get("/patient/bookings/mine")
+async def my_bookings(patient: Dict[str, Any] = Depends(get_current_patient)):
+    """Backs the /profile 'Моите резервации' section — merges the two
+    patient-initiated booking collections into one normalized, sorted
+    list. Excludes consultation_requests/clinic_appointments (internal
+    admin/clinic pipeline records, not patient-initiated)."""
+    cb_docs = await db.clinic_bookings.find(
+        {"patient_id": patient["id"]},
+        {"_id": 0, "id": 1, "clinic_id": 1, "treatment_category": 1,
+         "selected_slot_start": 1, "selected_slot_start_display": 1,
+         "status": 1, "created_at": 1},
+    ).to_list(200)
+    oo_docs = await db.online_orientation_bookings.find(
+        {"patient_id": patient["id"]},
+        {"_id": 0, "id": 1, "clinic_id": 1, "topic": 1, "treatment_category": 1,
+         "scheduled_at": 1, "status": 1, "created_at": 1},
+    ).to_list(200)
+
+    clinic_ids = {d.get("clinic_id") for d in (*cb_docs, *oo_docs) if d.get("clinic_id")}
+    clinic_names: Dict[str, Optional[str]] = {}
+    if clinic_ids:
+        cur = db.clinics.find(
+            {"id": {"$in": list(clinic_ids)}}, {"_id": 0, "id": 1, "clinic_name": 1, "name": 1},
+        )
+        clinic_names = {c["id"]: (c.get("clinic_name") or c.get("name")) async for c in cur}
+
+    def _parse_dt(s: Optional[str]):
+        if not s:
+            return None
+        try:
+            dt = datetime.fromisoformat(s)
+            return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+        except Exception:
+            return None
+
+    items: List[Dict[str, Any]] = []
+    for b in cb_docs:
+        items.append({
+            "type": "clinic_booking", "id": b["id"], "clinic_id": b.get("clinic_id"),
+            "clinic_name": clinic_names.get(b.get("clinic_id")), "status": b.get("status"),
+            "appointment_at": b.get("selected_slot_start"),
+            "appointment_display": b.get("selected_slot_start_display"),
+            "treatment_category": b.get("treatment_category"), "created_at": b.get("created_at"),
+        })
+    for o in oo_docs:
+        items.append({
+            "type": "online_orientation", "id": o["id"], "clinic_id": o.get("clinic_id"),
+            "clinic_name": clinic_names.get(o.get("clinic_id")), "status": o.get("status"),
+            "appointment_at": o.get("scheduled_at"), "appointment_display": None,
+            "treatment_category": o.get("treatment_category") or o.get("topic"),
+            "created_at": o.get("created_at"),
+        })
+
+    # clinic_bookings.selected_slot_start carries a Sofia offset while
+    # online_orientation_bookings.scheduled_at is normalized to UTC — a raw
+    # string sort would silently misorder close-together items across the
+    # two sources, so sort on parsed, timezone-aware datetimes instead.
+    items.sort(
+        key=lambda x: _parse_dt(x.get("appointment_at")) or datetime.min.replace(tzinfo=timezone.utc),
+        reverse=True,
+    )
+    return {"items": items}
+
+
 # ─── MVP unlock-mechanic (Phase B) ────────────────────────────────
 #
 # POST /leads/{lead_id}/unlock-result

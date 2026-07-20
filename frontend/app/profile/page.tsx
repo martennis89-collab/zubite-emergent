@@ -9,16 +9,16 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
   Loader2, User, LogOut, MessageCircleQuestion, Bell, ShieldCheck,
-  Clock, CheckCircle2, XCircle, FileText,
+  Clock, CheckCircle2, XCircle, FileText, CalendarCheck,
 } from 'lucide-react'
 import { getMe, updateMe, logout, type PatientMe } from '@/lib/patientAuth'
-import { getMyLeads, type MyLead } from '@/lib/api'
+import { getMyLeads, getMyBookings, type MyLead, type MyBooking } from '@/lib/api'
 import { OtpLoginModal } from '@/components/OtpLoginModal'
 import {
   getMyActivity, getNotifications, markNotificationRead, markAllNotificationsRead,
   type MyQuestion, type MyAnswer, type CommunityNotification,
 } from '@/lib/community'
-import { TREATMENT_LABELS } from '@/lib/consultationLabels'
+import { TREATMENT_LABELS, BOOKING_STATUS_LABELS, BOOKING_STATUS_TONES } from '@/lib/consultationLabels'
 
 const QUESTION_STATUS_LABEL: Record<MyQuestion['status'], string> = {
   pending: 'В преглед',
@@ -55,6 +55,7 @@ export default function ProfilePage() {
   const [notifications, setNotifications] = useState<CommunityNotification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [myLeads, setMyLeads] = useState<MyLead[]>([])
+  const [myBookings, setMyBookings] = useState<MyBooking[]>([])
 
   const loadActivity = () => {
     getMyActivity().then((d) => {
@@ -66,6 +67,7 @@ export default function ProfilePage() {
       setUnreadCount(d.unread_count)
     })
     getMyLeads().then((d) => setMyLeads(d.items)).catch(() => setMyLeads([]))
+    getMyBookings().then((d) => setMyBookings(d.items)).catch(() => setMyBookings([]))
   }
 
   useEffect(() => {
@@ -231,6 +233,31 @@ export default function ProfilePage() {
                 </Link>
                 <div className="mt-0.5 text-xs text-slate-400">
                   {timeAgo(l.created_at)} · {l.full_result_unlocked ? 'Отключен резултат' : 'В очакване на контакт'}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {myBookings.length > 0 && (
+        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5">
+          <div className="mb-3 flex items-center gap-2">
+            <CalendarCheck className="h-5 w-5 text-teal-600" />
+            <h3 className="font-medium text-slate-900">Моите резервации</h3>
+          </div>
+          <ul className="space-y-2">
+            {myBookings.map((b) => (
+              <li key={`${b.type}-${b.id}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium text-slate-800">{b.clinic_name || 'Клиника'}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${BOOKING_STATUS_TONES[b.status] || 'bg-slate-100 text-slate-600'}`}>
+                    {BOOKING_STATUS_LABELS[b.status] || b.status}
+                  </span>
+                </div>
+                <div className="mt-0.5 text-xs text-slate-400">
+                  {b.appointment_display || (b.appointment_at ? new Date(b.appointment_at).toLocaleString('bg-BG') : timeAgo(b.created_at))}
+                  {b.treatment_category ? ` · ${TREATMENT_LABELS[b.treatment_category] || b.treatment_category}` : ''}
                 </div>
               </li>
             ))}

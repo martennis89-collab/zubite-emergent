@@ -260,6 +260,49 @@ export const APPT_STATUS_TONES: Record<string, string> = {
   scheduled: 'bg-emerald-100 text-emerald-700',
 }
 
+// Combined status vocabulary for "Моите резервации" (frontend/app/profile/page.tsx)
+// — spans clinic_bookings' BOOKING_STATUSES and online_orientation_bookings'
+// ORIENTATION_BOOKING_STATUS_VALUES (backend/bookings_core.py,
+// backend/schemas.py). Keyed by the raw status string; the two vocabularies
+// share 4 identical values with identical meaning (completed, no_show,
+// cancelled_by_patient, cancelled_by_clinic), so one map covers both rather
+// than duplicating entries across two.
+export const BOOKING_STATUS_LABELS: Record<string, string> = {
+  pending_confirmation: 'Чака потвърждение',
+  confirmed: 'Потвърдена',
+  rescheduled: 'Преместена',
+  pending_clinic_confirmation: 'Чака потвърждение от клиниката',
+  confirmed_by_clinic: 'Потвърдена от клиниката',
+  rejected_by_clinic: 'Отказана от клиниката',
+  expired_pending_confirmation: 'Изтекла заявка',
+  scheduled: 'Насрочена',
+  converted_to_in_clinic: 'Прехвърлена в клиника',
+  not_suitable: 'Неподходяща',
+  needs_admin_review: 'На преглед',
+  completed: 'Проведена',
+  no_show: 'Не се яви',
+  cancelled_by_patient: 'Отменена от вас',
+  cancelled_by_clinic: 'Отменена от клиниката',
+}
+
+export const BOOKING_STATUS_TONES: Record<string, string> = {
+  pending_confirmation: 'bg-amber-100 text-amber-800',
+  confirmed: 'bg-emerald-100 text-emerald-700',
+  rescheduled: 'bg-amber-100 text-amber-800',
+  pending_clinic_confirmation: 'bg-amber-100 text-amber-800',
+  confirmed_by_clinic: 'bg-emerald-100 text-emerald-700',
+  rejected_by_clinic: 'bg-rose-100 text-rose-700',
+  expired_pending_confirmation: 'bg-slate-100 text-slate-500',
+  scheduled: 'bg-emerald-100 text-emerald-700',
+  converted_to_in_clinic: 'bg-teal-100 text-teal-700',
+  not_suitable: 'bg-rose-100 text-rose-700',
+  needs_admin_review: 'bg-violet-100 text-violet-700',
+  completed: 'bg-emerald-100 text-emerald-700',
+  no_show: 'bg-rose-100 text-rose-700',
+  cancelled_by_patient: 'bg-slate-100 text-slate-500',
+  cancelled_by_clinic: 'bg-rose-100 text-rose-700',
+}
+
 export const ACTION_SUCCESS_MESSAGES: Record<string, string> = {
   call_attempted: 'Опитът за обаждане е записан.',
   patient_contacted: 'Пациентът е маркиран като свързан.',

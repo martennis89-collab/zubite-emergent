@@ -39,7 +39,7 @@ from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from config import (
-    JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRATION_HOURS,
+    JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRATION_HOURS, PATIENT_JWT_EXPIRATION_HOURS,
     AUTH_COOKIE_NAME_ADMIN, AUTH_COOKIE_NAME_CLINIC, AUTH_COOKIE_NAME_PATIENT,
     logger,
 )
@@ -289,9 +289,14 @@ async def create_clinic_token(user_id: str, email: str) -> Tuple[str, str]:
 
 async def create_patient_token(user_id: str, email: str) -> Tuple[str, str]:
     """Issue a patient JWT and persist the matching auth_sessions row.
-    Returns (token, jti). Mirrors create_clinic_token; role/user_type='patient'."""
+    Returns (token, jti). Mirrors create_clinic_token; role/user_type='patient'.
+
+    Deliberately uses PATIENT_JWT_EXPIRATION_HOURS (30 days), not the shared
+    24h admin/clinic window — a patient asking a community question expects
+    to come back over the following days and still be logged in to see the
+    answer, not have to re-verify by email every time."""
     jti = str(uuid.uuid4())
-    expires_at = _now_utc() + timedelta(hours=JWT_EXPIRATION_HOURS)
+    expires_at = _now_utc() + timedelta(hours=PATIENT_JWT_EXPIRATION_HOURS)
     payload = {
         "sub": user_id,
         "email": email,

@@ -73,6 +73,24 @@ export const getMyLeads = async (): Promise<{ items: MyLead[] }> => {
   return response.data;
 };
 
+export interface MyBooking {
+  id: string;
+  type: 'clinic_booking' | 'online_orientation';
+  clinic_id: string | null;
+  clinic_name: string | null;
+  status: string;
+  appointment_at: string | null;
+  appointment_display: string | null;
+  treatment_category: string | null;
+  created_at: string | null;
+}
+
+export const getMyBookings = async (): Promise<{ items: MyBooking[] }> => {
+  const base = process.env.NEXT_PUBLIC_API_URL || ''
+  const response = await axios.get(`${base}/api/patient/bookings/mine`, { withCredentials: true });
+  return response.data;
+};
+
 // ── Patient layer P3 ─────────────────────────────────────────
 // GET /api/leads/{leadId}/recommended-clinics?limit=N
 // Response is fully whitelisted server-side; see backend P2 contract.

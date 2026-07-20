@@ -122,6 +122,16 @@ AUTH_COOKIE_MAX_AGE_SECONDS = JWT_EXPIRATION_HOURS * 3600
 # Reserved for E4 — when True, drop Bearer-header support entirely. Not enforced in E1.
 AUTH_REQUIRE_COOKIE = os.environ.get('AUTH_REQUIRE_COOKIE', '0') == '1'
 
+# Patient (Общност) sessions get their own, much longer lifetime — 24h
+# (the admin/clinic window) is wrong for "come back in a few days and check
+# the answer to my question": by then the session would already have
+# expired, forcing a fresh OTP round-trip just to view /profile. Patients
+# have no elevated access (can't touch other patients' data or admin/clinic
+# tooling), so a long-lived "stay logged in" window is the safe default,
+# matching how most consumer Q&A/forum products behave.
+PATIENT_JWT_EXPIRATION_HOURS = int(os.environ.get('PATIENT_JWT_EXPIRATION_HOURS', 24 * 30))
+AUTH_COOKIE_MAX_AGE_SECONDS_PATIENT = PATIENT_JWT_EXPIRATION_HOURS * 3600
+
 # Initialize resend
 import resend as _resend
 if RESEND_API_KEY:

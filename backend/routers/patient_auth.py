@@ -43,7 +43,7 @@ from auth import (
 from audit import audit_log
 from config import (
     AUTH_COOKIE_NAME_PATIENT, AUTH_COOKIE_SECURE, AUTH_COOKIE_SAMESITE,
-    AUTH_COOKIE_MAX_AGE_SECONDS,
+    AUTH_COOKIE_MAX_AGE_SECONDS_PATIENT,
 )
 from database import db
 from emails import send_patient_otp_email
@@ -195,6 +195,24 @@ async def patient_verify_otp(data: PatientOtpVerify, request: Request, response:
         },
         {"$set": {"patient_id": patient["id"]}},
     )
+    # Same retroactive-link pattern, extended to the two patient-initiated
+    # booking collections. Field is `patient_email` there, not `email`.
+    # The `patient_id: None` guard is load-bearing here too — never
+    # overwrite a booking already linked to a different account.
+    await db.clinic_bookings.update_many(
+        {
+            "patient_email": {"$regex": f"^{re.escape(email)}$", "$options": "i"},
+            "patient_id": None,
+        },
+        {"$set": {"patient_id": patient["id"]}},
+    )
+    await db.online_orientation_bookings.update_many(
+        {
+            "patient_email": {"$regex": f"^{re.escape(email)}$", "$options": "i"},
+            "patient_id": None,
+        },
+        {"$set": {"patient_id": patient["id"]}},
+    )
 
     # 2. Explicit: a specific lead the frontend asked to claim (e.g. the
     # /results/[leadId] save banner) — covers leads with no email yet
@@ -221,7 +239,7 @@ async def patient_verify_otp(data: PatientOtpVerify, request: Request, response:
     response.set_cookie(
         key=AUTH_COOKIE_NAME_PATIENT,
         value=token,
-        max_age=AUTH_COOKIE_MAX_AGE_SECONDS,
+        max_age=AUTH_COOKIE_MAX_AGE_SECONDS_PATIENT,
         httponly=True,
         secure=AUTH_COOKIE_SECURE,
         samesite=AUTH_COOKIE_SAMESITE,
