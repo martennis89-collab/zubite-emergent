@@ -344,9 +344,17 @@ async def admin_assign_lead_to_clinic(lead_id: str, body: dict, request: Request
     prev_clinic_id = existing_lead.get("assigned_clinic_id")
     is_new_assignment = prev_clinic_id != clinic_id
 
+    lead_update = {"assigned_clinic_id": clinic_id, "clinic_lead_status": "new"}
+    if is_new_assignment and prev_clinic_id:
+        # Moving to a different clinic — clear the outgoing clinic's
+        # internal note (clinic_patients.py "Пациенти" section) so it
+        # never becomes visible to the new clinic.
+        lead_update["clinic_internal_note"] = None
+        lead_update["clinic_internal_note_updated_at"] = None
+
     await db.leads.update_one(
         {"id": lead_id},
-        {"$set": {"assigned_clinic_id": clinic_id, "clinic_lead_status": "new"}},
+        {"$set": lead_update},
     )
 
     # Auto-create a ConsultationRequest linked to this lead (idempotent).

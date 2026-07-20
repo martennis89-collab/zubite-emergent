@@ -316,6 +316,8 @@ class Lead(BaseModel):
     # patient_number is a stable, platform-wide unique identifier assigned
     # lazily the first time any clinic's patients list is loaded for a lead
     # that has an assigned_clinic_id. See routers/clinic_patients.py.
+    # NOT the same as the raw-Mongo `patient_id` field set by patient_auth.py
+    # (that one links a lead to a patient's own self-service login account).
     patient_number: Optional[int] = None
     patient_number_assigned_at: Optional[str] = None
     # Free-text note the owning clinic keeps on this patient. Cleared on

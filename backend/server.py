@@ -12,7 +12,7 @@ from database import db, client
 from storage import init_storage
 from emails import send_verification_email
 
-from routers import public, admin, blog, analytics, clinics, verification, seo, consultations, audit_logs, orientation_settings, orientation_bookings, content_automation, public_clinics, clinic_addons, bookings, consultation_chat, patient_auth, community, doctors
+from routers import public, admin, blog, analytics, clinics, verification, seo, consultations, audit_logs, orientation_settings, orientation_bookings, content_automation, public_clinics, clinic_addons, bookings, consultation_chat, patient_auth, community, doctors, clinic_patients
 
 # Root-level health endpoint
 app = FastAPI(title="Zubite.bg API")
@@ -52,6 +52,7 @@ api_router.include_router(bookings.router)
 api_router.include_router(patient_auth.router)
 api_router.include_router(community.router)
 api_router.include_router(doctors.router)
+api_router.include_router(clinic_patients.router)
 
 app.include_router(api_router)
 
@@ -97,6 +98,28 @@ async def startup():
     await db.leads.create_index([("phone", 1), ("created_at", -1)])
     await db.leads.create_index([("email", 1), ("created_at", -1)])
     await db.leads.create_index("patient_id")
+    # Clinic "Пациенти" section — global numeric patient ID. Every lead doc
+    # carries `patient_number` explicitly as `null` until assigned (Pydantic
+    # model_dump() writes all fields), so a plain `sparse` index does NOT
+    # work here — Mongo's sparse indexes still include explicit nulls, only
+    # skipping documents where the field is fully absent. A partial index
+    # excludes null (and missing) values, but the filter must be a
+    # sargable comparison (`$gt`) — a `$type` filter on the SAME field
+    # being indexed prevents Mongo from computing tight bounds for an
+    # equality lookup (verified via explain(): `$type` → index bounds
+    # [MinKey, MaxKey], scanning the whole partial index; `$gt` → bounds
+    # [n, n], a real single-key seek). `patient_number` is only ever
+    # assigned via the $inc counter in clinic_patients.py, which starts
+    # at 1 and only increases, so `$gt: 0` is equivalent to "is a number"
+    # here without the bound-pushdown penalty.
+    try:
+        await db.leads.drop_index("patient_number_1")
+    except Exception:
+        pass
+    await db.leads.create_index(
+        "patient_number", unique=True,
+        partialFilterExpression={"patient_number": {"$gt": 0}},
+    )
     await db.clinics.create_index("id", unique=True)
     await db.clinics.create_index("city_slug")
     await db.clinics.create_index("email")

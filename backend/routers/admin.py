@@ -225,6 +225,16 @@ async def admin_update_lead(lead_id: str, data: LeadStatusUpdate, request: Reque
     if not update_dict:
         raise HTTPException(status_code=400, detail="No update data")
     before = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    if (
+        before is not None
+        and "assigned_clinic_id" in update_dict
+        and update_dict["assigned_clinic_id"] != before.get("assigned_clinic_id")
+    ):
+        # Reassigning to a different clinic — clear the outgoing clinic's
+        # internal note so it never becomes visible to the new clinic via
+        # the "Пациенти" section (clinic_patients.py).
+        update_dict["clinic_internal_note"] = None
+        update_dict["clinic_internal_note_updated_at"] = None
     await db.leads.update_one({"id": lead_id}, {"$set": update_dict})
     lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
 

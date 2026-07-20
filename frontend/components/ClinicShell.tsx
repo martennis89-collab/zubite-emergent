@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import {
   LayoutDashboard, ListChecks, Calendar, BarChart3, MessageSquare, LogOut, Building2,
-  Settings, MessageCircle, MessageCircleQuestion, Stethoscope,
+  Settings, MessageCircle, MessageCircleQuestion, Stethoscope, Users,
 } from 'lucide-react'
 import { listClinicChats } from '@/lib/clinicChat'
 
@@ -19,6 +19,7 @@ interface ClinicUser {
 const NAV = [
   { href: '/clinic/dashboard', label: 'Преглед', icon: LayoutDashboard, exact: true },
   { href: '/clinic/dashboard/requests', label: 'Заявки', icon: ListChecks },
+  { href: '/clinic/dashboard/patients', label: 'Пациенти', icon: Users },
   { href: '/clinic/dashboard/chats', label: 'Съобщения', icon: MessageCircle },
   { href: '/clinic/dashboard/online-orientation', label: 'Онлайн ориентация', icon: Calendar },
   { href: '/clinic/dashboard/calendar', label: 'Календар', icon: Calendar },
