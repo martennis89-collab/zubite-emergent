@@ -32,8 +32,11 @@ export interface QuestionListItem {
   topic: string
   topic_label: string | null
   title: string
+  excerpt: string
   asker_display: string | null
   answer_count: number
+  upvotes: number
+  has_upvoted: boolean
   created_at: string | null
   published_at: string | null
 }
@@ -90,17 +93,20 @@ export async function listTopics(): Promise<CommunityTopic[]> {
 
 export async function listQuestions(params: {
   topic?: string
+  q?: string
   sort?: 'new' | 'top'
   limit?: number
   offset?: number
 } = {}): Promise<QuestionListResponse> {
-  const q = new URLSearchParams()
-  if (params.topic) q.set('topic', params.topic)
-  if (params.sort) q.set('sort', params.sort)
-  if (params.limit != null) q.set('limit', String(params.limit))
-  if (params.offset != null) q.set('offset', String(params.offset))
-  const res = await fetch(`${API_URL}/api/community/questions?${q.toString()}`, {
+  const qs = new URLSearchParams()
+  if (params.topic) qs.set('topic', params.topic)
+  if (params.q) qs.set('q', params.q)
+  if (params.sort) qs.set('sort', params.sort)
+  if (params.limit != null) qs.set('limit', String(params.limit))
+  if (params.offset != null) qs.set('offset', String(params.offset))
+  const res = await fetch(`${API_URL}/api/community/questions?${qs.toString()}`, {
     cache: 'no-store',
+    credentials: 'include' as RequestCredentials,
   })
   if (!res.ok) return { total: 0, limit: params.limit ?? 20, offset: params.offset ?? 0, items: [] }
   return (await res.json()) as QuestionListResponse
@@ -179,6 +185,17 @@ export async function uploadQuestionPhoto(questionId: string, file: File): Promi
   if (res.status === 401 || res.status === 403) throw new Error('AUTH_REQUIRED')
   if (!res.ok) throw new Error(await parseError(res, 'Неуспешно качване на снимка'))
   return (await res.json()) as UploadedPhoto
+}
+
+/** Toggle an upvote ("и аз имам този въпрос") on a question. */
+export async function upvoteQuestion(questionId: string): Promise<{ upvoted: boolean }> {
+  const res = await fetch(
+    `${API_URL}/api/community/questions/${encodeURIComponent(questionId)}/upvote`,
+    { method: 'POST', credentials: 'include' as RequestCredentials },
+  )
+  if (res.status === 401 || res.status === 403) throw new Error('AUTH_REQUIRED')
+  if (!res.ok) throw new Error(await parseError(res, 'Неуспешно гласуване'))
+  return (await res.json()) as { upvoted: boolean }
 }
 
 export async function reportQuestion(questionId: string, reason: string): Promise<void> {

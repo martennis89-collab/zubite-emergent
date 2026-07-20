@@ -160,6 +160,7 @@ async def startup():
     await db.qa_answers.create_index([("author_type", 1), ("author_id", 1)])
     await db.qa_reports.create_index([("target_type", 1), ("target_id", 1)])
     await db.qa_answer_votes.create_index([("answer_id", 1), ("patient_id", 1)], unique=True)
+    await db.qa_question_votes.create_index([("question_id", 1), ("patient_id", 1)], unique=True)
     await db.qa_notifications.create_index([("patient_id", 1), ("created_at", -1)])
     await db.qa_notifications.create_index([("patient_id", 1), ("read", 1)])
     await db.qa_question_photos.create_index("id", unique=True)

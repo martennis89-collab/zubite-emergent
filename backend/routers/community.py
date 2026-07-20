@@ -135,7 +135,22 @@ def _asker_display(patient: Dict[str, Any]) -> str:
     return f"Пациент от {city}" if city else "Пациент"
 
 
-def _public_question(q: Dict[str, Any], *, include_body: bool = True) -> Dict[str, Any]:
+_EXCERPT_LENGTH = 160
+
+
+def _excerpt(body: Optional[str], length: int = _EXCERPT_LENGTH) -> str:
+    text = (body or "").strip()
+    if len(text) <= length:
+        return text
+    return text[:length].rsplit(" ", 1)[0] + "…"
+
+
+def _public_question(
+    q: Dict[str, Any], *,
+    include_body: bool = True,
+    include_excerpt: bool = False,
+    upvoted_ids: Optional[set] = None,
+) -> Dict[str, Any]:
     """Public-safe projection. Never exposes email/hashes/patient_id."""
     out = {
         "id": q["id"],
@@ -145,11 +160,15 @@ def _public_question(q: Dict[str, Any], *, include_body: bool = True) -> Dict[st
         "title": q["title"],
         "asker_display": q.get("asker_display"),
         "answer_count": int(q.get("answer_count", 0)),
+        "upvotes": int(q.get("upvotes", 0)),
+        "has_upvoted": bool(upvoted_ids) and q["id"] in upvoted_ids,
         "created_at": q.get("created_at"),
         "published_at": q.get("published_at"),
     }
     if include_body:
         out["body"] = q.get("body")
+    if include_excerpt:
+        out["excerpt"] = _excerpt(q.get("body"))
     return out
 
 
@@ -191,6 +210,7 @@ async def create_question(
         "safety_flag": flagged,
         "safety_terms": matched or None,
         "answer_count": 0,
+        "upvotes": 0,
         "report_count": 0,
         "created_at": _now(),
         "published_at": None,
@@ -240,25 +260,51 @@ async def list_topics():
 @router.get("/community/questions")
 async def list_questions(
     topic: Optional[str] = Query(None),
+    q: Optional[str] = Query(None, max_length=160),
     sort: str = Query("new"),
     # Upper bound raised to 500 (mirrors /api/blog/posts) so the sitemap
     # builder can pull every published question in one call rather than
     # paginating — see frontend/app/sitemap.ts.
     limit: int = Query(20, ge=1, le=500),
     offset: int = Query(0, ge=0),
+    patient=Depends(get_current_patient_optional),
 ):
-    q: Dict[str, Any] = {"status": "published"}
+    query: Dict[str, Any] = {"status": "published"}
     if topic:
         if not is_valid_topic(topic):
             raise HTTPException(status_code=400, detail="Невалидна тема")
-        q["topic"] = topic
+        query["topic"] = topic
+    if q and q.strip():
+        # Plain case-insensitive regex, no text index — matches every other
+        # search-like filter in this codebase (public_clinics.py,
+        # patient_auth.py). Unindexed scan over an already status/topic-
+        # filtered set; fine at current Общност volume, revisit with a real
+        # text index only if this grows to tens of thousands of questions.
+        term = re.escape(q.strip())
+        query["$or"] = [
+            {"title": {"$regex": term, "$options": "i"}},
+            {"body": {"$regex": term, "$options": "i"}},
+        ]
 
     sort_spec = [("answer_count", -1), ("published_at", -1)] if sort == "top" \
         else [("published_at", -1)]
 
-    total = await db.qa_questions.count_documents(q)
-    cursor = db.qa_questions.find(q, {"_id": 0}).sort(sort_spec).skip(offset).limit(limit)
-    items = [_public_question(doc, include_body=False) async for doc in cursor]
+    total = await db.qa_questions.count_documents(query)
+    cursor = db.qa_questions.find(query, {"_id": 0}).sort(sort_spec).skip(offset).limit(limit)
+    docs = [doc async for doc in cursor]
+
+    upvoted_ids: set = set()
+    if patient and docs:
+        vote_cursor = db.qa_question_votes.find(
+            {"patient_id": patient["id"], "question_id": {"$in": [d["id"] for d in docs]}},
+            {"_id": 0, "question_id": 1},
+        )
+        upvoted_ids = {v["question_id"] async for v in vote_cursor}
+
+    items = [
+        _public_question(doc, include_body=False, include_excerpt=True, upvoted_ids=upvoted_ids)
+        for doc in docs
+    ]
     return {"total": total, "limit": limit, "offset": offset, "items": items}
 
 
@@ -294,7 +340,15 @@ async def get_question(slug: str, patient=Depends(get_current_patient_optional))
         )
         upvoted_ids = {v["answer_id"] async for v in vote_cursor}
 
-    out = _public_question(doc, include_body=True)
+    question_upvoted_ids: set = set()
+    if patient:
+        qv = await db.qa_question_votes.find_one(
+            {"question_id": doc["id"], "patient_id": patient["id"]}, {"_id": 0},
+        )
+        if qv:
+            question_upvoted_ids = {doc["id"]}
+
+    out = _public_question(doc, include_body=True, upvoted_ids=question_upvoted_ids)
     out["topic_related_path"] = (get_topic(doc["topic"]) or {}).get("related_path")
     out["answers"] = [_public_answer(a, upvoted_ids=upvoted_ids) for a in answer_docs]
     # A patient may answer if logged in and hasn't already posted on this
@@ -337,6 +391,40 @@ async def report_question(
     })
     await db.qa_questions.update_one({"id": question_id}, {"$inc": {"report_count": 1}})
     return {"success": True, "message": "Благодарим. Сигналът е получен."}
+
+
+@router.post(
+    "/community/questions/{question_id}/upvote",
+    dependencies=[Depends(rate_limit("community_upvote", 30, 600))],
+)
+async def upvote_question(question_id: str, patient=Depends(get_current_patient)):
+    """Idempotent toggle — "и аз имам този въпрос" ("I have this question
+    too"). Deliberately does NOT touch reputation — see upvote_answer's
+    docstring; that signal rewards helpful answers, not popular questions.
+    Rewarding a question upvote would let anyone farm reputation just by
+    asking a common question, not by helping other patients."""
+    question = await db.qa_questions.find_one({"id": question_id}, {"_id": 0, "id": 1})
+    if not question:
+        raise HTTPException(status_code=404, detail="Въпросът не е намерен")
+
+    existing = await db.qa_question_votes.find_one(
+        {"question_id": question_id, "patient_id": patient["id"]}, {"_id": 0},
+    )
+    if existing:
+        await db.qa_question_votes.delete_one(
+            {"question_id": question_id, "patient_id": patient["id"]},
+        )
+        await db.qa_questions.update_one({"id": question_id}, {"$inc": {"upvotes": -1}})
+        return {"success": True, "upvoted": False}
+
+    await db.qa_question_votes.insert_one({
+        "id": str(uuid.uuid4()),
+        "question_id": question_id,
+        "patient_id": patient["id"],
+        "created_at": _now(),
+    })
+    await db.qa_questions.update_one({"id": question_id}, {"$inc": {"upvotes": 1}})
+    return {"success": True, "upvoted": True}
 
 
 # ─── PUBLIC: question photos ───────────────────────────────────────
