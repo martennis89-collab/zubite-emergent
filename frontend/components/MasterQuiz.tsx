@@ -464,6 +464,28 @@ const CITIES = [
   { value: 'haskovo', label: 'Хасково' },
 ]
 
+// Sofia neighbourhoods only — no other city on the platform is large
+// enough to have meaningful sub-city districts. Kept in sync manually
+// with SOFIA_DISTRICTS in backend/config.py (same existing convention
+// as CITIES above, which also has no shared source of truth with the
+// backend copy).
+const SOFIA_DISTRICTS = [
+  { value: 'lozenets', label: 'Лозенец' },
+  { value: 'mladost', label: 'Младост' },
+  { value: 'lyulin', label: 'Люлин' },
+  { value: 'druzhba', label: 'Дружба' },
+  { value: 'iztok', label: 'Изток' },
+  { value: 'izgrev', label: 'Изгрев' },
+  { value: 'studentski-grad', label: 'Студентски град' },
+  { value: 'vitosha', label: 'Витоша' },
+  { value: 'boyana', label: 'Бояна' },
+  { value: 'center', label: 'Център' },
+  { value: 'krasno-selo', label: 'Красно село' },
+  { value: 'ovcha-kupel', label: 'Овча купел' },
+  { value: 'nadezhda', label: 'Надежда' },
+  { value: 'poduyane', label: 'Подуяне' },
+]
+
 function calculateResult(answers: { value: string; score: number; tags?: string[] }[], segment: Segment) {
   const totalScore = answers.reduce((s, a) => s + a.score, 0)
   const tagCounts: Record<string, number> = {}
@@ -566,7 +588,7 @@ export function MasterQuiz() {
   const [result, setResult] = useState<{ band: ResultBand; totalScore: number; flags: string[] } | null>(null)
   const [step, setStep] = useState<'segment' | 'quiz' | 'insight' | 'result' | 'soft_commit' | 'form' | 'exit'>('segment')
   const [formVersion, setFormVersion] = useState<'A' | 'B'>('A')
-  const [formData, setFormData] = useState({ city: '' })
+  const [formData, setFormData] = useState({ city: '', district: '' })
   // Optional intake answers (see INTAKE_FIELDS). Single-select fields hold
   // a string; `has_files` holds a string[].
   const [intake, setIntake] = useState<Record<string, string | string[]>>({})
@@ -741,7 +763,9 @@ export function MasterQuiz() {
       }
 
       const leadData = {
-        city_slug: formData.city, treatment_type: 'diagnostic_quiz',
+        city_slug: formData.city,
+        ...(formData.district ? { district_slug: formData.district } : {}),
+        treatment_type: 'diagnostic_quiz',
         answers: { ...answersObj, ...intakeAnswers, quiz_score: result?.totalScore || 0, quiz_band: result?.band || '', quiz_flags: result?.flags || [], segment, form_version: formVersion, session_id: sessionId.current, source: 'diagnostic_quiz_v1' },
         score_total: result?.totalScore || 0,
         band: bandMap[result?.band || 'low'],
@@ -1192,6 +1216,30 @@ export function MasterQuiz() {
                   ))}
                 </div>
               </div>
+
+              {/* Sofia-only follow-up — a first-class top-level field
+                  (like city), NOT part of the `intake`/INTAKE_FIELDS
+                  mechanism, since _score_clinic needs to read it directly
+                  off the lead, not from inside `answers`. */}
+              {formData.city === 'sofia' && (
+                <div className="taste-quiz-city-block" data-testid="district-block">
+                  <div className="taste-quiz-field-heading">
+                    <label>В кой квартал на София?</label>
+                    <small>По избор</small>
+                  </div>
+                  <div className="taste-quiz-city-grid">
+                    {SOFIA_DISTRICTS.map(d => (
+                      <button key={d.value} type="button"
+                        onClick={() => setFormData(p => ({ ...p, district: p.district === d.value ? '' : d.value }))}
+                        className={`taste-quiz-city-option ${formData.district === d.value ? 'is-selected' : ''}`}
+                        data-testid={`district-${d.value}`}
+                        aria-pressed={formData.district === d.value}>
+                        <MapPin aria-hidden />{d.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
                 {/* Optional intake — helps the clinic prepare. Explicitly
                     marked optional and visually secondary to the city step

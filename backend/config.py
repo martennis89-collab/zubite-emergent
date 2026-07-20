@@ -156,6 +156,17 @@ CITIES = {
     "haskovo": "Хасково",
 }
 
+# Sofia neighbourhoods only — no other city on the platform is large
+# enough to have meaningful sub-city districts. Slug -> Cyrillic label,
+# same shape/convention as CITIES above.
+SOFIA_DISTRICTS = {
+    "lozenets": "Лозенец", "mladost": "Младост", "lyulin": "Люлин",
+    "druzhba": "Дружба", "iztok": "Изток", "izgrev": "Изгрев",
+    "studentski-grad": "Студентски град", "vitosha": "Витоша",
+    "boyana": "Бояна", "center": "Център", "krasno-selo": "Красно село",
+    "ovcha-kupel": "Овча купел", "nadezhda": "Надежда", "poduyane": "Подуяне",
+}
+
 TREATMENT_NAMES = {
     "invisalign": "Инвизалайн",
     "implants": "Зъбни импланти",

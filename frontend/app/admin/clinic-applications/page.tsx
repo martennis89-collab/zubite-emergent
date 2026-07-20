@@ -13,11 +13,32 @@ import { AdminHeader } from '@/components/admin/AdminHeader'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
+// Sofia neighbourhoods only. Kept in sync manually with SOFIA_DISTRICTS
+// in backend/config.py (same convention as other city/district lists
+// duplicated across this codebase, e.g. CITIES in MasterQuiz.tsx).
+const SOFIA_DISTRICTS_ADMIN = [
+  { value: 'lozenets', label: 'Лозенец' },
+  { value: 'mladost', label: 'Младост' },
+  { value: 'lyulin', label: 'Люлин' },
+  { value: 'druzhba', label: 'Дружба' },
+  { value: 'iztok', label: 'Изток' },
+  { value: 'izgrev', label: 'Изгрев' },
+  { value: 'studentski-grad', label: 'Студентски град' },
+  { value: 'vitosha', label: 'Витоша' },
+  { value: 'boyana', label: 'Бояна' },
+  { value: 'center', label: 'Център' },
+  { value: 'krasno-selo', label: 'Красно село' },
+  { value: 'ovcha-kupel', label: 'Овча купел' },
+  { value: 'nadezhda', label: 'Надежда' },
+  { value: 'poduyane', label: 'Подуяне' },
+]
+
 interface ClinicApplication {
   id: string
   clinic_name: string
   city: string
   address: string
+  district_slug?: string | null
   website: string | null
   contact_name: string
   phone: string
@@ -79,9 +100,10 @@ function ServiceTags({ app }: { app: ClinicApplication }) {
 function DetailView({ app, onClose, onUpdate }: {
   app: ClinicApplication
   onClose: () => void
-  onUpdate: (id: string, data: { status?: string; notes?: string }) => Promise<{ clinic_credentials?: { email: string; temporary_password: string } } | null>
+  onUpdate: (id: string, data: { status?: string; notes?: string; district_slug?: string }) => Promise<{ clinic_credentials?: { email: string; temporary_password: string } } | null>
 }) {
   const [notes, setNotes] = useState(app.notes || '')
+  const [district, setDistrict] = useState(app.district_slug || '')
   const [saving, setSaving] = useState(false)
   const [currentStatus, setCurrentStatus] = useState(app.status)
   const [credentials, setCredentials] = useState<{ email: string; temporary_password: string } | null>(null)
@@ -121,7 +143,7 @@ function DetailView({ app, onClose, onUpdate }: {
 
   const handleSaveNotes = async () => {
     setSaving(true)
-    await onUpdate(app.id, { notes })
+    await onUpdate(app.id, { notes, district_slug: district })
     setSaving(false)
   }
 
@@ -231,6 +253,20 @@ function DetailView({ app, onClose, onUpdate }: {
               <InfoRow label="Град" value={app.city} icon={MapPin} />
               <InfoRow label="Адрес" value={app.address} icon={MapPin} />
               <InfoRow label="Уебсайт" value={app.website} icon={Globe} />
+              <label className="block mt-2">
+                <span className="text-xs text-slate-400 uppercase tracking-wide">Квартал (само за София)</span>
+                <select
+                  value={district}
+                  onChange={(e) => setDistrict(e.target.value)}
+                  className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"
+                  data-testid="district-select"
+                >
+                  <option value="">— не е зададено —</option>
+                  {SOFIA_DISTRICTS_ADMIN.map((d) => (
+                    <option key={d.value} value={d.value}>{d.label}</option>
+                  ))}
+                </select>
+              </label>
             </div>
           </div>
 
@@ -352,7 +388,7 @@ export default function ClinicApplicationsPage() {
 
   useEffect(() => { fetchApplications() }, [fetchApplications])
 
-  const handleUpdate = async (id: string, data: { status?: string; notes?: string }): Promise<{ clinic_credentials?: { email: string; temporary_password: string } } | null> => {
+  const handleUpdate = async (id: string, data: { status?: string; notes?: string; district_slug?: string }): Promise<{ clinic_credentials?: { email: string; temporary_password: string } } | null> => {
     try {
       const res = await fetch(`${API_URL}/api/admin/clinic-applications/${id}`, {
         method: 'PATCH',

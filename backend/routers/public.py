@@ -1263,7 +1263,7 @@ def _clinic_city_slug(clinic: dict) -> Optional[str]:
     return None
 
 
-def _score_clinic(clinic: dict, lead_city: str, lead_treatment: str, is_broad: bool) -> int:
+def _score_clinic(clinic: dict, lead_city: str, lead_treatment: str, is_broad: bool, lead_district: Optional[str] = None) -> int:
     """Deterministic score. Returns -1 to mark clinic as ineligible (no city match).
 
     Eligibility (city) is checked FIRST. Partner-tier boost is added ONLY
@@ -1278,6 +1278,12 @@ def _score_clinic(clinic: dict, lead_city: str, lead_treatment: str, is_broad: b
     if cs != lead_city:
         return -1
     score = 100  # same-city base
+    # Same-neighbourhood bonus (Sofia only in practice — see SOFIA_DISTRICTS
+    # in config.py). +20: enough to be a real, visible ranking factor
+    # without letting it override a genuine treatment match (+50) or
+    # flattening tier differences into noise.
+    if lead_district and (clinic.get("district_slug") or "") == lead_district:
+        score += 20
     if not is_broad:
         if lead_treatment.lower() in _treatments_of(clinic):
             score += 50
@@ -1392,7 +1398,7 @@ def _public_profile_for_tier(clinic: dict, tier: str) -> Optional[dict]:
     return {k: v for k, v in out.items() if v is not None}
 
 
-def _safe_clinic_payload(clinic: dict, lead_treatment: str, is_broad: bool) -> dict:
+def _safe_clinic_payload(clinic: dict, lead_treatment: str, is_broad: bool, lead_district: Optional[str] = None) -> dict:
     slug = _clinic_city_slug(clinic)
     created_at_raw = clinic.get("created_at")
     partner_since_year: Optional[int] = None
@@ -1428,6 +1434,11 @@ def _safe_clinic_payload(clinic: dict, lead_treatment: str, is_broad: bool) -> d
         # (which returns -1 for city mismatch). We surface this flag for the
         # frontend "В твоя град" chip without re-checking on the client.
         "same_city": True,
+        # "В твоя квартал" chip — only true when the lead has a district
+        # set AND it matches this clinic's. Unlike same_city, this is NOT
+        # a filter invariant (district match is a scoring bonus, not
+        # eligibility), so it must be computed here, not hardcoded.
+        "same_district": bool(lead_district) and (clinic.get("district_slug") or "") == lead_district,
         # Care Pass chip — chip renders only when this is true on the card.
         # Copy guard: "Възможни ползи след физическа консултация." — never
         # implies online consultation, contact submission, or quiz unlock.
@@ -1502,7 +1513,7 @@ async def recommended_clinics(lead_id: str, limit: int = 3):
     # 1) Lead lookup — minimal projection, no PII pulled into memory.
     lead = await db.leads.find_one(
         {"id": lead_id},
-        {"_id": 0, "id": 1, "city_slug": 1, "treatment_type": 1, "created_at": 1},
+        {"_id": 0, "id": 1, "city_slug": 1, "district_slug": 1, "treatment_type": 1, "created_at": 1},
     )
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
@@ -1527,6 +1538,7 @@ async def recommended_clinics(lead_id: str, limit: int = 3):
         raise HTTPException(status_code=410, detail="Lead recommendation window expired")
 
     lead_city = (lead.get("city_slug") or "").strip().lower()
+    lead_district = (lead.get("district_slug") or "").strip().lower() or None
     lead_treatment = (lead.get("treatment_type") or "").strip().lower()
     is_broad = lead_treatment in _BROAD_TREATMENT_TYPES
 
@@ -1559,7 +1571,7 @@ async def recommended_clinics(lead_id: str, limit: int = 3):
         {
             "_id": 0,
             "id": 1, "name": 1, "clinic_name": 1,
-            "city_slug": 1, "city_name": 1, "city": 1,
+            "city_slug": 1, "city_name": 1, "city": 1, "district_slug": 1,
             "treatments_supported": 1, "treatments_offered": 1,
             "is_active": 1, "clinic_status": 1, "status": 1,
             "archived": 1,
@@ -1594,7 +1606,7 @@ async def recommended_clinics(lead_id: str, limit: int = 3):
     for c in raw_candidates:
         if not _is_clinic_visible(c):
             continue
-        s = _score_clinic(c, lead_city, lead_treatment, is_broad)
+        s = _score_clinic(c, lead_city, lead_treatment, is_broad, lead_district)
         if s < 0:
             continue
         scored.append((s, _placement_rank(c), (_clinic_name(c) or "").lower(), c))
@@ -1609,7 +1621,7 @@ async def recommended_clinics(lead_id: str, limit: int = 3):
     if not top:
         return empty_response
 
-    clinics_out = [_safe_clinic_payload(c, lead_treatment, is_broad) for _, _, _, c in top]
+    clinics_out = [_safe_clinic_payload(c, lead_treatment, is_broad, lead_district) for _, _, _, c in top]
 
     return {
         "lead_id": lead_id,
@@ -1741,6 +1753,7 @@ async def request_call(lead_id: str, body: RequestCallBody):
     #    GET /recommended-clinics. We trust nothing the client sends — the
     #    selected clinic must be in this server-computed set.
     lead_city = (lead.get("city_slug") or "").strip().lower()
+    lead_district = (lead.get("district_slug") or "").strip().lower() or None
     lead_treatment = (lead.get("treatment_type") or "").strip().lower()
     is_broad = lead_treatment in _BROAD_TREATMENT_TYPES
     if not lead_city:
@@ -1758,7 +1771,7 @@ async def request_call(lead_id: str, body: RequestCallBody):
         {
             "_id": 0,
             "id": 1, "name": 1, "clinic_name": 1,
-            "city_slug": 1, "city_name": 1, "city": 1,
+            "city_slug": 1, "city_name": 1, "city": 1, "district_slug": 1,
             "treatments_supported": 1, "treatments_offered": 1,
             "is_active": 1, "clinic_status": 1, "status": 1,
             "archived": 1,
@@ -1773,7 +1786,7 @@ async def request_call(lead_id: str, body: RequestCallBody):
     for c in raw_candidates:
         if not _is_clinic_visible(c):
             continue
-        s = _score_clinic(c, lead_city, lead_treatment, is_broad)
+        s = _score_clinic(c, lead_city, lead_treatment, is_broad, lead_district)
         if s < 0:
             continue
         scored.append((s, _placement_rank(c), (_clinic_name(c) or "").lower(), c))

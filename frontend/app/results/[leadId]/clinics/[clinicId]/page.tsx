@@ -244,7 +244,8 @@ function RecommendationReasonBanner({
   // Build the small reason chips — same set as on the recommendation
   // grid card so the journey feels continuous.
   const chips: { icon: typeof ShieldCheck; label: string; testid: string }[] = []
-  if (clinic.same_city) chips.push({ icon: MapPin, label: 'В твоя град', testid: 'reason-chip-same-city' })
+  if (clinic.same_district) chips.push({ icon: MapPin, label: 'В твоя квартал', testid: 'reason-chip-same-district' })
+  else if (clinic.same_city) chips.push({ icon: MapPin, label: 'В твоя град', testid: 'reason-chip-same-city' })
   if (clinic.placement_label) chips.push({ icon: ShieldCheck, label: clinic.placement_label, testid: 'reason-chip-placement' })
 
   return (

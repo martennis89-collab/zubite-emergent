@@ -171,20 +171,26 @@ export function ClinicRecommendationCard({
           </p>
         </div>
 
-      {/* Treatments + city chip row.
+      {/* Treatments + city/district chip row.
 
-          A separate "В твоя град" chip surfaces when the backend has confirmed
-          the same-city match (all recommended clinics pass this filter today,
-          but we gate on the explicit flag in case the contract evolves). */}
+          "В твоя квартал" is more specific than "В твоя град" and implies
+          it, so at most one of the two ever shows — never both. */}
       <div className="flex flex-wrap gap-1.5 mb-3">
-        {clinic.same_city === true && (
+        {clinic.same_district === true ? (
+          <span
+            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-800 ring-1 ring-teal-200 text-[11px] font-medium"
+            data-testid={`clinic-card-same-district-${clinic.id}`}
+          >
+            <MapPin className="w-3 h-3" /> В твоя квартал
+          </span>
+        ) : clinic.same_city === true ? (
           <span
             className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-800 ring-1 ring-teal-200 text-[11px] font-medium"
             data-testid={`clinic-card-same-city-${clinic.id}`}
           >
             <MapPin className="w-3 h-3" /> В твоя град
           </span>
-        )}
+        ) : null}
         {treatmentBadges}
       </div>
 

@@ -23,6 +23,9 @@ class LeadCreate(BaseModel):
     optional — old/legacy submissions still work."""
     model_config = ConfigDict(extra="ignore")
     city_slug: str = Field(min_length=1, max_length=50)
+    # Patient's own Sofia neighbourhood — optional, only meaningful when
+    # city_slug == "sofia". See SOFIA_DISTRICTS in config.py.
+    district_slug: Optional[str] = Field(default=None, max_length=50)
     treatment_type: str = Field(min_length=1, max_length=50)
     answers: Dict[str, Any] = {}
     can_travel: bool = True
@@ -192,6 +195,7 @@ class Lead(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     city_slug: str
+    district_slug: Optional[str] = None
     treatment_type: str
     score_total: int = 0
     band: str = "RED"
@@ -345,6 +349,7 @@ class LeadUpdate(BaseModel):
     phone: Optional[str] = Field(default=None, max_length=50)
     email: Optional[EmailStr] = None
     city_slug: Optional[str] = Field(default=None, max_length=50)
+    district_slug: Optional[str] = Field(default=None, max_length=50)
     status: Optional[str] = Field(default=None, max_length=50)
     notes: Optional[str] = Field(default=None, max_length=5000)
 
@@ -949,6 +954,8 @@ class ClinicAdminUpdate(BaseModel):
     clinic_name: Optional[str] = Field(default=None, max_length=200)
     city: Optional[str] = Field(default=None, max_length=100)
     address: Optional[str] = Field(default=None, max_length=500)
+    # Clinic's own Sofia neighbourhood — see SOFIA_DISTRICTS in config.py.
+    district_slug: Optional[str] = Field(default=None, max_length=50)
     phone: Optional[str] = Field(default=None, max_length=50)
     email: Optional[EmailStr] = None
     website: Optional[str] = Field(default=None, max_length=500)

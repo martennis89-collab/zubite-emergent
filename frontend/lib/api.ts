@@ -120,6 +120,10 @@ export interface RecommendedClinic {
   // card can render the "В твоя град" chip without re-deriving on client.
    */
   same_city?: boolean;
+  // "В твоя квартал" — true only when the lead has a district set AND it
+  // matches this clinic's (Sofia-only in practice). More specific than
+  // same_city; the UI shows this chip instead of same_city when true.
+  same_district?: boolean;
   /** Public profile slug — exposed so a future profile unification refactor
    *  can deep-link the lead-context route to /api/public/clinics/{slug}.
    *  Not used for routing yet; lead-context links still go through

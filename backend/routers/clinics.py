@@ -110,7 +110,7 @@ async def get_clinic_applications(user: AdminUser = Depends(get_current_user)):
 
 @router.patch("/admin/clinic-applications/{app_id}")
 async def update_clinic_application(app_id: str, body: dict, request: Request, user: AdminUser = Depends(get_current_user)):
-    allowed = {"status", "notes"}
+    allowed = {"status", "notes", "district_slug"}
     update_data = {}
     for k, v in body.items():
         if k not in allowed:
@@ -135,10 +135,15 @@ async def update_clinic_application(app_id: str, body: dict, request: Request, u
         existing = await db.clinics.find_one({"email": application["email"]})
         if not existing:
             temp_password = secrets.token_urlsafe(10)
+            # `application` was fetched before update_one() above wrote this
+            # request's own update_data — merge so a district_slug set in
+            # the SAME PATCH as status="approved" isn't silently dropped.
+            approved_data = {**application, **update_data}
             clinic_doc = {
                 "id": str(uuid.uuid4()),
                 "clinic_name": application["clinic_name"],
                 "city": application["city"],
+                "district_slug": approved_data.get("district_slug"),
                 "email": application["email"],
                 "phone": application["phone"],
                 "password_hash": hash_password(temp_password),

@@ -12,6 +12,26 @@ import { treatmentLabel } from '@/lib/publicClinics'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
+// Sofia neighbourhoods only. Kept in sync manually with SOFIA_DISTRICTS
+// in backend/config.py (same convention as other city/district lists
+// duplicated across this codebase, e.g. CITIES in MasterQuiz.tsx).
+const SOFIA_DISTRICTS_ADMIN = [
+  { value: 'lozenets', label: 'Лозенец' },
+  { value: 'mladost', label: 'Младост' },
+  { value: 'lyulin', label: 'Люлин' },
+  { value: 'druzhba', label: 'Дружба' },
+  { value: 'iztok', label: 'Изток' },
+  { value: 'izgrev', label: 'Изгрев' },
+  { value: 'studentski-grad', label: 'Студентски град' },
+  { value: 'vitosha', label: 'Витоша' },
+  { value: 'boyana', label: 'Бояна' },
+  { value: 'center', label: 'Център' },
+  { value: 'krasno-selo', label: 'Красно село' },
+  { value: 'ovcha-kupel', label: 'Овча купел' },
+  { value: 'nadezhda', label: 'Надежда' },
+  { value: 'poduyane', label: 'Подуяне' },
+]
+
 type Tier = 'standard' | 'featured' | 'premium'
 type ProfileStatus = 'draft' | 'published'
 
@@ -241,6 +261,7 @@ export default function AdminClinicEditPage() {
   // Care Pass-specific downgrade warning. Boolean — no admin editing.
   const [carePassPartner, setCarePassPartner] = useState(false)
   const [clinicName, setClinicName] = useState('')
+  const [district, setDistrict] = useState('')
 
   const [profile, setProfile] = useState<ClinicProfile>({ profile_status: 'draft' })
   const [focusInput, setFocusInput] = useState('')
@@ -265,6 +286,7 @@ export default function AdminClinicEditPage() {
       setTier(rawTier)
       setTierBeforeSave(rawTier)
       setCarePassPartner(c.care_pass_partner === true)
+      setDistrict(c.district_slug || '')
       setSupportedTreatments(
         Array.isArray(c.treatments_supported)
           ? c.treatments_supported
@@ -341,6 +363,7 @@ export default function AdminClinicEditPage() {
     try {
       const body = {
         partner_tier: tier,
+        ...(district ? { district_slug: district } : {}),
         aligner_brands_supported: brands.map((b) => ({
           brand: b.brand,
           relationship: b.relationship,
@@ -469,6 +492,25 @@ export default function AdminClinicEditPage() {
       )}
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        {/* Section 0 — Локация */}
+        <Section title="Локация" testid="section-location">
+          <div className="max-w-xs">
+            <Field label="Квартал (само за София)">
+              <select
+                value={district}
+                onChange={(e) => setDistrict(e.target.value)}
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"
+                data-testid="clinic-district-select"
+              >
+                <option value="">— не е зададено —</option>
+                {SOFIA_DISTRICTS_ADMIN.map((d) => (
+                  <option key={d.value} value={d.value}>{d.label}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
+        </Section>
 
         {/* Section 1 — Партньорски пакет */}
         <Section title="Партньорски пакет" testid="section-partner-status">
