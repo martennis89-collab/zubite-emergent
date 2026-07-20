@@ -6,6 +6,7 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { CalendarDays, Clock, Loader2, CheckCircle2, AlertTriangle, ChevronLeft } from 'lucide-react'
 import type { PublicClinic } from '@/lib/publicClinics'
+import { SaveBookingBanner } from '@/components/patient/SaveBookingBanner'
 
 const PublicContactModal = dynamic(
   () => import('@/components/public-clinics/PublicContactModal'),
@@ -201,6 +202,7 @@ export default function BookingPage() {
           <p className="text-[11px] text-slate-500 italic">
             Zubite.bg не е клиника и не поставя диагноза. Информацията служи за ориентация и подготовка за консултация.
           </p>
+          <SaveBookingBanner initialEmail={confirmed.email} />
         </div>
       </BookingShell>
     )

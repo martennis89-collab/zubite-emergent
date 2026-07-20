@@ -18,6 +18,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Sparkles, ShieldCheck, Calendar, ChevronRight, Loader2, CheckCircle2 } from 'lucide-react'
 import { trackEvent as gaTrackEvent } from '@/lib/analytics/gtag'
 import { OrientationCalendar } from '@/components/patient/OrientationCalendar'
+import { SaveBookingBanner } from '@/components/patient/SaveBookingBanner'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -131,6 +132,7 @@ export function FreeOnlineOrientationSection({ leadId }: { leadId: string }) {
           <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5" />
           <span>Заявката за онлайн час е изпратена. Клиниката ще я прегледа и потвърди.</span>
         </div>
+        <SaveBookingBanner claimLeadId={leadId} />
       </section>
     )
   }

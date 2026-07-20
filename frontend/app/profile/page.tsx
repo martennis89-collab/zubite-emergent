@@ -9,9 +9,9 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
   Loader2, User, LogOut, MessageCircleQuestion, Bell, ShieldCheck,
-  Clock, CheckCircle2, XCircle, FileText, CalendarCheck,
+  Clock, CheckCircle2, XCircle, FileText, CalendarCheck, Lock,
 } from 'lucide-react'
-import { getMe, updateMe, logout, type PatientMe } from '@/lib/patientAuth'
+import { getMe, updateMe, setPassword, logout, type PatientMe } from '@/lib/patientAuth'
 import { getMyLeads, getMyBookings, type MyLead, type MyBooking } from '@/lib/api'
 import { OtpLoginModal } from '@/components/OtpLoginModal'
 import {
@@ -49,6 +49,10 @@ export default function ProfilePage() {
   const [citySlug, setCitySlug] = useState('')
   const [saving, setSaving] = useState(false)
   const [savedMsg, setSavedMsg] = useState('')
+
+  const [newPassword, setNewPassword] = useState('')
+  const [savingPassword, setSavingPassword] = useState(false)
+  const [passwordMsg, setPasswordMsg] = useState('')
 
   const [myQuestions, setMyQuestions] = useState<MyQuestion[]>([])
   const [myAnswers, setMyAnswers] = useState<MyAnswer[]>([])
@@ -109,6 +113,22 @@ export default function ProfilePage() {
       setSavedMsg('Грешка при запис')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const onSetPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSavingPassword(true)
+    setPasswordMsg('')
+    try {
+      const updated = await setPassword(newPassword)
+      setPatient(updated)
+      setNewPassword('')
+      setPasswordMsg('Паролата е записана')
+    } catch {
+      setPasswordMsg('Грешка при запис')
+    } finally {
+      setSavingPassword(false)
     }
   }
 
@@ -217,6 +237,45 @@ export default function ProfilePage() {
             Репутация в Общността: <span className="font-medium text-slate-700">{patient.reputation}</span>
           </p>
         )}
+      </form>
+
+      <form onSubmit={onSetPassword} className="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
+        <div className="mb-4 flex items-center gap-2">
+          <Lock className="h-5 w-5 text-teal-600" />
+          <h2 className="text-lg font-medium text-slate-900">
+            {patient.has_password ? 'Смени паролата' : 'Задай парола'}
+          </h2>
+        </div>
+        <p className="mb-4 text-sm text-slate-500">
+          {patient.has_password
+            ? 'Влизането с код по имейл остава винаги достъпно.'
+            : 'По желание — за по-бърз вход, без да чакате код по имейл. Входът с код остава винаги достъпен.'}
+        </p>
+
+        <label className="mb-4 block">
+          <span className="mb-1.5 block text-sm font-medium text-slate-700">Нова парола</span>
+          <input
+            type="password"
+            required
+            minLength={8}
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            placeholder="Поне 8 символа"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-slate-900 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
+          />
+        </label>
+
+        <div className="flex items-center gap-3">
+          <button
+            type="submit"
+            disabled={savingPassword}
+            className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-5 py-2.5 font-medium text-white hover:bg-teal-700 disabled:opacity-60"
+          >
+            {savingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Запази
+          </button>
+          {passwordMsg && <span className="text-sm text-slate-500">{passwordMsg}</span>}
+        </div>
       </form>
 
       {myLeads.length > 0 && (

@@ -14,6 +14,7 @@ export interface PatientMe {
   city_slug?: string | null
   reputation: number
   created_at?: string | null
+  has_password: boolean
 }
 
 async function parseError(res: Response, fallback: string): Promise<string> {
@@ -61,6 +62,21 @@ export async function verifyOtp(email: string, code: string, claimLeadId?: strin
   return data.user as PatientMe
 }
 
+/** Password login — mirrors verifyOtp's response shape. */
+export async function loginWithPassword(email: string, password: string): Promise<PatientMe> {
+  const res = await fetch(`${API_URL}/api/patient/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+    credentials: 'include' as RequestCredentials,
+  })
+  if (!res.ok) {
+    throw new Error(await parseError(res, 'Невалиден имейл или парола'))
+  }
+  const data = await res.json()
+  return data.user as PatientMe
+}
+
 /** Current patient, or null if not logged in. */
 export async function getMe(): Promise<PatientMe | null> {
   const res = await fetch(`${API_URL}/api/patient/me`, {
@@ -83,6 +99,19 @@ export async function updateMe(patch: {
     credentials: 'include' as RequestCredentials,
   })
   if (!res.ok) throw new Error(await parseError(res, 'Неуспешно записване'))
+  return (await res.json()) as PatientMe
+}
+
+/** Set/replace the patient's password. No current-password re-entry —
+ *  the active session already proves ownership. */
+export async function setPassword(password: string): Promise<PatientMe> {
+  const res = await fetch(`${API_URL}/api/patient/password`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password }),
+    credentials: 'include' as RequestCredentials,
+  })
+  if (!res.ok) throw new Error(await parseError(res, 'Неуспешно записване на паролата'))
   return (await res.json()) as PatientMe
 }
 

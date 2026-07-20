@@ -564,6 +564,10 @@ async def get_current_patient(
         user_type="patient",
     )
 
+    # Note: password_hash is intentionally NOT excluded here (unlike
+    # get_current_clinic) — _patient_out() needs it present on the doc to
+    # compute has_password. Safe because every route that returns this doc
+    # to the client does so via PatientOut, which has no password_hash field.
     patient = await db.patients.find_one({"id": payload.get("sub")}, {"_id": 0})
     if not patient:
         raise HTTPException(status_code=401, detail="Patient not found")

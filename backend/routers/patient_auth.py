@@ -38,6 +38,8 @@ from auth import (
     create_patient_token,
     get_current_patient,
     revoke_session_by_jti,
+    hash_password,
+    verify_password,
     _decode_jwt,
 )
 from audit import audit_log
@@ -50,6 +52,7 @@ from emails import send_patient_otp_email
 from rate_limit import rate_limit
 from schemas import (
     PatientOtpRequest, PatientOtpVerify, PatientProfileUpdate,
+    PatientPasswordLogin, PatientPasswordSet,
     PatientOut, PatientTokenResponse,
 )
 
@@ -80,6 +83,7 @@ def _patient_out(doc: dict) -> PatientOut:
         city_slug=doc.get("city_slug"),
         reputation=int(doc.get("reputation", 0)),
         created_at=doc.get("created_at"),
+        has_password=bool(doc.get("password_hash")),
     )
 
 
@@ -254,6 +258,40 @@ async def patient_verify_otp(data: PatientOtpVerify, request: Request, response:
     )
 
 
+# ─── Password login (additive — OTP remains the permanent fallback) ──
+
+@router.post(
+    "/patient/auth/login",
+    response_model=PatientTokenResponse,
+    response_model_exclude_none=True,
+    dependencies=[Depends(rate_limit("patient_password_login", max_calls=5, window_seconds=300))],
+)
+async def patient_password_login(data: PatientPasswordLogin, request: Request, response: Response):
+    email = data.email.strip().lower()
+    patient = await db.patients.find_one({"email": email}, {"_id": 0})
+    if not patient or not patient.get("password_hash"):
+        raise HTTPException(status_code=401, detail="Невалиден имейл или парола")
+    if not verify_password(data.password, patient["password_hash"]):
+        raise HTTPException(status_code=401, detail="Невалиден имейл или парола")
+    if patient.get("status") == "banned":
+        raise HTTPException(status_code=403, detail="Акаунтът е спрян")
+
+    token, _jti = await create_patient_token(patient["id"], email)
+    response.set_cookie(
+        key=AUTH_COOKIE_NAME_PATIENT,
+        value=token,
+        max_age=AUTH_COOKIE_MAX_AGE_SECONDS_PATIENT,
+        httponly=True,
+        secure=AUTH_COOKIE_SECURE,
+        samesite=AUTH_COOKIE_SAMESITE,
+        path="/",
+    )
+    cookie_required = os.environ.get('AUTH_REQUIRE_COOKIE', '0') == '1'
+    if cookie_required:
+        return PatientTokenResponse(user=_patient_out(patient))
+    return PatientTokenResponse(access_token=token, token_type="bearer", user=_patient_out(patient))
+
+
 # ─── Session teardown ─────────────────────────────────────────────
 
 @router.post("/patient/auth/logout")
@@ -308,3 +346,13 @@ async def patient_update_me(
         patient = {**patient, **updates}
 
     return _patient_out(patient)
+
+
+@router.patch("/patient/password", response_model=PatientOut)
+async def patient_set_password(
+    data: PatientPasswordSet,
+    patient=Depends(get_current_patient),
+):
+    password_hash = hash_password(data.password)
+    await db.patients.update_one({"id": patient["id"]}, {"$set": {"password_hash": password_hash}})
+    return _patient_out({**patient, "password_hash": password_hash})

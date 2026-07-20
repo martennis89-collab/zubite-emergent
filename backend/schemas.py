@@ -1531,6 +1531,18 @@ class PatientProfileUpdate(BaseModel):
     city_slug: Optional[str] = Field(default=None, max_length=60)
 
 
+class PatientPasswordLogin(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=1, max_length=200)
+
+
+class PatientPasswordSet(BaseModel):
+    """Set/replace the patient's password. No current-password re-entry —
+    the caller already holds a valid session (proven via OTP or an
+    existing password), same trust level clinics get from their session."""
+    password: str = Field(min_length=8, max_length=200)
+
+
 class PatientOut(BaseModel):
     """Public-safe patient projection returned to the patient themselves."""
     id: str
@@ -1540,6 +1552,7 @@ class PatientOut(BaseModel):
     city_slug: Optional[str] = None
     reputation: int = 0
     created_at: Optional[str] = None
+    has_password: bool = False
 
 
 class PatientTokenResponse(BaseModel):
