@@ -5,76 +5,93 @@ import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { TopicChipRow } from '@/components/community/TopicChipRow'
 import { QuestionFeed } from '@/components/community/QuestionFeed'
-import { listTopics, listQuestions } from '@/lib/community'
+import { ClinicSpotlight } from '@/components/community/ClinicSpotlight'
+import { listTopics, listQuestions, getSpotlight } from '@/lib/community'
 
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
   title: 'Общност | Въпроси и отговори за дентално здраве | Zubite.bg',
   description:
-    'Задайте въпрос за зъбите си и получете отговор от други пациенти и от проверени партньорски клиники. Независимо, модерирано и без реклами.',
+    'Задай въпрос за зъбите си и получи отговор от други пациенти и от проверени партньорски клиники. Независимо, модерирано и без реклами.',
   alternates: { canonical: 'https://zubite.bg/community' },
 }
 
 export default async function CommunityHome() {
-  const [topics, recent] = await Promise.all([
+  const [topics, recent, spotlight] = await Promise.all([
     listTopics(),
     listQuestions({ sort: 'new', limit: 12 }),
+    getSpotlight(),
   ])
 
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-5xl px-4 py-10">
+      <main className="taste-community-page">
+      <div className="taste-community-shell grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="min-w-0">
         {/* Hero */}
-        <section className="mb-10">
-          <h1 className="text-3xl font-bold text-[#0a0a0a] sm:text-4xl">Общност</h1>
-          <p className="mt-2 max-w-2xl text-[#525252]">
-            Задайте въпрос за зъбите си и получете отговор от други пациенти и от
-            проверени партньорски клиники. Независимо и модерирано.
+        <section className="taste-community-hero">
+          <p className="taste-community-kicker">Независима и модерирана общност</p>
+          <h1>Въпроси от хора.{' '}<br />Проверени отговори.</h1>
+          <p className="taste-community-lede">
+            Задай въпрос за зъбите си и получи човешки опит от други пациенти и
+            професионални отговори от проверени партньорски клиники.
           </p>
-          <div className="mt-5 flex flex-wrap items-center gap-3">
+          <div className="taste-community-hero-actions">
             <Link href="/ask" className="taste-button taste-button-accent">
               <MessageCircleQuestion className="h-4 w-4" />
               Задай въпрос
             </Link>
-            <span className="inline-flex items-center gap-1.5 text-sm text-[#525252]">
-              <ShieldCheck className="h-4 w-4 text-[#007956]" /> Отговори от проверени клиники
+            <span className="taste-community-trust-point">
+              <ShieldCheck className="h-4 w-4" /> Проверени профили
             </span>
-            <span className="inline-flex items-center gap-1.5 text-sm text-[#525252]">
-              <Users className="h-4 w-4 text-[#007956]" /> Опит от други пациенти
+            <span className="taste-community-trust-point">
+              <Users className="h-4 w-4" /> Реален пациентски опит
             </span>
           </div>
         </section>
 
         {/* Topics */}
-        <section className="mb-12">
-          <h2 className="mb-4 text-lg font-semibold text-[#0a0a0a]">Теми</h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <section className="taste-community-section">
+          <div className="taste-community-section-heading">
+            <p className="taste-community-kicker">Разгледай по тема</p>
+            <h2>Какво те интересува?</h2>
+          </div>
+          <div className="taste-community-topic-grid grid sm:grid-cols-2 lg:grid-cols-3">
             {topics.map((t) => (
               <Link
                 key={t.slug}
                 href={`/community/${t.slug}`}
-                className="group rounded-2xl border border-[#e5e5e5] bg-white p-5 transition hover:border-[#007956] hover:shadow-[0_14px_30px_-12px_rgba(15,15,15,0.18)]"
+                className="taste-community-topic-card group"
               >
                 <div className="flex items-center justify-between">
-                  <h3 className="font-medium text-[#0a0a0a]">{t.label}</h3>
-                  <span className="rounded-full bg-[#f5f4f2] px-2 py-0.5 text-xs text-[#525252]">
+                  <h3>{t.label}</h3>
+                  <span className="taste-community-topic-count">
                     {t.question_count}
                   </span>
                 </div>
-                <p className="mt-1 text-sm text-[#525252]">{t.description}</p>
+                <p>{t.description}</p>
               </Link>
             ))}
           </div>
         </section>
 
         {/* Feed */}
-        <section>
-          <h2 className="mb-4 text-lg font-semibold text-[#0a0a0a]">Скорошни въпроси</h2>
+        <section className="taste-community-feed-section">
+          <div className="taste-community-section-heading">
+            <p className="taste-community-kicker">Последни разговори</p>
+            <h2>Скорошни въпроси</h2>
+          </div>
           <TopicChipRow topics={topics} />
           <QuestionFeed initial={recent} />
         </section>
+      </div>
+
+      <aside className="taste-community-aside lg:sticky lg:top-24 lg:self-start">
+        <ClinicSpotlight clinic={spotlight} />
+      </aside>
+      </div>
       </main>
       <Footer />
     </>

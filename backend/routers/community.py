@@ -56,6 +56,7 @@ import re
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, UploadFile
 from starlette.concurrency import run_in_threadpool
@@ -72,8 +73,14 @@ from community_seed_content import PERSONAS, SEED_BATCH_ID, SEED_ITEMS
 from database import db
 from emails import send_community_answer_email
 from rate_limit import rate_limit
+from routers.public import (
+    _resolve_partner_tier, _TIER_BOOST_LEGACY, _BASE_PACKAGE_BOOST, _public_profile_for_tier,
+)
+from routers.public_clinics import _public_visibility_query, slugify_clinic, resolve_city_slug
 from schemas import AdminUser, QaQuestionCreate, QaReportCreate, QaModerationBody, QaAnswerCreate
 from storage import ALLOWED_IMAGE_TYPES, get_object, put_object
+
+_SOFIA_TZ = ZoneInfo("Europe/Sofia")
 
 router = APIRouter()
 
@@ -254,6 +261,76 @@ async def list_topics():
             }
             for t in COMMUNITY_TOPICS
         ]
+    }
+
+
+def _spotlight_weight(clinic: Dict[str, Any]) -> int:
+    """Every visible clinic gets at least one entry in the rotation pool;
+    higher-tier clinics get more, using the exact same tier-boost values
+    already used for recommendation scoring in public.py — "weight" means
+    the same thing here it means everywhere else in this codebase."""
+    bp = (clinic.get("base_package") or "").strip().lower()
+    if bp in _BASE_PACKAGE_BOOST:
+        boost = _BASE_PACKAGE_BOOST[bp]
+    else:
+        boost = _TIER_BOOST_LEGACY.get(_resolve_partner_tier(clinic), 0)
+    return 1 + boost
+
+
+@router.get("/community/spotlight")
+async def get_spotlight():
+    """"Клиника на деня" — deterministic, Sofia-calendar-day rotation.
+    Weighted toward higher partner tiers, never exclusive to them. Degrades
+    through candidate tiers (premium-ish+published -> any+published ->
+    visible-only) before giving up; returns {"clinic": None} rather than an
+    error when nothing is eligible — the widget simply doesn't render, never
+    shows a broken/empty box. Stateless: recomputed on every request from
+    live clinic data, no cache to invalidate when an admin changes a tier
+    or publishes a profile."""
+    base_query = _public_visibility_query()
+
+    async def _pool(extra: Dict[str, Any]) -> List[Dict[str, Any]]:
+        query = {**base_query, **extra}
+        return await db.clinics.find(query, {"_id": 0}).to_list(200)
+
+    pool = await _pool({"clinic_profile.profile_status": "published"})
+    premium_pool = [c for c in pool if _spotlight_weight(c) > 1]
+    pool = premium_pool or pool
+    if not pool:
+        pool = await _pool({})
+    if not pool:
+        return {"clinic": None}
+
+    weighted: List[Dict[str, Any]] = []
+    for c in sorted(pool, key=lambda c: c["id"]):
+        weighted.extend([c] * _spotlight_weight(c))
+
+    today = datetime.now(_SOFIA_TZ).date().isoformat()
+    seed = int(hashlib.sha256(f"clinic_spotlight:{today}".encode()).hexdigest(), 16)
+    clinic = weighted[seed % len(weighted)]
+
+    tier = _resolve_partner_tier(clinic)
+    profile = _public_profile_for_tier(clinic, tier) or {}
+    treatments = clinic.get("treatments_supported") or clinic.get("treatments_offered") or []
+    specialty_slug = treatments[0] if treatments and isinstance(treatments[0], str) else "klinika"
+    name = clinic.get("clinic_name") or clinic.get("name") or ""
+
+    return {
+        "clinic": {
+            "id": clinic["id"],
+            # Clinics have no stored `slug` field — the public profile URL
+            # slug is always derived from the name, same as `_public_clinic_
+            # payload` in public_clinics.py, so this must match exactly.
+            "slug": slugify_clinic(name) or clinic["id"],
+            "name": name,
+            "city_slug": resolve_city_slug(clinic),
+            "city_name": clinic.get("city_name"),
+            "specialty_slug": specialty_slug,
+            "short_description": profile.get("short_description"),
+            "patient_intro": profile.get("patient_intro"),
+            "hero_image_url": profile.get("hero_image_url"),
+            "treatment_focus": profile.get("treatment_focus"),
+        },
     }
 
 

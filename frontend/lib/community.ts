@@ -91,6 +91,29 @@ export async function listTopics(): Promise<CommunityTopic[]> {
   return d.topics as CommunityTopic[]
 }
 
+export interface SpotlightClinic {
+  id: string
+  slug: string | null
+  name: string | null
+  city_slug: string | null
+  city_name: string | null
+  specialty_slug: string
+  short_description: string | null
+  patient_intro: string | null
+  hero_image_url: string | null
+  treatment_focus: string[] | null
+}
+
+/** "Клиника на деня" — deterministic daily pick, see backend/routers/
+ *  community.py's get_spotlight. Returns null when nothing is eligible;
+ *  callers should render nothing rather than an empty placeholder. */
+export async function getSpotlight(): Promise<SpotlightClinic | null> {
+  const res = await fetch(`${API_URL}/api/community/spotlight`, { cache: 'no-store' })
+  if (!res.ok) return null
+  const d = await res.json()
+  return d.clinic ?? null
+}
+
 export async function listQuestions(params: {
   topic?: string
   q?: string

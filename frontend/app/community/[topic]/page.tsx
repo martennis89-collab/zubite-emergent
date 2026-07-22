@@ -6,7 +6,8 @@ import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { TopicChipRow } from '@/components/community/TopicChipRow'
 import { QuestionFeed } from '@/components/community/QuestionFeed'
-import { listTopics, listQuestions } from '@/lib/community'
+import { ClinicSpotlight } from '@/components/community/ClinicSpotlight'
+import { listTopics, listQuestions, getSpotlight } from '@/lib/community'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,9 +29,10 @@ export async function generateMetadata(
 
 export default async function TopicFeed({ params }: { params: Promise<Params> }) {
   const { topic } = await params
-  const [topics, list] = await Promise.all([
+  const [topics, list, spotlight] = await Promise.all([
     listTopics(),
     listQuestions({ topic, sort: 'new', limit: 12 }),
+    getSpotlight(),
   ])
   const t = topics.find((x) => x.slug === topic)
   if (!t) notFound()
@@ -38,20 +40,23 @@ export default async function TopicFeed({ params }: { params: Promise<Params> })
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-3xl px-4 py-10">
+      <main className="taste-community-page taste-community-topic-page">
+      <div className="taste-community-shell grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="min-w-0">
         <Link
           href="/community"
-          className="mb-4 inline-flex items-center gap-1 text-sm text-[#6b6b6b] hover:text-[#0a0a0a]"
+          className="taste-community-back-link"
         >
           <ArrowLeft className="h-4 w-4" /> Всички теми
         </Link>
 
-        <div className="mb-6 flex items-start justify-between gap-4">
+        <div className="taste-community-topic-hero flex items-start justify-between gap-6">
           <div>
-            <h1 className="text-2xl font-bold text-[#0a0a0a]">{t.label}</h1>
-            <p className="mt-1 text-[#525252]">{t.description}</p>
+            <p className="taste-community-kicker">Общност · тема</p>
+            <h1>{t.label}</h1>
+            <p>{t.description}</p>
             {t.related_path && (
-              <Link href={t.related_path} className="mt-2 inline-block text-sm text-[#007956] hover:underline">
+              <Link href={t.related_path} className="taste-community-related-link">
                 Научи повече по темата →
               </Link>
             )}
@@ -63,6 +68,12 @@ export default async function TopicFeed({ params }: { params: Promise<Params> })
 
         <TopicChipRow topics={topics} active={topic} />
         <QuestionFeed topic={topic} initial={list} />
+      </div>
+
+      <aside className="taste-community-aside lg:sticky lg:top-24 lg:self-start">
+        <ClinicSpotlight clinic={spotlight} />
+      </aside>
+      </div>
       </main>
       <Footer />
     </>

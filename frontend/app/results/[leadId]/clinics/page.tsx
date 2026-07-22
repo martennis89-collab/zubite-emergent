@@ -146,20 +146,7 @@ export default function ClinicMatchPage() {
   }
 
   return (
-    <main className="taste-recommendations-page min-h-screen bg-[#FCFAF8] overflow-x-hidden relative" data-testid="clinic-match-page">
-      {/* Warm ivory backdrop + soft teal blobs (same language as homepage / results) */}
-      <div
-        aria-hidden
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(94,234,212,0.22) 0%, rgba(94,234,212,0) 60%),' +
-            'radial-gradient(ellipse 60% 50% at 90% 40%, rgba(165,243,252,0.30) 0%, rgba(165,243,252,0) 60%)',
-        }}
-      />
-      <div aria-hidden className="absolute -top-32 -left-32 w-[36rem] h-[36rem] rounded-full bg-teal-200/25 blur-3xl pointer-events-none" />
-      <div aria-hidden className="absolute -bottom-40 right-0 w-[40rem] h-[40rem] rounded-full bg-cyan-100/35 blur-3xl pointer-events-none" />
-
+    <main className="taste-recommendations-page min-h-screen overflow-x-hidden" data-testid="clinic-match-page">
       <ResultsHeader />
 
       <section className="relative pt-24 pb-12 md:pt-28 md:pb-20">
@@ -174,10 +161,10 @@ export default function ClinicMatchPage() {
             Към резултата
           </Link>
 
-          {/* Title block — `/for-clinics` brand tokens applied */}
+          {/* Title block */}
           <div className="mb-6 max-w-3xl">
             <p className="font-sans text-[11px] font-semibold tracking-[0.2em] uppercase text-teal-700 mb-3" data-testid="match-eyebrow">
-              Clinic match
+              Подбор за твоя случай
             </p>
             <h1
               className="font-serif text-xl sm:text-2xl font-semibold text-slate-900 leading-tight"
@@ -186,7 +173,7 @@ export default function ClinicMatchPage() {
               Подбрани клиники за твоята заявка
             </h1>
             <p className="text-slate-600 mt-3 text-[15px] sm:text-base leading-relaxed" data-testid="match-subtitle">
-              Показваме ограничен брой клиники според локация, релевантност към избраната категория, налична информация в профила и Zubite доверителни сигнали. Това не е диагноза и не означава, че една клиника е клинично „най-добра" за всеки случай.
+              Сравни ограничен брой клиники според локацията, посоката на случая ти и наличната проверена информация. Отвори профилите, за да видиш защо всяка клиника е включена.
             </p>
             <ul className="mt-5 flex flex-wrap gap-2" data-testid="match-title-chips">
               {[
@@ -221,7 +208,7 @@ export default function ClinicMatchPage() {
               >
                 <ShieldCheck className="w-4 h-4 text-teal-600 flex-shrink-0" />
                 <p className="leading-snug">
-                  Може да разгледате{' '}
+                  Можеш да разгледаш{' '}
                   <strong className="text-slate-900 tabular-nums">{data.selection_rule.can_view_clinics}</strong>{' '}
                   клиники · Заявка към{' '}
                   <strong className="text-slate-900 tabular-nums">{data.selection_rule.can_request_call_from_clinics}</strong>.
@@ -272,7 +259,7 @@ export default function ClinicMatchPage() {
                       Заявката е изпратена към Zubite.
                     </p>
                     <p className="text-xs text-teal-800 mt-1 leading-relaxed">
-                      Ще използваме информацията от оценката ви, за да ви
+                      Ще използваме информацията от оценката ти, за да ти
                       помогнем с по-ясна следваща стъпка.
                     </p>
                   </div>
@@ -297,17 +284,12 @@ export default function ClinicMatchPage() {
                       <Link href="/clinic-standard" className="text-teal-700 hover:underline">Zubite стандарт</Link>{' '}
                       и съвпадат с посоката на твоя случай, града ти и
                       информацията, която сподели във въпросника. Това не е
-                      класация „най-добри клиники" и не е диагноза — а
+                      класация, диагноза или гаранция за резултат — а прозрачен
                       ориентир за по-смислен първи разговор.
                     </p>
                   </div>
                 </div>
               </div>
-
-              {/* Partner-status trust note — sits directly above the cards it describes. */}
-              <p className="text-xs text-slate-500 mb-4 leading-relaxed" data-testid="partner-status-trust-note">
-                Партньорският статус не означава медицински рейтинг, гаранция за резултат или закупено първо място. Zubite.bg показва клиники според релевантност, налична информация и избраните от пациента критерии.
-              </p>
 
               {/* Cards */}
               <div
@@ -348,11 +330,11 @@ export default function ClinicMatchPage() {
                 <div className="flex items-center gap-2 mb-2">
                   <Sparkles className="w-4 h-4 text-teal-600" />
                   <h2 className="font-serif text-lg sm:text-xl font-semibold text-slate-900">
-                    Колебаете ли се?
+                    Колебаеш ли се?
                   </h2>
                 </div>
                 <p className="text-slate-600 text-sm leading-snug mb-4">
-                  Помагаме да изберете подходяща следваща стъпка.
+                  Ще ти помогнем да сравниш възможностите и да избереш подходяща следваща стъпка.
                 </p>
                 {selection?.has_requested_zubite_help ? (
                   <div
@@ -377,7 +359,7 @@ export default function ClinicMatchPage() {
                     className="inline-flex items-center gap-2 px-6 py-3 bg-slate-100/80 text-slate-400 text-sm font-medium rounded-full cursor-not-allowed"
                     data-testid="assisted-choice-locked-by-clinic"
                   >
-                    Вече избрахте клиника
+                    Вече избра клиника
                   </button>
                 ) : (
                   <button
@@ -393,7 +375,7 @@ export default function ClinicMatchPage() {
                     data-testid="assisted-choice-btn"
                   >
                     <Compass className="w-4 h-4 text-teal-600" />
-                    Помогнете ми да избера
+                    Помогни ми да избера
                   </button>
                 )}
               </section>
@@ -478,13 +460,13 @@ function ErrorPanel({
 
   return (
     <div
-      className="rounded-3xl bg-white/70 backdrop-blur-xl ring-1 ring-white/80 shadow-[0_18px_50px_-22px_rgba(15,23,42,0.20)] p-8 max-w-2xl mx-auto"
+      className="rounded-2xl border border-slate-200 bg-white p-8 max-w-2xl mx-auto"
       data-testid={`match-error-${kind}`}
     >
       <div className="flex items-start gap-3 mb-4">
         <AlertCircle className="w-5 h-5 text-rose-500 mt-0.5 flex-shrink-0" />
         <div>
-          <h2 className="font-serif text-xl font-semibold text-slate-900">
+          <h2 className="font-sans text-xl font-semibold text-slate-900">
             {titleMap[kind]}
           </h2>
           <p className="text-slate-600 mt-2 leading-relaxed">{bodyMap[kind]}</p>
@@ -494,23 +476,19 @@ function ErrorPanel({
         {showRestart ? (
           <Link
             href="/quiz"
-            className="group relative inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-white text-sm font-medium transition-all hover:-translate-y-0.5 shadow-[0_14px_30px_-12px_rgba(13,148,136,0.50),inset_0_1px_0_rgba(255,255,255,0.20)] overflow-hidden"
-            style={{ backgroundImage: 'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)' }}
+            className="taste-button taste-button-accent"
             data-testid="match-error-restart"
           >
-            <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
-            <span className="relative">Започни отново</span>
+            Започни отново
           </Link>
         ) : (
           <button
             type="button"
             onClick={onRetry}
-            className="group relative inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-white text-sm font-medium transition-all hover:-translate-y-0.5 shadow-[0_14px_30px_-12px_rgba(13,148,136,0.50),inset_0_1px_0_rgba(255,255,255,0.20)] overflow-hidden"
-            style={{ backgroundImage: 'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)' }}
+            className="taste-button taste-button-accent"
             data-testid="match-error-retry"
           >
-            <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
-            <span className="relative inline-flex items-center gap-2">
+            <span className="inline-flex items-center gap-2">
               <Loader2 className="w-4 h-4" />
               Опитай отново
             </span>
@@ -518,18 +496,11 @@ function ErrorPanel({
         )}
         <Link
           href={`/results/${leadId}`}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/65 backdrop-blur-xl ring-1 ring-white/80 text-slate-700 text-sm font-medium rounded-full hover:bg-white transition-all shadow-[0_8px_24px_-14px_rgba(15,23,42,0.18)]"
+          className="taste-button taste-button-light border border-slate-200"
         >
           Към резултата
         </Link>
       </div>
     </div>
   )
-}
-
-// `AssistedNextStepModal` was the preview-only modal used before P5.
-// Replaced by `AssistedChoiceModal`. Kept as a no-op stub for compile
-// stability across hot-reloads — safe to delete in a later cleanup pass.
-function AssistedNextStepModal_DEPRECATED_REMOVED() {
-  return null
 }

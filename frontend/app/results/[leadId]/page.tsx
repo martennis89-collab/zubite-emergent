@@ -120,7 +120,7 @@ export default function ResultsPage() {
           <span className="inline-flex items-center gap-2 rounded-full border border-[#B3EEE6] bg-[#F0FDFA] px-4 py-2 text-sm font-medium text-[#006A61]">
             <ShieldCheck className="h-4 w-4" /> Ориентир, не диагноза
           </span>
-          <h1 className="mt-6 font-display text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-black sm:text-5xl">Твоят ориентировъчен<br />резултат</h1>
+          <h1 className="mt-6 font-display text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-black sm:text-5xl">Твоят ориентировъчен{' '}<br />резултат</h1>
           <p className="mt-5 text-base leading-7 text-[#45464D] sm:text-lg">Базирано на твоите отговори, подготвихме кратко обобщение на вероятния случай и възможните посоки за обсъждане със специалист.</p>
         </header>
 

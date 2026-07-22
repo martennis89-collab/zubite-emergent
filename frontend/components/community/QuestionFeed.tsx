@@ -84,23 +84,24 @@ export function QuestionFeed({ topic, initial }: { topic?: string; initial: Ques
 
   return (
     <>
-      <div className="mb-6 flex items-center gap-2 rounded-full border border-[#e5e5e5] bg-white px-4 py-2.5 focus-within:border-[#007956]">
+      <div className="taste-community-search">
         <Search className="h-4 w-4 shrink-0 text-[#6b6b6b]" />
         <input
+          aria-label="Търси във въпросите"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Търсете въпрос…"
+          placeholder="Търси въпрос…"
           className="w-full bg-transparent text-sm text-[#0a0a0a] outline-none placeholder:text-[#6b6b6b]"
         />
-        {searching && <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[#6b6b6b]" />}
+        {searching && <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[#6b6b6b]" aria-label="Търсене" />}
       </div>
 
       {items.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-[#e5e5e5] p-8 text-center text-[#525252]">
+        <div className="taste-community-empty">
           {query ? 'Няма намерени въпроси.' : 'Все още няма публикувани въпроси.'}
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="taste-community-question-list space-y-3">
           {items.map((q) => <QuestionCard key={q.id} q={q} onUpvote={handleUpvote} />)}
         </div>
       )}
@@ -114,7 +115,7 @@ export function QuestionFeed({ topic, initial }: { topic?: string; initial: Ques
             className="taste-button taste-button-light border border-[#e5e5e5] disabled:opacity-60"
           >
             {loadingMore && <Loader2 className="h-4 w-4 animate-spin" />}
-            Заредете още ({items.length} от {total})
+            Зареди още ({items.length} от {total})
           </button>
         </div>
       )}
@@ -122,7 +123,7 @@ export function QuestionFeed({ topic, initial }: { topic?: string; initial: Ques
       <OtpLoginModal
         open={showLogin}
         onClose={() => setShowLogin(false)}
-        reason="за да гласувате"
+        reason="за да гласуваш"
         onSuccess={onLoggedIn}
       />
     </>

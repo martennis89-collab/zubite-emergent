@@ -7,11 +7,12 @@ export function TopicChipRow({ topics, active }: { topics: CommunityTopic[]; act
   const idleCls = 'border-[#e5e5e5] bg-white text-[#525252] hover:border-[#0a0a0a] hover:text-[#0a0a0a]'
   return (
     <div className="-mx-4 mb-6 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
-      <Link href="/community" className={`${base} ${!active ? activeCls : idleCls}`}>Всички</Link>
+      <Link href="/community" aria-current={!active ? 'page' : undefined} className={`${base} ${!active ? activeCls : idleCls}`}>Всички</Link>
       {topics.map((t) => (
         <Link
           key={t.slug}
           href={`/community/${t.slug}`}
+          aria-current={active === t.slug ? 'page' : undefined}
           className={`${base} ${active === t.slug ? activeCls : idleCls}`}
         >
           {t.label}

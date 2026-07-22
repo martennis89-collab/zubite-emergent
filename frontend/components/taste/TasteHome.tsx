@@ -5,12 +5,9 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import {
   ArrowRight,
-  BadgeCheck,
-  CalendarDays,
   Check,
   CircleDot,
   Clock3,
-  MapPin,
   Play,
   Search,
   ShieldCheck,
@@ -106,99 +103,57 @@ export function TasteHome() {
           <div className="taste-paper-texture" aria-hidden />
           <div className="taste-shell taste-hero-grid">
             <div className="taste-hero-copy">
-              <Link href="/quiz" className="taste-kicker taste-hero-fade taste-delay-1">
-                <span className="taste-status-dot" />
-                Ориентир за около 60 секунди
-                <ArrowRight aria-hidden className="taste-icon-sm" />
-              </Link>
+              <p className="taste-hero-label taste-hero-fade taste-delay-1">
+                За около 60 секунди
+              </p>
 
               <h1 className="taste-hero-title taste-hero-fade taste-delay-2">
-                Първо яснота.
-                <span>После <em>правилният избор.</em></span>
+                <span>Ясен ориентир</span>
+                <span>за <em>твоите зъби.</em></span>
               </h1>
 
-              <p className="taste-hero-accent taste-hero-fade taste-delay-3">
-                По-малко догадки. Повече посока.
+              <p className="taste-hero-body taste-hero-fade taste-delay-3">
+                Отговори на 8–10 кратки въпроса. За около 60 секунди ще видиш какво може да означават симптомите ти и към какъв специалист да се насочиш.
               </p>
 
-              <p className="taste-hero-body taste-hero-fade taste-delay-4">
-                Zubite.bg ти помага да разбереш какъв може да е проблемът, какви решения съществуват и към какъв специалист има смисъл да се насочиш. Без диагнози онлайн и без натиск.
-              </p>
-
-              <div className="taste-hero-actions taste-hero-fade taste-delay-5">
-                <Link href="/quiz" className="taste-button taste-button-dark" data-testid="hero-primary-cta">
-                  Провери своя случай
-                  <ArrowRight aria-hidden className="taste-icon-sm" />
-                </Link>
-                <Link href="#how-it-works" className="taste-button taste-button-light">
-                  Виж как работи
+              <div className="taste-hero-actions taste-hero-fade taste-delay-4">
+                <Link href="/quiz" className="taste-button taste-button-accent" data-testid="hero-primary-cta">
+                  Получи своя ориентир
                   <ArrowRight aria-hidden className="taste-icon-sm" />
                 </Link>
               </div>
 
-              <ul className="taste-hero-notes taste-hero-fade taste-delay-5" aria-label="Ключови предимства">
-                <li><Check aria-hidden /> Без регистрация</li>
-                <li><Check aria-hidden /> Не заменя преглед</li>
-                <li><Check aria-hidden /> Безплатен ориентир</li>
-              </ul>
+              <p className="taste-hero-assurance taste-hero-fade taste-delay-5">
+                <ShieldCheck aria-hidden /> Безплатно · без регистрация · не е диагноза
+              </p>
             </div>
 
-            <div className="taste-hero-stage taste-hero-fade taste-delay-3" aria-label="Преглед на платформата">
-              <div className="taste-stage-card taste-stage-result">
-                <div className="taste-stage-topline">
-                  <span>Твоят ориентир</span>
-                  <span className="taste-mini-badge">готов</span>
+            <div className="taste-hero-stage taste-hero-fade taste-delay-3" aria-label="Какво ще получиш">
+              <div className="taste-outcome-preview">
+                <div className="taste-outcome-header">
+                  <span>Твоят резултат</span>
+                  <span className="taste-mini-badge">веднага</span>
                 </div>
-                <p className="taste-stage-label">Следваща разумна стъпка</p>
-                <h2>Консултация с ортодонт</h2>
-                <div className="taste-stage-rule" />
-                <div className="taste-stage-row"><span>Захапка</span><strong>за проверка</strong></div>
-                <div className="taste-stage-row"><span>Спешност</span><strong>спокойно</strong></div>
-              </div>
-
-              <figure className="taste-stage-image taste-float-soft">
-                <Image
-                  src="/images/lumi-homepage-poster.webp"
-                  alt="Луми, денталният ориентир на Zubite.bg"
-                  fill
-                  sizes="(max-width: 768px) 56vw, 320px"
-                  className="taste-cover"
-                  priority
-                />
-                <figcaption><Sparkles aria-hidden /> Луми обяснява за 30 сек</figcaption>
-              </figure>
-
-              <div className="taste-stage-card taste-stage-clinic taste-float-delayed">
-                <div className="taste-stage-icon"><MapPin aria-hidden /></div>
-                <div>
-                  <span>Подходяща посока</span>
-                  <strong>Проверени клиники</strong>
-                </div>
-                <ArrowRight aria-hidden className="taste-icon-sm" />
-              </div>
-
-              <div className="taste-stage-stamp">
-                <BadgeCheck aria-hidden />
-                Zubite ориентир
+                <h2>Какво ще получиш</h2>
+                <ul>
+                  <li><Check aria-hidden /><span><strong>Кратко обобщение</strong> на вероятната посока</span></li>
+                  <li><Check aria-hidden /><span><strong>Ясна следваща стъпка</strong> и подходящ тип специалист</span></li>
+                  <li><Check aria-hidden /><span><strong>До 3 релевантни клиники</strong>, ако искаш съдействие</span></li>
+                </ul>
+                <p><ShieldCheck aria-hidden /> Ориентир, не онлайн диагноза</p>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="taste-proof" aria-label="Какво получаваш">
-          <div className="taste-shell taste-proof-grid">
-            <article className="taste-proof-card taste-reveal">
-              <span className="taste-proof-mark"><Clock3 aria-hidden /></span>
-              <div><strong>60 секунди</strong><p>кратки и ясни въпроси</p></div>
-            </article>
-            <article className="taste-proof-card taste-reveal">
-              <span className="taste-proof-mark"><ShieldCheck aria-hidden /></span>
-              <div><strong>Без регистрация</strong><p>виждаш ориентира веднага</p></div>
-            </article>
-            <article className="taste-proof-card taste-reveal">
-              <span className="taste-proof-mark"><Search aria-hidden /></span>
-              <div><strong>Подходяща посока</strong><p>не случаен списък с клиники</p></div>
-            </article>
+        <section id="how-it-works" className="taste-home-path" data-testid="home-how-it-works">
+          <div className="taste-shell taste-home-path-inner">
+            <h2>Как го получаваш</h2>
+            <ol>
+              <li><span>1</span><div><strong>Отговаряш</strong><p>8–10 кратки въпроса</p></div></li>
+              <li><span>2</span><div><strong>Виждаш ориентира</strong><p>резултатът е веднага</p></div></li>
+              <li><span>3</span><div><strong>Избираш</strong><p>продължаваш по своя начин</p></div></li>
+            </ol>
           </div>
         </section>
 
@@ -223,32 +178,6 @@ export function TasteHome() {
                 </Link>
               ))}
             </div>
-          </div>
-        </section>
-
-        <section id="how-it-works" className="taste-story" data-testid="home-how-it-works">
-          <div className="taste-story-texture" aria-hidden />
-          <div className="taste-shell taste-story-grid">
-            <div className="taste-story-copy taste-reveal">
-              <p className="taste-eyebrow">Как работи</p>
-              <h2>Три стъпки.<br /><em>Една ясна посока.</em></h2>
-              <p>Zubite.bg събира важния контекст, превежда го на разбираем език и ти помага да решиш какво да направиш след това.</p>
-              <Link href="/quiz" className="taste-button taste-button-dark">
-                Започни анализа <ArrowRight aria-hidden className="taste-icon-sm" />
-              </Link>
-            </div>
-
-            <ol className="taste-steps">
-              <li className="taste-step-card taste-reveal">
-                <span>01</span><div><strong>Отговаряш</strong><p>На кратки въпроси за това, което забелязваш.</p></div>
-              </li>
-              <li className="taste-step-card taste-reveal">
-                <span>02</span><div><strong>Получаваш ориентир</strong><p>Виждаш обобщение и възможна следваща стъпка.</p></div>
-              </li>
-              <li className="taste-step-card taste-reveal">
-                <span>03</span><div><strong>Избираш спокойно</strong><p>Можеш да разгледаш подходящи клиники или да продължиш сам.</p></div>
-              </li>
-            </ol>
           </div>
         </section>
 

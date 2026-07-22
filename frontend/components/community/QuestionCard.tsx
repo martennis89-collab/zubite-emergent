@@ -10,9 +10,9 @@ export function QuestionCard({
   onUpvote: (questionId: string) => void
 }) {
   return (
-    <article className="group rounded-2xl border border-[#e5e5e5] bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-[0_14px_30px_-12px_rgba(15,15,15,0.18)]">
+    <article className="taste-community-question-card group">
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <span className="taste-eyebrow rounded-full bg-[#d0fae5] px-2.5 py-1 text-[11px] text-[#007956]">
+        <span className="taste-community-question-topic">
           {q.topic_label}
         </span>
         {(q.published_at || q.created_at) && (
@@ -42,6 +42,8 @@ export function QuestionCard({
           <button
             type="button"
             onClick={(e) => { e.preventDefault(); onUpvote(q.id) }}
+            aria-label={`${q.has_upvoted ? 'Премахни гласа си за' : 'Гласувай за'}: ${q.title}`}
+            aria-pressed={q.has_upvoted}
             className={`inline-flex items-center gap-1 rounded-full px-2 py-1 transition ${
               q.has_upvoted ? 'bg-[#d0fae5] text-[#007956]' : 'hover:bg-[#f5f4f2]'
             }`}

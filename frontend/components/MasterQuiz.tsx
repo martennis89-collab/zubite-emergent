@@ -730,7 +730,7 @@ export function MasterQuiz() {
   // ─── SEGMENT SELECT ────────────────────────────────────
   if (step === 'segment') {
     return (
-      <main className="taste-site taste-quiz-page">
+      <main className="taste-site taste-quiz-page taste-quiz-viewport">
         <Header />
         <section className={`taste-quiz-intro ${isTransitioning ? 'is-leaving' : ''}`}>
           <div className="taste-quiz-intro-copy">
@@ -786,7 +786,7 @@ export function MasterQuiz() {
   // ─── INSIGHT SCREEN ────────────────────────────────────
   if (step === 'insight') {
     return (
-      <main className="taste-site taste-quiz-page">
+      <main className="taste-site taste-quiz-page taste-quiz-viewport">
         <Header />
         <section className="taste-quiz-centered">
           <div className="taste-quiz-insight-card animate-fade-in-up">
@@ -810,7 +810,7 @@ export function MasterQuiz() {
     const isVisual = q.type === 'visual'
 
     return (
-      <main className="taste-site taste-quiz-page">
+      <main className="taste-site taste-quiz-page taste-quiz-viewport">
         <Header showCount />
         <section className="taste-quiz-question-wrap">
           <div className="taste-quiz-progress-row">
