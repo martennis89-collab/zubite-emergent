@@ -11,7 +11,9 @@ export const api = axios.create({
 
 export interface Lead {
   id?: string;
-  city_slug: string;
+  // Optional: the quiz funnel creates leads before city is known — it
+  // arrives later via clinic-recommendation-preference.
+  city_slug?: string | null;
   treatment_type: string;
   answers: Record<string, string | number>;
   score_total?: number;
@@ -59,7 +61,7 @@ export const claimLead = async (leadId: string) => {
 
 export interface MyLead {
   id: string;
-  city_slug: string;
+  city_slug?: string | null;
   treatment_type: string;
   band: string;
   score_total: number;
@@ -282,6 +284,39 @@ export const getSelectionState = async (leadId: string): Promise<SelectionState>
   const base = process.env.NEXT_PUBLIC_API_URL || '';
   const response = await axios.get<SelectionState>(
     `${base}/api/leads/${leadId}/selection-state`,
+  );
+  return response.data;
+};
+
+// ── Quiz funnel step 3: clinic-recommendation preference ─────────
+// POST /api/leads/{leadId}/clinic-recommendation-preference
+// Asked only after contact details are unlocked. `wantsRecommendations
+// =false` ends the flow with no city ever collected; `=true` requires
+// citySlug and (re)runs clinic auto-matching now that city is known.
+
+export interface ClinicRecommendationPreferenceBody {
+  wants_recommendations: boolean;
+  city_slug?: string;
+  district_slug?: string;
+  importance?: string;
+  has_files?: string[];
+  preferred_channel?: string;
+  can_travel?: string;
+}
+
+export interface ClinicRecommendationPreferenceSuccess {
+  success: true;
+  wants_recommendations: boolean;
+}
+
+export const submitClinicRecommendationPreference = async (
+  leadId: string,
+  body: ClinicRecommendationPreferenceBody,
+): Promise<ClinicRecommendationPreferenceSuccess> => {
+  const base = process.env.NEXT_PUBLIC_API_URL || '';
+  const response = await axios.post<ClinicRecommendationPreferenceSuccess>(
+    `${base}/api/leads/${leadId}/clinic-recommendation-preference`,
+    body,
   );
   return response.data;
 };

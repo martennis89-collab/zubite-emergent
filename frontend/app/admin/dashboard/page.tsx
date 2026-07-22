@@ -74,7 +74,8 @@ const RESERVED_ANSWER_KEYS = new Set([
 interface Lead {
   id: string
   created_at: string
-  city_slug: string
+  // Optional: the quiz funnel creates leads before city is known.
+  city_slug?: string | null
   treatment_type: string
   score_total: number
   band: string
@@ -901,7 +902,7 @@ export default function AdminDashboardPage() {
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-1.5 text-sm text-slate-600">
                           <MapPin className="w-3.5 h-3.5" />
-                          {CITY_NAMES[lead.city_slug] || lead.city_slug}
+                          {(lead.city_slug && CITY_NAMES[lead.city_slug]) || lead.city_slug || '—'}
                         </div>
                       </td>
                       <td className="px-4 py-4">

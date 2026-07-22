@@ -4,7 +4,10 @@
  * ResultUnlockGate
  *
  * MVP Phase B — lead capture gate shown BEFORE the full result on
- * /results/[leadId] when `full_result_unlocked === false`.
+ * /results/[leadId] when `full_result_unlocked === false`. This is step 2
+ * of the quiz funnel ("where should we send your results?") — city and
+ * clinic-recommendation opt-in are asked afterward, by
+ * ClinicRecommendationChoice, once contact details are known.
  *
  * Hard rules (per product spec):
  *   • Title: "Резултатът ти е готов" — never "free guarantee" wording.
@@ -20,25 +23,16 @@
  */
 
 import { useState } from 'react'
-import { Lock, ShieldCheck, ArrowRight, Loader2, AlertTriangle, CheckCircle2, MapPin } from 'lucide-react'
+import { Lock, ShieldCheck, ArrowRight, Loader2, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
-
-// City slug → display name map. Mirrors the labels used elsewhere across
-// the app (homepage, quiz form). Defensive default = capitalised slug.
-const CITY_LABEL: Record<string, string> = {
-  sofia: 'София', plovdiv: 'Пловдив', varna: 'Варна', burgas: 'Бургас',
-  ruse: 'Русе', stara_zagora: 'Стара Загора', pleven: 'Плевен', haskovo: 'Хасково',
-}
 
 interface ResultUnlockGateProps {
   leadId: string
   defaultName?: string
-  /** City already known from the quiz — preselected as a compact pill. */
-  citySlug?: string
   onUnlocked: (data: { name: string; phone: string; email: string }) => void
 }
 
-export function ResultUnlockGate({ leadId, defaultName, citySlug, onUnlocked }: ResultUnlockGateProps) {
+export function ResultUnlockGate({ leadId, defaultName, onUnlocked }: ResultUnlockGateProps) {
   const [name, setName] = useState(defaultName || '')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
@@ -111,11 +105,11 @@ export function ResultUnlockGate({ leadId, defaultName, citySlug, onUnlocked }: 
           Резултатът е готов
         </span>
         <h1 className="mt-4 font-serif text-2xl sm:text-3xl font-semibold text-slate-900 leading-tight">
-          Резултатът ти е готов
+          Къде да изпратим резултата ти?
         </h1>
         <p className="mt-3 text-slate-600 text-[15px] leading-relaxed">
-          Остави данни, за да видиш персоналния си резултат и подходящи
-          партньорски клиники за твоя случай.
+          Остави данни за контакт, за да запазим персоналния ти резултат.
+          Следващата стъпка е да решиш дали искаш и препоръки за клиники.
         </p>
 
         {/* Value stack — what unlocks. Wording rewritten Feb 2026 to remove
@@ -123,7 +117,7 @@ export function ResultUnlockGate({ leadId, defaultName, citySlug, onUnlocked }: 
         <ul className="mt-5 space-y-2.5" data-testid="result-unlock-value-stack">
           {[
             'Персонален резултат според отговорите ти',
-            'Подходящи партньорски клиники близо до теб',
+            'Възможност за препоръки на партньорски клиники, ако поискаш',
             'Възможност за онлайн ориентация, когато клиниката предлага свободни часове',
           ].map((item, i) => (
             <li key={i} className="flex items-start gap-2.5" data-testid={`result-unlock-value-${i}`}>
@@ -140,29 +134,6 @@ export function ResultUnlockGate({ leadId, defaultName, citySlug, onUnlocked }: 
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="mt-6 space-y-3" data-testid="result-unlock-form">
-          {/* Compact city display — preselected from the quiz/lead so the
-              patient never goes through a second "second-quiz" city step.
-              Read-only pill (Feb 2026 brief: move city into the contact
-              area; preselect if already known). */}
-          {citySlug && CITY_LABEL[citySlug] && (
-            <div
-              className="flex items-center justify-between gap-3 rounded-xl bg-teal-50/70 ring-1 ring-teal-100 px-3.5 py-2.5"
-              data-testid="result-unlock-city-pill"
-            >
-              <div className="min-w-0">
-                <p className="text-[10px] uppercase tracking-[0.16em] text-teal-700 font-semibold">
-                  Къде търсиш консултация
-                </p>
-                <p className="text-[14px] text-slate-900 font-medium leading-tight mt-0.5 flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-teal-600" />
-                  {CITY_LABEL[citySlug]}
-                </p>
-              </div>
-              <p className="text-[10.5px] text-slate-500 leading-snug text-right max-w-[10rem]">
-                Използваме града, за да покажем релевантни клиники близо до теб.
-              </p>
-            </div>
-          )}
           <label className="block">
             <span className="text-[11px] uppercase tracking-wide text-slate-500 font-semibold">Име</span>
             <input
@@ -233,7 +204,7 @@ export function ResultUnlockGate({ leadId, defaultName, citySlug, onUnlocked }: 
             <span aria-hidden className="absolute inset-x-3 top-0.5 h-1/3 rounded-full bg-white/20 blur-sm pointer-events-none" />
             <span className="relative inline-flex items-center gap-2">
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-              {submitting ? 'Изпращаме…' : 'Покажи ми подходящи клиники'}
+              {submitting ? 'Изпращаме…' : 'Запази резултата'}
               {!submitting && <ArrowRight className="w-4 h-4" />}
             </span>
           </button>

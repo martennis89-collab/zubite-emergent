@@ -3,17 +3,15 @@
 import { useState, useEffect, useRef, ReactNode } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowRight, ArrowLeft, Bot, Loader2, CheckCircle, MapPin, X, User, Users, Baby, ShieldCheck } from 'lucide-react'
+import { ArrowRight, ArrowLeft, Bot, Loader2, User, Users, Baby, ShieldCheck } from 'lucide-react'
 import {
   trackQuizStart,
   trackQuestionAnswered,
   trackQuizComplete,
-  trackSoftCommit,
   trackLeadSubmit
 } from './MetaPixel'
 import { trackEvent as gaTrackEvent } from '@/lib/analytics/gtag'
 import { getStoredAttribution } from '@/lib/attribution'
-import { MANUAL_RECOMMENDATION_COPY } from '@/lib/manualRecommendationCopy'
 import {
   TREATMENT_PRICES,
   ORTHO_DURATION,
@@ -450,42 +448,6 @@ const RESULT_CONTENT: Record<Segment, Record<ResultBand, ResultContent>> = {
 }
 
 // ─── Scoring ──────────────────────────────────────────────
-const CITIES = [
-  { value: 'sofia', label: 'София' },
-  { value: 'plovdiv', label: 'Пловдив' },
-  { value: 'varna', label: 'Варна' },
-  { value: 'burgas', label: 'Бургас' },
-  { value: 'ruse', label: 'Русе' },
-  { value: 'stara-zagora', label: 'Стара Загора' },
-  { value: 'pleven', label: 'Плевен' },
-  { value: 'sliven', label: 'Сливен' },
-  { value: 'dobrich', label: 'Добрич' },
-  { value: 'shumen', label: 'Шумен' },
-  { value: 'haskovo', label: 'Хасково' },
-]
-
-// Sofia neighbourhoods only — no other city on the platform is large
-// enough to have meaningful sub-city districts. Kept in sync manually
-// with SOFIA_DISTRICTS in backend/config.py (same existing convention
-// as CITIES above, which also has no shared source of truth with the
-// backend copy).
-const SOFIA_DISTRICTS = [
-  { value: 'lozenets', label: 'Лозенец' },
-  { value: 'mladost', label: 'Младост' },
-  { value: 'lyulin', label: 'Люлин' },
-  { value: 'druzhba', label: 'Дружба' },
-  { value: 'iztok', label: 'Изток' },
-  { value: 'izgrev', label: 'Изгрев' },
-  { value: 'studentski-grad', label: 'Студентски град' },
-  { value: 'vitosha', label: 'Витоша' },
-  { value: 'boyana', label: 'Бояна' },
-  { value: 'center', label: 'Център' },
-  { value: 'krasno-selo', label: 'Красно село' },
-  { value: 'ovcha-kupel', label: 'Овча купел' },
-  { value: 'nadezhda', label: 'Надежда' },
-  { value: 'poduyane', label: 'Подуяне' },
-]
-
 function calculateResult(answers: { value: string; score: number; tags?: string[] }[], segment: Segment) {
   const totalScore = answers.reduce((s, a) => s + a.score, 0)
   const tagCounts: Record<string, number> = {}
@@ -518,66 +480,6 @@ const STAGE_BY_BAND: Record<ResultBand, string> = {
 
 const generateSessionId = () => `quiz_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
-// ─── Intake context (Clinical Brief) ──────────────────────────────
-// Routing/logistics context, deliberately NOT part of the clinical
-// question set: these don't affect scoring or the patient's orientation,
-// they only help the clinic prepare. They live on the city step (after
-// the result, once the patient has chosen to see options) so the "60
-// seconds / 8–10 questions" promise on the symptom quiz stays true.
-//
-// All optional by design — a skipped answer is honest missing data; a
-// forced answer is noise in the brief.
-//
-// `importance` and `can_travel` reuse keys that already exist in the
-// backend's label vocabulary (_QUIZ_QUESTION_LABELS/_QUIZ_VALUE_LABELS),
-// so they surface in the Clinical Brief with no backend change.
-const INTAKE_FIELDS: Array<{
-  key: 'importance' | 'can_travel' | 'has_files' | 'preferred_channel'
-  label: string
-  hint?: string
-  multi?: boolean
-  options: Array<{ value: string; label: string }>
-}> = [
-  {
-    key: 'importance',
-    label: 'Какво тежи най-много при избора?',
-    options: [
-      { value: 'quality', label: 'Качество и опит' },
-      { value: 'comfort', label: 'Баланс цена / качество' },
-      { value: 'price', label: 'Цената' },
-    ],
-  },
-  {
-    key: 'has_files',
-    label: 'Имаш ли вече нещо от предишен преглед?',
-    hint: 'Ако имаш, клиниката може да го прегледа предварително.',
-    multi: true,
-    options: [
-      { value: 'photos', label: 'Снимки на зъбите' },
-      { value: 'opg', label: 'OPG / скенер' },
-      { value: 'plan', label: 'План или оферта' },
-      { value: 'none', label: 'Нямам' },
-    ],
-  },
-  {
-    key: 'preferred_channel',
-    label: 'Как предпочиташ да се свържат с теб?',
-    options: [
-      { value: 'call', label: 'Обаждане' },
-      { value: 'message', label: 'Съобщение' },
-      { value: 'any', label: 'Няма значение' },
-    ],
-  },
-  {
-    key: 'can_travel',
-    label: 'Би ли пътувал/а до друг град за лечение?',
-    options: [
-      { value: 'no', label: 'Само в моя град' },
-      { value: 'yes', label: 'Да, ако си струва' },
-    ],
-  },
-]
-
 // ─── Component ────────────────────────────────────────────
 export function MasterQuiz() {
   const router = useRouter()
@@ -586,12 +488,8 @@ export function MasterQuiz() {
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [answers, setAnswers] = useState<{ questionId: string; value: string; score: number; tags?: string[] }[]>([])
   const [result, setResult] = useState<{ band: ResultBand; totalScore: number; flags: string[] } | null>(null)
-  const [step, setStep] = useState<'segment' | 'quiz' | 'insight' | 'result' | 'soft_commit' | 'form' | 'exit'>('segment')
+  const [step, setStep] = useState<'segment' | 'quiz' | 'insight' | 'result'>('segment')
   const [formVersion, setFormVersion] = useState<'A' | 'B'>('A')
-  const [formData, setFormData] = useState({ city: '', district: '' })
-  // Optional intake answers (see INTAKE_FIELDS). Single-select fields hold
-  // a string; `has_files` holds a string[].
-  const [intake, setIntake] = useState<Record<string, string | string[]>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [isClient, setIsClient] = useState(false)
@@ -739,13 +637,12 @@ export function MasterQuiz() {
   }
 
   const handleSubmit = async () => {
-    // Phase B (June 2026): the MasterQuiz no longer collects name / phone /
-    // email here. We POST an ANSWER-ONLY lead and let the
-    // `ResultUnlockGate` on /results/[leadId] collect contact details.
-    // This prevents asking the patient for contacts twice and keeps
-    // Manual Recommendation Mode intact (post-unlock redirect goes to
-    // /quiz/success?leadId=...).
-    if (!formData.city) { setError('Моля, изберете град.'); return }
+    // City is no longer collected here — the quiz funnel was re-sequenced
+    // so city (and the optional "help the clinic prepare" questions) are
+    // only asked once the patient opts into clinic recommendations, on
+    // /results/[leadId] (ClinicRecommendationChoice), well after this
+    // lead already exists. Contact details (name/phone/email) are also
+    // collected later, by ResultUnlockGate — this POST is answers-only.
     setIsSubmitting(true); setError('')
 
     try {
@@ -754,29 +651,14 @@ export function MasterQuiz() {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
       const bandMap: Record<ResultBand, string> = { low: 'GREEN', moderate: 'YELLOW', high: 'RED' }
 
-      // Optional intake answers → `answers`, where the Clinical Brief
-      // reads them. Empty/skipped fields are omitted entirely rather than
-      // sent as "" — a blank row in the brief is worse than no row.
-      const intakeAnswers: Record<string, string | string[]> = {}
-      for (const [k, v] of Object.entries(intake)) {
-        if (Array.isArray(v) ? v.length > 0 : !!v) intakeAnswers[k] = v
-      }
-
       const leadData = {
-        city_slug: formData.city,
-        ...(formData.district ? { district_slug: formData.district } : {}),
         treatment_type: 'diagnostic_quiz',
-        answers: { ...answersObj, ...intakeAnswers, quiz_score: result?.totalScore || 0, quiz_band: result?.band || '', quiz_flags: result?.flags || [], segment, form_version: formVersion, session_id: sessionId.current, source: 'diagnostic_quiz_v1' },
+        answers: { ...answersObj, quiz_score: result?.totalScore || 0, quiz_band: result?.band || '', quiz_flags: result?.flags || [], segment, form_version: formVersion, session_id: sessionId.current, source: 'diagnostic_quiz_v1' },
         score_total: result?.totalScore || 0,
         band: bandMap[result?.band || 'low'],
-        // `can_travel` is also a first-class Lead field used by clinic
-        // matching, so mirror the intake answer onto it. Previously it
-        // silently defaulted to `true` for every homepage lead — an
-        // assumption the patient was never asked to make.
-        ...(intake.can_travel ? { can_travel: intake.can_travel === 'yes' } : {}),
-        // No name/phone/email/consent here — backend creates a locked
-        // lead (contact_details_submitted=false). Contact is gathered on
-        // /results/[leadId] via ResultUnlockGate → POST /unlock-result.
+        // No city_slug/district_slug/can_travel/name/phone/email/consent
+        // here — city arrives via clinic-recommendation-preference,
+        // contact via unlock-result. Backend creates a fully locked lead.
         source: 'diagnostic_quiz_v1', form_version: formVersion,
         // ─── Attribution data — never throws (returns {} if storage blocked) ───
         ...(typeof window !== 'undefined'
@@ -805,21 +687,20 @@ export function MasterQuiz() {
         if (created && typeof created.id === 'string') createdLeadId = created.id
       } catch { /* parsing failure handled below */ }
 
-      trackEvent('locked_lead_created', { form_version: formVersion, city: formData.city, segment })
-      trackLeadSubmit(formData.city, formVersion)
+      trackEvent('locked_lead_created', { form_version: formVersion, segment })
+      // City isn't known yet at this point in the funnel — the Meta Lead
+      // event still fires here (same "a lead now exists" semantics as
+      // before), just without a city tag.
+      trackLeadSubmit('', formVersion)
 
       if (!createdLeadId) {
         // Backend accepted the lead but we couldn't read the id — fall
         // back to the legacy success page so the patient still lands
         // somewhere coherent.
-        const successParams = new URLSearchParams({ stage: result?.band || 'low', city: formData.city, segment: segment || 'adult' })
+        const successParams = new URLSearchParams({ stage: result?.band || 'low', segment: segment || 'adult' })
         router.push(`/quiz/success?${successParams.toString()}`)
         return
       }
-      // Phase B redirect: send the patient to the unlock gate. The
-      // ResultUnlockGate POSTs to /unlock-result and then this app
-      // redirects again to /quiz/success?leadId=... (see
-      // /app/frontend/app/results/[leadId]/page.tsx).
       router.push(`/results/${createdLeadId}`)
     } catch (e) {
       const msg = e instanceof Error && e.message && e.message !== 'Failed'
@@ -1114,207 +995,19 @@ export function MasterQuiz() {
             </article>
 
             <div className="taste-quiz-result-action animate-fade-in-up" style={{ animationDelay: '150ms' }}>
-              <p>Следващата стъпка е да избереш град. Контакт се иска едва когато решиш да отключиш препоръките.</p>
+              <p>Следваща стъпка: къде да изпратим резултата ти. Град и препоръчани клиники идват след това.</p>
+              {error && <p className="taste-quiz-error" role="alert">{error}</p>}
               <button
                 onClick={() => {
-                  // Bypass the redundant "Искаш ли да видиш опциите?" soft-commit
-                  // screen — the patient already clicked to see options on the
-                  // result screen. We log the same `result_to_soft_commit`
-                  // analytics event (for funnel continuity), but jump straight
-                  // to the form (city + lead creation). The `soft_commit` step
-                  // remains in the state machine for backward compatibility
-                  // and is no longer reachable in normal flow (Feb 2026 brief).
-                  trackEvent('result_to_soft_commit', { band: result.band, segment, skip_soft_commit: true })
-                  trackSoftCommit(true)
-                  setStep('form')
+                  trackEvent('result_continue', { band: result.band, segment })
+                  handleSubmit()
                 }}
+                disabled={isSubmitting}
                 className="taste-quiz-primary"
                 data-testid="result-continue-btn"
               >
-                Продължи към опциите <ArrowRight aria-hidden />
+                {isSubmitting ? <><Loader2 className="animate-spin" />Изпращане...</> : <>Продължи<ArrowRight aria-hidden /></>}
               </button>
-            </div>
-          </div>
-        </section>
-      </main>
-    )
-  }
-
-  // ─── SOFT COMMIT ───────────────────────────────────────
-  if (step === 'soft_commit') {
-    return (
-      <main className="taste-site taste-quiz-page">
-        <Header />
-        <section className="taste-quiz-centered">
-          <div className="taste-quiz-decision-card animate-fade-in-up">
-            <span className="taste-quiz-kicker"><i /> Следваща стъпка</span>
-            <h1>{segment === 'adult' ? 'Искаш ли да видиш какви са опциите ти?' : 'Искате ли да видите подходящите опции?'}</h1>
-            <p>{MANUAL_RECOMMENDATION_COPY.shortIntro}</p>
-            <div className="taste-quiz-decision-actions">
-              <button onClick={() => { trackEvent('soft_commit', { choice: 'yes' }); trackSoftCommit(true); setStep('form') }} className="taste-quiz-primary" data-testid="soft-commit-yes">
-                Да, покажете ми опциите <ArrowRight aria-hidden />
-              </button>
-              <button onClick={() => { trackEvent('soft_commit', { choice: 'no' }); trackSoftCommit(false); setStep('exit') }} className="taste-quiz-secondary" data-testid="soft-commit-no">
-                Не сега
-              </button>
-            </div>
-          </div>
-        </section>
-      </main>
-    )
-  }
-
-  // ─── EXIT ──────────────────────────────────────────────
-  if (step === 'exit') {
-    return (
-      <main className="taste-site taste-quiz-page">
-        <Header />
-        <section className="taste-quiz-centered">
-          <div className="taste-quiz-decision-card taste-quiz-exit-card animate-fade-in-up">
-            <span className="taste-quiz-exit-icon"><X aria-hidden /></span>
-            <h1>Ориентирът ти остава достъпен.</h1>
-            <p>{segment === 'adult' ? 'Можеш да провериш отново по всяко време.' : 'Можете да проверите отново по всяко време.'}</p>
-            <Link href="/" className="taste-quiz-secondary" data-testid="exit-home-btn">
-              <ArrowLeft aria-hidden /> Обратно към началото
-            </Link>
-          </div>
-        </section>
-      </main>
-    )
-  }
-
-  // ─── FORM (city-only, Phase B) ─────────────────────────
-  // Contact details are intentionally NOT collected here anymore — they
-  // are gathered by the ResultUnlockGate on /results/[leadId] after the
-  // patient sees that their result is ready. This avoids asking for
-  // name/phone/email twice and keeps Manual Recommendation Mode intact.
-  if (step === 'form') {
-    return (
-      <main className="taste-site taste-quiz-page">
-        <Header />
-        <section className="taste-quiz-form-wrap">
-          <div className="taste-quiz-form-card animate-fade-in-up">
-            <div className="taste-quiz-form-heading">
-              <span>Последна стъпка</span>
-              <h1>Къде търсиш <em>консултация?</em></h1>
-              <p>Използваме града, за да покажем първо релевантни клиники близо до теб.</p>
-            </div>
-            <div className="taste-quiz-form-body">
-              <div className="taste-quiz-city-block">
-                <div className="taste-quiz-field-heading">
-                  <label>Избери град <span>*</span></label>
-                  <small>Задължително</small>
-                </div>
-                <div className="taste-quiz-city-grid">
-                  {CITIES.map(c => (
-                    <button key={c.value} type="button" onClick={() => { setFormData(p => ({ ...p, city: c.value })); setError('') }}
-                      className={`taste-quiz-city-option ${formData.city === c.value ? 'is-selected' : ''}`}
-                      data-testid={`city-${c.value}`}
-                      aria-pressed={formData.city === c.value}>
-                      <MapPin aria-hidden />{c.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Sofia-only follow-up — a first-class top-level field
-                  (like city), NOT part of the `intake`/INTAKE_FIELDS
-                  mechanism, since _score_clinic needs to read it directly
-                  off the lead, not from inside `answers`. */}
-              {formData.city === 'sofia' && (
-                <div className="taste-quiz-city-block" data-testid="district-block">
-                  <div className="taste-quiz-field-heading">
-                    <label>В кой квартал на София?</label>
-                    <small>По избор</small>
-                  </div>
-                  <div className="taste-quiz-city-grid">
-                    {SOFIA_DISTRICTS.map(d => (
-                      <button key={d.value} type="button"
-                        onClick={() => setFormData(p => ({ ...p, district: p.district === d.value ? '' : d.value }))}
-                        className={`taste-quiz-city-option ${formData.district === d.value ? 'is-selected' : ''}`}
-                        data-testid={`district-${d.value}`}
-                        aria-pressed={formData.district === d.value}>
-                        <MapPin aria-hidden />{d.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-                {/* Optional intake — helps the clinic prepare. Explicitly
-                    marked optional and visually secondary to the city step
-                    so it never reads as a wall of required questions. */}
-                <div className="taste-quiz-intake-block" data-testid="intake-block">
-                  <div className="taste-quiz-intake-heading">
-                    <div>
-                      <span>По избор</span>
-                      <h2>Помогни на клиниката да се подготви</h2>
-                    </div>
-                    <p>
-                    Помагат на клиниката да се подготви, преди да се свърже с теб.
-                    Можеш да ги пропуснеш.
-                    </p>
-                  </div>
-
-                  <div className="taste-quiz-intake-fields">
-                    {INTAKE_FIELDS.map((f) => (
-                      <div className="taste-quiz-intake-field" key={f.key}>
-                        <label>{f.label}</label>
-                        {f.hint && (
-                          <p>{f.hint}</p>
-                        )}
-                        <div>
-                          {f.options.map((o) => {
-                            const cur = intake[f.key]
-                            const selected = f.multi
-                              ? Array.isArray(cur) && cur.includes(o.value)
-                              : cur === o.value
-                            return (
-                              <button
-                                key={o.value}
-                                type="button"
-                                onClick={() =>
-                                  setIntake((prev) => {
-                                    if (!f.multi) {
-                                      // Tapping the selected chip clears it —
-                                      // the field must stay skippable.
-                                      return { ...prev, [f.key]: prev[f.key] === o.value ? '' : o.value }
-                                    }
-                                    const list = Array.isArray(prev[f.key]) ? [...(prev[f.key] as string[])] : []
-                                    // "Нямам" is exclusive of the others.
-                                    if (o.value === 'none') {
-                                      return { ...prev, [f.key]: list.includes('none') ? [] : ['none'] }
-                                    }
-                                    const next = list.filter((v) => v !== 'none')
-                                    return {
-                                      ...prev,
-                                      [f.key]: next.includes(o.value)
-                                        ? next.filter((v) => v !== o.value)
-                                        : [...next, o.value],
-                                    }
-                                  })
-                                }
-                                className={`taste-quiz-intake-option ${selected ? 'is-selected' : ''}`}
-                                data-testid={`intake-${f.key}-${o.value}`}
-                                aria-pressed={selected}
-                              >
-                                {o.label}
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {error && <p className="taste-quiz-error" role="alert">{error}</p>}
-                <button onClick={handleSubmit} disabled={isSubmitting}
-                  className="taste-quiz-primary taste-quiz-submit"
-                  data-testid="submit-btn">
-                  {isSubmitting ? <><Loader2 className="animate-spin" />Изпращане...</> : <>Продължи към резултата<ArrowRight aria-hidden /></>}
-                </button>
-                <p className="taste-quiz-form-safety"><ShieldCheck aria-hidden /> {MANUAL_RECOMMENDATION_COPY.safetyNote}</p>
             </div>
           </div>
         </section>

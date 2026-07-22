@@ -47,6 +47,10 @@ export type PatientAnalyticsEvent =
   | 'post_quiz_lead_capture_viewed'
   | 'post_quiz_lead_submitted'
   | 'full_result_unlocked'
+  // Step 3 of the funnel — ClinicRecommendationChoice.tsx
+  | 'clinic_recommendation_declined'
+  | 'clinic_recommendation_accepted'
+  | 'clinic_recommendation_city_submitted'
   | 'homepage_unlock_benefits_viewed'
   | 'homepage_unlock_benefits_cta_clicked'
   | 'homepage_care_pass_benefit_clicked'

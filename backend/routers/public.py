@@ -6,7 +6,7 @@ import uuid
 
 from database import db
 from aligner_brands import public_aligner_brand_chips
-from schemas import Clinic, LeadCreate, LeadContactUpdate, Lead, RequestCallBody, RequestZubiteHelpBody, SaveCarePassEmailBody, UnlockResultBody, QuickChatLeadCreate
+from schemas import Clinic, LeadCreate, LeadContactUpdate, Lead, RequestCallBody, RequestZubiteHelpBody, SaveCarePassEmailBody, UnlockResultBody, QuickChatLeadCreate, ClinicRecommendationPreferenceBody
 from auth import hash_password, get_current_patient, get_current_patient_optional
 from audit import audit_log
 from config import CITIES, logger
@@ -120,6 +120,29 @@ def _validate_quiz_contact(data: LeadCreate) -> None:
             )
 
 
+async def _auto_match_clinic(city_slug: Optional[str], treatment_type: str, band: str) -> Optional[str]:
+    """GREEN-band leads with a known city get auto-assigned to a partner
+    clinic that supports the treatment. Called at lead creation when city
+    is already known there, and again from
+    POST /leads/{id}/clinic-recommendation-preference for leads whose city
+    arrives later (the re-sequenced quiz funnel creates leads with no city
+    at all — see LeadCreate.city_slug). Matches on either canonical
+    `treatments_supported` or the legacy `treatments_offered` mirror; new
+    writes populate both, legacy/unmigrated docs may have only one."""
+    if not city_slug or band != "GREEN":
+        return None
+    clinic = await db.clinics.find_one({
+        "city_slug": city_slug,
+        "is_active": True,
+        "archived": {"$ne": True},
+        "$or": [
+            {"treatments_supported": treatment_type},
+            {"treatments_offered": treatment_type},
+        ],
+    }, {"_id": 0})
+    return clinic.get("id") if clinic else None
+
+
 async def _detect_soft_duplicate(
     phone: Optional[str],
     email: Optional[str],
@@ -223,21 +246,11 @@ async def create_lead(
         if explicit_clinic:
             assigned_clinic_id = explicit_clinic["id"]
 
-    if assigned_clinic_id is None and band == "GREEN":
-        # Match clinics on either canonical `treatments_supported` or the
-        # legacy `treatments_offered` mirror. New writes populate both;
-        # legacy/unmigrated docs may have only one. (Feb 2026 cleanup.)
-        clinic = await db.clinics.find_one({
-            "city_slug": data.city_slug,
-            "is_active": True,
-            "archived": {"$ne": True},
-            "$or": [
-                {"treatments_supported": data.treatment_type},
-                {"treatments_offered": data.treatment_type},
-            ],
-        }, {"_id": 0})
-        if clinic:
-            assigned_clinic_id = clinic.get("id")
+    if assigned_clinic_id is None:
+        # No-op when city_slug is None (the re-sequenced quiz funnel now
+        # creates leads before city is known) — auto-match is re-attempted
+        # later from clinic_recommendation_preference once city arrives.
+        assigned_clinic_id = await _auto_match_clinic(data.city_slug, data.treatment_type, band)
 
     # Soft duplicate detection — additive, never blocks submission.
     is_dup, dup_reason, dup_lead_id = await _detect_soft_duplicate(
@@ -336,7 +349,10 @@ async def get_lead(lead_id: str, patient: Optional[Dict[str, Any]] = Depends(get
          # Echo a partial name only — first word, never phone/email,
          # so result page can greet the patient if they're returning.
          "name": 1,
-         "patient_id": 1}
+         "patient_id": 1,
+         # Step 3 of the quiz funnel — lets the results page skip straight
+         # to the right state on load/reload instead of re-asking.
+         "wants_clinic_recommendations": 1}
     )
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
@@ -553,6 +569,92 @@ async def unlock_result(lead_id: str, body: UnlockResultBody):
         "care_pass_eligible": True,
         "care_pass_unlocked": False,
     }
+
+
+# ─── Clinic-recommendation preference (step 3 of the quiz funnel) ────
+#
+# POST /leads/{lead_id}/clinic-recommendation-preference
+#
+# Asked only AFTER contact details are unlocked (server-enforced below —
+# mirrors the order the frontend already presents). `wants_recommendations
+# =False` ends the flow with no city ever collected. `=True` requires
+# city_slug and (re)runs the same auto-match `create_lead` runs at
+# creation, since this may be the first time the lead's city is known.
+@router.post(
+    "/leads/{lead_id}/clinic-recommendation-preference",
+    dependencies=[Depends(rate_limit("clinic_recommendation_preference", 5, 300))],
+)
+async def clinic_recommendation_preference(lead_id: str, body: ClinicRecommendationPreferenceBody):
+    lead = await db.leads.find_one(
+        {"id": lead_id},
+        {"_id": 0, "id": 1, "treatment_type": 1, "band": 1, "answers": 1,
+         "assigned_clinic_id": 1, "full_result_unlocked": 1,
+         "contact_details_submitted": 1},
+    )
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    if not (lead.get("full_result_unlocked") and lead.get("contact_details_submitted")):
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "success": False,
+                "code": "contact_not_submitted",
+                "message": "Моля, първо въведете данните си за контакт.",
+            },
+        )
+
+    if not body.wants_recommendations:
+        await db.leads.update_one(
+            {"id": lead_id},
+            {"$set": {
+                "wants_clinic_recommendations": False,
+                "clinic_recommendations_declined_at": datetime.now(timezone.utc).isoformat(),
+            }},
+        )
+        return {"success": True, "wants_recommendations": False}
+
+    if not body.city_slug:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "success": False,
+                "code": "city_required",
+                "message": "Моля, изберете град.",
+            },
+        )
+
+    # Same "help the clinic prepare" fields MasterQuiz's old `form` step
+    # used to fold into `answers` — only non-empty values are stored.
+    intake_answers: Dict[str, Any] = {}
+    if body.importance:
+        intake_answers["importance"] = body.importance
+    if body.has_files:
+        intake_answers["has_files"] = body.has_files
+    if body.preferred_channel:
+        intake_answers["preferred_channel"] = body.preferred_channel
+
+    update: Dict[str, Any] = {
+        "wants_clinic_recommendations": True,
+        "city_slug": body.city_slug,
+    }
+    if body.district_slug:
+        update["district_slug"] = body.district_slug
+    if intake_answers:
+        answers = dict(lead.get("answers") or {})
+        answers.update(intake_answers)
+        update["answers"] = answers
+    if body.can_travel:
+        update["can_travel"] = body.can_travel == "yes"
+
+    if not lead.get("assigned_clinic_id"):
+        matched_clinic_id = await _auto_match_clinic(
+            body.city_slug, lead.get("treatment_type", ""), lead.get("band", "RED"),
+        )
+        if matched_clinic_id:
+            update["assigned_clinic_id"] = matched_clinic_id
+
+    await db.leads.update_one({"id": lead_id}, {"$set": update})
+    return {"success": True, "wants_recommendations": True}
 
 
 @router.patch("/leads/{lead_id}/contact", dependencies=[Depends(rate_limit("update_contact", 10, 300))])

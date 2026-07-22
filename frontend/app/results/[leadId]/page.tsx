@@ -5,18 +5,21 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   AlertTriangle, ArrowRight, CalendarDays, Compass, Home,
-  LayoutList, Loader2, ShieldCheck,
+  LayoutList, Loader2, ShieldCheck, X,
 } from 'lucide-react'
 import { ResultsHeader } from '@/components/ResultsHeader'
 import { Footer } from '@/components/Footer'
 import { ResultUnlockGate } from '@/components/patient/ResultUnlockGate'
+import { ClinicRecommendationChoice } from '@/components/patient/ClinicRecommendationChoice'
 import { SaveResultBanner } from '@/components/patient/SaveResultBanner'
 import { getLead } from '@/lib/api'
 import { setStoredLeadContact } from '@/lib/leadContact'
 
 interface Lead {
   id: string
-  city_slug: string
+  // Optional: the quiz funnel now creates leads before city is ever
+  // asked — city arrives later via clinic-recommendation-preference.
+  city_slug?: string | null
   treatment_type: string
   band: string
   score_total: number
@@ -24,6 +27,9 @@ interface Lead {
   answers?: Record<string, unknown>
   full_result_unlocked?: boolean
   is_claimed_by_me?: boolean
+  // Step 3 of the funnel: null = not answered yet, true = opted in
+  // (city already set alongside it), false = explicitly declined.
+  wants_clinic_recommendations?: boolean | null
 }
 
 type Segment = 'adult' | 'teen' | 'child'
@@ -158,22 +164,51 @@ export default function ResultsPage() {
             <h2 className="font-display text-2xl font-semibold text-black">Следваща стъпка</h2>
             <p className="mt-4 text-sm leading-6 text-[#45464D]">Запази час за консултация в партньорска клиника, за да потвърдите случая и да обсъдите конкретен план.</p>
 
-            {isUnlocked ? (
-              <Link href={`/results/${leadId}/clinics`} className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-black px-5 py-4 text-sm font-semibold text-white" data-testid="see-clinics-cta">
-                Виж подходящи клиники <CalendarDays className="h-4 w-4" />
-              </Link>
-            ) : (
+            {!isUnlocked && (
               <div className="mt-6" data-testid="partial-locked-teaser">
                 <ResultUnlockGate
                   leadId={lead.id}
                   defaultName={lead.name}
-                  citySlug={lead.city_slug}
                   onUnlocked={(contact) => {
                     setStoredLeadContact(lead.id, contact)
-                    window.location.reload()
+                    // No reload — just flip the local flag so the aside
+                    // re-renders straight into step 3 (recommendation
+                    // choice) in the same paint. The backend already
+                    // committed both unlock flags before this resolved.
+                    setLead((prev) => (prev ? { ...prev, full_result_unlocked: true } : prev))
                   }}
                 />
               </div>
+            )}
+
+            {isUnlocked && lead.wants_clinic_recommendations == null && (
+              <div className="mt-6" data-testid="clinic-recommendation-choice-wrap">
+                <ClinicRecommendationChoice
+                  leadId={lead.id}
+                  onDeclined={() =>
+                    setLead((prev) => (prev ? { ...prev, wants_clinic_recommendations: false } : prev))
+                  }
+                />
+              </div>
+            )}
+
+            {isUnlocked && lead.wants_clinic_recommendations === false && (
+              <div
+                className="mt-6 rounded-xl border border-[#E2E8F0] bg-[#F5F3F1] p-6 text-center"
+                data-testid="clinic-recommendation-declined"
+              >
+                <span className="mx-auto grid h-10 w-10 place-items-center rounded-full bg-white text-[#45464D]">
+                  <X className="h-5 w-5" />
+                </span>
+                <h3 className="mt-3 font-display text-lg font-semibold text-black">Ориентирът ти остава достъпен.</h3>
+                <p className="mt-1.5 text-sm leading-6 text-[#45464D]">Можеш да провериш отново по всяко време.</p>
+              </div>
+            )}
+
+            {isUnlocked && lead.wants_clinic_recommendations === true && (
+              <Link href={`/results/${leadId}/clinics`} className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-black px-5 py-4 text-sm font-semibold text-white" data-testid="see-clinics-cta">
+                Виж подходящи клиники <CalendarDays className="h-4 w-4" />
+              </Link>
             )}
 
             <p className="mt-4 text-center text-xs text-[#64748B]">Не изисква плащане сега. Отмяна е възможна по всяко време.</p>
