@@ -209,7 +209,7 @@ export interface RecommendedClinicsResponse {
   assisted_help_available: boolean;
   selection_rule: {
     can_view_clinics: number;
-    can_request_call_from_clinics: number;
+    can_request_call_from_clinics: number | null;
     assisted_choice_available: boolean;
   };
   clinics: RecommendedClinic[];
@@ -234,9 +234,9 @@ export const getRecommendedClinics = async (
 
 // ── Patient layer P4 ─────────────────────────────────────────
 // POST /api/leads/{leadId}/request-call
-// Patient selects ONE recommended clinic and consents to share their
-// request. The endpoint is single-clinic-only and idempotent on retry
-// of the SAME clinic; choosing a different clinic returns 409.
+// Patient selects a recommended clinic and consents to share their request.
+// Idempotency is scoped to each clinic; the same lead can contact multiple
+// recommended clinics.
 
 export interface RequestCallBody {
   clinic_id: string;
@@ -256,14 +256,16 @@ export interface RequestCallSuccess {
 export interface SelectionState {
   lead_id: string;
   has_request: boolean;
+  request_count?: number;
+  requested_clinic_ids?: string[];
+  requested_clinics?: Array<{ id: string; name: string; city_name: string }>;
   selected_clinic_id: string | null;
   selected_clinic_request_id: string | null;
   clinic_selection_source: 'matching_card' | 'clinic_profile' | null;
   request_call_status: 'requested' | null;
   selected_clinic_requested_at: string | null;
   clinic?: { id: string; name: string; city_name: string };
-  // P5 — assisted-choice fields. `has_selected_clinic` mirrors
-  // `has_request` for clarity; new UI should prefer the explicit pair.
+  // Legacy latest-clinic fields are retained for older clients.
   has_selected_clinic?: boolean;
   selected_clinic?: { id: string; name: string; city_name: string } | null;
   has_requested_zubite_help?: boolean;

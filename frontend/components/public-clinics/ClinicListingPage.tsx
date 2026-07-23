@@ -132,7 +132,7 @@ export default function ClinicListingPage({ initialCity, initialSpecialty, initi
         </div>
       </section>
 
-      <section className="mx-auto max-w-[1280px] px-5 sm:px-6">
+      <section className="taste-directory-results mx-auto max-w-[1280px] px-5 sm:px-6">
         <div className="grid items-start gap-8 lg:grid-cols-[260px_1fr]">
           <PublicClinicFiltersBar value={filters} onChange={setFilters} syncToUrl={syncToUrl} />
 

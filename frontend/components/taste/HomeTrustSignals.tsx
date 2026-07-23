@@ -12,7 +12,7 @@ export function HomeTrustSignals({ signals }: { signals: HomeTrustSignalsData })
     },
     {
       value: signals.consultations_booked,
-      label: 'заявени консултации',
+      label: 'записани консултации',
     },
     {
       value: signals.community_answers,

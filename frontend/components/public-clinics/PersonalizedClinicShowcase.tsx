@@ -82,32 +82,57 @@ export default function PersonalizedClinicShowcase({ leadId }: { leadId: string 
 
   const handleSubmitted = useCallback(
     (selectedClinicId: string, clinicName: string) => {
-      setSelection((previous) => ({
-        lead_id: leadId,
-        has_request: true,
-        selected_clinic_id: selectedClinicId,
-        selected_clinic_request_id: previous?.selected_clinic_request_id ?? null,
-        clinic_selection_source: previous?.clinic_selection_source ?? 'matching_card',
-        request_call_status: 'requested',
-        selected_clinic_requested_at:
-          previous?.selected_clinic_requested_at ?? new Date().toISOString(),
-        has_selected_clinic: true,
-        selected_clinic: {
+      setSelection((previous) => {
+        const previousIds =
+          previous?.requested_clinic_ids ??
+          (previous?.selected_clinic_id ? [previous.selected_clinic_id] : [])
+        const requestedClinicIds = previousIds.includes(selectedClinicId)
+          ? previousIds
+          : [...previousIds, selectedClinicId]
+        const cityName =
+          data?.clinics.find((clinic) => clinic.id === selectedClinicId)?.city_name ?? ''
+        const selectedClinic = {
           id: selectedClinicId,
           name: clinicName,
-          city_name: previous?.clinic?.city_name ?? '',
-        },
-        clinic: {
-          id: selectedClinicId,
-          name: clinicName,
-          city_name: previous?.clinic?.city_name ?? '',
-        },
-      }))
+          city_name: cityName,
+        }
+        const previousClinics = previous?.requested_clinics ?? []
+        const requestedClinics = previousClinics.some(
+          (clinic) => clinic.id === selectedClinicId,
+        )
+          ? previousClinics
+          : [...previousClinics, selectedClinic]
+
+        const baseSelection: SelectionState = previous ?? {
+          lead_id: leadId,
+          has_request: false,
+          selected_clinic_id: null,
+          selected_clinic_request_id: null,
+          clinic_selection_source: 'matching_card',
+          request_call_status: 'requested',
+          selected_clinic_requested_at: null,
+        }
+
+        return {
+          ...baseSelection,
+          request_count: requestedClinicIds.length,
+          requested_clinic_ids: requestedClinicIds,
+          requested_clinics: requestedClinics,
+          has_request: true,
+          has_selected_clinic: true,
+          selected_clinic_id: selectedClinicId,
+          selected_clinic: selectedClinic,
+          clinic: selectedClinic,
+        }
+      })
     },
-    [leadId],
+    [data, leadId],
   )
 
-  const selectedClinic = selection?.selected_clinic || selection?.clinic
+  const requestedClinicIds =
+    selection?.requested_clinic_ids ??
+    (selection?.selected_clinic_id ? [selection.selected_clinic_id] : [])
+  const requestedClinicCount = requestedClinicIds.length
   const cityName = data?.city_slug ? cityDisplay(data.city_slug) : null
   const recommendationHeading =
     data?.clinic_count === 1
@@ -116,7 +141,7 @@ export default function PersonalizedClinicShowcase({ leadId }: { leadId: string 
 
   return (
     <section
-      className="border-b border-[#D7E3E0] bg-[#F3F7F6]"
+      className="taste-personalized-showcase border-b border-[#D7E3E0] bg-[#F3F7F6]"
       data-testid="personalized-clinic-showcase"
       aria-labelledby="personalized-clinic-heading"
     >
@@ -178,7 +203,7 @@ export default function PersonalizedClinicShowcase({ leadId }: { leadId: string 
               </span>
               <span className="inline-flex items-center gap-2 rounded-full border border-[#3F746E] px-3 py-2">
                 <ShieldCheck className="h-3.5 w-3.5 text-[#89E0D4]" />
-                Контакт с 1 клиника
+                Контакт с всяка клиника
               </span>
             </div>
           )}
@@ -236,15 +261,17 @@ export default function PersonalizedClinicShowcase({ leadId }: { leadId: string 
 
         {state === 'ready' && data && (
           <>
-            {selectedClinic && (
+            {requestedClinicCount > 0 && (
               <div
                 className="mb-5 flex items-start gap-3 rounded-xl border border-[#9ED8CE] bg-[#E7F6F3] p-4"
                 data-testid="personalized-selected-clinic"
               >
                 <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-[#006A61]" />
                 <p className="text-sm leading-6 text-[#16443F]">
-                  Заявката е изпратена към <strong>{selectedClinic.name}</strong>.
-                  Клиниката ще се свърже с теб според процеса си за обработка.
+                  {requestedClinicCount === 1
+                    ? 'Изпрати заявка към 1 клиника.'
+                    : `Изпрати заявки към ${requestedClinicCount} клиники.`}{' '}
+                  Всяка клиника ще се свърже с теб според процеса си за обработка.
                 </p>
               </div>
             )}
@@ -269,8 +296,7 @@ export default function PersonalizedClinicShowcase({ leadId }: { leadId: string 
                     clinic={clinic}
                     position={index + 1}
                     leadId={leadId}
-                    selectedClinicId={selection?.selected_clinic_id ?? null}
-                    hasAssistedChoice={Boolean(selection?.has_requested_zubite_help)}
+                    requestedClinicIds={requestedClinicIds}
                     onSubmitted={handleSubmitted}
                   />
                 </div>
@@ -289,7 +315,7 @@ export default function PersonalizedClinicShowcase({ leadId }: { leadId: string 
                   <CheckCircle2 className="h-4 w-4" />
                   Zubite ще ти помогне
                 </span>
-              ) : !selection?.has_selected_clinic && !selection?.has_request ? (
+              ) : (
                 <button
                   type="button"
                   onClick={() => setAssistedModalOpen(true)}
@@ -299,7 +325,7 @@ export default function PersonalizedClinicShowcase({ leadId }: { leadId: string 
                   <Sparkles className="h-4 w-4" />
                   Помогни ми да избера
                 </button>
-              ) : null}
+              )}
             </div>
           </>
         )}

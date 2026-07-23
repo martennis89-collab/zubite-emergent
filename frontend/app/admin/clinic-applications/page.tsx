@@ -8,6 +8,7 @@ import {
   CheckCircle, XCircle, X, Clock, Search, ChevronLeft,
   Globe, MapPin, Phone, Mail, Calendar, Shield, Target,
   MessageSquare, Save, ArrowLeft, KeyRound, Copy, Check,
+  Layers, BadgeCheck, Plus, Ban, ShieldCheck,
 } from 'lucide-react'
 import { AdminHeader } from '@/components/admin/AdminHeader'
 
@@ -43,19 +44,67 @@ interface ClinicApplication {
   contact_name: string
   phone: string
   email: string
+  package_interest?: 'verified_profile' | 'growth_partner' | 'unsure'
   offers_aligners: boolean
   offers_braces: boolean
   offers_implants: boolean
   treats_adults: boolean
   treats_children: boolean
+  treatments_supported?: string[]
+  treatment_focus?: string[]
+  short_description?: string | null
+  google_url?: string | null
+  facebook_url?: string | null
+  superdoc_url?: string | null
+  aligner_brands?: string[]
+  claimed_official_provider_brands?: string[]
+  founded_year?: number | null
+  patient_intro?: string | null
+  treatment_case_counts?: Array<{ treatment: string; completed_cases: number; as_of_year?: number | null }>
+  doctor_spotlight_kind?: 'owner' | 'lead_doctor' | null
+  doctor_spotlight_name?: string | null
+  doctor_spotlight_role?: string | null
+  doctor_spotlight_specialties?: string[]
+  doctor_spotlight_bio?: string | null
+  assessment_approaches?: string[]
+  team_note?: string | null
+  clinic_story?: string | null
+  environment_description?: string | null
+  consultation_process?: string | null
+  hero_image_url?: string | null
+  doctor_spotlight_image_url?: string | null
+  team_image_url?: string | null
+  environment_image_url?: string | null
+  clinic_video_url?: string | null
+  doctor_video_url?: string | null
+  case_library_summary?: string | null
+  case_media_url?: string | null
+  patient_consent_available?: boolean | null
   years_experience: number | null
   number_of_cases_per_month: string | null
   do_you_use_digital_scans: boolean | null
   what_types_of_patients_are_best_for_you: string | null
   average_response_time: string | null
+  wants_online_booking?: boolean | null
+  wants_viber_contact?: boolean | null
+  viber_phone?: string | null
   status: string
   notes: string
   created_at: string
+  source?: string | null
+  intake_label?: string | null
+}
+
+interface ClinicIntakeInvite {
+  id: string
+  clinic_label: string
+  contact_email?: string | null
+  status: 'pending' | 'submitted' | 'expired' | 'revoked' | 'submitting'
+  token_hint?: string | null
+  created_at: string
+  expires_at?: string | null
+  submitted_at?: string | null
+  application_id?: string | null
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
@@ -72,6 +121,21 @@ const RESPONSE_TIME_LABELS: Record<string, string> = {
   '>24h': 'Над 24 часа',
 }
 
+const PACKAGE_INTEREST_LABELS: Record<string, string> = {
+  verified_profile: 'Verified Profile',
+  growth_partner: 'Growth Partner',
+  unsure: 'Не е сигурна',
+}
+
+const ASSESSMENT_APPROACH_LABELS: Record<string, string> = {
+  airway_breathing: 'Дишане и дихателни пътища',
+  swallowing_orofacial: 'Преглъщане и орофациални навици',
+  speech_articulation: 'Говор и артикулация',
+  posture_balance: 'Стойка и мускулен баланс',
+  facial_asymmetry: 'Лицева асиметрия',
+  functional_orthodontics: 'Функционален ортодонтски подход',
+}
+
 function StatusBadge({ status }: { status: string }) {
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.pending
   return (
@@ -86,6 +150,11 @@ function ServiceTags({ app }: { app: ClinicApplication }) {
   if (app.offers_aligners) tags.push('Алайнери')
   if (app.offers_braces) tags.push('Брекети')
   if (app.offers_implants) tags.push('Импланти')
+  for (const treatment of app.treatments_supported || []) {
+    if (!tags.some((tag) => tag.toLocaleLowerCase('bg-BG') === treatment.toLocaleLowerCase('bg-BG'))) {
+      tags.push(treatment)
+    }
+  }
   if (tags.length === 0) return <span className="text-slate-400 text-sm">—</span>
   return (
     <div className="flex flex-wrap gap-1">
@@ -93,6 +162,195 @@ function ServiceTags({ app }: { app: ClinicApplication }) {
         <span key={t} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">{t}</span>
       ))}
     </div>
+  )
+}
+
+const INTAKE_STATUS: Record<string, { label: string; className: string }> = {
+  pending: { label: 'Очаква попълване', className: 'bg-amber-50 text-amber-700' },
+  submitting: { label: 'Изпраща се', className: 'bg-sky-50 text-sky-700' },
+  submitted: { label: 'Получена', className: 'bg-emerald-50 text-emerald-700' },
+  expired: { label: 'Изтекъл', className: 'bg-slate-100 text-slate-600' },
+  revoked: { label: 'Деактивиран', className: 'bg-rose-50 text-rose-700' },
+}
+
+function IntakeInvitePanel({
+  invites,
+  onChanged,
+}: {
+  invites: ClinicIntakeInvite[]
+  onChanged: () => Promise<void>
+}) {
+  const [clinicLabel, setClinicLabel] = useState('')
+  const [contactEmail, setContactEmail] = useState('')
+  const [expiresInDays, setExpiresInDays] = useState('30')
+  const [creating, setCreating] = useState(false)
+  const [createdLink, setCreatedLink] = useState('')
+  const [copied, setCopied] = useState(false)
+  const [error, setError] = useState('')
+
+  const createInvite = async (event: React.FormEvent) => {
+    event.preventDefault()
+    setCreating(true)
+    setError('')
+    try {
+      const response = await fetch(`${API_URL}/api/admin/clinic-intake-invites`, {
+        method: 'POST',
+        credentials: 'include' as RequestCredentials,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clinic_label: clinicLabel,
+          contact_email: contactEmail || null,
+          expires_in_days: Number(expiresInDays),
+        }),
+      })
+      if (!response.ok) {
+        setError('Линкът не беше създаден. Проверете въведените данни.')
+        return
+      }
+      const data = await response.json()
+      setCreatedLink(`${window.location.origin}/clinic-intake/${data.token}`)
+      setClinicLabel('')
+      setContactEmail('')
+      await onChanged()
+    } catch {
+      setError('Възникна грешка при създаването на линка.')
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const copyLink = async () => {
+    await navigator.clipboard.writeText(createdLink)
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 1800)
+  }
+
+  const revoke = async (inviteId: string) => {
+    const response = await fetch(`${API_URL}/api/admin/clinic-intake-invites/${inviteId}/revoke`, {
+      method: 'PATCH',
+      credentials: 'include' as RequestCredentials,
+    })
+    if (response.ok) await onChanged()
+  }
+
+  return (
+    <section className="mb-8 overflow-hidden rounded-xl bg-white ring-1 ring-slate-200" data-testid="intake-invite-panel">
+      <div className="border-b border-slate-100 px-5 py-5">
+        <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900">
+          <ShieldCheck className="h-4 w-4 text-teal-600" />
+          Непублични intake линкове
+        </h2>
+        <p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate-500">
+          Създайте защитен линк за конкретна клиника. Той е еднократен, не се индексира и подадената форма влиза директно в кандидатурите.
+        </p>
+      </div>
+
+      <form onSubmit={createInvite} className="grid gap-3 bg-slate-50/70 px-5 py-4 md:grid-cols-[1fr_1fr_150px_auto]">
+        <label className="text-xs font-medium text-slate-600">
+          Име на клиниката
+          <input
+            required
+            minLength={2}
+            value={clinicLabel}
+            onChange={(event) => setClinicLabel(event.target.value)}
+            className="mt-1 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition-colors focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
+            placeholder="Дентална клиника…"
+            data-testid="invite-clinic-label"
+          />
+        </label>
+        <label className="text-xs font-medium text-slate-600">
+          Имейл за предварително попълване
+          <input
+            type="email"
+            value={contactEmail}
+            onChange={(event) => setContactEmail(event.target.value)}
+            className="mt-1 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition-colors focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
+            placeholder="clinic@example.com"
+            data-testid="invite-contact-email"
+          />
+        </label>
+        <label className="text-xs font-medium text-slate-600">
+          Валиден
+          <select
+            value={expiresInDays}
+            onChange={(event) => setExpiresInDays(event.target.value)}
+            className="mt-1 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
+            data-testid="invite-expiry"
+          >
+            <option value="7">7 дни</option>
+            <option value="14">14 дни</option>
+            <option value="30">30 дни</option>
+            <option value="60">60 дни</option>
+            <option value="90">90 дни</option>
+          </select>
+        </label>
+        <button
+          type="submit"
+          disabled={creating}
+          className="mt-auto inline-flex h-11 items-center justify-center gap-2 rounded-full bg-teal-600 px-5 text-sm font-medium text-white transition-colors hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          data-testid="create-intake-invite"
+        >
+          {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+          Създай линк
+        </button>
+      </form>
+
+      {error && <p className="px-5 py-3 text-sm text-rose-700" role="alert">{error}</p>}
+
+      {createdLink && (
+        <div className="mx-5 my-4 rounded-lg bg-teal-50 p-4 ring-1 ring-teal-200" data-testid="created-intake-link">
+          <p className="text-xs font-semibold text-teal-800">Копирайте линка сега — поради сигурност пълният token не се съхранява.</p>
+          <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+            <input readOnly value={createdLink} className="h-11 min-w-0 flex-1 rounded-lg bg-white px-3 text-sm text-slate-700 ring-1 ring-teal-200" />
+            <button type="button" onClick={copyLink} className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-slate-900 px-5 text-sm font-medium text-white hover:bg-slate-800">
+              {copied ? <Check className="h-4 w-4 text-emerald-300" /> : <Copy className="h-4 w-4" />}
+              {copied ? 'Копиран' : 'Копирай'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="divide-y divide-slate-100">
+        {invites.length === 0 ? (
+          <div className="px-5 py-8 text-center text-sm text-slate-500">
+            Все още няма създадени линкове.
+          </div>
+        ) : invites.slice(0, 12).map((invite) => {
+          const status = INTAKE_STATUS[invite.status] || INTAKE_STATUS.pending
+          return (
+            <div key={invite.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center" data-testid={`intake-invite-${invite.id}`}>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="truncate text-sm font-medium text-slate-900">{invite.clinic_label}</p>
+                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${status.className}`}>{status.label}</span>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">
+                  {invite.contact_email || 'Без предварително попълнен имейл'}
+                  {invite.expires_at ? ` · до ${new Date(invite.expires_at).toLocaleDateString('bg-BG')}` : ''}
+                  {invite.token_hint ? ` · token …${invite.token_hint}` : ''}
+                </p>
+              </div>
+              {invite.status === 'pending' && (
+                <button
+                  type="button"
+                  onClick={() => revoke(invite.id)}
+                  className="inline-flex h-9 items-center justify-center gap-2 rounded-full px-3 text-xs font-medium text-rose-700 hover:bg-rose-50"
+                >
+                  <Ban className="h-3.5 w-3.5" />
+                  Деактивирай
+                </button>
+              )}
+              {invite.status === 'submitted' && (
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700">
+                  <CheckCircle className="h-3.5 w-3.5" />
+                  В кандидатурите
+                </span>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </section>
   )
 }
 
@@ -250,6 +508,7 @@ function DetailView({ app, onClose, onUpdate }: {
             </h3>
             <div className="bg-slate-50 rounded-xl p-4">
               <InfoRow label="Име" value={app.clinic_name} icon={Building2} />
+              <InfoRow label="Източник" value={app.source === 'private_intake' ? `Непубличен intake${app.intake_label ? ` · ${app.intake_label}` : ''}` : 'Публична кандидатура'} />
               <InfoRow label="Град" value={app.city} icon={MapPin} />
               <InfoRow label="Адрес" value={app.address} icon={MapPin} />
               <InfoRow label="Уебсайт" value={app.website} icon={Globe} />
@@ -302,8 +561,79 @@ function DetailView({ app, onClose, onUpdate }: {
                   </div>
                 ))}
               </div>
+              <InfoRow label="Други лечения" value={app.treatments_supported?.join(', ')} />
+              <InfoRow label="Приоритетни лечения" value={app.treatment_focus?.join(', ')} />
             </div>
           </div>
+
+          {/* Requested package & profile content */}
+          <div>
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+              <Layers className="w-3.5 h-3.5" /> Заявен пакет & профил
+            </h3>
+            <div className="bg-slate-50 rounded-xl p-4">
+              <InfoRow label="Интерес към пакет" value={app.package_interest ? (PACKAGE_INTEREST_LABELS[app.package_interest] || app.package_interest) : null} />
+              <InfoRow label="Кратко описание" value={app.short_description} />
+              <InfoRow label="Google профил" value={app.google_url} icon={Globe} />
+              <InfoRow label="Facebook страница" value={app.facebook_url} icon={Globe} />
+              <InfoRow label="Superdoc профил" value={app.superdoc_url} icon={Globe} />
+              <InfoRow label="Алайнер системи" value={app.aligner_brands?.join(', ')} />
+              <InfoRow label="Заявен official provider" value={app.claimed_official_provider_brands?.join(', ')} />
+            </div>
+          </div>
+
+          {(app.package_interest === 'growth_partner' || app.package_interest === 'unsure' || app.patient_intro || app.doctor_spotlight_name) && (
+            <>
+              <div>
+                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                  <BadgeCheck className="w-3.5 h-3.5" /> Growth профил
+                </h3>
+                <div className="bg-slate-50 rounded-xl p-4">
+                  <InfoRow label="Година на основаване" value={app.founded_year?.toString()} />
+                  <InfoRow label="Обръщение към пациента" value={app.patient_intro} />
+                  <InfoRow
+                    label="Завършени случаи по лечение"
+                    value={app.treatment_case_counts?.map((row) => `${row.treatment}: ${row.completed_cases}${row.as_of_year ? ` (${row.as_of_year})` : ''}`).join(' · ')}
+                  />
+                  <InfoRow label="Представяме" value={app.doctor_spotlight_kind === 'owner' ? 'Собственик' : app.doctor_spotlight_kind === 'lead_doctor' ? 'Водещ лекар' : null} />
+                  <InfoRow label="Име на лекар" value={app.doctor_spotlight_name} />
+                  <InfoRow label="Роля / титла" value={app.doctor_spotlight_role} />
+                  <InfoRow label="Специалности" value={app.doctor_spotlight_specialties?.join(', ')} />
+                  <InfoRow label="Биография" value={app.doctor_spotlight_bio} />
+                  <InfoRow label="Подход при оценката" value={app.assessment_approaches?.map((item) => ASSESSMENT_APPROACH_LABELS[item] || item).join(', ')} />
+                  <InfoRow label="Бележка за екипа" value={app.team_note} />
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                  <FileText className="w-3.5 h-3.5" /> История, среда & процес
+                </h3>
+                <div className="bg-slate-50 rounded-xl p-4">
+                  <InfoRow label="История на клиниката" value={app.clinic_story} />
+                  <InfoRow label="Среда / оборудване" value={app.environment_description} />
+                  <InfoRow label="Процес на консултация" value={app.consultation_process} />
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                  <Globe className="w-3.5 h-3.5" /> Медия & библиотека със случаи
+                </h3>
+                <div className="bg-slate-50 rounded-xl p-4">
+                  <InfoRow label="Hero изображение" value={app.hero_image_url} />
+                  <InfoRow label="Снимка на лекаря" value={app.doctor_spotlight_image_url} />
+                  <InfoRow label="Снимка на екипа" value={app.team_image_url} />
+                  <InfoRow label="Снимка на средата" value={app.environment_image_url} />
+                  <InfoRow label="Видео на клиниката" value={app.clinic_video_url} />
+                  <InfoRow label="Видео на лекаря" value={app.doctor_video_url} />
+                  <InfoRow label="Описание на налични случаи" value={app.case_library_summary} />
+                  <InfoRow label="Папка със снимки" value={app.case_media_url} />
+                  <InfoRow label="Документирано съгласие" value={app.patient_consent_available === true ? 'Да' : app.patient_consent_available === false ? 'Не' : null} />
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Qualification */}
           <div>
@@ -325,6 +655,9 @@ function DetailView({ app, onClose, onUpdate }: {
             <div className="bg-slate-50 rounded-xl p-4">
               <InfoRow label="Тип пациенти" value={app.what_types_of_patients_are_best_for_you} />
               <InfoRow label="Време за отговор" value={app.average_response_time ? (RESPONSE_TIME_LABELS[app.average_response_time] || app.average_response_time) : null} icon={Clock} />
+              <InfoRow label="Желае онлайн записване" value={app.wants_online_booking === true ? 'Да' : app.wants_online_booking === false ? 'Не' : null} />
+              <InfoRow label="Желае Viber контакт" value={app.wants_viber_contact === true ? 'Да' : app.wants_viber_contact === false ? 'Не' : null} />
+              <InfoRow label="Viber телефон" value={app.viber_phone} icon={Phone} />
             </div>
           </div>
 
@@ -358,6 +691,7 @@ function DetailView({ app, onClose, onUpdate }: {
 // ─── Main Page ───────────────────────────────────────────
 export default function ClinicApplicationsPage() {
   const [applications, setApplications] = useState<ClinicApplication[]>([])
+  const [intakeInvites, setIntakeInvites] = useState<ClinicIntakeInvite[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedApp, setSelectedApp] = useState<ClinicApplication | null>(null)
   const [filterStatus, setFilterStatus] = useState<string>('')
@@ -367,9 +701,14 @@ export default function ClinicApplicationsPage() {
 
   const fetchApplications = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/api/admin/clinic-applications`, {
-        credentials: 'include' as RequestCredentials,
-      })
+      const [res, inviteRes] = await Promise.all([
+        fetch(`${API_URL}/api/admin/clinic-applications`, {
+          credentials: 'include' as RequestCredentials,
+        }),
+        fetch(`${API_URL}/api/admin/clinic-intake-invites`, {
+          credentials: 'include' as RequestCredentials,
+        }),
+      ])
       if (!res.ok) {
         if (res.status === 401 || res.status === 403) {
           try { localStorage.removeItem('admin_token'); localStorage.removeItem('admin_user') } catch { /* noop */ }
@@ -379,6 +718,10 @@ export default function ClinicApplicationsPage() {
       }
       const data = await res.json()
       setApplications(data.applications || [])
+      if (inviteRes.ok) {
+        const inviteData = await inviteRes.json()
+        setIntakeInvites(inviteData.invites || [])
+      }
     } catch (err) {
       console.error('Failed to fetch applications', err)
     } finally {
@@ -469,6 +812,8 @@ export default function ClinicApplicationsPage() {
           </Link>
         </div>
 
+        <IntakeInvitePanel invites={intakeInvites} onChanged={fetchApplications} />
+
         {/* Stat Cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           {[
@@ -534,6 +879,11 @@ export default function ClinicApplicationsPage() {
                     >
                       <td className="px-6 py-4">
                         <p className="font-medium text-slate-900 text-sm">{app.clinic_name}</p>
+                        {app.source === 'private_intake' && (
+                          <span className="mt-1 inline-flex rounded-full bg-teal-50 px-2 py-0.5 text-[10px] font-medium text-teal-700">
+                            private intake
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         <p className="text-sm text-slate-600">{app.city}</p>

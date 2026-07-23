@@ -99,6 +99,7 @@ interface AddonRow {
 interface Props {
   clinicId: string
   onNotify?: (m: { type: 'ok' | 'err'; text: string }) => void
+  onBasePackageChange?: (basePackage: BasePackage, foundingStatus: FoundingStatus) => void
 }
 
 interface CatalogItem {
@@ -112,7 +113,7 @@ interface CatalogItem {
 // ═════════════════════════════════════════════════════════════════
 // Root component — fetches, caches, mounts the three sub-cards.
 // ═════════════════════════════════════════════════════════════════
-export function ClinicPackageSection({ clinicId, onNotify }: Props) {
+export function ClinicPackageSection({ clinicId, onNotify, onBasePackageChange }: Props) {
   const [loading, setLoading] = useState(true)
   const [pricing, setPricing] = useState<ClinicPricingBlob>({})
   const [addons, setAddons] = useState<AddonRow[]>([])
@@ -146,6 +147,10 @@ export function ClinicPackageSection({ clinicId, onNotify }: Props) {
           legacy_tier:             c.legacy_tier ?? null,
           entitlement_overrides:   Array.isArray(c.entitlement_overrides) ? c.entitlement_overrides : [],
         })
+        onBasePackageChange?.(
+          (c.base_package || 'verified_profile') as BasePackage,
+          (c.founding_status || 'none') as FoundingStatus,
+        )
         setAddons(Array.isArray(d.addons) ? d.addons as AddonRow[] : [])
         setEntitlements(d.entitlements || {})
         setDefaults(d.package_defaults || null)
@@ -155,7 +160,7 @@ export function ClinicPackageSection({ clinicId, onNotify }: Props) {
         setCatalog({ seed: j.seed || [], custom: j.custom || [] })
       }
     } finally { setLoading(false) }
-  }, [clinicId])
+  }, [clinicId, onBasePackageChange])
 
   useEffect(() => { load() }, [load])
 

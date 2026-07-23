@@ -534,24 +534,119 @@ class CleanupLeadsBody(BaseModel):
         return cleaned
 
 
+class ClinicApplicationTreatmentCaseCount(BaseModel):
+    """Clinic-declared aggregate experience collected during onboarding.
+
+    This is deliberately separate from patient case-library examples:
+    no patient data or images are accepted through the public intake.
+    """
+    model_config = ConfigDict(extra="ignore")
+
+    treatment: str = Field(min_length=1, max_length=80)
+    completed_cases: int = Field(ge=1, le=1_000_000)
+    as_of_year: Optional[int] = Field(
+        default=None,
+        ge=2000,
+        le=datetime.now(timezone.utc).year,
+    )
+
+
 class ClinicApplicationCreate(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     clinic_name: str = Field(min_length=2, max_length=200)
     city: str = Field(min_length=2, max_length=100)
     address: str = Field(min_length=2, max_length=500)
+    district_slug: Optional[str] = Field(default=None, max_length=50)
     website: Optional[str] = Field(default=None, max_length=500)
     contact_name: str = Field(min_length=2, max_length=200)
     phone: str = Field(min_length=5, max_length=50)
     email: EmailStr
+    package_interest: Literal["verified_profile", "growth_partner", "unsure"] = "unsure"
+
+    # Services and patient fit
     offers_aligners: bool = False
     offers_braces: bool = False
     offers_implants: bool = False
     treats_adults: bool = False
     treats_children: bool = False
+    treatments_supported: List[str] = Field(default_factory=list, max_length=12)
+    treatment_focus: List[str] = Field(default_factory=list, max_length=12)
+
+    # Profile content that is useful for both packages. Public visibility
+    # remains controlled by the package entitlements after approval.
+    short_description: Optional[str] = Field(default=None, max_length=500)
+    google_url: Optional[str] = Field(default=None, max_length=500)
+    facebook_url: Optional[str] = Field(default=None, max_length=500)
+    superdoc_url: Optional[str] = Field(default=None, max_length=500)
+    aligner_brands: List[str] = Field(default_factory=list, max_length=12)
+    claimed_official_provider_brands: List[str] = Field(default_factory=list, max_length=12)
+
+    # Growth profile content. It can be collected before a commercial
+    # decision, but is stored as draft and never grants Growth access.
+    founded_year: Optional[int] = Field(
+        default=None,
+        ge=1900,
+        le=datetime.now(timezone.utc).year,
+    )
+    patient_intro: Optional[str] = Field(default=None, max_length=500)
+    treatment_case_counts: List[ClinicApplicationTreatmentCaseCount] = Field(
+        default_factory=list,
+        max_length=12,
+    )
+    doctor_spotlight_kind: Optional[Literal["owner", "lead_doctor"]] = None
+    doctor_spotlight_name: Optional[str] = Field(default=None, max_length=200)
+    doctor_spotlight_role: Optional[str] = Field(default=None, max_length=200)
+    doctor_spotlight_specialties: List[str] = Field(default_factory=list, max_length=8)
+    doctor_spotlight_bio: Optional[str] = Field(default=None, max_length=1000)
+    assessment_approaches: List[Literal[
+        "airway_breathing",
+        "swallowing_orofacial",
+        "speech_articulation",
+        "posture_balance",
+        "facial_asymmetry",
+        "functional_orthodontics",
+    ]] = Field(default_factory=list, max_length=6)
+    team_note: Optional[str] = Field(default=None, max_length=500)
+    clinic_story: Optional[str] = Field(default=None, max_length=1500)
+    environment_description: Optional[str] = Field(default=None, max_length=1000)
+    consultation_process: Optional[str] = Field(default=None, max_length=1000)
+
+    # Intake accepts share links rather than uploading patient or clinic
+    # files into an unauthenticated public form.
+    hero_image_url: Optional[str] = Field(default=None, max_length=500)
+    doctor_spotlight_image_url: Optional[str] = Field(default=None, max_length=500)
+    team_image_url: Optional[str] = Field(default=None, max_length=500)
+    environment_image_url: Optional[str] = Field(default=None, max_length=500)
+    clinic_video_url: Optional[str] = Field(default=None, max_length=500)
+    doctor_video_url: Optional[str] = Field(default=None, max_length=500)
+    case_library_summary: Optional[str] = Field(default=None, max_length=2000)
+    case_media_url: Optional[str] = Field(default=None, max_length=500)
+    patient_consent_available: Optional[bool] = None
+
+    # Operational fit. These are preferences only; package-gated features
+    # are never enabled from a public application.
     years_experience: Optional[int] = Field(default=None, ge=0, le=100)
     number_of_cases_per_month: Optional[str] = Field(default=None, max_length=100)
     do_you_use_digital_scans: Optional[bool] = None
     what_types_of_patients_are_best_for_you: Optional[str] = Field(default=None, max_length=2000)
     average_response_time: Optional[str] = Field(default=None, max_length=100)
+    wants_online_booking: Optional[bool] = None
+    wants_viber_contact: Optional[bool] = None
+    viber_phone: Optional[str] = Field(default=None, max_length=50)
+
+
+class ClinicIntakeInviteCreate(BaseModel):
+    """Admin-created private intake link.
+
+    Only the hash of the generated bearer token is persisted. The full link is
+    returned once, immediately after creation.
+    """
+    model_config = ConfigDict(extra="ignore")
+
+    clinic_label: str = Field(min_length=2, max_length=200)
+    contact_email: Optional[EmailStr] = None
+    expires_in_days: int = Field(default=30, ge=1, le=90)
 
 
 # ─── Blog Models ───────────────────────────────────────────

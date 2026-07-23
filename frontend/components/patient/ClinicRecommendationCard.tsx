@@ -21,12 +21,9 @@ interface Props {
   clinic: RecommendedClinic
   position: number  // 1-based for accessibility
   leadId: string    // required so the card can deep-link to the profile page
-  // P4/P5 selection state — drives 3-way CTA rendering:
-  //   1. this clinic is the pinned selection → green "Заявката е изпратена"
-  //   2. another clinic is pinned OR lead asked Zubite help → disabled label
-  //   3. nothing pinned → original "Искам обаждане"
-  selectedClinicId?: string | null
-  hasAssistedChoice?: boolean
+  // Each clinic keeps its own submitted state; contacting one clinic never
+  // disables the others.
+  requestedClinicIds?: string[]
   onSubmitted?: (selectedClinicId: string, clinicName: string) => void
 }
 
@@ -68,17 +65,12 @@ export function ClinicRecommendationCard({
   clinic,
   position,
   leadId,
-  selectedClinicId,
-  hasAssistedChoice,
+  requestedClinicIds = [],
   onSubmitted,
 }: Props) {
   const [modalOpen, setModalOpen] = useState(false)
 
-  const hasAnySelection = !!selectedClinicId
-  const isSelected = selectedClinicId === clinic.id
-  // When the lead has asked for Zubite help, every clinic CTA is locked
-  // with a different label ("Вече поискахте помощ от Zubite").
-  const lockedByAssisted = !!hasAssistedChoice && !hasAnySelection
+  const isSelected = requestedClinicIds.includes(clinic.id)
 
   // BG label fallback: prefer the centralized treatment label map, else raw.
   // Prefer canonical `treatments_supported` (Feb 2026 cleanup); fall back to
@@ -288,42 +280,6 @@ export function ClinicRecommendationCard({
             <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
             Заявката е изпратена
           </div>
-        ) : lockedByAssisted ? (
-          <button
-            type="button"
-            disabled
-            aria-disabled="true"
-            onClick={() => {
-              trackPatientEvent('matching_choice_blocked', {
-                lead_id: leadId,
-                clinic_id: clinic.id,
-                reason: 'already_requested_zubite_help',
-                attempted_action: 'request_call',
-              })
-            }}
-            className="inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-lg bg-slate-100 px-5 py-3 text-sm font-medium text-slate-400"
-            data-testid={`clinic-card-locked-by-assisted-${clinic.id}`}
-          >
-            Вече поиска помощ от Zubite
-          </button>
-        ) : hasAnySelection ? (
-          <button
-            type="button"
-            disabled
-            aria-disabled="true"
-            onClick={() => {
-              trackPatientEvent('matching_choice_blocked', {
-                lead_id: leadId,
-                clinic_id: clinic.id,
-                reason: 'already_selected_clinic',
-                attempted_action: 'request_call',
-              })
-            }}
-            className="inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-lg bg-slate-100 px-5 py-3 text-sm font-medium text-slate-400"
-            data-testid={`clinic-card-disabled-${clinic.id}`}
-          >
-            Вече избра клиника
-          </button>
         ) : (
           <button
             type="button"

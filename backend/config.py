@@ -108,6 +108,13 @@ PRODUCTION_URL = os.environ.get('PRODUCTION_URL', 'https://zubite.bg')
 # Default is enabled.
 AUDIT_LOGS_ENABLED = os.environ.get('AUDIT_LOGS_ENABLED', '1') != '0'
 
+# Public homepage counter. This starting value covers confirmed consultations
+# that predate the automated booking collections; live records supersede it.
+HOME_TRUST_CONSULTATIONS_BASELINE = max(
+    0,
+    int(os.environ.get('HOME_TRUST_CONSULTATIONS_BASELINE', '12')),
+)
+
 # Auth cookie configuration (P2 — Batch E1)
 # httpOnly cookies as an alternative to localStorage Bearer tokens. During E1
 # Bearer tokens remain fully supported; cookies are additive.

@@ -200,22 +200,22 @@ const VISIBILITY: Record<string, Tier[]> = {
   treatment_case_counts:     ['featured', 'premium'],
   review_sources:           ['standard', 'featured', 'premium'],
   patient_intro:            ['featured', 'premium'],
-  hero_image_url:           ['premium'],
+  hero_image_url:           ['featured', 'premium'],
   doctor_spotlight_image_url:['featured', 'premium'],
-  team_image_url:           ['premium'],
-  environment_image_url:    ['premium'],
-  clinic_video_url:         ['premium'],
-  doctor_video_url:         ['premium'],
+  team_image_url:           ['featured', 'premium'],
+  environment_image_url:    ['featured', 'premium'],
+  clinic_video_url:         ['featured', 'premium'],
+  doctor_video_url:         ['featured', 'premium'],
   doctor_spotlight_name:    ['featured', 'premium'],
   doctor_spotlight_kind:    ['featured', 'premium'],
   doctor_spotlight_role:    ['featured', 'premium'],
   doctor_spotlight_specialties:['featured', 'premium'],
   doctor_spotlight_bio:     ['featured', 'premium'],
-  team_note:                ['premium'],
-  clinic_story:             ['premium'],
-  environment_description:  ['premium'],
-  consultation_process:     ['premium'],
-  case_library:             ['premium'],
+  team_note:                ['featured', 'premium'],
+  clinic_story:             ['featured', 'premium'],
+  environment_description:  ['featured', 'premium'],
+  consultation_process:     ['featured', 'premium'],
+  case_library:             ['featured', 'premium'],
   // ── partner-access matrix (Feb 2026 package doc) ─────────────
   care_pass_partner:         ['featured', 'premium'],
   quiz_result_participation: ['featured', 'premium'],
@@ -276,6 +276,14 @@ export default function AdminClinicEditPage() {
   const caseKeyRef = useRef<number>(0)
   const [brands, setBrands] = useState<AlignerBrandEntry[]>([])
 
+  const handleBasePackageChange = useCallback((basePackage: 'verified_profile' | 'growth_partner', foundingStatus: string) => {
+    const nextTier: Tier = basePackage === 'growth_partner'
+      ? (foundingStatus === 'strategic_private' ? 'premium' : 'featured')
+      : 'standard'
+    setTier(nextTier)
+    setTierBeforeSave(nextTier)
+  }, [])
+
   const load = useCallback(async () => {
     setLoading(true)
     try {
@@ -287,7 +295,13 @@ export default function AdminClinicEditPage() {
       const j = await r.json()
       const c = j.clinic || {}
       setClinicName(c.clinic_name || c.name || '—')
-      const rawTier = (c.partner_tier || (c.is_premium ? 'premium' : c.is_featured ? 'featured' : 'standard')) as Tier
+      const rawTier = (
+        c.base_package === 'growth_partner'
+          ? (c.founding_status === 'strategic_private' ? 'premium' : 'featured')
+          : c.base_package === 'verified_profile'
+            ? 'standard'
+            : (c.partner_tier || (c.is_premium ? 'premium' : c.is_featured ? 'featured' : 'standard'))
+      ) as Tier
       setTier(rawTier)
       setTierBeforeSave(rawTier)
       setCarePassPartner(c.care_pass_partner === true)
@@ -527,9 +541,9 @@ export default function AdminClinicEditPage() {
             гарантирана позиция.
           </p>
           <p className="text-[11px] text-amber-700 italic leading-relaxed mb-3">
-            Feb 2026 revamp: за пълно конфигуриране на pricing / founding / billing / entitlements / add-ons
-            използвай новата секция „Package & Billing" по-долу. Тази стара секция остава само за
-            съвместимост с легаси `partner_tier` в базата.
+            Обобщение само за преглед. Променяй пакета, founding условията,
+            billing, entitlements и add-ons от „Package & Billing" по-долу.
+            Така `base_package` остава единственият източник на истина.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {TIER_LABELS.map((t) => {
@@ -539,9 +553,9 @@ export default function AdminClinicEditPage() {
                 <button
                   key={t.value}
                   type="button"
-                  onClick={() => setTier(t.value)}
+                  disabled
                   className={
-                    'relative text-left rounded-2xl ring-1 p-4 transition-all ' +
+                    'relative cursor-default text-left rounded-2xl ring-1 p-4 ' +
                     (active
                       ? 'ring-teal-500 shadow-[0_10px_24px_-14px_rgba(15,118,110,0.35)] bg-white'
                       : 'ring-slate-200 bg-slate-50 hover:bg-white hover:ring-slate-300')
@@ -602,6 +616,7 @@ export default function AdminClinicEditPage() {
         <ClinicPackageSection
           clinicId={clinicId}
           onNotify={(m) => setMessage(m)}
+          onBasePackageChange={handleBasePackageChange}
         />
 
         {/* Section 1.5 — Founding Growth Partner offer (only for Growth tier) */}
@@ -1064,8 +1079,8 @@ export default function AdminClinicEditPage() {
           </Field>
         </Section>
 
-        {/* Section 7 — Premium съдържание */}
-        <Section title="Premium съдържание" testid="section-premium">
+        {/* Section 7 — Growth profile enrichment */}
+        <Section title="Разширено съдържание (Growth)" testid="section-premium">
           <ImageUploadField
             label="Снимка на средата / оборудването"
             value={profile.environment_image_url || ''}

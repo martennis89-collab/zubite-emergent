@@ -533,6 +533,11 @@ async def admin_update_clinic(
         if bp not in BASE_PACKAGES:
             raise HTTPException(status_code=400, detail="Invalid base_package")
         update["base_package"] = bp
+        # Keep the deprecated audit field aligned for legacy readers.
+        # `base_package` remains canonical; this mirror prevents the old
+        # editor summary and any not-yet-migrated code from disagreeing.
+        if "partner_tier" not in user_provided:
+            update["partner_tier"] = "featured" if bp == "growth_partner" else "standard"
         # Auto-fill locked pricing defaults when the admin switches
         # packages and hasn't manually overridden pricing in the same
         # request. Founding Growth intro pricing is applied only when
@@ -546,6 +551,10 @@ async def admin_update_clinic(
         if fs not in FOUNDING_STATUS_VALUES:
             raise HTTPException(status_code=400, detail="Invalid founding_status")
         update["founding_status"] = fs
+        if fs == "strategic_private" and "partner_tier" not in user_provided:
+            update["partner_tier"] = "premium"
+        elif update.get("base_package") == "growth_partner" and "partner_tier" not in user_provided:
+            update["partner_tier"] = "featured"
         if fs == "founding_growth" and "monthly_price_eur" not in user_provided:
             # Only auto-apply the founding intro monthly if the admin
             # didn't override in this request. Overrides an earlier

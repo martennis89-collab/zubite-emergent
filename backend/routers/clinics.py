@@ -1,14 +1,16 @@
 from fastapi import APIRouter, HTTPException, Depends, Request, Response, UploadFile, File
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import os
 import uuid
 import secrets
+import hashlib
 import logging
 import resend
 
 from database import db
 from schemas import (
-    ClinicApplicationCreate, ClinicLogin, ClinicUserOut, ClinicTokenResponse,
+    ClinicApplicationCreate, ClinicIntakeInviteCreate,
+    ClinicLogin, ClinicUserOut, ClinicTokenResponse,
     ClinicProfileUpdate, ClinicPasswordChange, ClinicLeadStatusUpdate, AdminUser
 )
 from auth import (
@@ -26,8 +28,295 @@ from entitlements import compute_entitlements
 from phone_utils import normalize_msisdn_bg
 from storage import put_object, ALLOWED_IMAGE_TYPES
 from routers.public import _is_clinic_visible
+from aligner_brands import ALIGNER_BRAND_LABELS
 
 router = APIRouter()
+
+
+def _hash_intake_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def _invite_expired(invite: dict, now: datetime | None = None) -> bool:
+    raw = invite.get("expires_at")
+    if not raw:
+        return False
+    try:
+        expires_at = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+    except ValueError:
+        return True
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    return expires_at <= (now or datetime.now(timezone.utc))
+
+
+def _safe_invite(invite: dict) -> dict:
+    return {
+        key: invite.get(key)
+        for key in (
+            "id",
+            "clinic_label",
+            "contact_email",
+            "status",
+            "token_hint",
+            "created_at",
+            "expires_at",
+            "submitted_at",
+            "application_id",
+            "revoked_at",
+        )
+    }
+
+
+def _application_profile(application: dict) -> dict:
+    """Project clinic-authored intake data into a draft rich profile.
+
+    Commercial status, verification, ratings and publication remain admin
+    decisions. Empty values are omitted so the admin editor keeps clean
+    defaults and legacy applications remain compatible.
+    """
+    profile_keys = (
+        "short_description",
+        "patient_intro",
+        "founded_year",
+        "treatment_focus",
+        "treatment_case_counts",
+        "hero_image_url",
+        "clinic_video_url",
+        "doctor_video_url",
+        "doctor_spotlight_image_url",
+        "team_image_url",
+        "environment_image_url",
+        "doctor_spotlight_name",
+        "doctor_spotlight_kind",
+        "doctor_spotlight_role",
+        "doctor_spotlight_specialties",
+        "assessment_approaches",
+        "doctor_spotlight_bio",
+        "team_note",
+        "clinic_story",
+        "environment_description",
+        "consultation_process",
+    )
+    profile = {"profile_status": "draft"}
+    for key in profile_keys:
+        value = application.get(key)
+        if value not in (None, "", []):
+            profile[key] = value
+
+    review_sources = {
+        "google_url": application.get("google_url"),
+        "facebook_url": application.get("facebook_url"),
+        "superdoc_url": application.get("superdoc_url"),
+    }
+    review_sources = {key: value for key, value in review_sources.items() if value}
+    if review_sources:
+        profile["review_sources"] = review_sources
+    return profile
+
+
+def _application_aligner_brands(application: dict) -> list[dict]:
+    """Create safe, unverified brand declarations from public intake."""
+    claimed_official = set(application.get("claimed_official_provider_brands") or [])
+    rows: list[dict] = []
+    for slug in application.get("aligner_brands") or []:
+        if slug not in ALIGNER_BRAND_LABELS:
+            continue
+        relationship = "official_provider" if slug in claimed_official else "offered"
+        rows.append({
+            "brand": slug,
+            "label": ALIGNER_BRAND_LABELS[slug],
+            "relationship": relationship,
+            "verification_status": "pending_verification" if relationship == "official_provider" else "unverified",
+            "visible": True,
+        })
+    return rows
+
+
+# ─── Private clinic intake invitations ─────────────────────────────
+
+@router.post("/admin/clinic-intake-invites")
+async def create_clinic_intake_invite(
+    body: ClinicIntakeInviteCreate,
+    request: Request,
+    user: AdminUser = Depends(get_current_user),
+):
+    token = secrets.token_urlsafe(32)
+    now = datetime.now(timezone.utc)
+    invite = {
+        "id": str(uuid.uuid4()),
+        "clinic_label": body.clinic_label.strip(),
+        "contact_email": str(body.contact_email) if body.contact_email else None,
+        "status": "pending",
+        "token_hash": _hash_intake_token(token),
+        "token_hint": token[-6:],
+        "created_at": now.isoformat(),
+        "expires_at": (now + timedelta(days=body.expires_in_days)).isoformat(),
+        "created_by": user.username,
+    }
+    await db.clinic_intake_invites.insert_one(invite)
+    await audit_log(
+        "clinic_intake_invite.created",
+        actor=user,
+        target_type="clinic_application",
+        target_id=invite["id"],
+        target_summary=invite["clinic_label"],
+        metadata={"expires_in_days": body.expires_in_days},
+        request=request,
+    )
+    return {"invite": _safe_invite(invite), "token": token}
+
+
+@router.get("/admin/clinic-intake-invites")
+async def list_clinic_intake_invites(user: AdminUser = Depends(get_current_user)):
+    rows = await db.clinic_intake_invites.find(
+        {},
+        {"_id": 0, "token_hash": 0},
+    ).sort("created_at", -1).to_list(500)
+    now = datetime.now(timezone.utc)
+    for row in rows:
+        if row.get("status") == "pending" and _invite_expired(row, now):
+            row["status"] = "expired"
+    return {"invites": rows}
+
+
+@router.patch("/admin/clinic-intake-invites/{invite_id}/revoke")
+async def revoke_clinic_intake_invite(
+    invite_id: str,
+    request: Request,
+    user: AdminUser = Depends(get_current_user),
+):
+    if not isinstance(invite_id, str) or len(invite_id) > 100:
+        raise HTTPException(status_code=400, detail="Invalid invite id")
+    now_iso = datetime.now(timezone.utc).isoformat()
+    result = await db.clinic_intake_invites.update_one(
+        {"id": invite_id, "status": {"$in": ["pending", "submitting"]}},
+        {"$set": {"status": "revoked", "revoked_at": now_iso, "revoked_by": user.username}},
+    )
+    if result.matched_count == 0:
+        invite = await db.clinic_intake_invites.find_one({"id": invite_id}, {"_id": 0})
+        if not invite:
+            raise HTTPException(status_code=404, detail="Invite not found")
+        raise HTTPException(status_code=409, detail="Invite can no longer be revoked")
+    await audit_log(
+        "clinic_intake_invite.revoked",
+        actor=user,
+        target_type="clinic_application",
+        target_id=invite_id,
+        target_summary="Private clinic intake invite",
+        severity="warning",
+        request=request,
+    )
+    return {"status": "ok"}
+
+
+@router.get(
+    "/clinic-intake/{token}",
+    dependencies=[Depends(rate_limit("clinic_intake_view", 60, 600))],
+)
+async def get_clinic_intake_invite(token: str, response: Response):
+    response.headers["Cache-Control"] = "private, no-store, max-age=0"
+    if not isinstance(token, str) or len(token) < 32 or len(token) > 100:
+        raise HTTPException(status_code=404, detail="Intake link not found")
+    invite = await db.clinic_intake_invites.find_one(
+        {"token_hash": _hash_intake_token(token)},
+        {"_id": 0, "token_hash": 0, "created_by": 0},
+    )
+    if not invite:
+        raise HTTPException(status_code=404, detail="Intake link not found")
+    status = invite.get("status", "pending")
+    if status == "pending" and _invite_expired(invite):
+        status = "expired"
+        await db.clinic_intake_invites.update_one(
+            {"id": invite["id"], "status": "pending"},
+            {"$set": {"status": "expired"}},
+        )
+    if status == "submitting":
+        status = "pending"
+    return {
+        "invite": {
+            "clinic_label": invite.get("clinic_label"),
+            "contact_email": invite.get("contact_email"),
+            "status": status,
+            "expires_at": invite.get("expires_at"),
+        }
+    }
+
+
+@router.post(
+    "/clinic-intake/{token}",
+    dependencies=[Depends(rate_limit("clinic_intake_submit", 5, 600))],
+)
+async def submit_clinic_intake(
+    token: str,
+    application: ClinicApplicationCreate,
+    response: Response,
+    request: Request,
+):
+    response.headers["Cache-Control"] = "private, no-store, max-age=0"
+    if not isinstance(token, str) or len(token) < 32 or len(token) > 100:
+        raise HTTPException(status_code=404, detail="Intake link not found")
+    token_hash = _hash_intake_token(token)
+    invite = await db.clinic_intake_invites.find_one({"token_hash": token_hash}, {"_id": 0})
+    if not invite:
+        raise HTTPException(status_code=404, detail="Intake link not found")
+    if _invite_expired(invite):
+        await db.clinic_intake_invites.update_one(
+            {"id": invite["id"], "status": "pending"},
+            {"$set": {"status": "expired"}},
+        )
+        raise HTTPException(status_code=410, detail="Intake link has expired")
+    if invite.get("status") != "pending":
+        raise HTTPException(status_code=409, detail="Intake link has already been used or revoked")
+
+    claimed = await db.clinic_intake_invites.update_one(
+        {"id": invite["id"], "status": "pending"},
+        {"$set": {"status": "submitting"}},
+    )
+    if claimed.modified_count != 1:
+        raise HTTPException(status_code=409, detail="Intake link has already been used")
+
+    try:
+        created = await create_clinic_application(application)
+        application_id = created["id"]
+        await db.clinic_applications.update_one(
+            {"id": application_id},
+            {"$set": {
+                "source": "private_intake",
+                "intake_invite_id": invite["id"],
+                "intake_label": invite.get("clinic_label"),
+            }},
+        )
+        await db.clinic_intake_invites.update_one(
+            {"id": invite["id"], "status": "submitting"},
+            {"$set": {
+                "status": "submitted",
+                "submitted_at": datetime.now(timezone.utc).isoformat(),
+                "application_id": application_id,
+            }},
+        )
+        await audit_log(
+            "clinic_intake_invite.submitted",
+            actor_type="public",
+            target_type="clinic_application",
+            target_id=application_id,
+            target_summary=application.clinic_name,
+            metadata={"invite_id": invite["id"]},
+            request=request,
+        )
+        return {"status": "ok", "application_id": application_id}
+    except HTTPException:
+        await db.clinic_intake_invites.update_one(
+            {"id": invite["id"], "status": "submitting"},
+            {"$set": {"status": "pending"}},
+        )
+        raise
+    except Exception:
+        await db.clinic_intake_invites.update_one(
+            {"id": invite["id"], "status": "submitting"},
+            {"$set": {"status": "pending"}},
+        )
+        raise
 
 
 def _clinic_to_out(clinic: dict) -> ClinicUserOut:
@@ -139,6 +428,14 @@ async def update_clinic_application(app_id: str, body: dict, request: Request, u
             # request's own update_data — merge so a district_slug set in
             # the SAME PATCH as status="approved" isn't silently dropped.
             approved_data = {**application, **update_data}
+            treatments_supported = list(application.get("treatments_supported") or [])
+            for enabled, treatment in (
+                (application.get("offers_aligners"), "aligners"),
+                (application.get("offers_braces"), "braces"),
+                (application.get("offers_implants"), "implants"),
+            ):
+                if enabled and treatment not in treatments_supported:
+                    treatments_supported.append(treatment)
             clinic_doc = {
                 "id": str(uuid.uuid4()),
                 "clinic_name": application["clinic_name"],
@@ -151,6 +448,32 @@ async def update_clinic_application(app_id: str, body: dict, request: Request, u
                 "application_id": app_id,
                 "address": application.get("address", ""),
                 "website": application.get("website"),
+                "contact_person": application.get("contact_name"),
+                "notification_email": application.get("email"),
+                "treatments_supported": treatments_supported,
+                "treatments_offered": treatments_supported,
+                # Approval creates the safest base package. The submitted
+                # package is an interest signal, never an entitlement grant.
+                "base_package": "verified_profile",
+                "partner_tier": "standard",
+                "clinic_profile": _application_profile(application),
+                "aligner_brands_supported": _application_aligner_brands(application),
+                "onboarding_intake": {
+                    "package_interest": application.get("package_interest", "unsure"),
+                    "treats_adults": bool(application.get("treats_adults")),
+                    "treats_children": bool(application.get("treats_children")),
+                    "years_experience": application.get("years_experience"),
+                    "number_of_cases_per_month": application.get("number_of_cases_per_month"),
+                    "do_you_use_digital_scans": application.get("do_you_use_digital_scans"),
+                    "patient_fit": application.get("what_types_of_patients_are_best_for_you"),
+                    "average_response_time": application.get("average_response_time"),
+                    "wants_online_booking": application.get("wants_online_booking"),
+                    "wants_viber_contact": application.get("wants_viber_contact"),
+                    "viber_phone": application.get("viber_phone"),
+                    "case_library_summary": application.get("case_library_summary"),
+                    "case_media_url": application.get("case_media_url"),
+                    "patient_consent_available": application.get("patient_consent_available"),
+                },
                 "company_name": None, "eik": None, "mol": None, "description": None,
                 "created_at": datetime.now(timezone.utc).isoformat(),
             }

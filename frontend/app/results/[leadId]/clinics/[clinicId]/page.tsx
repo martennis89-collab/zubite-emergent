@@ -206,8 +206,11 @@ export default function ClinicProfilePage() {
             <RecommendationReasonBanner
               clinic={recommended}
               alreadyRequested={
-                selection?.has_selected_clinic === true &&
-                selection?.selected_clinic_id === clinicId
+                selection?.requested_clinic_ids?.includes(recommended.id) ??
+                (
+                  selection?.has_selected_clinic === true &&
+                  selection?.selected_clinic_id === recommended.id
+                )
               }
             />
           )}

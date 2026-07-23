@@ -1075,8 +1075,8 @@
 
 .taste-hero {
   position: relative;
-  min-height: 700px;
-  padding: 112px 0 88px;
+  min-height: auto;
+  padding: 112px 0 48px;
   isolation: isolate;
   background: var(--taste-bg);
 }
@@ -6519,7 +6519,7 @@
     var(--taste-bg) !important;
 }
 
-.taste-directory-page > section:first-child {
+.taste-directory-page > #all-clinics:first-child {
   padding-top: 86px !important;
   padding-bottom: 72px !important;
   border-bottom: 1px solid var(--taste-border);
@@ -6532,17 +6532,17 @@
   letter-spacing: -.062em !important;
 }
 
-.taste-directory-page > section:first-child > p {
+.taste-directory-page > #all-clinics:first-child > p {
   max-width: 760px !important;
   color: var(--taste-muted) !important;
   font-size: 15px !important;
 }
 
-.taste-directory-page > section:nth-child(2) {
+.taste-directory-page > .taste-directory-results {
   padding-top: 54px;
 }
 
-.taste-directory-page > section:nth-child(2) > div {
+.taste-directory-page > .taste-directory-results > div {
   grid-template-columns: 280px minmax(0, 1fr) !important;
   gap: 28px !important;
 }
@@ -6970,7 +6970,7 @@
     position: static;
   }
 
-  .taste-directory-page > section:nth-child(2) > div {
+  .taste-directory-page > .taste-directory-results > div {
     grid-template-columns: 1fr !important;
   }
 
@@ -7031,7 +7031,7 @@
 
   .taste-results-page > section,
   .taste-recommendations-page > section,
-  .taste-directory-page > section {
+  .taste-directory-page > section:not(.taste-personalized-showcase) {
     width: min(100% - 28px, 1180px);
   }
 
@@ -7154,12 +7154,12 @@
     width: 100%;
   }
 
-  .taste-directory-page > section:first-child {
+  .taste-directory-page > #all-clinics:first-child {
     padding-top: 54px !important;
     padding-bottom: 46px !important;
   }
 
-  .taste-directory-page > section:nth-child(2) {
+  .taste-directory-page > .taste-directory-results {
     padding-top: 30px;
   }
 
