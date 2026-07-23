@@ -4,14 +4,13 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import {
-  AlertTriangle, ArrowRight, CalendarDays, Compass, Home,
+  AlertTriangle, ArrowRight, Compass, Home,
   LayoutList, Loader2, ShieldCheck, X,
 } from 'lucide-react'
 import { ResultsHeader } from '@/components/ResultsHeader'
 import { Footer } from '@/components/Footer'
 import { ResultUnlockGate } from '@/components/patient/ResultUnlockGate'
 import { ClinicRecommendationChoice } from '@/components/patient/ClinicRecommendationChoice'
-import { SaveResultBanner } from '@/components/patient/SaveResultBanner'
 import { getLead } from '@/lib/api'
 import { setStoredLeadContact } from '@/lib/leadContact'
 
@@ -120,18 +119,18 @@ export default function ResultsPage() {
           <span className="inline-flex items-center gap-2 rounded-full border border-[#B3EEE6] bg-[#F0FDFA] px-4 py-2 text-sm font-medium text-[#006A61]">
             <ShieldCheck className="h-4 w-4" /> Ориентир, не диагноза
           </span>
-          <h1 className="mt-6 font-display text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-black sm:text-5xl">Твоят ориентировъчен{' '}<br />резултат</h1>
-          <p className="mt-5 text-base leading-7 text-[#45464D] sm:text-lg">Базирано на твоите отговори, подготвихме кратко обобщение на вероятния случай и възможните посоки за обсъждане със специалист.</p>
+          <h1 className="mt-6 font-display text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-black sm:text-5xl">Твоят ориентировъчен резултат</h1>
+          <p className="mt-5 text-base leading-7 text-[#45464D] sm:text-lg">Това е пълният ти резултат според отговорите във въпросника — с ясен ориентир какво да наблюдаваш и каква следваща стъпка има смисъл.</p>
         </header>
 
         <div className="mt-14 grid items-start gap-10 lg:grid-cols-[1.35fr_0.9fr] lg:gap-12">
           <div>
-            <article className="rounded-xl border border-[#E2E8F0] bg-white p-6 sm:p-8" data-testid={isUnlocked ? 'full-partial-result' : 'partial-result-teaser'}>
+            <article className="rounded-xl border border-[#E2E8F0] bg-white p-6 sm:p-8" data-testid="full-result">
               <div className="flex items-start gap-4">
                 <span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-[#FFDAD6] text-[#93000A]"><AlertTriangle className="h-6 w-6" /></span>
                 <div>
-                  <h2 className="font-display text-2xl font-semibold leading-tight text-black" data-testid={isUnlocked ? 'result-headline' : 'partial-headline'}>{FINDING_BY_BAND[band]}</h2>
-                  <p className="mt-3 text-sm leading-6 text-[#45464D]" data-testid={isUnlocked ? 'result-explanation' : 'partial-explanation'}>{EXPLANATION_BY_BAND[band]}</p>
+                  <h2 className="font-display text-2xl font-semibold leading-tight text-black" data-testid="result-headline">{FINDING_BY_BAND[band]}</h2>
+                  <p className="mt-3 text-sm leading-6 text-[#45464D]" data-testid="result-explanation">{EXPLANATION_BY_BAND[band]}</p>
                 </div>
               </div>
               <div className="mt-7 grid gap-5 border-t border-[#E2E8F0] pt-6 sm:grid-cols-2">
@@ -160,22 +159,23 @@ export default function ResultsPage() {
 
           </div>
 
-          <aside className="rounded-xl bg-white p-6 shadow-[0_20px_50px_-30px_rgba(0,32,29,0.30)] sm:p-8" data-testid="next-step-card">
-            <h2 className="font-display text-2xl font-semibold text-black">Следваща стъпка</h2>
-            <p className="mt-4 text-sm leading-6 text-[#45464D]">Запази час за консултация в партньорска клиника, за да потвърдите случая и да обсъдите конкретен план.</p>
-
+          <aside className="rounded-xl border border-[#E2E8F0] bg-white p-6 shadow-[0_20px_50px_-30px_rgba(0,32,29,0.30)] sm:p-8" data-testid="next-step-card">
             {!isUnlocked && (
-              <div className="mt-6" data-testid="partial-locked-teaser">
+              <div data-testid="result-email-step">
                 <ResultUnlockGate
                   leadId={lead.id}
-                  defaultName={lead.name}
+                  defaultCity={lead.city_slug}
                   onUnlocked={(contact) => {
-                    setStoredLeadContact(lead.id, contact)
-                    // No reload — just flip the local flag so the aside
-                    // re-renders straight into step 3 (recommendation
-                    // choice) in the same paint. The backend already
-                    // committed both unlock flags before this resolved.
-                    setLead((prev) => (prev ? { ...prev, full_result_unlocked: true } : prev))
+                    setStoredLeadContact(lead.id, { email: contact.email })
+                    setLead((prev) => (
+                      prev
+                        ? {
+                            ...prev,
+                            city_slug: contact.citySlug,
+                            full_result_unlocked: true,
+                          }
+                        : prev
+                    ))
                   }}
                 />
               </div>
@@ -185,6 +185,7 @@ export default function ResultsPage() {
               <div className="mt-6" data-testid="clinic-recommendation-choice-wrap">
                 <ClinicRecommendationChoice
                   leadId={lead.id}
+                  citySlug={lead.city_slug}
                   onDeclined={() =>
                     setLead((prev) => (prev ? { ...prev, wants_clinic_recommendations: false } : prev))
                   }
@@ -200,29 +201,16 @@ export default function ResultsPage() {
                 <span className="mx-auto grid h-10 w-10 place-items-center rounded-full bg-white text-[#45464D]">
                   <X className="h-5 w-5" />
                 </span>
-                <h3 className="mt-3 font-display text-lg font-semibold text-black">Ориентирът ти остава достъпен.</h3>
-                <p className="mt-1.5 text-sm leading-6 text-[#45464D]">Можеш да провериш отново по всяко време.</p>
+                <h3 className="mt-3 font-display text-lg font-semibold text-black">Готово — резултатът е изпратен.</h3>
+                <p className="mt-1.5 text-sm leading-6 text-[#45464D]">Няма да споделяме данните ти с клиника. Ако размислиш, можеш да разгледаш всички клиники от главното меню.</p>
               </div>
             )}
 
             {isUnlocked && lead.wants_clinic_recommendations === true && (
-              <Link href={`/results/${leadId}/clinics`} className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-black px-5 py-4 text-sm font-semibold text-white" data-testid="see-clinics-cta">
-                Виж подходящи клиники <CalendarDays className="h-4 w-4" />
+              <Link href={`/clinics?leadId=${encodeURIComponent(leadId)}`} className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#006A61] px-5 py-4 text-sm font-semibold text-white hover:bg-[#005850]" data-testid="see-clinics-cta">
+                Виж препоръчаните клиники <ArrowRight className="h-4 w-4" />
               </Link>
             )}
-
-            <p className="mt-4 text-center text-xs text-[#64748B]">Не изисква плащане сега. Отмяна е възможна по всяко време.</p>
-
-            <SaveResultBanner
-              leadId={lead.id}
-              isClaimedByMe={!!lead.is_claimed_by_me}
-              onSaved={() => window.location.reload()}
-            />
-
-            <p className="mt-6 border-t border-[#E2E8F0] pt-5 text-xs leading-5 text-[#64748B]">
-              След реално посещение в партньорска клиника получаваш Care Pass за предложения за продукти за орална хигиена.{' '}
-              <Link href="/care-pass" className="font-semibold text-[#006A61] hover:underline">Как работи</Link>
-            </p>
           </aside>
         </div>
       </section>

@@ -1,5 +1,6 @@
 import { Metadata } from 'next'
 import { TasteHome } from '../components/taste/TasteHome'
+import { getHomeTrustSignals } from '@/lib/homeTrust'
 
 export const metadata: Metadata = {
   title: 'Zubite.bg — На кой етап е захапката ти? Провери за 60 секунди',
@@ -48,10 +49,12 @@ export const metadata: Metadata = {
 // content discovery, not the page's single purpose: explain Zubite +
 // start the quiz). Its SSR blog fetch went with it — the homepage no
 // longer blocks render on a backend call. /blog remains the blog surface.
-export default function HomePage() {
+export default async function HomePage() {
+  const trustSignals = await getHomeTrustSignals()
+
   return (
     <div className="min-h-screen bg-[#FCFAF8] text-slate-900 overflow-x-clip" data-testid="home-main">
-      <TasteHome />
+      <TasteHome trustSignals={trustSignals} />
 
       {/* Service schema — Zubite is NOT a clinical provider. We describe the
           platform as a *dental orientation and clinic-matching* Service so

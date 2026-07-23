@@ -32,14 +32,6 @@ interface QuizQuestion {
   options: QuizOption[]
 }
 
-interface ResultContent {
-  bandLabel: string
-  headline: string
-  explanation: string
-  urgency: string
-  education: string
-}
-
 // ─── SVG Visuals ──────────────────────────────────────────
 function TeethCrowded() {
   return (
@@ -367,79 +359,6 @@ const MICRO_INSIGHTS: Record<Segment, Record<number, string>> = {
   },
 }
 
-// ─── Result Content ───────────────────────────────────────
-const RESULT_CONTENT: Record<Segment, Record<ResultBand, ResultContent>> = {
-  adult: {
-    low: {
-      bandLabel: 'Нисък приоритет',
-      headline: 'Изглежда, че си в добра позиция.',
-      explanation: 'Отговорите ти показват малко сигнали. Това не изключва напълно проблем, но е добра новина — нещата изглеждат под контрол.',
-      urgency: 'Добра идея е да провериш поне веднъж при ортодонт — дори за спокойствие.',
-      education: 'Дори при нисък резултат, някои проблеми се развиват бавно и незабележимо. Ранната оценка е винаги по-добрият избор.',
-    },
-    moderate: {
-      bandLabel: 'Има сигнали за внимание',
-      headline: 'Има признаци, които заслужават внимание.',
-      explanation: 'Отговорите ти показват модел, който често се задълбочава с времето — износване, напрежение или проблем със захапката. Не е спешно, но не е и нещо за игнориране.',
-      urgency: 'Добре е да потърсиш професионална оценка скоро, за да разбереш какви са вариантите ти.',
-      education: 'Този резултат не е диагноза. Той показва, че има достатъчно сигнали, за да си струва консултация със специалист — преди лечението да стане по-сложно.',
-    },
-    high: {
-      bandLabel: 'Висок приоритет',
-      headline: 'Отговорите ти показват сериозни сигнали.',
-      explanation: 'Комбинацията от симптоми — захапка, напрежение, износване — често означава проблем, който се влошава. Колкото по-рано действаш, толкова по-леко и по-евтино е лечението.',
-      urgency: 'Препоръчваме ти да потърсиш специалист възможно най-скоро.',
-      education: 'Това не е диагноза, но е ясен сигнал, че ситуацията изисква професионална оценка. Не отлагай — разликата може да бъде голяма.',
-    },
-  },
-  teen: {
-    low: {
-      bandLabel: 'Нисък приоритет',
-      headline: 'Засега нещата изглеждат добре.',
-      explanation: 'Отговорите показват малко сигнали за проблем. Тийнейджърските години обаче са ключов период за развитие на захапката.',
-      urgency: 'Профилактичен преглед при ортодонт е добра идея — особено в този период на растеж.',
-      education: 'Между 12 и 17 години лечението е най-ефективно и най-бързо. Ранната оценка може да спести много време и средства по-късно.',
-    },
-    moderate: {
-      bandLabel: 'Има сигнали за внимание',
-      headline: 'Има признаци, които заслужават внимание.',
-      explanation: 'Отговорите показват няколко сигнала — струпани зъби, захапка или дишане. В тийнейджърска възраст тези проблеми могат да се коригират значително по-лесно.',
-      urgency: 'Сега е идеалният момент за консултация — докато растежът все още работи във ваша полза.',
-      education: 'Тийнейджърските години са "златният прозорец" за ортодонтска корекция. Костите все още растат, което прави лечението по-бързо и по-ефективно.',
-    },
-    high: {
-      bandLabel: 'Висок приоритет',
-      headline: 'Отговорите показват ясни сигнали за проблем.',
-      explanation: 'Комбинацията от струпване, захапка и евентуално дишане показва, че е важно да се действа. В тази възраст корекцията все още е много по-лесна, отколкото при възрастен.',
-      urgency: 'Не изпускайте този прозорец — консултацията при ортодонт е важна стъпка сега.',
-      education: 'Ранното лечение при тийнейджъри не само подобрява усмивката, но и предотвратява по-сериозни функционални проблеми в бъдеще.',
-    },
-  },
-  child: {
-    low: {
-      bandLabel: 'Нисък приоритет',
-      headline: 'Засега нещата изглеждат нормално.',
-      explanation: 'Отговорите показват малко сигнали. При деца под 12 г. обаче развитието тепърва предстои и е важно да се наблюдава.',
-      urgency: 'Първият преглед при ортодонт се препоръчва на 7-годишна възраст — дори без видим проблем.',
-      education: 'Много проблеми при деца се развиват тихо. Ранната оценка може да предотврати нуждата от по-сложно лечение по-късно.',
-    },
-    moderate: {
-      bandLabel: 'Има сигнали за внимание',
-      headline: 'Забелязваме сигнали, които заслужават внимание.',
-      explanation: 'Дишането през устата, тесните челюсти или ранното струпване са сигнали, че развитието може да не върви по план. При децата интервенцията е най-проста и най-ефективна.',
-      urgency: 'Препоръчваме преглед при ортодонт — ранната намеса може да промени хода на развитие.',
-      education: 'При деца целта не е брекети — а насочване на растежа. Малка интервенция сега може да спести голямо лечение по-късно.',
-    },
-    high: {
-      bandLabel: 'Висок приоритет',
-      headline: 'Отговорите показват няколко важни сигнала.',
-      explanation: 'Комбинацията от дишане, навици, тясна челюст и захапка показва, че е важно да се действа навреме. При деца ранната намеса е най-ефективна.',
-      urgency: 'Моля, не отлагайте — преглед при ортодонт е важна стъпка.',
-      education: 'Ранната интервенция при деца (interceptive orthodontics) може да коригира проблеми с растежа преди те да станат постоянни. Това е инвестиция в бъдещето.',
-    },
-  },
-}
-
 // ─── Scoring ──────────────────────────────────────────────
 function calculateResult(answers: { value: string; score: number; tags?: string[] }[], segment: Segment) {
   const totalScore = answers.reduce((s, a) => s + a.score, 0)
@@ -457,18 +376,6 @@ function calculateResult(answers: { value: string; score: number; tags?: string[
   }
 
   return { band, totalScore, flags, tagCounts }
-}
-
-const SEGMENT_LABELS: Record<Segment, string> = { adult: 'възрастен', teen: 'тийнейджър', child: 'дете' }
-
-// Named orientation stage — the primary output of the result screen
-// (July 2026). Mapped from the existing severity band; it is an
-// orientation label, NOT a diagnosis (the badge below says so and the
-// existing band/explanation remain as supporting severity detail).
-const STAGE_BY_BAND: Record<ResultBand, string> = {
-  low: 'Ранен етап',
-  moderate: 'Развиващ се етап',
-  high: 'Напреднал етап',
 }
 
 const generateSessionId = () => `quiz_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
@@ -609,7 +516,11 @@ export function MasterQuiz() {
           })
         }
 
+        // The canonical result lives only at /results/[leadId]. Create
+        // the answer-only lead now and hand off automatically instead of
+        // rendering a second result screen inside the quiz.
         setStep('result')
+        void handleSubmit(res, newAnswers)
       }
       setIsTransitioning(false)
     }, 200)
@@ -629,29 +540,28 @@ export function MasterQuiz() {
     }
   }
 
-  const handleSubmit = async () => {
-    // City is no longer collected here — the quiz funnel was re-sequenced
-    // so city (and the optional "help the clinic prepare" questions) are
-    // only asked once the patient opts into clinic recommendations, on
-    // /results/[leadId] (ClinicRecommendationChoice), well after this
-    // lead already exists. Contact details (name/phone/email) are also
-    // collected later, by ResultUnlockGate — this POST is answers-only.
+  const handleSubmit = async (
+    resultOverride = result,
+    answersOverride = answers,
+  ) => {
+    // This POST is answers-only. The canonical result page then asks for
+    // the delivery email and city in one concise form; the city lets the
+    // following recommendation prompt stay a simple yes/no choice.
     setIsSubmitting(true); setError('')
 
     try {
       const answersObj: Record<string, string> = {}
-      answers.forEach(a => { answersObj[a.questionId] = a.value })
+      answersOverride.forEach(a => { answersObj[a.questionId] = a.value })
       const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
       const bandMap: Record<ResultBand, string> = { low: 'GREEN', moderate: 'YELLOW', high: 'RED' }
 
       const leadData = {
         treatment_type: 'diagnostic_quiz',
-        answers: { ...answersObj, quiz_score: result?.totalScore || 0, quiz_band: result?.band || '', quiz_flags: result?.flags || [], segment, form_version: formVersion, session_id: sessionId.current, source: 'diagnostic_quiz_v1' },
-        score_total: result?.totalScore || 0,
-        band: bandMap[result?.band || 'low'],
-        // No city_slug/district_slug/can_travel/name/phone/email/consent
-        // here — city arrives via clinic-recommendation-preference,
-        // contact via unlock-result. Backend creates a fully locked lead.
+        answers: { ...answersObj, quiz_score: resultOverride?.totalScore || 0, quiz_band: resultOverride?.band || '', quiz_flags: resultOverride?.flags || [], segment, form_version: formVersion, session_id: sessionId.current, source: 'diagnostic_quiz_v1' },
+        score_total: resultOverride?.totalScore || 0,
+        band: bandMap[resultOverride?.band || 'low'],
+        // No city/contact fields here — they arrive through unlock-result
+        // after the full result is already visible.
         source: 'diagnostic_quiz_v1', form_version: formVersion,
         // ─── Attribution data — never throws (returns {} if storage blocked) ───
         ...(typeof window !== 'undefined'
@@ -690,7 +600,7 @@ export function MasterQuiz() {
         // Backend accepted the lead but we couldn't read the id — fall
         // back to the legacy success page so the patient still lands
         // somewhere coherent.
-        const successParams = new URLSearchParams({ stage: result?.band || 'low', segment: segment || 'adult' })
+        const successParams = new URLSearchParams({ stage: resultOverride?.band || 'low', segment: segment || 'adult' })
         router.push(`/quiz/success?${successParams.toString()}`)
         return
       }
@@ -873,78 +783,33 @@ export function MasterQuiz() {
     )
   }
 
-  // ─── RESULT SCREEN ─────────────────────────────────────
+  // ─── RESULT HANDOFF ────────────────────────────────────
   if (step === 'result' && result && segment) {
-    const content = RESULT_CONTENT[segment][result.band]
-    const approachSignals = result.flags.filter((flag) => flag.startsWith('approach_'))
-    const clinicalFlags = result.flags.filter((flag) => !flag.startsWith('approach_'))
-
     return (
-      <main className="taste-site taste-quiz-page taste-quiz-viewport taste-quiz-result-viewport">
+      <main className="taste-site taste-quiz-page taste-quiz-viewport">
         <Header />
-        <section className="taste-quiz-result-wrap">
-          <div className="taste-quiz-result-shell animate-fade-in-up">
-            <article className={`taste-quiz-result-card taste-quiz-band-${result.band}`} data-testid="result-card">
-              {/* Primary output — named orientation stage (July 2026).
-                  Leads the card; severity band + explanation remain below as
-                  supporting detail. The badge keeps it explicitly non-diagnostic. */}
-              <div className="taste-quiz-result-topline">
-                <span data-testid="result-stage-badge"><ShieldCheck aria-hidden /> Ориентир, не диагноза</span>
-                <span>Резултат за: {SEGMENT_LABELS[segment]}</span>
-              </div>
-
-              <div className="taste-quiz-result-heading">
-                <div>
-                  <p>Твоят ориентир</p>
-                  <h1 data-testid="result-stage-title">
-                  {STAGE_BY_BAND[result.band]}
-                  </h1>
-                </div>
-                <span className="taste-quiz-band-label"><i /> {content.bandLabel}</span>
-              </div>
-
-              <div className="taste-quiz-result-summary">
-                <h2>{content.headline}</h2>
-                <p>{content.explanation}</p>
-              </div>
-
-              <div className="taste-quiz-urgency">
-                <span>Следващ ход</span>
-                <p>{content.urgency}</p>
-              </div>
-
-              {/* Flags */}
-              {(clinicalFlags.length > 0 || approachSignals.length > 0) && (
-                <div className="taste-quiz-flags" aria-label="Забелязани сигнали">
-                  {clinicalFlags.map(f => (
-                    <span key={f}>
-                      {{ crowding: 'Струпване', bite_issue: 'Захапка', airway: 'Дишане', tension: 'Напрежение', wear: 'Износване', development: 'Развитие' }[f] || f}
-                    </span>
-                  ))}
-                  {approachSignals.length > 0 && (
-                    <Link href="/full-picture-dental-assessment" className="taste-quiz-approach-link">
-                      Цялостна оценка →
-                    </Link>
-                  )}
-                </div>
+        <section className="taste-quiz-centered">
+          <div className="taste-quiz-insight-card animate-fade-in-up" data-testid="result-handoff">
+            <span className="taste-quiz-insight-index">Въпросникът е завършен</span>
+            <p>{error ? 'Не успяхме да отворим резултата ти.' : 'Подготвяме пълния ти резултат…'}</p>
+            <div>
+              <span>
+                {error
+                  ? 'Отговорите ти са запазени в този екран. Опитай отново.'
+                  : 'Ще те прехвърлим автоматично — не е нужно да натискаш нищо.'}
+              </span>
+              {error ? (
+                <button
+                  onClick={() => handleSubmit()}
+                  disabled={isSubmitting}
+                  className="taste-quiz-primary"
+                  data-testid="result-retry-btn"
+                >
+                  {isSubmitting ? <><Loader2 className="animate-spin" />Зареждаме…</> : <>Опитай отново<ArrowRight aria-hidden /></>}
+                </button>
+              ) : (
+                <Loader2 className="h-6 w-6 animate-spin text-teal-600" aria-label="Зареждане" />
               )}
-
-            </article>
-
-            <div className="taste-quiz-result-action animate-fade-in-up" style={{ animationDelay: '150ms' }}>
-              <p>Следваща стъпка: къде да изпратим резултата ти. Град и препоръчани клиники идват след това.</p>
-              {error && <p className="taste-quiz-error" role="alert">{error}</p>}
-              <button
-                onClick={() => {
-                  trackEvent('result_continue', { band: result.band, segment })
-                  handleSubmit()
-                }}
-                disabled={isSubmitting}
-                className="taste-quiz-primary"
-                data-testid="result-continue-btn"
-              >
-                {isSubmitting ? <><Loader2 className="animate-spin" />Изпращане...</> : <>Продължи<ArrowRight aria-hidden /></>}
-              </button>
             </div>
           </div>
         </section>

@@ -6,7 +6,8 @@ import { Footer } from '@/components/Footer'
 import { TopicChipRow } from '@/components/community/TopicChipRow'
 import { QuestionFeed } from '@/components/community/QuestionFeed'
 import { ClinicSpotlight } from '@/components/community/ClinicSpotlight'
-import { listTopics, listQuestions, getSpotlight } from '@/lib/community'
+import { CommunityRecentArticles } from '@/components/community/CommunityRecentArticles'
+import { listTopics, listQuestions, getSpotlight, listRecentArticles } from '@/lib/community'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,17 +19,18 @@ export const metadata: Metadata = {
 }
 
 export default async function CommunityHome() {
-  const [topics, recent, spotlight] = await Promise.all([
+  const [topics, recent, spotlight, articles] = await Promise.all([
     listTopics(),
     listQuestions({ sort: 'new', limit: 12 }),
     getSpotlight(),
+    listRecentArticles(3),
   ])
 
   return (
     <>
       <Header />
       <main className="taste-community-page">
-      <div className="taste-community-shell grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="taste-community-shell grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px]">
       <div className="min-w-0">
         {/* Hero */}
         <section className="taste-community-hero">
@@ -92,6 +94,7 @@ export default async function CommunityHome() {
         <ClinicSpotlight clinic={spotlight} />
       </aside>
       </div>
+      <CommunityRecentArticles articles={articles} />
       </main>
       <Footer />
     </>

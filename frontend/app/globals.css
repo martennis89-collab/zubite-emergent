@@ -1402,6 +1402,92 @@
   color: var(--taste-emerald);
 }
 
+.taste-live-proof {
+  scroll-margin-top: 92px;
+  color: white;
+  background: #073b36;
+}
+
+.taste-live-proof-inner {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  align-items: stretch;
+  gap: 28px;
+  padding-top: 24px;
+  padding-bottom: 24px;
+}
+
+.taste-live-proof-intro {
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.taste-live-proof-intro p {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.taste-live-proof-intro p > span {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--taste-accent);
+}
+
+.taste-live-proof-intro small {
+  margin-top: 5px;
+  color: #bde9e2;
+  font-size: 11px;
+}
+
+.taste-live-proof-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.taste-live-proof-metrics > div {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: 8px 22px;
+  border-left: 1px solid rgba(189,233,226,.24);
+}
+
+.taste-live-proof-metrics > div:first-child {
+  border-left: 0;
+}
+
+.taste-live-proof-metrics dd {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+}
+
+.taste-live-proof-metrics strong {
+  flex: 0 0 auto;
+  color: white;
+  font-size: 25px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.taste-live-proof-metrics dd span {
+  color: #d7eeea;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-wrap: pretty;
+}
+
 .taste-home-path {
   padding: 32px 0;
   border-top: 1px solid var(--taste-border);
@@ -2568,6 +2654,22 @@
     margin-inline: auto;
   }
 
+  .taste-live-proof-inner {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .taste-live-proof-intro {
+    align-items: baseline;
+    justify-content: space-between;
+    flex-direction: row;
+    gap: 16px;
+  }
+
+  .taste-live-proof-intro small {
+    margin-top: 0;
+  }
+
   .taste-home-path-inner {
     grid-template-columns: 1fr;
     gap: 22px;
@@ -2668,6 +2770,43 @@
 
   .taste-outcome-preview li {
     padding: 14px 0;
+  }
+
+  .taste-live-proof-inner {
+    gap: 14px;
+    padding-top: 22px;
+    padding-bottom: 22px;
+  }
+
+  .taste-live-proof-intro {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .taste-live-proof-intro small {
+    margin-top: 4px;
+  }
+
+  .taste-live-proof-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .taste-live-proof-metrics > div,
+  .taste-live-proof-metrics > div:first-child {
+    padding: 13px 0;
+    border-left: 0;
+    border-top: 1px solid rgba(189,233,226,.24);
+  }
+
+  .taste-live-proof-metrics dd {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .taste-live-proof-metrics dd span {
+    max-width: 205px;
+    text-align: right;
   }
 
   .taste-home-path {
@@ -5753,6 +5892,7 @@
 
 .taste-community-page {
   min-height: 100vh;
+  overflow-x: clip;
   color: var(--taste-ink);
   background:
     radial-gradient(circle at 10% 8%, rgba(255,107,0,.06), transparent 27%),
@@ -5899,11 +6039,20 @@
 }
 
 .taste-community-spotlight {
-  padding: 22px;
+  overflow: hidden;
+  scroll-margin-top: 96px;
   border: 1px solid var(--taste-border);
   border-radius: 14px;
   background: white;
   box-shadow: inset 0 3px 0 var(--taste-accent);
+}
+
+.taste-community-spotlight-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 22px 16px;
 }
 
 .taste-community-spotlight-label,
@@ -5917,20 +6066,362 @@
   text-transform: uppercase;
 }
 
-.taste-community-spotlight img {
-  border-radius: 10px !important;
+.taste-community-spotlight-date {
+  color: var(--taste-faint);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+}
+
+.taste-community-spotlight-image {
+  display: block;
+  width: 100%;
+  height: 190px;
+  border-radius: 0 !important;
+  object-fit: cover;
+}
+
+.taste-community-spotlight-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
+  color: rgba(255,255,255,.82);
+  background: #0b4a43;
+}
+
+.taste-community-spotlight-image-placeholder span {
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: .01em;
+}
+
+.taste-community-spotlight-body {
+  padding: 22px;
+}
+
+.taste-community-spotlight-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .taste-community-spotlight h3 {
+  margin: 0;
   font-family: 'Manrope', sans-serif;
-  font-size: 20px !important;
-  line-height: 1.15;
+  font-size: 24px !important;
+  font-weight: 650;
+  line-height: 1.08;
+  letter-spacing: -.035em;
+  text-wrap: balance;
+}
+
+.taste-community-spotlight-location {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  color: var(--taste-muted);
+  font-size: 13px;
+}
+
+.taste-community-spotlight-location svg {
+  color: var(--taste-emerald);
+}
+
+.taste-community-spotlight-blurb {
+  display: -webkit-box;
+  overflow: hidden;
+  margin-top: 16px;
+  color: #45464d;
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  text-wrap: pretty;
+}
+
+.taste-community-spotlight-focus {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 16px;
+}
+
+.taste-community-spotlight-focus span {
+  padding: 5px 9px;
+  border-radius: 999px;
+  color: #07594b;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.25;
+  background: #edf8f3;
+}
+
+.taste-community-spotlight-facts {
+  display: grid;
+  gap: 9px;
+  margin: 18px 0 0;
+  padding: 16px 0;
+  border-top: 1px solid var(--taste-border);
+  border-bottom: 1px solid var(--taste-border);
+}
+
+.taste-community-spotlight-facts li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #45464d;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.taste-community-spotlight-facts svg {
+  color: var(--taste-emerald);
+}
+
+.taste-community-spotlight .taste-community-spotlight-cta {
+  justify-content: space-between;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 18px;
+  border: 1px solid var(--taste-border);
+  border-radius: 10px;
+}
+
+.taste-community-spotlight-note {
+  margin-top: 14px;
+  color: var(--taste-faint);
+  font-size: 11px;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+.taste-community-articles {
+  border-top: 1px solid var(--taste-border);
+  background: white;
+}
+
+.taste-community-articles-inner {
+  width: min(100% - 40px, 1180px);
+  margin-inline: auto;
+  padding: 80px 0 96px;
+}
+
+.taste-community-articles-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 30px;
+}
+
+.taste-community-articles-heading h2 {
+  scroll-margin-top: 100px;
+  margin: 0;
+  color: var(--taste-ink);
+  font-family: 'Manrope', sans-serif;
+  font-size: 38px;
+  font-weight: 650;
+  line-height: 1.05;
   letter-spacing: -.035em;
 }
 
-.taste-community-spotlight .taste-button {
-  min-height: 46px;
-  border-radius: 999px;
+.taste-community-articles-heading p {
+  max-width: 560px;
+  margin-top: 9px;
+  color: var(--taste-muted);
+  font-size: 14px;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+.taste-community-articles-all,
+.taste-community-article-read {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--taste-emerald);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.taste-community-articles-all {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--taste-border);
+  border-radius: 10px;
+  transition: border-color 180ms ease, background-color 180ms ease;
+}
+
+.taste-community-articles-all:hover {
+  border-color: var(--taste-emerald);
+  background: #edf8f3;
+}
+
+.taste-community-articles-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(320px, .7fr);
+  gap: 32px;
+  align-items: stretch;
+}
+
+.taste-community-article-featured {
+  overflow: hidden;
+  border: 1px solid var(--taste-border);
+  border-radius: 14px;
+  background: #fff;
+  transition: border-color 180ms ease;
+}
+
+.taste-community-article-featured:hover {
+  border-color: rgba(255,107,0,.62);
+}
+
+.taste-community-article-cover {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 280px;
+  background: #0b4a43;
+}
+
+.taste-community-article-cover img,
+.taste-community-article-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 220ms cubic-bezier(.16, 1, .3, 1);
+}
+
+.taste-community-article-featured:hover .taste-community-article-cover img,
+.taste-community-article-compact:hover .taste-community-article-thumb img {
+  transform: scale(1.025);
+}
+
+.taste-community-article-placeholder {
+  display: grid;
+  place-items: center;
+  color: #bde9e2;
+  background: #0b4a43;
+}
+
+.taste-community-article-featured-copy {
+  padding: 24px 26px 26px;
+}
+
+.taste-community-article-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  color: var(--taste-faint);
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.taste-community-article-meta > span {
+  color: var(--taste-emerald);
+}
+
+.taste-community-article-meta time {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.taste-community-article-featured h3 {
+  max-width: 24ch;
+  margin-top: 12px;
+  color: var(--taste-ink);
+  font-family: 'Manrope', sans-serif;
+  font-size: 25px;
+  font-weight: 650;
+  line-height: 1.13;
+  letter-spacing: -.035em;
+  text-wrap: balance;
+}
+
+.taste-community-article-featured-copy > p {
+  display: -webkit-box;
+  overflow: hidden;
+  max-width: 65ch;
+  margin-top: 11px;
+  color: var(--taste-muted);
+  font-size: 13px;
+  line-height: 1.6;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  text-wrap: pretty;
+}
+
+.taste-community-article-featured .taste-community-article-read {
+  margin-top: 18px;
+}
+
+.taste-community-article-list {
+  border-top: 1px solid var(--taste-border);
+}
+
+.taste-community-article-compact {
+  border-bottom: 1px solid var(--taste-border);
+}
+
+.taste-community-article-compact > a {
+  display: grid;
+  grid-template-columns: 126px minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+  padding: 20px 0;
+}
+
+.taste-community-article-thumb {
+  overflow: hidden;
+  width: 126px;
+  height: 96px;
+  border-radius: 10px;
+  background: #0b4a43;
+}
+
+.taste-community-article-compact h3 {
+  display: -webkit-box;
+  overflow: hidden;
+  margin-top: 9px;
+  color: var(--taste-ink);
+  font-family: 'Manrope', sans-serif;
+  font-size: 18px;
+  font-weight: 650;
+  line-height: 1.2;
+  letter-spacing: -.025em;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  text-wrap: balance;
+  transition: color 180ms ease;
+}
+
+.taste-community-article-compact:hover h3 {
+  color: var(--taste-emerald);
+}
+
+.taste-community-article-compact .taste-community-article-read {
+  margin-top: 11px;
+  font-size: 11px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .taste-community-article-cover img,
+  .taste-community-article-thumb img,
+  .taste-community-article-compact h3,
+  .taste-community-article-featured,
+  .taste-community-articles-all {
+    transition: none;
+  }
+
+  .taste-community-article-featured:hover .taste-community-article-cover img,
+  .taste-community-article-compact:hover .taste-community-article-thumb img {
+    transform: none;
+  }
 }
 
 .taste-community-question-card {
@@ -6495,6 +6986,21 @@
     max-width: 520px;
     padding-top: 0;
   }
+
+  .taste-community-articles-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .taste-community-article-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+    border-top: 0;
+  }
+
+  .taste-community-article-compact {
+    border-top: 1px solid var(--taste-border);
+  }
 }
 
 @media (max-width: 700px) {
@@ -6563,8 +7069,46 @@
 
   .taste-community-shell {
     width: min(100% - 28px, 1180px);
+    overflow-x: hidden;
     padding: 48px 0 72px;
     gap: 48px;
+  }
+
+  .taste-community-articles-inner {
+    width: min(100% - 28px, 1180px);
+    padding: 56px 0 64px;
+  }
+
+  .taste-community-articles-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    margin-bottom: 24px;
+  }
+
+  .taste-community-articles-heading h2 {
+    font-size: 31px;
+  }
+
+  .taste-community-articles-all {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .taste-community-article-cover {
+    height: 220px;
+  }
+
+  .taste-community-article-featured-copy {
+    padding: 22px 20px 24px;
+  }
+
+  .taste-community-article-featured h3 {
+    font-size: 22px;
+  }
+
+  .taste-community-article-list {
+    grid-template-columns: 1fr;
+    gap: 0;
   }
 
   .taste-community-hero {

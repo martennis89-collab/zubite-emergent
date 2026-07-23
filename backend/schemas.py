@@ -188,9 +188,13 @@ class QuickChatLeadCreate(BaseModel):
 # flags without overwriting the original values.
 class UnlockResultBody(BaseModel):
     model_config = ConfigDict(extra="ignore")
-    name: str = Field(min_length=1, max_length=200)
-    phone: str = Field(min_length=4, max_length=50)
+    # The result-delivery step asks only where to send the result. Name
+    # and phone remain optional for backwards compatibility with older
+    # clients, but are no longer required by the current quiz funnel.
+    name: Optional[str] = Field(default=None, min_length=1, max_length=200)
+    phone: Optional[str] = Field(default=None, min_length=4, max_length=50)
     email: EmailStr
+    city_slug: Optional[str] = Field(default=None, min_length=1, max_length=50)
     consent: bool
     consultation_type: Optional[str] = Field(default=None, max_length=40)
 

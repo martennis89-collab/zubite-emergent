@@ -19,6 +19,7 @@ from scoring import calculate_score
 from emails import (
     send_lead_notification_email,
     send_lead_confirmation_email,
+    send_quiz_result_email,
     send_admin_selected_clinic_request_alert,
     send_admin_assisted_choice_request_alert,
     send_care_pass_summary_email,
@@ -214,6 +215,71 @@ async def get_city(city_slug: str):
         raise HTTPException(status_code=404, detail="City not found")
     clinic = await db.clinics.find_one({"city_slug": city_slug, "is_active": True, "archived": {"$ne": True}}, {"_id": 0})
     return {"city_slug": city_slug, "city_name": CITIES[city_slug], "clinic": clinic}
+
+
+@router.get("/public/trust-signals")
+async def get_public_trust_signals():
+    """Aggregated, non-identifying proof points for the public homepage.
+
+    Every number is derived from a completed product action. We deliberately
+    avoid treatment outcomes, ratings, or claims that the platform cannot
+    verify. Appointment totals include active, confirmed, and completed
+    booking records but exclude cancelled, rejected, expired, and no-show
+    records.
+    """
+    (
+        quiz_session_ids,
+        clinic_bookings,
+        orientation_bookings,
+        legacy_bookings,
+        community_answers,
+    ) = await asyncio.gather(
+        db.analytics_events.distinct(
+            "session_id",
+            {
+                "event_type": "quiz_completed",
+                "session_id": {"$type": "string", "$ne": ""},
+            },
+        ),
+        db.clinic_bookings.count_documents(
+            {
+                "status": {
+                    "$in": [
+                        "pending_confirmation",
+                        "confirmed",
+                        "rescheduled",
+                        "completed",
+                    ]
+                }
+            }
+        ),
+        db.online_orientation_bookings.count_documents(
+            {
+                "status": {
+                    "$in": [
+                        "pending_clinic_confirmation",
+                        "confirmed_by_clinic",
+                        "scheduled",
+                        "completed",
+                        "converted_to_in_clinic",
+                    ]
+                }
+            }
+        ),
+        db.consultation_requests.count_documents(
+            {"status": {"$in": ["booked", "attended"]}}
+        ),
+        db.qa_answers.count_documents({"status": "published"}),
+    )
+
+    return {
+        "quiz_completions": len(quiz_session_ids),
+        "consultations_booked": (
+            clinic_bookings + orientation_bookings + legacy_bookings
+        ),
+        "community_answers": community_answers,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
 
 
 @router.get("/clinics")
@@ -493,21 +559,15 @@ async def my_bookings(patient: Dict[str, Any] = Depends(get_current_patient)):
 #
 # POST /leads/{lead_id}/unlock-result
 #
-# Defensive lead-capture gate. The existing quiz POST /api/leads already
-# requires name+phone+email+consent, so /unlock-result is effectively a
-# safety net for:
-#   • Leads created without contacts (future flows where quiz answers
-#     and contact details are split apart).
-#   • Re-confirmation calls when the user lands on the result page from
-#     an old/cached link.
+# Result-delivery step. The current quiz creates an answer-only lead,
+# renders the full result immediately, then asks only for the email where
+# the patient wants a copy. City is collected alongside it solely so a
+# later "yes" to clinic recommendations can remain a simple binary choice.
 #
 # Behavior:
-#   • Idempotent — re-applying flips no real data when fields already
-#     match. Never overwrites a non-empty name/phone/email.
-#   • Sets contact_details_submitted, contact_details_submitted_at,
-#     full_result_unlocked, care_pass_eligible (NOT care_pass_unlocked).
-#   • Triggers admin + patient notifications when this is the first
-#     time contact details arrive (i.e. transition False→True).
+#   • Idempotent — never overwrites an existing email/name/phone.
+#   • Sets the historical unlock flags used by downstream clinic pages.
+#   • Sends the result email on the first successful submission.
 #   • Rate-limited like other lead writes.
 @router.post(
     "/leads/{lead_id}/unlock-result",
@@ -538,41 +598,39 @@ async def unlock_result(lead_id: str, body: UnlockResultBody):
     was_first_time = not lead.get("contact_details_submitted", False)
     now_iso = datetime.now(timezone.utc).isoformat()
 
-    # Preserve any existing contact values — never overwrite. Only fill
-    # in when missing (handles the future split-flow case cleanly).
+    # Preserve existing contact values. Only fill in missing legacy
+    # fields; the current funnel sends email + city only.
     update: Dict[str, Any] = {
         "contact_details_submitted": True,
         "contact_details_submitted_at": now_iso,
         "full_result_unlocked": True,
-        "care_pass_eligible": True,
         "consent": True,
     }
-    if not (lead.get("name") or "").strip():
+    if body.name and not (lead.get("name") or "").strip():
         update["name"] = body.name.strip()
-    if not (lead.get("phone") or "").strip():
+    if body.phone and not (lead.get("phone") or "").strip():
         update["phone"] = body.phone.strip()
     if not (lead.get("email") or "").strip():
         update["email"] = body.email
+    if body.city_slug:
+        update["city_slug"] = body.city_slug
     if body.consultation_type:
         update["consultation_type"] = body.consultation_type
 
     await db.leads.update_one({"id": lead_id}, {"$set": update})
 
-    # On the transition False→True we send the admin/patient notifications,
-    # mirroring what create_lead does. Best-effort, non-blocking.
+    # Email capture alone is not a clinic-contact request, so do not send
+    # an admin lead alert here. The patient receives only their result.
     if was_first_time:
         full_lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
         if full_lead and full_lead.get("consent"):
-            asyncio.create_task(send_lead_notification_email(full_lead))
             if full_lead.get("email"):
-                asyncio.create_task(send_lead_confirmation_email(full_lead))
+                asyncio.create_task(send_quiz_result_email(full_lead))
 
     return {
         "success": True,
-        "message": "Резултатът е отключен.",
+        "message": "Резултатът е изпратен.",
         "full_result_unlocked": True,
-        "care_pass_eligible": True,
-        "care_pass_unlocked": False,
     }
 
 

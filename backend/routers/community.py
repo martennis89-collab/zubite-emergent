@@ -280,13 +280,18 @@ def _spotlight_weight(clinic: Dict[str, Any]) -> int:
 @router.get("/community/spotlight")
 async def get_spotlight():
     """"Клиника на деня" — deterministic, Sofia-calendar-day rotation.
-    Weighted toward higher partner tiers, never exclusive to them. Degrades
-    through candidate tiers (premium-ish+published -> any+published ->
-    visible-only) before giving up; returns {"clinic": None} rather than an
+    Prefers the eligible higher-tier pool when one exists, then degrades
+    through candidate pools (any published -> visible-only) before giving
+    up; returns {"clinic": None} rather than an
     error when nothing is eligible — the widget simply doesn't render, never
     shows a broken/empty box. Stateless: recomputed on every request from
     live clinic data, no cache to invalidate when an admin changes a tier
-    or publishes a profile."""
+    or publishes a profile.
+
+    The final eligible pool is rotated sequentially by Sofia calendar date.
+    That guarantees a different clinic on consecutive days whenever the pool
+    contains more than one clinic, instead of merely making a new random pick
+    that could repeat yesterday's profile."""
     base_query = _public_visibility_query()
 
     async def _pool(extra: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -301,19 +306,28 @@ async def get_spotlight():
     if not pool:
         return {"clinic": None}
 
-    weighted: List[Dict[str, Any]] = []
-    for c in sorted(pool, key=lambda c: c["id"]):
-        weighted.extend([c] * _spotlight_weight(c))
-
-    today = datetime.now(_SOFIA_TZ).date().isoformat()
-    seed = int(hashlib.sha256(f"clinic_spotlight:{today}".encode()).hexdigest(), 16)
-    clinic = weighted[seed % len(weighted)]
+    ordered_pool = sorted(pool, key=lambda c: c["id"])
+    today = datetime.now(_SOFIA_TZ).date()
+    rotation_offset = int(
+        hashlib.sha256(b"clinic_spotlight_rotation_v2").hexdigest(),
+        16,
+    ) % len(ordered_pool)
+    clinic = ordered_pool[(today.toordinal() + rotation_offset) % len(ordered_pool)]
 
     tier = _resolve_partner_tier(clinic)
     profile = _public_profile_for_tier(clinic, tier) or {}
     treatments = clinic.get("treatments_supported") or clinic.get("treatments_offered") or []
     specialty_slug = treatments[0] if treatments and isinstance(treatments[0], str) else "klinika"
     name = clinic.get("clinic_name") or clinic.get("name") or ""
+    current_year = today.year
+    founded_year_raw = profile.get("founded_year")
+    founded_year = (
+        founded_year_raw
+        if isinstance(founded_year_raw, int)
+        and not isinstance(founded_year_raw, bool)
+        and 1900 <= founded_year_raw <= current_year
+        else None
+    )
 
     return {
         "clinic": {
@@ -324,12 +338,21 @@ async def get_spotlight():
             "slug": slugify_clinic(name) or clinic["id"],
             "name": name,
             "city_slug": resolve_city_slug(clinic),
-            "city_name": clinic.get("city_name"),
+            "city_name": clinic.get("city_name") or clinic.get("city"),
+            "area": clinic.get("area"),
             "specialty_slug": specialty_slug,
             "short_description": profile.get("short_description"),
             "patient_intro": profile.get("patient_intro"),
             "hero_image_url": profile.get("hero_image_url"),
-            "treatment_focus": profile.get("treatment_focus"),
+            "treatment_focus": profile.get("treatment_focus") or [],
+            "years_in_business": current_year - founded_year if founded_year is not None else None,
+            "online_consultation": bool(clinic.get("online_consultation")),
+            "accepts_adults": clinic.get("accepts_adults"),
+            "accepts_children": clinic.get("accepts_children"),
+            "profile_information_reviewed": bool(
+                clinic.get("review_sources_verified_by_admin")
+            ),
+            "rotation_date": today.isoformat(),
         },
     }
 

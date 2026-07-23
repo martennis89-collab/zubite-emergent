@@ -11,6 +11,7 @@ import {
 import PublicClinicCard from './PublicClinicCard'
 import PublicClinicFiltersBar from './PublicClinicFilters'
 import CompareTray from './CompareTray'
+import PersonalizedClinicShowcase from './PersonalizedClinicShowcase'
 
 const PublicContactModal = dynamic(() => import('./PublicContactModal'), { ssr: false })
 
@@ -21,10 +22,15 @@ interface Props {
   initialSpecialty?: string
   initialFilters?: PublicClinicFilters
   headingOverride?: string
-  syncToUrl?: { basePath: string }
+  leadId?: string
+  syncToUrl?: {
+    basePath: string
+    preserve?: Record<string, string>
+    keepCityInQuery?: boolean
+  }
 }
 
-export default function ClinicListingPage({ initialCity, initialSpecialty, initialFilters, headingOverride, syncToUrl }: Props) {
+export default function ClinicListingPage({ initialCity, initialSpecialty, initialFilters, headingOverride, leadId, syncToUrl }: Props) {
   const [filters, setFilters] = useState<PublicClinicFilters>({
     ...initialFilters,
     city: initialCity,
@@ -92,13 +98,34 @@ export default function ClinicListingPage({ initialCity, initialSpecialty, initi
     if (treatment) return `${treatment} клиники`
     return 'Партньорски клиники'
   }, [filters.city, filters.specialty, headingOverride])
+  const catalogHeading =
+    leadId && !filters.city && !filters.specialty
+      ? 'Всички партньорски клиники'
+      : heading
 
   return (
     <main className="taste-directory-page min-h-screen bg-[#FBF9F7] pb-24 text-[#1B1C1B]" data-testid="kliniki-listing-page">
-      <section className="mx-auto max-w-[1280px] px-5 pb-14 pt-16 sm:px-6 sm:pb-20 sm:pt-20">
-        <h1 className="max-w-4xl font-display text-4xl font-semibold leading-[1.05] tracking-[-0.035em] text-black sm:text-5xl lg:text-6xl" data-testid="kliniki-heading">{heading}</h1>
+      {leadId && <PersonalizedClinicShowcase leadId={leadId} />}
+
+      <section
+        id="all-clinics"
+        className={`mx-auto max-w-[1280px] scroll-mt-24 px-5 pb-14 sm:px-6 sm:pb-20 ${
+          leadId ? 'pt-14 sm:pt-20' : 'pt-16 sm:pt-20'
+        }`}
+      >
+        {leadId ? (
+          <h2 className="max-w-4xl font-display text-4xl font-semibold leading-[1.05] tracking-[-0.035em] text-black sm:text-5xl" data-testid="kliniki-heading">
+            {catalogHeading}
+          </h2>
+        ) : (
+          <h1 className="max-w-4xl font-display text-4xl font-semibold leading-[1.05] tracking-[-0.035em] text-black sm:text-5xl lg:text-6xl" data-testid="kliniki-heading">
+            {catalogHeading}
+          </h1>
+        )}
         <p className="mt-6 max-w-3xl text-base leading-7 text-[#45464D] sm:text-lg sm:leading-8">
-          Не всяка клиника може да бъде част от Zubite.bg. Работим с ограничен брой партньори, които покриват Zubite стандарт за качество на работата, отношение към пациента и професионализъм.
+          {leadId
+            ? 'Разгледай целия каталог и използвай филтрите, ако искаш да сравниш персоналния подбор с други партньорски клиники.'
+            : 'Не всяка клиника може да бъде част от Zubite.bg. Работим с ограничен брой партньори, които покриват Zubite стандарт за качество на работата, отношение към пациента и професионализъм.'}
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <span className="inline-flex items-center gap-2 rounded-full border border-[#6BD8CB] bg-[#F0FDFA] px-4 py-2 text-sm font-semibold text-[#006A61]"><BadgeCheck className="h-4 w-4" /> Zubite Standard</span>

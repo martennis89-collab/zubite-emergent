@@ -246,6 +246,7 @@ export function clinicFiltersFromSearchParams(
     return Array.isArray(value) ? value[0] : value
   }
   return {
+    city: first('city') || undefined,
     specialty: first('specialty') || undefined,
     online_consultation: first('online') === '1',
     accepts_adults: first('adults') === '1',

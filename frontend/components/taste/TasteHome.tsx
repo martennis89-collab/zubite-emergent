@@ -16,6 +16,8 @@ import {
 } from 'lucide-react'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
+import { HomeTrustSignals } from '@/components/taste/HomeTrustSignals'
+import type { HomeTrustSignals as HomeTrustSignalsData } from '@/lib/homeTrust'
 
 const symptoms = [
   { label: 'Криви или струпани зъби', note: 'Захапка и подреждане', href: '/crooked-teeth', icon: CircleDot },
@@ -57,7 +59,7 @@ const faqs = [
   },
 ]
 
-export function TasteHome() {
+export function TasteHome({ trustSignals }: { trustSignals: HomeTrustSignalsData | null }) {
   const rootRef = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const [playing, setPlaying] = useState(false)
@@ -165,6 +167,8 @@ export function TasteHome() {
             </div>
           </div>
         </section>
+
+        {trustSignals && <HomeTrustSignals signals={trustSignals} />}
 
         <section id="how-it-works" className="taste-home-path" data-testid="home-how-it-works">
           <div className="taste-shell taste-home-path-inner">

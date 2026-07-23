@@ -127,7 +127,7 @@ async def _unlock(app, lead_id):
     async with _client(app) as c:
         r = await c.post(
             f"/api/leads/{lead_id}/unlock-result",
-            json={"name": "Test Patient", "phone": "0888123456", "email": "test@example.com", "consent": True},
+            json={"email": "test@example.com", "consent": True},
         )
         assert r.status_code == 200, r.text
 
@@ -153,6 +153,37 @@ def test_lead_can_be_created_with_no_city(app):
     """The re-sequenced funnel creates leads before city is ever asked."""
     lead = _run(_make_lead(app))
     assert lead["city_slug"] is None
+
+
+def test_result_delivery_accepts_email_and_city_without_name_or_phone(app):
+    lead = _run(_make_lead(app))
+
+    async def go():
+        async with _client(app) as c:
+            return await c.post(
+                f"/api/leads/{lead['id']}/unlock-result",
+                json={
+                    "email": "result@example.com",
+                    "city_slug": "sofia",
+                    "consent": True,
+                },
+            )
+
+    response = _run(go())
+    assert response.status_code == 200, response.text
+    assert response.json()["message"] == "Резултатът е изпратен."
+
+    import database as _database
+
+    async def fetch():
+        return await _database.db.leads.find_one({"id": lead["id"]}, {"_id": 0})
+
+    stored = _run(fetch())
+    assert stored["email"] == "result@example.com"
+    assert stored["city_slug"] == "sofia"
+    assert stored["full_result_unlocked"] is True
+    assert stored.get("name") is None
+    assert stored.get("phone") is None
 
 
 def test_preference_requires_unlock_first(app):

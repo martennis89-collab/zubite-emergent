@@ -41,7 +41,7 @@ export default async function TopicFeed({ params }: { params: Promise<Params> })
     <>
       <Header />
       <main className="taste-community-page taste-community-topic-page">
-      <div className="taste-community-shell grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="taste-community-shell grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px]">
       <div className="min-w-0">
         <Link
           href="/community"

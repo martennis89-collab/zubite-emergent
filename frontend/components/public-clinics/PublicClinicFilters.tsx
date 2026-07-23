@@ -7,7 +7,11 @@ import { CITY_NAMES, type PublicClinicFilters } from '@/lib/publicClinics'
 interface Props {
   value: PublicClinicFilters
   onChange: (next: PublicClinicFilters) => void
-  syncToUrl?: { basePath: string } | null
+  syncToUrl?: {
+    basePath: string
+    preserve?: Record<string, string>
+    keepCityInQuery?: boolean
+  } | null
 }
 
 const treatments = [
@@ -24,18 +28,28 @@ export default function PublicClinicFilters({ value, onChange, syncToUrl }: Prop
     onChange(next)
     if (!syncToUrl) return
     const params = new URLSearchParams()
+    Object.entries(syncToUrl.preserve || {}).forEach(([key, value]) => {
+      if (value) params.set(key, value)
+    })
+    if (next.city && syncToUrl.keepCityInQuery) params.set('city', next.city)
     if (next.specialty) params.set('specialty', next.specialty)
     if (next.online_consultation) params.set('online', '1')
     if (next.accepts_adults) params.set('adults', '1')
     if (next.accepts_children) params.set('children', '1')
-    const path = next.city ? `${syncToUrl.basePath}/${next.city}` : syncToUrl.basePath
+    const path = next.city && !syncToUrl.keepCityInQuery
+      ? `${syncToUrl.basePath}/${next.city}`
+      : syncToUrl.basePath
     const query = params.toString()
     router.replace(query ? `${path}?${query}` : path)
   }
 
   const clearAll = () => {
     onChange({})
-    if (syncToUrl) router.replace(syncToUrl.basePath)
+    if (syncToUrl) {
+      const params = new URLSearchParams(syncToUrl.preserve || {})
+      const query = params.toString()
+      router.replace(query ? `${syncToUrl.basePath}?${query}` : syncToUrl.basePath)
+    }
   }
 
   const hasAny = Boolean(value.city || value.specialty || value.online_consultation || value.accepts_adults || value.accepts_children)

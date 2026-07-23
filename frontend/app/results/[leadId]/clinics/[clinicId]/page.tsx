@@ -181,7 +181,7 @@ export default function ClinicProfilePage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Back link */}
           <Link
-            href={`/results/${leadId}/clinics`}
+            href={`/clinics?leadId=${encodeURIComponent(leadId)}`}
             className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-teal-700 transition-colors mb-4"
             data-testid="profile-back-link"
           >
@@ -287,7 +287,7 @@ function RecommendationReasonBanner({
           )}
           {(clinic.assessment_approach_match_labels || []).length > 0 && (
             <p className="mt-3 text-xs leading-relaxed text-slate-500" data-testid="reason-assessment-approaches">
-              Профилът описва: {clinic.assessment_approach_match_labels.join(' · ')}. Това е критерий за релевантност, не оценка за качество.
+              Профилът описва: {(clinic.assessment_approach_match_labels || []).join(' · ')}. Това е критерий за релевантност, не оценка за качество.
             </p>
           )}
 
@@ -334,7 +334,7 @@ function ProfileUnavailableShell({
             Подробният профил на тази клиника все още не е публикуван. Може да заявиш контакт през препоръчания списък — клиниката ще се свърже с теб.
           </p>
           <Link
-            href={`/results/${leadId}/clinics`}
+            href={`/clinics?leadId=${encodeURIComponent(leadId)}`}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/65 backdrop-blur-xl ring-1 ring-white/80 text-slate-700 text-sm font-medium hover:bg-white transition-all"
             data-testid="profile-unavailable-back"
           >
@@ -400,7 +400,7 @@ function LeadProfileError({
           Опитай отново
         </button>
         <Link
-          href={`/results/${leadId}/clinics`}
+          href={`/clinics?leadId=${encodeURIComponent(leadId)}`}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-white text-sm font-medium shadow-[0_10px_28px_-10px_rgba(13,148,136,0.55)] hover:-translate-y-0.5 transition-all"
           style={{ backgroundImage: 'linear-gradient(135deg,#5eead4 0%,#2dd4bf 60%,#14b8a6 100%)' }}
           data-testid="lead-profile-back-to-clinics"

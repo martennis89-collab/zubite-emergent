@@ -97,11 +97,18 @@ export interface SpotlightClinic {
   name: string | null
   city_slug: string | null
   city_name: string | null
+  area: string | null
   specialty_slug: string
   short_description: string | null
   patient_intro: string | null
   hero_image_url: string | null
   treatment_focus: string[] | null
+  years_in_business: number | null
+  online_consultation: boolean
+  accepts_adults: boolean | null
+  accepts_children: boolean | null
+  profile_information_reviewed: boolean
+  rotation_date: string
 }
 
 /** "Клиника на деня" — deterministic daily pick, see backend/routers/
@@ -112,6 +119,30 @@ export async function getSpotlight(): Promise<SpotlightClinic | null> {
   if (!res.ok) return null
   const d = await res.json()
   return d.clinic ?? null
+}
+
+export interface CommunityArticle {
+  id: string
+  title: string
+  slug: string
+  excerpt: string
+  category: string
+  featured_image: string | null
+  published_at: string
+}
+
+/** Recent expert-reviewed reading for the community landing page. */
+export async function listRecentArticles(limit = 3): Promise<CommunityArticle[]> {
+  try {
+    const res = await fetch(`${API_URL}/api/blog/posts?limit=${limit}`, {
+      cache: 'no-store',
+    })
+    if (!res.ok) return []
+    const data = await res.json()
+    return Array.isArray(data.posts) ? data.posts.slice(0, limit) : []
+  } catch {
+    return []
+  }
 }
 
 export async function listQuestions(params: {

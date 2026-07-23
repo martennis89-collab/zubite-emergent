@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import resend
-from config import RESEND_API_KEY, SENDER_EMAIL, ADMIN_EMAIL, CITIES, TREATMENT_NAMES, BAND_NAMES
+from config import RESEND_API_KEY, SENDER_EMAIL, ADMIN_EMAIL, CITIES, TREATMENT_NAMES, BAND_NAMES, FRONTEND_URL
 
 
 async def send_lead_notification_email(lead_data: dict):
@@ -227,6 +227,78 @@ async def send_lead_confirmation_email(lead_data: dict):
         return result
     except Exception as e:
         logging.error(f"Failed to send lead confirmation email to {email}: {e}")
+        return None
+
+
+async def send_quiz_result_email(lead_data: dict):
+    """Send the patient's quiz orientation without implying clinic contact."""
+    if not RESEND_API_KEY:
+        return None
+
+    email = lead_data.get("email")
+    lead_id = lead_data.get("id")
+    if not email or not lead_id:
+        return None
+
+    band = lead_data.get("band", "GREEN")
+    result_by_band = {
+        "GREEN": {
+            "title": "Леки сигнали, които си струва да наблюдаваш",
+            "copy": (
+                "Отговорите ти показват малко сигнали. Това не изключва тема "
+                "за обсъждане, но е добра отправна точка за спокоен първи разговор със специалист."
+            ),
+            "next": "Наблюдение и профилактичен преглед",
+        },
+        "YELLOW": {
+            "title": "Няколко сигнала заслужават професионален поглед",
+            "copy": (
+                "Отговорите ти насочват към няколко сигнала, които е добре да "
+                "бъдат обсъдени със специалист. Това е ориентир, а не диагноза."
+            ),
+            "next": "Консултация в близко време",
+        },
+        "RED": {
+            "title": "Комбинацията от сигнали заслужава оценка скоро",
+            "copy": (
+                "Отговорите ти показват няколко сигнала наведнъж. Това не е "
+                "диагноза, но е ясен ориентир да обсъдиш ситуацията със специалист скоро."
+            ),
+            "next": "Не отлагай професионалната оценка",
+        },
+    }
+    result = result_by_band.get(band, result_by_band["GREEN"])
+    result_url = f"{FRONTEND_URL.rstrip('/')}/results/{lead_id}"
+
+    html = f"""
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;color:#1B1C1B;">
+      <p style="margin:0 0 12px;color:#006A61;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">Zubite.bg · Твоят ориентир</p>
+      <h1 style="margin:0;font-size:28px;line-height:1.2;color:#111111;">{result["title"]}</h1>
+      <p style="margin:18px 0 0;color:#45464D;font-size:16px;line-height:1.65;">{result["copy"]}</p>
+      <div style="margin:24px 0;padding:18px 20px;background:#F0FDFA;border:1px solid #B3EEE6;border-radius:10px;">
+        <p style="margin:0 0 6px;color:#006A61;font-size:12px;font-weight:700;text-transform:uppercase;">Следваща стъпка</p>
+        <p style="margin:0;color:#1B1C1B;font-size:16px;font-weight:600;">{result["next"]}</p>
+      </div>
+      <a href="{result_url}" style="display:inline-block;padding:13px 20px;background:#006A61;color:#ffffff;text-decoration:none;border-radius:8px;font-size:15px;font-weight:700;">Отвори пълния резултат</a>
+      <p style="margin:24px 0 0;color:#64748B;font-size:13px;line-height:1.55;">Този резултат е ориентировъчен и не замества преглед или диагноза. Не сме споделили данните ти с клиника.</p>
+    </div>
+    """
+
+    try:
+        result_send = await asyncio.to_thread(resend.Emails.send, {
+            "from": SENDER_EMAIL,
+            "to": [email],
+            "subject": "Твоят ориентировъчен резултат — Zubite.bg",
+            "html": html,
+        })
+        logging.info(
+            "Quiz result email sent to %s, email_id: %s",
+            email,
+            result_send.get("id"),
+        )
+        return result_send
+    except Exception as exc:
+        logging.error("Failed to send quiz result email to %s: %s", email, exc)
         return None
 
 
