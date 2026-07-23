@@ -932,7 +932,7 @@ const sectionTitleClass =
 
 function SectionDivider({ icon: Icon, label }: { icon: React.ElementType; label: string }) {
   return (
-    <div className={sectionTitleClass}>
+    <div className={`${sectionTitleClass} application-section-divider`}>
       <Icon className="w-4 h-4" />
       <span>{label}</span>
       <div className="flex-1 h-px bg-white/10" />
@@ -946,10 +946,10 @@ function Toggle({
   checked: boolean; onChange: (v: boolean) => void; label: string; testId?: string
 }) {
   return (
-    <label className="flex items-center gap-3 cursor-pointer select-none">
+    <label className="application-toggle flex items-center gap-3 cursor-pointer select-none">
       <span
         className={
-          'relative w-10 h-6 rounded-full transition-colors ' +
+          'application-toggle-track relative w-10 h-6 rounded-full transition-colors ' +
           (checked ? 'bg-teal-500' : 'bg-slate-700')
         }
         data-testid={testId}
@@ -1142,16 +1142,22 @@ export function ApplicationSection({
   return (
     <section
       id="application"
-      className="relative py-24 md:py-32 overflow-hidden"
+      className={
+        privateMode
+          ? 'taste-private-intake-form-section'
+          : 'relative py-24 md:py-32 overflow-hidden'
+      }
       data-testid="clinics-application"
-      style={{
+      style={privateMode ? undefined : {
         background:
           'radial-gradient(ellipse 60% 50% at 50% 0%, rgba(20,184,166,0.18) 0%, transparent 60%),' +
           'linear-gradient(135deg, #0B1620 0%, #0E1A24 100%)',
       }}
     >
-      <div aria-hidden className="absolute -top-32 left-1/2 -translate-x-1/2 w-[720px] h-[480px] rounded-full bg-teal-500/10 blur-3xl pointer-events-none" />
-      <div className="relative max-w-3xl mx-auto px-5 sm:px-8">
+      {!privateMode && (
+        <div aria-hidden className="absolute -top-32 left-1/2 -translate-x-1/2 w-[720px] h-[480px] rounded-full bg-teal-500/10 blur-3xl pointer-events-none" />
+      )}
+      <div className={privateMode ? 'taste-private-intake-form-wrap' : 'relative max-w-3xl mx-auto px-5 sm:px-8'}>
         {status === 'success' ? (
           <div className="text-center py-12">
             <div className="w-20 h-20 rounded-full bg-teal-500/15 ring-1 ring-teal-300/30 flex items-center justify-center mx-auto mb-8">
@@ -1168,23 +1174,27 @@ export function ApplicationSection({
           </div>
         ) : (
           <>
-            <div className="text-center mb-12">
+            <div className={privateMode ? 'taste-private-intake-form-heading' : 'text-center mb-12'}>
               <p className="font-sans text-xs font-semibold tracking-[0.25em] uppercase text-teal-300 mb-3">
-                {privateMode ? 'Защитен intake' : 'Кандидатстване'}
+                {privateMode ? 'Информация за профила' : 'Кандидатстване'}
               </p>
               <h2 className="font-serif text-[1.75rem] sm:text-[2.25rem] font-semibold text-white leading-[1.1] mb-4">
-                {privateMode ? 'Информация за профила на клиниката' : 'Подайте кратка форма за партньорство'}
+                {privateMode ? 'Попълнете това, с което разполагате' : 'Подайте кратка форма за партньорство'}
               </h2>
               <p className="text-slate-300 text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
                 {privateMode
-                  ? 'Попълнете наличната информация. Полетата за разширения Growth профил могат да бъдат допълнени и на по-късен етап.'
+                  ? 'Задължителните полета са отбелязани със звезда. Разширената информация може да бъде допълнена и след първоначалния преглед.'
                   : 'Ще прегледаме съответствието с партньорската мрежа и ще се свържем с вас в рамките на 48 часа.'}
               </p>
             </div>
 
             <form
               onSubmit={handleSubmit}
-              className="bg-white/[0.04] backdrop-blur-xl ring-1 ring-white/12 rounded-2xl p-6 sm:p-8 md:p-10 space-y-8"
+              className={
+                privateMode
+                  ? 'taste-private-intake-form space-y-8'
+                  : 'bg-white/[0.04] backdrop-blur-xl ring-1 ring-white/12 rounded-2xl p-6 sm:p-8 md:p-10 space-y-8'
+              }
               data-testid="clinic-application-form"
             >
               <SectionDivider icon={Layers} label="Пакет, който разглеждате" />
@@ -1200,7 +1210,7 @@ export function ApplicationSection({
                   ].map((option) => (
                     <label
                       key={option.value}
-                      className={`cursor-pointer rounded-xl border p-4 transition-colors ${
+                      className={`application-package-option cursor-pointer rounded-xl border p-4 transition-colors ${
                         form.package_interest === option.value
                           ? 'border-teal-300 bg-teal-300/10'
                           : 'border-white/15 bg-white/[0.03] hover:border-white/25'
@@ -1312,7 +1322,7 @@ export function ApplicationSection({
                 <p className="mt-2 text-xs text-slate-500">Разделете с запетая. В профила ще подредим до 3 основни секции за Verified и до 8 за Growth.</p>
               </div>
 
-              <details open className="group rounded-2xl border border-white/10 bg-white/[0.025] p-5">
+              <details open className="application-details group rounded-2xl border border-white/10 bg-white/[0.025] p-5">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-white">
                   Данни за проверения профил
                   <ChevronDown className="h-4 w-4 text-teal-300 transition-transform group-open:rotate-180" />
@@ -1414,7 +1424,7 @@ export function ApplicationSection({
               </div>
 
               {(form.package_interest === 'growth_partner' || form.package_interest === 'unsure') && (
-                <details open className="group rounded-2xl border border-teal-300/20 bg-teal-300/[0.035] p-5">
+                <details open className="application-details application-details-growth group rounded-2xl border border-teal-300/20 bg-teal-300/[0.035] p-5">
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-white">
                     Разширен Growth профил
                     <ChevronDown className="h-4 w-4 text-teal-300 transition-transform group-open:rotate-180" />
@@ -1599,8 +1609,12 @@ export function ApplicationSection({
                 <button
                   type="submit"
                   disabled={status === 'loading'}
-                  className="w-full flex items-center justify-center gap-2 px-8 py-4 rounded-full text-slate-900 font-medium transition-all hover:-translate-y-0.5 shadow-[0_18px_40px_-12px_rgba(94,234,212,0.45)] disabled:opacity-60 disabled:cursor-not-allowed"
-                  style={{ backgroundImage: 'linear-gradient(135deg,#5eead4 0%,#2dd4bf 60%,#14b8a6 100%)' }}
+                  className={
+                    privateMode
+                      ? 'taste-private-intake-submit'
+                      : 'w-full flex items-center justify-center gap-2 px-8 py-4 rounded-full text-slate-900 font-medium transition-all hover:-translate-y-0.5 shadow-[0_18px_40px_-12px_rgba(94,234,212,0.45)] disabled:opacity-60 disabled:cursor-not-allowed'
+                  }
+                  style={privateMode ? undefined : { backgroundImage: 'linear-gradient(135deg,#5eead4 0%,#2dd4bf 60%,#14b8a6 100%)' }}
                   data-testid="footer-apply-btn"
                 >
                   {status === 'loading' ? (
@@ -1610,7 +1624,7 @@ export function ApplicationSection({
                     </>
                   ) : (
                     <>
-                      <span>Изпрати кандидатура</span>
+                      <span>{privateMode ? 'Изпрати информацията' : 'Изпрати кандидатура'}</span>
                       <ArrowUpRight className="w-5 h-5" />
                     </>
                   )}

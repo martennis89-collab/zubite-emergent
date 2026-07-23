@@ -3,7 +3,15 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { CheckCircle2, Clock3, Link2Off, Loader2, ShieldCheck } from 'lucide-react'
+import {
+  Check,
+  CheckCircle2,
+  Clock3,
+  FileCheck2,
+  Link2Off,
+  Loader2,
+  ShieldCheck,
+} from 'lucide-react'
 import { ApplicationSection } from '@/components/ForClinicsContent'
 
 interface IntakeInvite {
@@ -47,7 +55,7 @@ export function PrivateClinicIntakeClient() {
   if (loading) {
     return (
       <PrivateShell>
-        <div className="mx-auto flex min-h-[55vh] max-w-md items-center justify-center text-slate-300">
+        <div className="taste-private-intake-loading">
           <Loader2 className="mr-3 h-5 w-5 animate-spin text-teal-300" />
           Проверяваме защитения линк…
         </div>
@@ -94,15 +102,43 @@ export function PrivateClinicIntakeClient() {
 
   return (
     <PrivateShell>
-      <div className="px-5 py-8 sm:px-8" style={{ background: '#0B1620' }}>
-        <div className="mx-auto flex max-w-3xl items-start gap-3 rounded-xl bg-[#102832] px-4 py-3 text-sm text-slate-200 ring-1 ring-teal-200/20">
-          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-teal-300" />
-          <p className="leading-relaxed">
-            Този линк е създаден за <strong className="font-semibold text-white">{invite.clinic_label || 'вашата клиника'}</strong>.
-            Той е непубличен и може да бъде използван веднъж. Не го препращайте извън екипа си.
-          </p>
+      <section className="taste-private-intake-hero">
+        <div className="taste-private-intake-texture" aria-hidden />
+        <div className="taste-shell taste-private-intake-hero-grid">
+          <div className="taste-private-intake-copy">
+            <span className="taste-private-intake-kicker">
+              <FileCheck2 aria-hidden />
+              Профил на партньорска клиника
+            </span>
+            <h1>
+              Представете клиниката си <em>ясно и достоверно.</em>
+            </h1>
+            <p>
+              Информацията от тази форма ни помага да изградим точен профил,
+              който пациентите могат лесно да разберат и на който могат да се доверят.
+            </p>
+          </div>
+
+          <aside className="taste-private-intake-prep" aria-label="Преди да започнете">
+            <h2>Преди да започнете</h2>
+            <ul>
+              <li><Check aria-hidden /> Попълнете първо основните данни и услугите</li>
+              <li><Check aria-hidden /> Добавете линкове и материали, с които разполагате</li>
+              <li><Check aria-hidden /> Нищо не се публикува без преглед от Zubite.bg</li>
+            </ul>
+          </aside>
         </div>
-      </div>
+
+        <div className="taste-shell">
+          <div className="taste-private-intake-notice">
+            <ShieldCheck aria-hidden />
+            <p>
+              Защитена покана за <strong>{invite.clinic_label || 'вашата клиника'}</strong>.
+              Линкът е непубличен, еднократен и не трябва да бъде препращан извън екипа ви.
+            </p>
+          </div>
+        </div>
+      </section>
       <ApplicationSection
         privateMode
         submissionEndpoint={`/api/clinic-intake/${encodeURIComponent(token)}`}
@@ -115,19 +151,28 @@ export function PrivateClinicIntakeClient() {
 
 function PrivateShell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="min-h-screen bg-[#0B1620] text-white">
-      <header className="border-b border-white/10 bg-[#0B1620]">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
-          <Link href="/" className="font-serif text-xl font-semibold tracking-tight text-white">
-            Zubite<span className="text-teal-300">.bg</span>
+    <main className="taste-site taste-route-scope taste-private-intake">
+      <header className="taste-private-intake-header">
+        <div className="taste-shell taste-private-intake-header-inner">
+          <Link href="/" className="taste-private-intake-logo" aria-label="Zubite.bg начало">
+            Zubite<span>.bg</span>
           </Link>
-          <span className="inline-flex items-center gap-2 text-xs text-slate-400">
-            <ShieldCheck className="h-4 w-4 text-teal-300" />
-            Защитена форма
+          <span className="taste-private-intake-security">
+            <ShieldCheck aria-hidden />
+            Защитена покана
           </span>
         </div>
       </header>
       {children}
+      <footer className="taste-private-intake-footer">
+        <div className="taste-shell">
+          <span>Zubite.bg · Независима дентална ориентация</span>
+          <nav aria-label="Правна информация">
+            <Link href="/privacy">Поверителност</Link>
+            <Link href="/contact">Контакт</Link>
+          </nav>
+        </div>
+      </footer>
     </main>
   )
 }
@@ -144,12 +189,12 @@ function StateMessage({
   success?: boolean
 }) {
   return (
-    <div className="mx-auto flex min-h-[70vh] max-w-lg flex-col items-center justify-center px-6 text-center">
-      <div className={`mb-6 flex h-14 w-14 items-center justify-center rounded-full ${success ? 'bg-emerald-400/12 text-emerald-300' : 'bg-white/8 text-slate-300'}`}>
+    <div className="taste-private-intake-state">
+      <div className={success ? 'is-success' : undefined}>
         <Icon className="h-6 w-6" />
       </div>
-      <h1 className="font-serif text-3xl font-semibold text-white">{title}</h1>
-      <p className="mt-3 max-w-md text-base leading-relaxed text-slate-300">{text}</p>
+      <h1>{title}</h1>
+      <p>{text}</p>
     </div>
   )
 }
