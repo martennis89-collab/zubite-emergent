@@ -12,7 +12,7 @@ from database import db, client
 from storage import init_storage
 from emails import send_verification_email
 
-from routers import public, admin, blog, analytics, clinics, verification, seo, consultations, audit_logs, orientation_settings, orientation_bookings, content_automation, public_clinics, clinic_addons, bookings, consultation_chat, patient_auth, community, doctors, clinic_patients
+from routers import public, admin, blog, analytics, clinics, verification, seo, consultations, audit_logs, orientation_settings, orientation_bookings, content_automation, public_clinics, clinic_addons, bookings, consultation_chat, patient_auth, community, doctors, clinic_patients, recognition
 
 # Root-level health endpoint
 app = FastAPI(title="Zubite.bg API")
@@ -53,6 +53,7 @@ api_router.include_router(patient_auth.router)
 api_router.include_router(community.router)
 api_router.include_router(doctors.router)
 api_router.include_router(clinic_patients.router)
+api_router.include_router(recognition.router)
 
 app.include_router(api_router)
 
@@ -166,6 +167,12 @@ async def startup():
     await db.qa_question_photos.create_index("id", unique=True)
     await db.qa_question_photos.create_index([("question_id", 1), ("display_order", 1)])
     await db.qa_question_photos.create_index("patient_id")
+    # Wall of Recognition — gratitude stories are separate from reviews.
+    await db.recognition_entries.create_index("id", unique=True)
+    await db.recognition_entries.create_index([("status", 1), ("published_at", -1)])
+    await db.recognition_entries.create_index("patient_id")
+    await db.recognition_photos.create_index("id", unique=True)
+    await db.recognition_photos.create_index([("entry_id", 1), ("kind", 1)], unique=True)
 
     # Consultation workflow indexes (Feb 2026)
     await db.consultation_requests.create_index("id", unique=True)

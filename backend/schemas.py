@@ -951,6 +951,15 @@ class ClinicProfile(BaseModel):
     doctor_spotlight_kind: Optional[Literal["owner", "lead_doctor"]] = None
     doctor_spotlight_role: Optional[str] = Field(default=None, max_length=200)
     doctor_spotlight_specialties: Optional[List[str]] = Field(default=None, max_length=8)
+    # Describes assessment scope only — never a quality/ranking signal.
+    assessment_approaches: Optional[List[Literal[
+        "airway_breathing",
+        "swallowing_orofacial",
+        "speech_articulation",
+        "posture_balance",
+        "facial_asymmetry",
+        "functional_orthodontics",
+    ]]] = Field(default=None, max_length=6)
     doctor_spotlight_bio: Optional[str] = Field(default=None, max_length=1000)
     team_note: Optional[str] = Field(default=None, max_length=500)
 

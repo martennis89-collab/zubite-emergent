@@ -197,6 +197,18 @@ export function ClinicRecommendationCard({
       {/* Aligner brand chips — compact form, omitted when no brands. */}
       <AlignerBrandChips chips={clinic.aligner_brands_supported} layout="card" />
 
+      {(clinic.assessment_approach_match_labels || []).length > 0 && (
+        <div className="mb-3 rounded-xl border border-teal-100 bg-teal-50/70 p-3" data-testid={`clinic-card-approach-match-${clinic.id}`}>
+          <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[.12em] text-teal-800">
+            <Sparkles className="h-3.5 w-3.5" /> Подход, свързан с отговорите ти
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-slate-600">
+            {clinic.assessment_approach_match_labels?.join(' · ')}
+          </p>
+          <p className="mt-1.5 text-[10px] leading-snug text-slate-500">Критерий за релевантност, не оценка за качество.</p>
+        </div>
+      )}
+
       {/* Reason — short visible first line + expand details */}
       <p className="text-sm text-slate-700 leading-relaxed mb-3 flex-1 line-clamp-2" data-testid={`clinic-card-reason-${clinic.id}`}>
         {clinic.reason}

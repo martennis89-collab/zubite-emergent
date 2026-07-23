@@ -38,6 +38,23 @@ const API_URL = resolveApiUrl()
  *  the clinic doc. No parallel schema. */
 export type PartnerTier = 'standard' | 'featured' | 'premium'
 
+export type AssessmentApproach =
+  | 'airway_breathing'
+  | 'swallowing_orofacial'
+  | 'speech_articulation'
+  | 'posture_balance'
+  | 'facial_asymmetry'
+  | 'functional_orthodontics'
+
+export const ASSESSMENT_APPROACH_LABELS: Record<AssessmentApproach, string> = {
+  airway_breathing: 'Дишане и дихателни пътища',
+  swallowing_orofacial: 'Преглъщане и орофациални навици',
+  speech_articulation: 'Говор и артикулация',
+  posture_balance: 'Стойка и мускулен баланс',
+  facial_asymmetry: 'Лицева асиметрия',
+  functional_orthodontics: 'Функционален ортодонтски подход',
+}
+
 /** Public-facing tier label (never the raw internal tier name).
  *  Feb 2026 pricing revamp: only Verified / Growth are public. Any
  *  legacy `premium` (old Authority) is publicly relabeled as Growth
@@ -96,6 +113,7 @@ export type PublicClinic = {
   area: string | null
   treatments: string[]
   specialties: string[]
+  assessment_approaches?: AssessmentApproach[]
   short_description: string | null
   patient_intro: string | null
   founded_year: number | null

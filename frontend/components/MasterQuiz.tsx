@@ -12,13 +12,6 @@ import {
 } from './MetaPixel'
 import { trackEvent as gaTrackEvent } from '@/lib/analytics/gtag'
 import { getStoredAttribution } from '@/lib/attribution'
-import {
-  TREATMENT_PRICES,
-  ORTHO_DURATION,
-  PRICE_DISCLAIMER,
-  PRICE_NOT_PERSONAL_NOTE,
-  formatPrice,
-} from '@/lib/pricing'
 
 // ─── Types ────────────────────────────────────────────────
 type Segment = 'adult' | 'teen' | 'child'
@@ -150,8 +143,8 @@ const ADULT_QUESTIONS: QuizQuestion[] = [
     id: 'a5', type: 'text',
     question: 'Случва ли се да дишаш през устата (особено нощем)?',
     options: [
-      { label: 'Да', value: 'yes', score: 2, tags: ['airway'] },
-      { label: 'Понякога', value: 'sometimes', score: 1, tags: ['airway'] },
+      { label: 'Да', value: 'yes', score: 2, tags: ['airway', 'approach_airway'] },
+      { label: 'Понякога', value: 'sometimes', score: 1, tags: ['airway', 'approach_airway'] },
       { label: 'Не', value: 'no', score: 0 },
     ]
   },
@@ -186,8 +179,8 @@ const ADULT_QUESTIONS: QuizQuestion[] = [
     id: 'a9', type: 'text',
     question: 'Имаш ли главоболие, напрежение във врата или ушите без ясна причина?',
     options: [
-      { label: 'Да', value: 'yes', score: 2, tags: ['tension'] },
-      { label: 'Понякога', value: 'sometimes', score: 1 },
+      { label: 'Да', value: 'yes', score: 2, tags: ['tension', 'approach_posture'] },
+      { label: 'Понякога', value: 'sometimes', score: 1, tags: ['approach_posture'] },
       { label: 'Не', value: 'no', score: 0 },
     ]
   },
@@ -252,8 +245,8 @@ const TEEN_QUESTIONS: QuizQuestion[] = [
     id: 't6', type: 'text',
     question: 'Диша ли често през устата?',
     options: [
-      { label: 'Да', value: 'yes', score: 2, tags: ['airway'] },
-      { label: 'Понякога', value: 'sometimes', score: 1, tags: ['airway'] },
+      { label: 'Да', value: 'yes', score: 2, tags: ['airway', 'approach_airway'] },
+      { label: 'Понякога', value: 'sometimes', score: 1, tags: ['airway', 'approach_airway'] },
       { label: 'Не', value: 'no', score: 0 },
     ]
   },
@@ -261,8 +254,8 @@ const TEEN_QUESTIONS: QuizQuestion[] = [
     id: 't7', type: 'text',
     question: 'Има ли затруднения с говор или произнасяне на определени звуци?',
     options: [
-      { label: 'Да', value: 'yes', score: 2, tags: ['development'] },
-      { label: 'Понякога', value: 'sometimes', score: 1 },
+      { label: 'Да', value: 'yes', score: 2, tags: ['development', 'approach_speech'] },
+      { label: 'Понякога', value: 'sometimes', score: 1, tags: ['approach_speech'] },
       { label: 'Не', value: 'no', score: 0 },
     ]
   },
@@ -291,8 +284,8 @@ const CHILD_QUESTIONS: QuizQuestion[] = [
     id: 'c2', type: 'text',
     question: 'Диша ли често през устата (особено нощем)?',
     options: [
-      { label: 'Да', value: 'yes', score: 2, tags: ['airway'] },
-      { label: 'Понякога', value: 'sometimes', score: 1, tags: ['airway'] },
+      { label: 'Да', value: 'yes', score: 2, tags: ['airway', 'approach_airway'] },
+      { label: 'Понякога', value: 'sometimes', score: 1, tags: ['airway', 'approach_airway'] },
       { label: 'Не', value: 'no', score: 0 },
     ]
   },
@@ -300,7 +293,7 @@ const CHILD_QUESTIONS: QuizQuestion[] = [
     id: 'c3', type: 'text',
     question: 'Хърка ли или има неспокоен сън?',
     options: [
-      { label: 'Да', value: 'yes', score: 2, tags: ['airway'] },
+      { label: 'Да', value: 'yes', score: 2, tags: ['airway', 'approach_airway'] },
       { label: 'Понякога', value: 'sometimes', score: 1 },
       { label: 'Не', value: 'no', score: 0 },
     ]
@@ -309,8 +302,8 @@ const CHILD_QUESTIONS: QuizQuestion[] = [
     id: 'c4', type: 'text',
     question: 'Смуче ли пръст или използва ли биберон дълго време?',
     options: [
-      { label: 'Да', value: 'yes', score: 2, tags: ['development'] },
-      { label: 'Преди да, вече не', value: 'past', score: 1, tags: ['development'] },
+      { label: 'Да', value: 'yes', score: 2, tags: ['development', 'approach_swallowing'] },
+      { label: 'Преди да, вече не', value: 'past', score: 1, tags: ['development', 'approach_swallowing'] },
       { label: 'Не', value: 'no', score: 0 },
     ]
   },
@@ -336,8 +329,8 @@ const CHILD_QUESTIONS: QuizQuestion[] = [
     id: 'c7', type: 'text',
     question: 'Държи ли устата си често отворена през деня?',
     options: [
-      { label: 'Да', value: 'yes', score: 2, tags: ['airway'] },
-      { label: 'Понякога', value: 'sometimes', score: 1, tags: ['airway'] },
+      { label: 'Да', value: 'yes', score: 2, tags: ['airway', 'approach_airway'] },
+      { label: 'Понякога', value: 'sometimes', score: 1, tags: ['airway', 'approach_airway'] },
       { label: 'Не', value: 'no', score: 0 },
     ]
   },
@@ -883,9 +876,11 @@ export function MasterQuiz() {
   // ─── RESULT SCREEN ─────────────────────────────────────
   if (step === 'result' && result && segment) {
     const content = RESULT_CONTENT[segment][result.band]
+    const approachSignals = result.flags.filter((flag) => flag.startsWith('approach_'))
+    const clinicalFlags = result.flags.filter((flag) => !flag.startsWith('approach_'))
 
     return (
-      <main className="taste-site taste-quiz-page">
+      <main className="taste-site taste-quiz-page taste-quiz-viewport taste-quiz-result-viewport">
         <Header />
         <section className="taste-quiz-result-wrap">
           <div className="taste-quiz-result-shell animate-fade-in-up">
@@ -919,79 +914,21 @@ export function MasterQuiz() {
               </div>
 
               {/* Flags */}
-              {result.flags.length > 0 && (
+              {(clinicalFlags.length > 0 || approachSignals.length > 0) && (
                 <div className="taste-quiz-flags" aria-label="Забелязани сигнали">
-                  {result.flags.map(f => (
+                  {clinicalFlags.map(f => (
                     <span key={f}>
                       {{ crowding: 'Струпване', bite_issue: 'Захапка', airway: 'Дишане', tension: 'Напрежение', wear: 'Износване', development: 'Развитие' }[f] || f}
                     </span>
                   ))}
+                  {approachSignals.length > 0 && (
+                    <Link href="/full-picture-dental-assessment" className="taste-quiz-approach-link">
+                      Цялостна оценка →
+                    </Link>
+                  )}
                 </div>
               )}
 
-              {/* Price + duration orientation.
-                  Deliberately NOT derived from the band: the quiz reads
-                  reported symptoms and cannot forecast a given patient's
-                  cost or treatment length. These are the general Bulgarian
-                  market ranges from lib/pricing.ts (single source of truth,
-                  shared with the price-guide pages), labelled as such. The
-                  only band-dependent line is the mild-case duration hint,
-                  which mirrors existing approved copy and is phrased as a
-                  general statement about mild cases, not about this user.
-
-                  Adult/teen ONLY. For under-12s this screen's own education
-                  copy says "целта не е брекети — а насочване на растежа",
-                  so quoting aligner/braces ranges to a parent would
-                  contradict the advice sitting right above it. There is no
-                  approved pricing for interceptive treatment, so the child
-                  segment gets an honest qualitative note instead of numbers. */}
-              <div className="taste-quiz-market-orientation">
-                {segment === 'child' ? (
-                  <div className="taste-quiz-child-price-note">
-                    <span>За цената</span>
-                    <p>
-                      При деца под 12 г. лечението често не е брекети, а
-                      насочване на растежа. Затова цената и срокът зависят
-                      силно от подхода и се определят след преглед.
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="taste-quiz-market-heading">
-                      <span>Пазарен ориентир</span>
-                      <p>Общи диапазони за България, не персонална оферта.</p>
-                    </div>
-                    <div className="taste-quiz-price-grid">
-                      <div>
-                        <span>Прозрачни алайнери</span>
-                        <strong>
-                          {formatPrice(TREATMENT_PRICES['orthodontics-aligners'])}
-                        </strong>
-                      </div>
-                      <div>
-                        <span>Брекети</span>
-                        <strong>
-                          {formatPrice(TREATMENT_PRICES['orthodontics-braces'])}
-                        </strong>
-                      </div>
-                      <div>
-                        <span>Обичайна продължителност</span>
-                        <strong>{result.band === 'low' ? ORTHO_DURATION.mild : ORTHO_DURATION.typical}</strong>
-                        <small>
-                          {result.band === 'low'
-                            ? 'Леките случаи обикновено се коригират по-бързо. ' + ORTHO_DURATION.note
-                            : ORTHO_DURATION.note}
-                        </small>
-                      </div>
-                    </div>
-                    <p className="taste-quiz-price-disclaimer">
-                      {PRICE_NOT_PERSONAL_NOTE} {PRICE_DISCLAIMER}
-                    </p>
-                  </>
-                )}
-              </div>
-
-              <p className="taste-quiz-result-education">{content.education}</p>
             </article>
 
             <div className="taste-quiz-result-action animate-fade-in-up" style={{ animationDelay: '150ms' }}>

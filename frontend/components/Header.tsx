@@ -42,13 +42,13 @@ const NAV_ITEMS = [
     id: 'articles',
     label: 'Статии',
     href: '/blog',
-    match: ['/blog'],
+    match: ['/blog', '/full-picture-dental-assessment'],
   },
   {
     id: 'community',
     label: 'Общност',
     href: '/community',
-    match: ['/community', '/ask'],
+    match: ['/community', '/ask', '/recognition'],
   },
 ] as const
 

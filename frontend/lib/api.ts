@@ -106,6 +106,10 @@ export interface RecommendedClinic {
   // consumers should prefer this over `treatments` (which is kept as a
   // legacy alias for backwards compatibility).
   treatments_supported?: string[];
+  /** Assessment scope, not a quality/ranking signal. */
+  assessment_approaches?: Array<import('@/lib/publicClinics').AssessmentApproach>;
+  assessment_approach_matches?: Array<import('@/lib/publicClinics').AssessmentApproach>;
+  assessment_approach_match_labels?: string[];
   reason: string;
   response_expectation: string;
   partner_since_year: number | null;
@@ -168,6 +172,7 @@ export interface RecommendedClinic {
     profile_status: 'published'
     short_description?: string | null
     patient_intro?: string | null
+    assessment_approaches?: Array<import('@/lib/publicClinics').AssessmentApproach>
     treatment_focus?: string[] | null
     hero_image_url?: string | null
     clinic_video_url?: string | null

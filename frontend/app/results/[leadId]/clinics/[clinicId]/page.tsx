@@ -247,6 +247,7 @@ function RecommendationReasonBanner({
   if (clinic.same_district) chips.push({ icon: MapPin, label: 'В твоя квартал', testid: 'reason-chip-same-district' })
   else if (clinic.same_city) chips.push({ icon: MapPin, label: 'В твоя град', testid: 'reason-chip-same-city' })
   if (clinic.placement_label) chips.push({ icon: ShieldCheck, label: clinic.placement_label, testid: 'reason-chip-placement' })
+  if ((clinic.assessment_approach_matches || []).length > 0) chips.push({ icon: Compass, label: 'Подход, свързан с отговорите ти', testid: 'reason-chip-assessment-approach' })
 
   return (
     <article
@@ -283,6 +284,11 @@ function RecommendationReasonBanner({
                 </li>
               ))}
             </ul>
+          )}
+          {(clinic.assessment_approach_match_labels || []).length > 0 && (
+            <p className="mt-3 text-xs leading-relaxed text-slate-500" data-testid="reason-assessment-approaches">
+              Профилът описва: {clinic.assessment_approach_match_labels.join(' · ')}. Това е критерий за релевантност, не оценка за качество.
+            </p>
           )}
 
           {alreadyRequested && (

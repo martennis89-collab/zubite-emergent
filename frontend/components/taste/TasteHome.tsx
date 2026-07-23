@@ -63,6 +63,26 @@ export function TasteHome() {
   const [playing, setPlaying] = useState(false)
 
   useEffect(() => {
+    // The homepage is an entry surface, so a fresh visit should never inherit
+    // a previous scroll position. Preserve intentional deep links such as
+    // /#how-it-works.
+    if (window.location.hash) return
+
+    const previousRestoration = window.history.scrollRestoration
+    const resetToTop = () => window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+    window.history.scrollRestoration = 'manual'
+    resetToTop()
+    const frame = window.requestAnimationFrame(resetToTop)
+    window.addEventListener('pageshow', resetToTop)
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.removeEventListener('pageshow', resetToTop)
+      window.history.scrollRestoration = previousRestoration
+    }
+  }, [])
+
+  useEffect(() => {
     const root = rootRef.current
     if (!root) return
     root.classList.add('taste-motion-ready')
@@ -108,17 +128,17 @@ export function TasteHome() {
               </p>
 
               <h1 className="taste-hero-title taste-hero-fade taste-delay-2">
-                <span>Ясен ориентир</span>
+                <span>Виж какво следва</span>
                 <span>за <em>твоите зъби.</em></span>
               </h1>
 
               <p className="taste-hero-body taste-hero-fade taste-delay-3">
-                Отговори на 8–10 кратки въпроса. За около 60 секунди ще видиш какво може да означават симптомите ти и към какъв специалист да се насочиш.
+                Отговори на 8–10 кратки въпроса. Получаваш ориентир за симптомите, подходящия специалист и до 3 релевантни клиники — само ако поискаш.
               </p>
 
               <div className="taste-hero-actions taste-hero-fade taste-delay-4">
                 <Link href="/quiz" className="taste-button taste-button-accent" data-testid="hero-primary-cta">
-                  Получи своя ориентир
+                  Започни краткия тест
                   <ArrowRight aria-hidden className="taste-icon-sm" />
                 </Link>
               </div>

@@ -38,6 +38,7 @@ export default function PublicClinicCard({ clinic, isInCompare, onToggleCompare,
       <div className="flex flex-1 flex-col p-6">
         <div className="flex flex-wrap gap-2" data-testid={`card-feature-chips-${clinic.id}`}>
           {treatments.map((treatment) => <span key={treatment} className="rounded-md bg-[#EFEDEC] px-3 py-1 text-xs text-[#45464D]">{treatmentLabel(treatment)}</span>)}
+          {(clinic.assessment_approaches || []).length > 0 && <span className="rounded-md border border-[#BFE8D5] bg-[#E9FBF2] px-3 py-1 text-xs text-[#006A4B]">Цялостна оценка</span>}
         </div>
 
         <h2 className="mt-5 font-display text-2xl font-semibold leading-tight text-black" data-testid={`card-name-${clinic.id}`}>

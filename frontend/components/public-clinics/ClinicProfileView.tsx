@@ -28,7 +28,8 @@ import {
   CalendarClock, MessageCircle,
 } from 'lucide-react'
 import {
-  CLINIC_CONTACT_ACTION_COPY, type PublicClinic, treatmentLabel, cityDisplay,
+  ASSESSMENT_APPROACH_LABELS, CLINIC_CONTACT_ACTION_COPY,
+  type PublicClinic, treatmentLabel, cityDisplay,
 } from '@/lib/publicClinics'
 import ConsultationScheduler from './ConsultationScheduler'
 import EmptyStateCard from './EmptyStateCard'
@@ -159,6 +160,7 @@ export default function ClinicProfileView({ clinic, chatContext }: Props) {
   const hasDoctorSpotlight = isEnhanced && !!clinic.doctor_spotlight?.name
   const hasTeamContent = !!(clinic.team_image_url || clinic.team_note)
   const hasServices = clinic.treatments.length > 0
+  const hasAssessmentApproaches = (clinic.assessment_approaches || []).length > 0
   const doctorAnchorLabel = clinic.doctor_spotlight?.kind === 'owner'
     ? 'Собственик'
     : 'Водещ лекар'
@@ -592,6 +594,37 @@ export default function ClinicProfileView({ clinic, chatContext }: Props) {
               {hasDoctorSpotlight && clinic.doctor_spotlight && (
                 <Reveal>
                   <DoctorSpotlightFeature clinic={clinic} />
+                </Reveal>
+              )}
+
+              {hasAssessmentApproaches && (
+                <Reveal>
+                  <SectionShell id="assessment-approach" testid="profile-section-assessment-approach" title="Какво включва оценката">
+                    <div className="rounded-2xl border border-teal-100 bg-teal-50/45 p-5 sm:p-6">
+                      <div className="flex items-start gap-3">
+                        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white text-teal-700 ring-1 ring-teal-100">
+                          <Stethoscope className="h-5 w-5" aria-hidden="true" />
+                        </span>
+                        <div>
+                          <h3 className="text-base font-semibold text-slate-950">Заявен обхват на първичната оценка</h3>
+                          <p className="mt-1 text-[13px] leading-relaxed text-slate-600">
+                            Това описва подхода на екипа — не рейтинг, награда или гаранция за резултат.
+                          </p>
+                        </div>
+                      </div>
+                      <ul className="mt-5 flex flex-wrap gap-2" data-testid="profile-assessment-approaches">
+                        {(clinic.assessment_approaches || []).map((approach) => (
+                          <li key={approach} className="rounded-full border border-teal-200 bg-white px-3 py-1.5 text-xs font-medium text-teal-900">
+                            {ASSESSMENT_APPROACH_LABELS[approach]}
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-teal-100 pt-4 text-xs text-slate-500">
+                        <span>{clinic.profile_information_reviewed ? 'Информацията е прегледана от Zubite.' : 'Информация, предоставена от клиниката.'}</span>
+                        <Link href="/full-picture-dental-assessment" className="font-semibold text-teal-700 hover:underline">Как да разчиташ тези критерии →</Link>
+                      </div>
+                    </div>
+                  </SectionShell>
                 </Reveal>
               )}
 

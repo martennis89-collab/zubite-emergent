@@ -2624,7 +2624,7 @@
   }
 
   .taste-hero-title {
-    font-size: clamp(38px, 11vw, 46px);
+    font-size: clamp(36px, 9.5vw, 42px);
     line-height: 1;
   }
 
@@ -3506,6 +3506,36 @@
 
 .taste-quiz-viewport .taste-quiz-question-back {
   margin-top: clamp(8px, 1.5vh, 16px);
+}
+
+.taste-quiz-result-viewport .taste-quiz-result-wrap {
+  display: grid;
+  align-items: center;
+  width: min(100% - 40px, 1040px);
+  height: 100%;
+  min-height: 0;
+  padding-block: clamp(14px, 3vh, 28px);
+}
+
+.taste-quiz-result-viewport .taste-quiz-result-card {
+  padding: clamp(22px, 4vh, 42px) clamp(22px, 4vw, 52px);
+}
+
+.taste-quiz-result-viewport .taste-quiz-result-heading {
+  margin-top: clamp(18px, 3vh, 30px);
+}
+
+.taste-quiz-result-viewport .taste-quiz-result-summary {
+  margin-top: clamp(20px, 3vh, 34px);
+}
+
+.taste-quiz-result-viewport .taste-quiz-urgency {
+  margin-top: clamp(16px, 2.5vh, 26px);
+  padding-block: clamp(14px, 2vh, 20px);
+}
+
+.taste-quiz-result-viewport .taste-quiz-result-action {
+  padding-top: clamp(14px, 2vh, 22px);
 }
 
 .taste-quiz-page::before {
@@ -4398,6 +4428,17 @@
   font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
+}
+
+.taste-quiz-flags .taste-quiz-approach-link {
+  padding: 6px 9px;
+  border: 1px solid #a7dfc7;
+  border-radius: 99px;
+  color: var(--taste-emerald);
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  background: var(--taste-emerald-soft);
 }
 
 .taste-quiz-market-orientation,
@@ -6196,6 +6237,39 @@
   border-radius: 999px !important;
   color: var(--taste-ink) !important;
   background: var(--taste-accent) !important;
+}
+
+@media (max-width: 700px) {
+  .taste-clinic-login {
+    height: 100dvh !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    padding-top: max(12px, env(safe-area-inset-top)) !important;
+    padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
+  }
+
+  .taste-clinic-login [data-testid='clinic-login-form'] {
+    padding: 20px !important;
+  }
+
+  .taste-clinic-login [data-testid='clinic-login-form'] > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 14px !important;
+  }
+
+  .taste-clinic-login [data-testid='clinic-login-form'] input,
+  .taste-clinic-login [data-testid='login-submit-btn'] {
+    min-height: 46px;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+  }
+
+  .taste-clinic-login section > div.lg\:hidden {
+    margin-bottom: 16px !important;
+  }
+
+  .taste-clinic-login section > p:last-child {
+    margin-top: 16px !important;
+  }
 }
 
 .taste-admin-login h1 {

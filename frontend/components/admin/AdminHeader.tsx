@@ -13,6 +13,7 @@ import {
   Star,
   MessageCircleQuestion,
   Sparkles,
+  Heart,
   LogOut,
 } from 'lucide-react'
 
@@ -89,6 +90,13 @@ export const ADMIN_NAV: AdminNavItem[] = [
     icon: MessageCircleQuestion,
     testId: 'admin-nav-community',
     matchPrefix: '/admin/community',
+  },
+  {
+    href: '/admin/recognition',
+    label: 'Благодарности',
+    icon: Heart,
+    testId: 'admin-nav-recognition',
+    matchPrefix: '/admin/recognition',
   },
   {
     href: '/admin/analytics',

@@ -5,6 +5,11 @@ import asyncio
 import uuid
 
 from database import db
+from assessment_approaches import (
+    ASSESSMENT_APPROACHES,
+    clean_assessment_approaches,
+    matching_assessment_approaches,
+)
 from aligner_brands import public_aligner_brand_chips
 from schemas import Clinic, LeadCreate, LeadContactUpdate, Lead, RequestCallBody, RequestZubiteHelpBody, SaveCarePassEmailBody, UnlockResultBody, QuickChatLeadCreate, ClinicRecommendationPreferenceBody
 from auth import hash_password, get_current_patient, get_current_patient_optional
@@ -1447,6 +1452,7 @@ def _public_profile_for_tier(clinic: dict, tier: str) -> Optional[dict]:
     out: Dict[str, Any] = {
         "profile_status": "published",
         "short_description": blob.get("short_description") or None,
+        "assessment_approaches": clean_assessment_approaches(blob.get("assessment_approaches")),
         "treatment_focus": [
             t for t in (blob.get("treatment_focus") or [])
             if isinstance(t, str) and t.strip()
@@ -1500,7 +1506,13 @@ def _public_profile_for_tier(clinic: dict, tier: str) -> Optional[dict]:
     return {k: v for k, v in out.items() if v is not None}
 
 
-def _safe_clinic_payload(clinic: dict, lead_treatment: str, is_broad: bool, lead_district: Optional[str] = None) -> dict:
+def _safe_clinic_payload(
+    clinic: dict,
+    lead_treatment: str,
+    is_broad: bool,
+    lead_district: Optional[str] = None,
+    lead_flags: Optional[set[str]] = None,
+) -> dict:
     slug = _clinic_city_slug(clinic)
     created_at_raw = clinic.get("created_at")
     partner_since_year: Optional[int] = None
@@ -1520,6 +1532,16 @@ def _safe_clinic_payload(clinic: dict, lead_treatment: str, is_broad: bool, lead
     # treats any truthy value as opt-in. Default False keeps the chip
     # OFF unless admin/clinic explicitly enrolled.
     care_pass_partner = bool(clinic.get("care_pass_partner") is True)
+    profile = clinic.get("clinic_profile") or {}
+    assessment_approaches = (
+        clean_assessment_approaches(profile.get("assessment_approaches"))
+        if profile.get("profile_status") == "published"
+        else []
+    )
+    approach_matches = matching_assessment_approaches(
+        assessment_approaches,
+        lead_flags or set(),
+    )
 
     payload = {
         "id": clinic.get("id"),
@@ -1550,6 +1572,9 @@ def _safe_clinic_payload(clinic: dict, lead_treatment: str, is_broad: bool, lead
         # Legacy alias kept so existing card / profile components keep
         # working while the frontend migrates to `treatments_supported`.
         "treatments": treatments_normalized,
+        "assessment_approaches": assessment_approaches,
+        "assessment_approach_matches": approach_matches,
+        "assessment_approach_match_labels": [ASSESSMENT_APPROACHES[value] for value in approach_matches],
         "reason": _reason_for(clinic, lead_treatment, is_broad),
         # Honest, conservative wording. We do NOT promise an SLA.
         "response_expectation": (
@@ -1643,6 +1668,11 @@ async def recommended_clinics(lead_id: str, limit: int = 3):
     lead_district = (lead.get("district_slug") or "").strip().lower() or None
     lead_treatment = (lead.get("treatment_type") or "").strip().lower()
     is_broad = lead_treatment in _BROAD_TREATMENT_TYPES
+    answers = lead.get("answers") if isinstance(lead.get("answers"), dict) else {}
+    lead_flags = {
+        flag for flag in (answers.get("quiz_flags") or [])
+        if isinstance(flag, str)
+    }
 
     # Shared selection_rule echoed in every response (and in 0-match case).
     selection_rule = {
@@ -1723,7 +1753,10 @@ async def recommended_clinics(lead_id: str, limit: int = 3):
     if not top:
         return empty_response
 
-    clinics_out = [_safe_clinic_payload(c, lead_treatment, is_broad, lead_district) for _, _, _, c in top]
+    clinics_out = [
+        _safe_clinic_payload(c, lead_treatment, is_broad, lead_district, lead_flags)
+        for _, _, _, c in top
+    ]
 
     return {
         "lead_id": lead_id,

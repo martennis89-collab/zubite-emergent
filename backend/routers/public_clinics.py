@@ -22,6 +22,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from database import db
+from assessment_approaches import clean_assessment_approaches
 from schemas import (
     PublicConsultationBookingCreate,
     ORIENTATION_BOOKING_ACTIVE_LOCK_STATUSES,
@@ -386,6 +387,11 @@ def _public_clinic_payload(clinic: dict, online_ids: Optional[set] = None) -> di
         }
 
     treatments = clinic.get("treatments_supported") or []
+    assessment_approaches = (
+        clean_assessment_approaches(profile.get("assessment_approaches"))
+        if profile.get("profile_status") == "published"
+        else []
+    )
 
     # Growth trust signals are derived from validated source facts so they
     # cannot become stale free-text claims. A clinic founded this year has
@@ -438,6 +444,7 @@ def _public_clinic_payload(clinic: dict, online_ids: Optional[set] = None) -> di
         "area": clinic.get("area"),
         "treatments": treatments,
         "specialties": clinic.get("specialties") or [],
+        "assessment_approaches": assessment_approaches,
         "short_description": profile.get("short_description"),
         "patient_intro": profile.get("patient_intro"),
         "founded_year": founded_year,

@@ -8,7 +8,11 @@ import { AdminHeader } from '@/components/admin/AdminHeader'
 import { CaseLibraryEditor, type CaseRow as EditorCaseRow } from '@/components/admin/CaseLibraryEditor'
 import { ClinicPackageSection } from '@/components/admin/ClinicPackageSection'
 import { ImageUploadField } from '@/components/admin/ImageUploadField'
-import { treatmentLabel } from '@/lib/publicClinics'
+import {
+  ASSESSMENT_APPROACH_LABELS,
+  treatmentLabel,
+  type AssessmentApproach,
+} from '@/lib/publicClinics'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -87,6 +91,7 @@ interface ClinicProfile {
   doctor_spotlight_kind?: 'owner' | 'lead_doctor'
   doctor_spotlight_role?: string
   doctor_spotlight_specialties?: string[]
+  assessment_approaches?: AssessmentApproach[]
   doctor_spotlight_bio?: string
   team_note?: string
   clinic_story?: string
@@ -312,6 +317,7 @@ export default function AdminClinicEditPage() {
         doctor_spotlight_kind: p.doctor_spotlight_kind || 'lead_doctor',
         doctor_spotlight_role: p.doctor_spotlight_role || '',
         doctor_spotlight_specialties: p.doctor_spotlight_specialties || [],
+        assessment_approaches: p.assessment_approaches || [],
         doctor_spotlight_bio: p.doctor_spotlight_bio || '',
         team_note: p.team_note || '',
         clinic_story: p.clinic_story || '',
@@ -401,6 +407,7 @@ export default function AdminClinicEditPage() {
           doctor_spotlight_specialties: Array.from(new Set(
             (profile.doctor_spotlight_specialties || []).map((item) => item.trim()).filter(Boolean),
           )),
+          assessment_approaches: profile.assessment_approaches || [],
           doctor_spotlight_bio: profile.doctor_spotlight_bio || null,
           team_note: profile.team_note || null,
           clinic_story: profile.clinic_story || null,
@@ -1024,6 +1031,32 @@ export default function AdminClinicEditPage() {
           <Field label="Биография (до 1000)" hint={visibilityHint(tier, 'doctor_spotlight_bio')}>
             <textarea value={profile.doctor_spotlight_bio || ''} onChange={(e) => setProfile({ ...profile, doctor_spotlight_bio: e.target.value })}
               maxLength={1000} rows={4} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" data-testid="field-doctor_spotlight_bio" />
+          </Field>
+          <Field
+            label="Подход при оценката"
+            hint="Описва какво клиниката включва в оценката. Не е специалност, рейтинг или знак за „най-добър лекар“."
+          >
+            <div className="grid gap-2 sm:grid-cols-2" data-testid="field-assessment_approaches">
+              {(Object.entries(ASSESSMENT_APPROACH_LABELS) as Array<[AssessmentApproach, string]>).map(([value, label]) => {
+                const checked = (profile.assessment_approaches || []).includes(value)
+                return (
+                  <label key={value} className={`flex cursor-pointer items-start gap-2 rounded-lg border p-3 text-sm ${checked ? 'border-teal-300 bg-teal-50 text-teal-900' : 'border-slate-200 bg-white text-slate-700'}`}>
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => setProfile({
+                        ...profile,
+                        assessment_approaches: checked
+                          ? (profile.assessment_approaches || []).filter((item) => item !== value)
+                          : [...(profile.assessment_approaches || []), value],
+                      })}
+                      className="mt-0.5 accent-teal-600"
+                    />
+                    <span>{label}</span>
+                  </label>
+                )
+              })}
+            </div>
           </Field>
           <Field label="Бележка за екипа" hint={visibilityHint(tier, 'team_note')}>
             <textarea value={profile.team_note || ''} onChange={(e) => setProfile({ ...profile, team_note: e.target.value })}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import {
   Loader2, MessageCircleQuestion, AlertTriangle, CheckCircle2, ArrowRight,
@@ -17,6 +17,12 @@ import {
 
 const MAX_PHOTOS = 3
 const MAX_PHOTO_BYTES = 8 * 1024 * 1024
+const ACCEPTED_PHOTO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+
+type SelectedPhoto = {
+  file: File
+  previewUrl: string
+}
 
 export default function AskPage() {
   const [loadingAuth, setLoadingAuth] = useState(true)
@@ -27,7 +33,8 @@ export default function AskPage() {
   const [topic, setTopic] = useState('')
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
-  const [photos, setPhotos] = useState<File[]>([])
+  const [photos, setPhotos] = useState<SelectedPhoto[]>([])
+  const photosRef = useRef<SelectedPhoto[]>([])
   const [photoError, setPhotoError] = useState('')
 
   const [submitting, setSubmitting] = useState(false)
@@ -43,22 +50,38 @@ export default function AskPage() {
       .finally(() => setLoadingAuth(false))
   }, [])
 
+  useEffect(() => {
+    photosRef.current = photos
+  }, [photos])
+
+  useEffect(() => () => {
+    photosRef.current.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl))
+  }, [])
+
   const onPickPhotos = (files: FileList | null) => {
     setPhotoError('')
     const picked = Array.from(files || [])
-    const valid = picked.filter((f) => f.type.startsWith('image/') && f.size <= MAX_PHOTO_BYTES)
+    const valid = picked.filter((f) => ACCEPTED_PHOTO_TYPES.has(f.type) && f.size <= MAX_PHOTO_BYTES)
     if (valid.length < picked.length) {
       setPhotoError('Приемаме само снимки до 8 MB.')
     }
-    const combined = [...photos, ...valid].slice(0, MAX_PHOTOS)
+    const remaining = Math.max(0, MAX_PHOTOS - photos.length)
+    const selected = valid.slice(0, remaining).map((file) => ({
+      file,
+      previewUrl: URL.createObjectURL(file),
+    }))
     if (photos.length + valid.length > MAX_PHOTOS) {
       setPhotoError(`Максимум ${MAX_PHOTOS} снимки.`)
     }
-    setPhotos(combined)
+    setPhotos((current) => [...current, ...selected])
   }
 
   const removePhoto = (index: number) => {
-    setPhotos((list) => list.filter((_, i) => i !== index))
+    setPhotos((list) => {
+      const removed = list[index]
+      if (removed) URL.revokeObjectURL(removed.previewUrl)
+      return list.filter((_, i) => i !== index)
+    })
   }
 
   const submit = async (e: React.FormEvent) => {
@@ -74,7 +97,7 @@ export default function AskPage() {
       setResult(res)
       if (photos.length > 0) {
         const outcomes = await Promise.allSettled(
-          photos.map((f) => uploadQuestionPhoto(res.id, f)),
+          photos.map(({ file }) => uploadQuestionPhoto(res.id, file)),
         )
         const failed = outcomes.filter((o) => o.status === 'rejected').length
         if (failed > 0) {
@@ -204,7 +227,7 @@ export default function AskPage() {
                 Добави снимка
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
                   multiple
                   className="hidden"
                   onChange={(e) => {
@@ -217,11 +240,11 @@ export default function AskPage() {
             {photoError && <p className="mt-1 text-xs text-red-600">{photoError}</p>}
             {photos.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-2">
-                {photos.map((f, i) => (
-                  <div key={i} className="relative h-16 w-16">
+                {photos.map(({ file, previewUrl }, i) => (
+                  <div key={`${file.name}-${file.lastModified}`} className="relative h-16 w-16">
                     <img
-                      src={URL.createObjectURL(f)}
-                      alt=""
+                      src={previewUrl}
+                      alt={`Преглед на снимка ${i + 1}`}
                       className="h-16 w-16 rounded-lg object-cover ring-1 ring-[#e5e5e5]"
                     />
                     <button

@@ -22,6 +22,7 @@ const GUIDES: FooterLink[] = [
   { label: 'Invisalign в България', href: '/invisalign-bulgaria' },
   { label: 'Алайнери vs Брекети', href: '/aligners-vs-braces' },
   { label: 'Сравнение на алайнери', href: '/aligners-comparison' },
+  { label: 'Цялостна дентална оценка', href: '/full-picture-dental-assessment' },
 ]
 
 const PRICES: FooterLink[] = [
@@ -31,6 +32,7 @@ const PRICES: FooterLink[] = [
 
 const PLATFORM: FooterLink[] = [
   { label: 'Започни анализа', href: '/quiz' },
+  { label: 'Благодарности', href: '/recognition' },
   { label: 'Care Pass', href: '/care-pass' },
   { label: 'Zubite стандарт', href: '/clinic-standard' },
   { label: 'Журнал', href: '/blog' },
