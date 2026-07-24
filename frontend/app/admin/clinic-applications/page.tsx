@@ -38,13 +38,17 @@ interface ClinicApplication {
   id: string
   clinic_name: string
   city: string
-  address: string
+  address?: string | null
   district_slug?: string | null
   website: string | null
   contact_name: string
   phone: string
   email: string
   package_interest?: 'verified_profile' | 'growth_partner' | 'unsure'
+  clinic_size?: 'solo' | 'small' | 'medium' | 'large' | null
+  partnership_goal?: 'qualified_consultations' | 'trusted_profile' | 'patient_communication' | 'market_insight' | 'exploring' | null
+  partnership_motivation?: string | null
+  contact_consent?: boolean
   offers_aligners: boolean
   offers_braces: boolean
   offers_implants: boolean
@@ -125,6 +129,21 @@ const PACKAGE_INTEREST_LABELS: Record<string, string> = {
   verified_profile: 'Verified Profile',
   growth_partner: 'Growth Partner',
   unsure: 'Не е сигурна',
+}
+
+const CLINIC_SIZE_LABELS: Record<string, string> = {
+  solo: '1 лекар · индивидуална практика',
+  small: '2–4 лекари · малък екип',
+  medium: '5–9 лекари · развита клиника',
+  large: '10+ лекари · голям екип',
+}
+
+const PARTNERSHIP_GOAL_LABELS: Record<string, string> = {
+  qualified_consultations: 'Повече подходящи запитвания и консултации',
+  trusted_profile: 'По-пълен и надежден публичен профил',
+  patient_communication: 'По-добра комуникация с пациентите',
+  market_insight: 'Данни за интереса и поведението на пациентите',
+  exploring: 'Проучва възможностите за партньорство',
 }
 
 const ASSESSMENT_APPROACH_LABELS: Record<string, string> = {
@@ -512,6 +531,7 @@ function DetailView({ app, onClose, onUpdate }: {
               <InfoRow label="Град" value={app.city} icon={MapPin} />
               <InfoRow label="Адрес" value={app.address} icon={MapPin} />
               <InfoRow label="Уебсайт" value={app.website} icon={Globe} />
+              <InfoRow label="Размер на екипа" value={app.clinic_size ? (CLINIC_SIZE_LABELS[app.clinic_size] || app.clinic_size) : null} icon={Users} />
               <label className="block mt-2">
                 <span className="text-xs text-slate-400 uppercase tracking-wide">Квартал (само за София)</span>
                 <select
@@ -540,6 +560,23 @@ function DetailView({ app, onClose, onUpdate }: {
               <InfoRow label="Имейл" value={app.email} icon={Mail} />
             </div>
           </div>
+
+          {(app.partnership_goal || app.partnership_motivation) && (
+            <div>
+              <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                <MessageSquare className="h-3.5 w-3.5" /> Интерес към партньорство
+              </h3>
+              <div className="rounded-xl bg-slate-50 p-4">
+                <InfoRow
+                  label="Основна цел"
+                  value={app.partnership_goal ? (PARTNERSHIP_GOAL_LABELS[app.partnership_goal] || app.partnership_goal) : null}
+                  icon={Target}
+                />
+                <InfoRow label="Мотивация" value={app.partnership_motivation} />
+                <InfoRow label="Съгласие за контакт" value={app.contact_consent ? 'Да' : 'Не е отбелязано'} />
+              </div>
+            </div>
+          )}
 
           {/* Services */}
           <div>

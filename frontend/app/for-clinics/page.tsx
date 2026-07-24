@@ -1,15 +1,15 @@
 import { Metadata } from 'next'
-import { ForClinicsContent } from '@/components/ForClinicsContent'
+import { ForClinicsLanding } from '@/components/ForClinicsLanding'
 
 export const metadata: Metadata = {
   title: 'За клиники | Партньорска програма | Zubite.bg',
-  description: 'Получавайте подготвени пациенти, които вече разбират от какво имат нужда. Кандидатствайте за партньорство с Zubite.bg.',
+  description: 'Получавайте по-подготвени пациенти, повече релевантна видимост и инструменти за управление на консултации, пациенти и календар чрез Zubite.bg.',
   alternates: {
     canonical: 'https://zubite.bg/for-clinics',
   },
   openGraph: {
     title: 'За клиники | Zubite.bg',
-    description: 'Zubite.bg не изпраща случайни запитвания. Пациентите преминават през оценка и образование преди да бъдат свързани с вас.',
+    description: 'Партньорство за по-подготвени пациенти, релевантна видимост, силно онлайн представяне и управление на консултации от едно място.',
     url: 'https://zubite.bg/for-clinics',
     siteName: 'Zubite.bg',
     locale: 'bg_BG',
@@ -41,11 +41,11 @@ export default function ForClinicsPage() {
               name: 'Дентални клиники и практики в България',
             },
             description:
-              'Партньорска програма за дентални клиники в България: профилно представяне, видимост в пациентския път, прозрачни Zubite сигнали за доверие и performance insights. Не предлага гарантирано класиране или платена клинична превъзходство.',
+              'Партньорска програма за дентални клиники в България: профилно представяне, видимост в пациентския път, прозрачни Zubite сигнали за доверие и данни за представянето. Не предлага гарантирано класиране или платено клинично предимство.',
           }),
         }}
       />
-      <ForClinicsContent />
+      <ForClinicsLanding />
     </>
   )
 }

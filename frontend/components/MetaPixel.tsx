@@ -1,194 +1,195 @@
 'use client'
 
-import Script from 'next/script'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 
 const PIXEL_ID = '26074948688761177'
+const PIXEL_SCRIPT_URL = 'https://connect.facebook.net/en_US/fbevents.js'
 
-// Internal portals (admin / clinic) don't need Meta Pixel — they're
-// authenticated B2B surfaces and would just add a tracker that never
-// fires. Skipping the script entirely keeps these routes clean.
+// Internal portals are authenticated B2B surfaces and must not be included
+// in patient-acquisition reporting.
 const PIXEL_EXEMPT_PREFIXES = ['/admin', '/clinic'] as const
 
 function isPixelExemptPath(pathname: string | null): boolean {
   if (!pathname) return false
   return PIXEL_EXEMPT_PREFIXES.some(
-    (p) => pathname === p || pathname.startsWith(p + '/'),
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   )
 }
 
-// Extend window type for fbq
+type MetaFbq = ((...args: any[]) => void) & {
+  callMethod?: (...args: any[]) => void
+  queue?: any[][]
+  push?: (...args: any[]) => void
+  loaded?: boolean
+  version?: string
+}
+
 declare global {
   interface Window {
-    fbq: (...args: any[]) => void
-    _fbq: any
+    fbq?: MetaFbq
+    _fbq?: MetaFbq
   }
+}
+
+/**
+ * Installs Meta's queue and downloads the Pixel only after marketing consent.
+ * The queue is created synchronously, so events fired before fbevents.js
+ * finishes downloading are still delivered in order.
+ */
+function ensureMetaPixel(): MetaFbq | undefined {
+  if (typeof window === 'undefined') return undefined
+
+  if (!window.fbq) {
+    const fbq = function (...args: any[]) {
+      if (fbq.callMethod) {
+        fbq.callMethod(...args)
+      } else {
+        fbq.queue?.push(args)
+      }
+    } as MetaFbq
+
+    fbq.push = fbq
+    fbq.loaded = true
+    fbq.version = '2.0'
+    fbq.queue = []
+    window.fbq = fbq
+    window._fbq = fbq
+
+    // We own SPA page views explicitly. Disabling automatic configuration
+    // prevents Meta from attaching a stale URL or emitting an extra PageView.
+    fbq('set', 'autoConfig', false, PIXEL_ID)
+    fbq('init', PIXEL_ID)
+
+    if (!document.querySelector('script[data-zubite-meta-pixel]')) {
+      const script = document.createElement('script')
+      script.async = true
+      script.src = PIXEL_SCRIPT_URL
+      script.dataset.zubiteMetaPixel = 'true'
+      document.head.appendChild(script)
+    }
+  }
+
+  window.fbq('consent', 'grant')
+  return window.fbq
 }
 
 export function MetaPixel() {
   const pathname = usePathname()
+  const exempt = isPixelExemptPath(pathname)
   const [consentGranted, setConsentGranted] = useState(false)
+  const lastPageViewPath = useRef<string | null>(null)
 
   useEffect(() => {
-    if (isPixelExemptPath(pathname)) return
-    // Check if marketing consent was already given (page refresh scenario)
-    const savedPreferences = localStorage.getItem('zubite_cookie_preferences')
-    if (savedPreferences) {
-      try {
-        const prefs = JSON.parse(savedPreferences)
-        if (prefs.marketing) {
-          setConsentGranted(true)
-          // Grant consent if pixel is already loaded
-          if (window.fbq) {
-            window.fbq('consent', 'grant')
-          }
-        }
-      } catch (e) {
-        // Invalid JSON, ignore
-      }
+    if (exempt) {
+      setConsentGranted(false)
+      lastPageViewPath.current = null
+      return
     }
 
-    // Listen for cookie consent event (when user accepts marketing cookies)
-    const handleConsentChange = (event: Event) => {
-      const consentEvent = event as CustomEvent
-      if (consentEvent.detail) {
+    function applyMarketingConsent(granted: boolean) {
+      if (granted) {
+        ensureMetaPixel()
         setConsentGranted(true)
-        // Grant consent to Meta Pixel
-        if (window.fbq) {
-          window.fbq('consent', 'grant')
-          // Re-fire PageView after consent
-          window.fbq('track', 'PageView')
-        }
+      } else {
+        window.fbq?.('consent', 'revoke')
+        setConsentGranted(false)
+        lastPageViewPath.current = null
       }
     }
 
-    // Listen for the marketing consent event from CookieConsent component
-    window.addEventListener('cookie-consent-marketing', handleConsentChange)
+    try {
+      const savedPreferences = localStorage.getItem('zubite_cookie_preferences')
+      if (savedPreferences) {
+        const preferences = JSON.parse(savedPreferences)
+        applyMarketingConsent(Boolean(preferences?.marketing))
+      }
+    } catch {
+      // Invalid or unavailable storage means consent remains denied.
+    }
 
+    function handleConsentChange(event: Event) {
+      applyMarketingConsent(Boolean((event as CustomEvent<boolean>).detail))
+    }
+
+    window.addEventListener('cookie-consent-marketing', handleConsentChange)
     return () => {
       window.removeEventListener('cookie-consent-marketing', handleConsentChange)
     }
-  }, [pathname])
+  }, [exempt])
 
-  if (isPixelExemptPath(pathname)) return null
+  useEffect(() => {
+    if (!consentGranted || exempt || !pathname || !window.fbq) return
 
-  return (
-    <>
-      {/* Meta Pixel Base Code */}
-      <Script
-        id="meta-pixel-init"
-        strategy="afterInteractive"
-        dangerouslySetInnerHTML={{
-          __html: `
-            !function(f,b,e,v,n,t,s)
-            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-            n.queue=[];t=b.createElement(e);t.async=!0;
-            t.src=v;s=b.getElementsByTagName(e)[0];
-            s.parentNode.insertBefore(t,s)}(window, document,'script',
-            'https://connect.facebook.net/en_US/fbevents.js');
-            
-            // GDPR: Revoke consent by default - no tracking until user consents
-            fbq('consent', 'revoke');
-            fbq('init', '${PIXEL_ID}');
-            fbq('track', 'PageView');
-          `
-        }}
-      />
-      
-      {/* Noscript fallback - only render if consent already granted */}
-      {consentGranted && (
-        <noscript>
-          <img
-            height="1"
-            width="1"
-            style={{ display: 'none' }}
-            src={`https://www.facebook.com/tr?id=${PIXEL_ID}&ev=PageView&noscript=1`}
-            alt=""
-          />
-        </noscript>
-      )}
-    </>
-  )
+    const pagePath = `${pathname}${window.location.search}`
+    if (lastPageViewPath.current === pagePath) return
+    lastPageViewPath.current = pagePath
+
+    window.fbq('track', 'PageView', {
+      content_name: pagePath,
+      content_category: 'site_page',
+      page_path: pagePath,
+      page_location: window.location.href,
+    })
+  }, [consentGranted, exempt, pathname])
+
+  return null
 }
 
 // ============================================
 // Event Tracking Utilities for Quiz Funnel
 // ============================================
 
-/**
- * Track when a user starts the quiz
- */
 export function trackQuizStart() {
-  if (typeof window !== 'undefined' && window.fbq) {
-    window.fbq('trackCustom', 'QuizStart', {
-      quiz_name: 'orthodontic_assessment',
-      content_category: 'quiz'
-    })
-  }
+  window.fbq?.('trackCustom', 'QuizStart', {
+    quiz_name: 'orthodontic_assessment',
+    content_category: 'quiz',
+  })
 }
 
-/**
- * Track when a user answers a question
- */
 export function trackQuestionAnswered(questionNumber: number, answer: string) {
-  if (typeof window !== 'undefined' && window.fbq) {
-    window.fbq('trackCustom', 'QuestionAnswered', {
-      quiz_name: 'orthodontic_assessment',
-      question_number: questionNumber,
-      answer: answer
-    })
-  }
+  window.fbq?.('trackCustom', 'QuestionAnswered', {
+    quiz_name: 'orthodontic_assessment',
+    question_number: questionNumber,
+    answer,
+  })
 }
 
-/**
- * Track when a user completes the quiz
- */
 export function trackQuizComplete(stage: string, score: number) {
-  if (typeof window !== 'undefined' && window.fbq) {
-    window.fbq('trackCustom', 'QuizComplete', {
-      quiz_name: 'orthodontic_assessment',
-      result_stage: stage,
-      score: score,
-      content_category: 'quiz'
-    })
-  }
+  window.fbq?.('trackCustom', 'QuizComplete', {
+    quiz_name: 'orthodontic_assessment',
+    result_stage: stage,
+    score,
+    content_category: 'quiz',
+  })
 }
 
-/**
- * Track soft commit (user clicks "Yes, show me options")
- */
 export function trackSoftCommit(accepted: boolean) {
-  if (typeof window !== 'undefined' && window.fbq) {
-    window.fbq('trackCustom', 'SoftCommit', {
-      quiz_name: 'orthodontic_assessment',
-      accepted: accepted
-    })
-  }
+  window.fbq?.('trackCustom', 'SoftCommit', {
+    quiz_name: 'orthodontic_assessment',
+    accepted,
+  })
 }
 
-/**
- * Track when a user submits the lead form (standard Lead event)
- */
 export function trackLeadSubmit(city: string, formVersion: string) {
-  if (typeof window !== 'undefined' && window.fbq) {
-    // Use standard Lead event for better optimization
-    window.fbq('track', 'Lead', {
-      content_name: 'orthodontic_assessment',
-      content_category: 'quiz_lead',
-      city: city,
-      form_version: formVersion
-    })
-  }
+  window.fbq?.('track', 'Lead', {
+    content_name: 'orthodontic_assessment',
+    content_category: 'quiz_lead',
+    city,
+    form_version: formVersion,
+  })
 }
 
 /**
- * Track page views manually (for SPA navigation)
+ * Explicit escape hatch for exceptional page views outside the App Router.
+ * Normal route tracking is handled once by <MetaPixel /> above.
  */
 export function trackPageView() {
-  if (typeof window !== 'undefined' && window.fbq) {
-    window.fbq('track', 'PageView')
-  }
+  if (typeof window === 'undefined') return
+  window.fbq?.('track', 'PageView', {
+    content_name: `${window.location.pathname}${window.location.search}`,
+    content_category: 'site_page',
+    page_path: `${window.location.pathname}${window.location.search}`,
+    page_location: window.location.href,
+  })
 }

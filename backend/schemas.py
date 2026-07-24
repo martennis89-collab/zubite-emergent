@@ -556,13 +556,24 @@ class ClinicApplicationCreate(BaseModel):
 
     clinic_name: str = Field(min_length=2, max_length=200)
     city: str = Field(min_length=2, max_length=100)
-    address: str = Field(min_length=2, max_length=500)
+    address: Optional[str] = Field(default=None, min_length=2, max_length=500)
     district_slug: Optional[str] = Field(default=None, max_length=50)
     website: Optional[str] = Field(default=None, max_length=500)
     contact_name: str = Field(min_length=2, max_length=200)
     phone: str = Field(min_length=5, max_length=50)
     email: EmailStr
     package_interest: Literal["verified_profile", "growth_partner", "unsure"] = "unsure"
+    clinic_size: Optional[Literal["solo", "small", "medium", "large"]] = None
+    partnership_goal: Optional[Literal[
+        "qualified_consultations",
+        "trusted_profile",
+        "patient_communication",
+        "market_insight",
+        "exploring",
+    ]] = None
+    partnership_motivation: Optional[str] = Field(default=None, max_length=1000)
+    contact_consent: bool = False
+    source: Optional[Literal["public_partner_interest", "private_intake"]] = None
 
     # Services and patient fit
     offers_aligners: bool = False

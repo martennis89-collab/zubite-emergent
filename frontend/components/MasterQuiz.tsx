@@ -7,8 +7,7 @@ import { ArrowRight, ArrowLeft, Bot, Loader2, User, Users, Baby, ShieldCheck } f
 import {
   trackQuizStart,
   trackQuestionAnswered,
-  trackQuizComplete,
-  trackLeadSubmit
+  trackQuizComplete
 } from './MetaPixel'
 import { trackEvent as gaTrackEvent } from '@/lib/analytics/gtag'
 import { getStoredAttribution } from '@/lib/attribution'
@@ -591,10 +590,8 @@ export function MasterQuiz() {
       } catch { /* parsing failure handled below */ }
 
       trackEvent('locked_lead_created', { form_version: formVersion, segment })
-      // City isn't known yet at this point in the funnel — the Meta Lead
-      // event still fires here (same "a lead now exists" semantics as
-      // before), just without a city tag.
-      trackLeadSubmit('', formVersion)
+      // This answer-only record is not yet an acquisition conversion.
+      // Lead events fire after a patient unlocks the result with contact data.
 
       if (!createdLeadId) {
         // Backend accepted the lead but we couldn't read the id — fall

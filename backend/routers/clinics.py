@@ -364,8 +364,9 @@ async def create_clinic_application(application: ClinicApplicationCreate):
                 <h3>Клиника</h3>
                 <p><strong>Име:</strong> {application.clinic_name}</p>
                 <p><strong>Град:</strong> {application.city}</p>
-                <p><strong>Адрес:</strong> {application.address}</p>
+                <p><strong>Адрес:</strong> {application.address or '—'}</p>
                 <p><strong>Уебсайт:</strong> {application.website or '—'}</p>
+                <p><strong>Размер:</strong> {application.clinic_size or '—'}</p>
                 <h3>Контакт</h3>
                 <p><strong>Лице:</strong> {application.contact_name}</p>
                 <p><strong>Телефон:</strong> {application.phone}</p>
@@ -378,6 +379,8 @@ async def create_clinic_application(application: ClinicApplicationCreate):
                 <p><strong>Случаи/месец:</strong> {application.number_of_cases_per_month or '—'}</p>
                 <p><strong>Дигитални сканове:</strong> {'Да' if application.do_you_use_digital_scans else 'Не' if application.do_you_use_digital_scans is not None else '—'}</p>
                 <h3>Позициониране</h3>
+                <p><strong>Основна цел:</strong> {application.partnership_goal or '—'}</p>
+                <p><strong>Мотивация:</strong> {application.partnership_motivation or '—'}</p>
                 <p>{application.what_types_of_patients_are_best_for_you or '—'}</p>
                 <h3>Операции</h3>
                 <p><strong>Средно време за отговор:</strong> {application.average_response_time or '—'}</p>

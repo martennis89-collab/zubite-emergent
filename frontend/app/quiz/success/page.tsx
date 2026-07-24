@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { CheckCircle, ArrowRight, MapPin, Mail, Shield, ShieldCheck, Sparkles } from 'lucide-react'
-import { trackPageView } from '@/components/MetaPixel'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
 import { SaveCarePassModal } from '@/components/patient/SaveCarePassModal'
 import { FreeOnlineOrientationSection } from '@/components/patient/FreeOnlineOrientationSection'
@@ -74,7 +73,7 @@ function SuccessContent() {
   const summaryCfg = segMap[band] || segMap.low
   const isParent = segment === 'teen' || segment === 'child'
 
-  useEffect(() => { setMounted(true); trackPageView() }, [])
+  useEffect(() => { setMounted(true) }, [])
 
   // Read stored email (from quiz submit) to prefill the modal.
   useEffect(() => {

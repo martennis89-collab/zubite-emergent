@@ -11,6 +11,8 @@ import {
 } from 'lucide-react'
 import { CITIES } from '@/lib/cityData'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
+import { trackEvent as gaTrackEvent } from '@/lib/analytics/gtag'
+import { trackLeadSubmit } from '@/components/MetaPixel'
 
 interface ResultUnlockGateProps {
   leadId: string
@@ -69,6 +71,12 @@ export function ResultUnlockGate({
       try {
         trackPatientEvent('post_quiz_lead_submitted', { lead_id_present: true })
         trackPatientEvent('full_result_unlocked', { lead_id_present: true })
+        gaTrackEvent('lead_submit', {
+          source: 'result_unlock',
+          city: citySlug,
+          has_email: true,
+        })
+        trackLeadSubmit(citySlug, 'result_unlock')
       } catch {
         // Analytics must never block the patient flow.
       }
