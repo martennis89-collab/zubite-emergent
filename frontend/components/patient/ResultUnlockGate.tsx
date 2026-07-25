@@ -22,6 +22,7 @@
 import { useState } from 'react'
 import { Lock, ShieldCheck, Sparkles, ArrowRight, Loader2, AlertTriangle, CheckCircle2, MapPin } from 'lucide-react'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
+import { trackOutbrainLead } from '@/components/OutbrainPixel'
 
 // City slug → display name map. Mirrors the labels used elsewhere across
 // the app (homepage, quiz form). Defensive default = capitalised slug.
@@ -90,6 +91,7 @@ export function ResultUnlockGate({ leadId, defaultName, citySlug, onUnlocked }: 
       }
       try { trackPatientEvent('post_quiz_lead_submitted', { lead_id_present: true }) } catch { /* ignore */ }
       try { trackPatientEvent('full_result_unlocked', { lead_id_present: true }) } catch { /* ignore */ }
+      try { trackOutbrainLead() } catch { /* ignore */ }
       onUnlocked({ name: name.trim(), phone: phone.trim(), email: email.trim() })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Възникна грешка. Опитай отново.')

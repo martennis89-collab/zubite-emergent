@@ -3,6 +3,7 @@ import './globals.css'
 import { generateOrganizationSchema, generateWebSiteSchema } from '@/lib/schema'
 import { CookieConsent } from '@/components/CookieConsent'
 import { MetaPixel } from '@/components/MetaPixel'
+import { OutbrainPixel } from '@/components/OutbrainPixel'
 import { AttributionTracker } from '@/components/AttributionTracker'
 import { GoogleAnalyticsConsent } from '@/components/analytics/GoogleAnalyticsConsent'
 import { GA_MEASUREMENT_ID } from '@/lib/analytics/gtag'
@@ -139,6 +140,7 @@ export default function RootLayout({
         {children}
         <CookieConsent />
         <MetaPixel />
+        <OutbrainPixel />
         {/* Hide Emergent badge injected by platform */}
         <style dangerouslySetInnerHTML={{ __html: `
           #emergent-badge,
