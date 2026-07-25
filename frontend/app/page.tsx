@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import { TasteHome } from '../components/taste/TasteHome'
+import { TasteHomeOrtho } from '../components/taste/TasteHomeOrtho'
 import { getHomeTrustSignals } from '@/lib/homeTrust'
 
 export const metadata: Metadata = {
@@ -54,7 +54,7 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#FCFAF8] text-slate-900 overflow-x-clip" data-testid="home-main">
-      <TasteHome trustSignals={trustSignals} />
+      <TasteHomeOrtho trustSignals={trustSignals} />
 
       {/* Service schema — Zubite is NOT a clinical provider. We describe the
           platform as a *dental orientation and clinic-matching* Service so

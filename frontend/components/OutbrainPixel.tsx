@@ -79,6 +79,22 @@ function ensureOutbrainPixel(): OutbrainApi | undefined {
   return api
 }
 
+/**
+ * Fires the Outbrain "Lead" conversion. Named to match the Meta Pixel event
+ * at the same trigger point (see trackLeadSubmit in MetaPixel.tsx) so both
+ * platforms report the same conversion moment under a recognizable name.
+ *
+ * Requires a pixel-based custom conversion named "Lead" to be created in the
+ * Outbrain dashboard (Conversion Tracking) before this will show conversions
+ * there — the track call alone does not create it.
+ *
+ * No-ops if marketing consent hasn't been granted (window.obApi is only
+ * defined once ensureOutbrainPixel() has run, see the consent effect above).
+ */
+export function trackOutbrainLead() {
+  window.obApi?.('track', 'Lead')
+}
+
 export function OutbrainPixel() {
   const pathname = usePathname()
   const exempt = isPixelExemptPath(pathname)

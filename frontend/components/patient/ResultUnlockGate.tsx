@@ -13,6 +13,7 @@ import { CITIES } from '@/lib/cityData'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
 import { trackEvent as gaTrackEvent } from '@/lib/analytics/gtag'
 import { trackLeadSubmit } from '@/components/MetaPixel'
+import { trackOutbrainLead } from '@/components/OutbrainPixel'
 
 interface ResultUnlockGateProps {
   leadId: string
@@ -77,6 +78,7 @@ export function ResultUnlockGate({
           has_email: true,
         })
         trackLeadSubmit(citySlug, 'result_unlock')
+        trackOutbrainLead()
       } catch {
         // Analytics must never block the patient flow.
       }

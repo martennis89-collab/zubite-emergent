@@ -2123,6 +2123,73 @@
   line-height: 1.1;
 }
 
+/* Ortho-only homepage (TasteHomeOrtho.tsx) — the lone treatment card uses
+   the consultation photo as a full-bleed background with a dark scrim,
+   text overlaid at the bottom, main brand font (Manrope) instead of the
+   serif the original multi-card grid uses. Scoped under .is-ortho so
+   TasteHome.tsx's plain cards are completely untouched. */
+.taste-treatment-card.is-ortho {
+  position: relative;
+  overflow: hidden;
+  min-height: 480px;
+  padding: 0;
+  display: flex;
+  align-items: flex-end;
+  border: none;
+}
+
+.taste-treatment-photo {
+  z-index: 0;
+  object-fit: cover;
+}
+
+.taste-treatment-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(10, 10, 10, 0) 32%, rgba(10, 10, 10, 0.86) 100%);
+}
+
+.taste-treatment-badge {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 2;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(6px);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+}
+
+.taste-treatment-overlay-content {
+  position: relative;
+  z-index: 2;
+  padding: 28px;
+  width: 100%;
+}
+
+.taste-treatment-card.is-ortho h3 {
+  margin: 0;
+  color: #fff;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 32px;
+  letter-spacing: -0.01em;
+}
+
+.taste-treatment-card.is-ortho p {
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.taste-treatment-card.is-ortho .taste-treatment-link {
+  color: #fff;
+  margin-top: 18px;
+}
+
 .taste-treatment-card p {
   margin: 12px 0 0;
   color: var(--taste-muted);
@@ -2148,6 +2215,54 @@
 
 .taste-treatment-card:hover .taste-treatment-link svg {
   transform: translateX(4px);
+}
+
+/* Scroll-fill quote — standalone statistic section (ScrollFillQuote.tsx).
+   Character fill color is set directly via inline style in JS as the
+   section scrolls through view; this block only owns layout/type. */
+.taste-scroll-quote {
+  padding: 160px 0;
+}
+
+.taste-scroll-quote-inner {
+  display: flex;
+  justify-content: center;
+}
+
+.taste-scroll-quote-text {
+  margin: 0;
+  max-width: 1180px;
+  text-align: center;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: clamp(36px, 6vw, 92px);
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+}
+
+.taste-scroll-quote-word {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+/* Key phrases ("75%", "зъбно преместване") get the same treatment as
+   emphasis words in the hero (.taste-page em, .taste-hero-title em) —
+   italic Playfair Display, not just a different fill color. */
+.taste-scroll-quote-word.is-key {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: normal;
+}
+
+.taste-scroll-quote-text span[aria-hidden] {
+  transition: color 0.15s linear;
+}
+
+@media (max-width: 720px) {
+  .taste-scroll-quote {
+    padding: 96px 0;
+  }
 }
 
 .taste-clinics {
