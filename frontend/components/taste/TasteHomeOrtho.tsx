@@ -145,7 +145,10 @@ export function TasteHomeOrtho({ trustSignals }: { trustSignals: HomeTrustSignal
                 <span>за <em>твоите зъби.</em></span>
               </h1>
 
-              <p className="taste-hero-body taste-hero-fade taste-delay-3">
+              {/* Extra top margin vs. the shared .taste-hero-body rule (24px)
+                  — the title's large scale (up to 68px) made that gap read
+                  tight; inline-scoped so TasteHome.tsx's hero is untouched. */}
+              <p className="taste-hero-body taste-hero-fade taste-delay-3" style={{ marginTop: 36 }}>
                 Отговори на 8–10 кратки въпроса. Получаваш ориентир за симптомите, подходящия специалист и до 3 релевантни клиники — само ако поискаш.
               </p>
 
@@ -292,7 +295,6 @@ export function TasteHomeOrtho({ trustSignals }: { trustSignals: HomeTrustSignal
                 <li><Check aria-hidden /> Релевантност към случая</li>
                 <li><Check aria-hidden /> Решението остава твое</li>
               </ul>
-              <Link href="/clinics?specialty=orthodontics" className="taste-button taste-button-light">Разгледай клиники <ArrowRight aria-hidden className="taste-icon-sm" /></Link>
             </div>
           </div>
         </section>
@@ -339,7 +341,6 @@ export function TasteHomeOrtho({ trustSignals }: { trustSignals: HomeTrustSignal
               <h2>Zubite <em>Care Pass.</em></h2>
               <p>Карта с партньорски ползи за продукти за орална хигиена, предоставяна от клиниката след консултация, заявена през Zubite.bg.</p>
               <div className="taste-care-actions">
-                <Link href="/care-pass" className="taste-button taste-button-accent">Как работи Care Pass <ArrowRight aria-hidden className="taste-icon-sm" /></Link>
                 <span><ShieldCheck aria-hidden /> Не е отстъпка от лечение</span>
               </div>
             </div>
