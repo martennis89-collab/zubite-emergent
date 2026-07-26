@@ -4,7 +4,15 @@ function formatCount(value: number): string {
   return String(Math.max(0, Math.trunc(value))).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00A0')
 }
 
-export function HomeTrustSignals({ signals }: { signals: HomeTrustSignalsData }) {
+export function HomeTrustSignals({
+  signals,
+  hideAutoUpdateNote = false,
+}: {
+  signals: HomeTrustSignalsData
+  /** Ortho homepage opts out of the "Обновяват се автоматично" caption.
+   *  Defaults to false so TasteHome.tsx renders exactly as before. */
+  hideAutoUpdateNote?: boolean
+}) {
   const metrics = [
     {
       value: signals.quiz_completions,
@@ -30,7 +38,7 @@ export function HomeTrustSignals({ signals }: { signals: HomeTrustSignalsData })
       <div className="taste-shell taste-live-proof-inner">
         <div className="taste-live-proof-intro">
           <p><span aria-hidden /> Актуални данни от платформата</p>
-          <small>Обновяват се автоматично</small>
+          {!hideAutoUpdateNote && <small>Обновяват се автоматично</small>}
         </div>
 
         <dl className="taste-live-proof-metrics">

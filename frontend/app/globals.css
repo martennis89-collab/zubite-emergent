@@ -1873,6 +1873,23 @@
   background: var(--taste-bg);
 }
 
+/* Ortho homepage (TasteHomeOrtho.tsx, wrapper carries .taste-ortho-home) —
+   the whole page should read as white apart from the accordion's own
+   light-grey tab container (.taste-symptom-accordion, #f5f5f5, styled
+   separately above). .taste-page's shared base background and a few
+   sections that explicitly opted into the off-white --taste-bg token
+   (symptoms, care-pass) get overridden to white here; the hero, the dark
+   trust-signals/clinics bands, and the emerald final CTA are untouched —
+   not what was reported, and clearly intentional accent bands rather than
+   part of the same off-white bleed. Scoped so TasteHome.tsx (not
+   currently rendered anywhere, kept as the locked-in original) is
+   completely unaffected even if it's ever restored. */
+.taste-ortho-home .taste-page,
+.taste-ortho-home .taste-symptoms,
+.taste-ortho-home .taste-care {
+  background: #fff;
+}
+
 .taste-symptom-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -1977,6 +1994,148 @@
 .taste-symptom-card:hover .taste-card-arrow {
   color: var(--taste-accent-text);
   transform: translate(2px, -2px);
+}
+
+/* Ortho homepage only (SymptomAccordion.tsx) — Apple's "Significant
+   others" pattern (apple.com/iphone): a vertical list of rows on the
+   left, only one open at a time (grid-template-rows 0fr->1fr animates
+   smoothly to the description's natural height), paired with a single
+   image on the right that cross-fades to match the active row.
+   .taste-symptom-grid / .taste-symptom-card above are untouched —
+   TasteHome.tsx still uses them. */
+.taste-symptom-accordion {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1.15fr);
+  align-items: center;
+  gap: 56px;
+  padding: 48px;
+  border-radius: 24px;
+  background: #f5f5f5;
+}
+
+.taste-symptom-accordion-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.taste-symptom-accordion-row {
+  border-top: 1px solid var(--taste-border);
+}
+
+.taste-symptom-accordion-row:last-child {
+  border-bottom: 1px solid var(--taste-border);
+}
+
+.taste-symptom-accordion-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  padding: 22px 0;
+  background: none;
+  border: none;
+  text-align: left;
+  font-family: 'Manrope', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--taste-faint);
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.taste-symptom-accordion-trigger.is-active {
+  color: var(--taste-ink);
+}
+
+.taste-symptom-accordion-chevron {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  color: var(--taste-faint);
+  transition: transform 0.4s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.taste-symptom-accordion-trigger.is-active .taste-symptom-accordion-chevron {
+  transform: rotate(180deg);
+  color: var(--taste-accent);
+}
+
+/* max-height is set inline per-element by SymptomAccordion.tsx (JS-measured
+   via scrollHeight, which reports the full natural height even while
+   clipped here at 0) — not driven by a CSS class, since a pure
+   grid-template-rows 0fr->1fr version of this did not reliably
+   re-trigger per-row in testing. */
+.taste-symptom-accordion-panel-wrap {
+  overflow: hidden;
+  max-height: 0px;
+  transition: max-height 0.5s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.taste-symptom-accordion-panel p {
+  margin: 0 0 24px;
+  padding-right: 8px;
+  color: var(--taste-muted);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* Mobile-only — hidden on desktop (the shared cross-fade stage is used
+   there instead). Lives inside each row's own expandable panel so the
+   photo stays directly below its own tab, not in one shared area below
+   the whole list. */
+.taste-symptom-accordion-mobile-photo {
+  display: none;
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: 16px;
+  margin-bottom: 24px;
+}
+
+.taste-symptom-accordion-mobile-photo img {
+  object-fit: cover;
+}
+
+.taste-symptom-accordion-stage {
+  position: relative;
+  width: 85%;
+  margin: 0 auto;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: 20px;
+  background: var(--taste-ink);
+}
+
+.taste-symptom-accordion-photo {
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.taste-symptom-accordion-photo.is-active {
+  opacity: 1;
+}
+
+@media (max-width: 900px) {
+  .taste-symptom-accordion {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    padding: 28px;
+  }
+
+  .taste-symptom-accordion-stage {
+    display: none;
+  }
+
+  .taste-symptom-accordion-mobile-photo {
+    display: block;
+  }
+
+  .taste-symptom-accordion-trigger {
+    font-size: 22px;
+  }
 }
 
 .taste-story {
@@ -2235,7 +2394,7 @@
   text-align: center;
   font-family: 'Manrope', sans-serif;
   font-weight: 700;
-  font-size: clamp(36px, 6vw, 92px);
+  font-size: clamp(32px, 5.4vw, 80px);
   line-height: 1.2;
   letter-spacing: -0.015em;
 }

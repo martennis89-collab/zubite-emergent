@@ -28,7 +28,7 @@ const CSP = [
   "default-src 'self'",
   // Scripts — Next needs unsafe-inline for hydration; restrict third-parties
   // to the analytics/pixel hosts we actually load post-consent.
-  `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net${__impeccableLiveDev}`,
+  `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://amplify.outbrain.com${__impeccableLiveDev}`,
   // Styles — Tailwind / Next inject inline styles
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",

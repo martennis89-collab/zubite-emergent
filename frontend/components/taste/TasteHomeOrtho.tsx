@@ -27,18 +27,50 @@ import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { HomeTrustSignals } from '@/components/taste/HomeTrustSignals'
 import { ScrollFillQuote } from '@/components/taste/ScrollFillQuote'
+import { SymptomAccordion } from '@/components/taste/SymptomAccordion'
 import type { HomeTrustSignals as HomeTrustSignalsData } from '@/lib/homeTrust'
 
 // Ortho-only page: every symptom entry point now leads to an
 // orthodontics signal, not a different treatment category. Reuses the
 // existing /crooked-teeth page (already ortho content); the rest route
 // to /orthodontics since there's no dedicated page per bite-symptom yet.
+// `image` feeds the SymptomAccordion tiles (Apple-style hover accordion).
 const symptoms = [
-  { label: 'Криви или струпани зъби', note: 'Захапка и подреждане', href: '/crooked-teeth', icon: CircleDot },
-  { label: 'Неравномерна захапка', note: 'Горни и долни зъби не съвпадат', href: '/orthodontics', icon: Sparkles },
-  { label: 'Пропуски между зъбите', note: 'Разстояние и подреждане', href: '/orthodontics', icon: Stethoscope },
-  { label: 'Изпъкнали предни зъби', note: 'Позиция и захапка', href: '/orthodontics', icon: ShieldCheck },
-  { label: 'Напрежение в челюстта', note: 'Възможна връзка със захапката', href: '/orthodontics', icon: Clock3 },
+  {
+    label: 'Криви или струпани зъби',
+    note: 'Когато зъбите нямат достатъчно място в челюстта, те могат да се засичат, завъртат или подреждат неравномерно. Това променя усмивката, но с времето затруднява и почистването — трудно достъпните места между струпаните зъби събират повече плака и увеличават риска от кариес и възпаление на венците.',
+    href: '/crooked-teeth',
+    icon: CircleDot,
+    image: '/images/1.png',
+  },
+  {
+    label: 'Неравномерна захапка',
+    note: 'Ако горните и долните зъби не се допират правилно при захапване, натоварването върху тях се разпределя неравномерно. С годините това може да доведе до по-бързо износване на емайла, повишена чувствителност и допълнително напрежение в челюстните стави.',
+    href: '/orthodontics',
+    icon: Sparkles,
+    image: '/images/2.png',
+  },
+  {
+    label: 'Разстояния между зъбите',
+    note: 'Видимите разстояния между зъбите не са само естетически въпрос — те могат да задържат храна и да утежнят ежедневната хигиена. При по-изразени промежутъци понякога има ефект и върху говора, а не само върху външния вид на усмивката.',
+    href: '/orthodontics',
+    icon: Stethoscope,
+    image: '/images/3.png',
+  },
+  {
+    label: 'Изпъкнали предни зъби',
+    note: 'Когато предните зъби стърчат напред спрямо останалите, устните трудно ги покриват напълно в спокойно състояние. Освен видимия ефект, това увеличава риска от травма при удар и понякога затруднява пълноценното затваряне на устата.',
+    href: '/orthodontics',
+    icon: ShieldCheck,
+    image: '/images/4.png',
+  },
+  {
+    label: 'Напрежение в челюстта',
+    note: 'Пукане, схващане или дискомфорт около ушите и челюстта често са свързани с начина, по който зъбите се допират при захапване. Продължителното неправилно натоварване може да засегне мускулите и ставите, водещо до главоболие или дискомфорт при дъвчене.',
+    href: '/orthodontics',
+    icon: Clock3,
+    image: '/images/5.png',
+  },
 ]
 
 // Only Ортодонтия for now — the other categories stay off the homepage
@@ -128,7 +160,7 @@ export function TasteHomeOrtho({ trustSignals }: { trustSignals: HomeTrustSignal
   }
 
   return (
-    <div ref={rootRef} className="taste-site">
+    <div ref={rootRef} className="taste-site taste-ortho-home">
       <Header home />
 
       <main className="taste-page" data-testid="taste-home">
@@ -182,18 +214,7 @@ export function TasteHomeOrtho({ trustSignals }: { trustSignals: HomeTrustSignal
           </div>
         </section>
 
-        {trustSignals && <HomeTrustSignals signals={trustSignals} />}
-
-        <section id="how-it-works" className="taste-home-path" data-testid="home-how-it-works">
-          <div className="taste-shell taste-home-path-inner">
-            <h2>Как го получаваш</h2>
-            <ol>
-              <li><span>1</span><div><strong>Отговаряш</strong><p>8–10 кратки въпроса</p></div></li>
-              <li><span>2</span><div><strong>Виждаш ориентира</strong><p>резултатът е веднага</p></div></li>
-              <li><span>3</span><div><strong>Избираш</strong><p>продължаваш по своя начин</p></div></li>
-            </ol>
-          </div>
-        </section>
+        {trustSignals && <HomeTrustSignals signals={trustSignals} hideAutoUpdateNote />}
 
         <section className="taste-section taste-symptoms" data-testid="home-symptoms">
           <div className="taste-shell">
@@ -205,17 +226,7 @@ export function TasteHomeOrtho({ trustSignals }: { trustSignals: HomeTrustSignal
               <p>Не е нужно да знаеш медицинския термин. Избери това, което виждаш или усещаш, и тръгни оттам.</p>
             </div>
 
-            <div className="taste-symptom-grid">
-              {symptoms.map(({ label, note, href, icon: Icon }, index) => (
-                <Link href={href} className="taste-symptom-card taste-reveal" key={label} data-testid={`symptom-card-${index}`}>
-                  <span className="taste-card-index">0{index + 1}</span>
-                  <span className="taste-symptom-icon"><Icon aria-hidden /></span>
-                  <strong>{label}</strong>
-                  <span>{note}</span>
-                  <ArrowRight aria-hidden className="taste-card-arrow" />
-                </Link>
-              ))}
-            </div>
+            <SymptomAccordion items={symptoms} />
           </div>
         </section>
 
@@ -384,6 +395,17 @@ export function TasteHomeOrtho({ trustSignals }: { trustSignals: HomeTrustSignal
               <p>8–10 кратки въпроса. Ориентир веднага. Без регистрация и без диагноза онлайн.</p>
               <Link href="/quiz" className="taste-button taste-button-accent">Започни за 60 секунди <ArrowRight aria-hidden className="taste-icon-sm" /></Link>
             </div>
+          </div>
+        </section>
+
+        <section id="how-it-works" className="taste-home-path" data-testid="home-how-it-works">
+          <div className="taste-shell taste-home-path-inner">
+            <h2>Как го получаваш</h2>
+            <ol>
+              <li><span>1</span><div><strong>Отговаряш</strong><p>8–10 кратки въпроса</p></div></li>
+              <li><span>2</span><div><strong>Виждаш ориентира</strong><p>резултатът е веднага</p></div></li>
+              <li><span>3</span><div><strong>Избираш</strong><p>продължаваш по своя начин</p></div></li>
+            </ol>
           </div>
         </section>
       </main>
