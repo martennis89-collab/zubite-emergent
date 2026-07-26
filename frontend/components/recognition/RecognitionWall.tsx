@@ -5,6 +5,7 @@ import { ArrowRight, CheckCircle2, Heart, ImagePlus, Loader2, ShieldCheck, Spark
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { OtpLoginModal } from '@/components/OtpLoginModal'
+import { ClinicPicker } from '@/components/shared/ClinicPicker'
 import { getMe, type PatientMe } from '@/lib/patientAuth'
 import {
   createRecognition,
@@ -26,6 +27,8 @@ export function RecognitionWall() {
   const [message, setMessage] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [treatment, setTreatment] = useState('')
+  const [taggingClinic, setTaggingClinic] = useState(false)
+  const [clinicId, setClinicId] = useState<string | null>(null)
   const [layout, setLayout] = useState<RecognitionEntry['photo_layout']>('none')
   const [beforePhoto, setBeforePhoto] = useState<File | null>(null)
   const [afterPhoto, setAfterPhoto] = useState<File | null>(null)
@@ -69,6 +72,7 @@ export function RecognitionWall() {
         message,
         display_name: displayName,
         treatment_label: treatment,
+        clinic_id: taggingClinic ? clinicId : null,
         photo_layout: layout,
         consent_public_display: consent,
       })
@@ -82,6 +86,8 @@ export function RecognitionWall() {
       setMessage('')
       setDisplayName('')
       setTreatment('')
+      setTaggingClinic(false)
+      setClinicId(null)
       setLayout('none')
       setBeforePhoto(null)
       setAfterPhoto(null)
@@ -157,6 +163,18 @@ export function RecognitionWall() {
               <div className="flex items-start justify-between gap-4"><div><p className="taste-eyebrow">Твоята история</p><h2 className="mt-2 text-3xl font-bold tracking-[-.04em]">На кого искаш да благодариш?</h2></div><Heart className="h-7 w-7 text-[#FF6B00]" /></div>
               <label className="mt-6 block text-sm font-medium">Благодарност<textarea required minLength={40} maxLength={1200} rows={6} value={message} onChange={(e) => setMessage(e.target.value)} className="mt-2 w-full rounded-xl border border-[#E5E5E5] p-3 outline-none focus:border-[#007956]" placeholder="Разкажи какво направи преживяването ти по-спокойно, ясно или човешко…" /></label>
               <div className="mt-4 grid gap-4 sm:grid-cols-2"><label className="text-sm font-medium">Публично име (по избор)<input value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="mt-2 w-full rounded-xl border border-[#E5E5E5] p-3 outline-none focus:border-[#007956]" placeholder="Само първото име" /></label><label className="text-sm font-medium">Тема (по избор)<input value={treatment} onChange={(e) => setTreatment(e.target.value)} className="mt-2 w-full rounded-xl border border-[#E5E5E5] p-3 outline-none focus:border-[#007956]" placeholder="напр. ортодонтия" /></label></div>
+              <div className="mt-4">
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  <input type="checkbox" checked={taggingClinic} onChange={(e) => { setTaggingClinic(e.target.checked); if (!e.target.checked) setClinicId(null) }} className="h-4 w-4 accent-[#007956]" />
+                  Историята е за конкретна клиника партньор (по избор)
+                </label>
+                {taggingClinic && (
+                  <div className="mt-2">
+                    <ClinicPicker value={clinicId} onChange={(id) => setClinicId(id)} placeholder="Търси клиника по име…" />
+                    <p className="mt-1.5 text-xs text-[#6B6B6B]">Ще се появи в профила на клиниката след одобрение.</p>
+                  </div>
+                )}
+              </div>
               <fieldset className="mt-5"><legend className="text-sm font-medium">Снимки (по избор)</legend><div className="mt-2 flex flex-wrap gap-2">{(['none', 'after_only', 'before_after'] as const).map((value) => <button key={value} type="button" onClick={() => { setLayout(value); if (value === 'none') { setBeforePhoto(null); setAfterPhoto(null) } }} className={`rounded-full border px-4 py-2 text-sm ${layout === value ? 'border-[#007956] bg-[#D0FAE5] text-[#006A4B]' : 'border-[#E5E5E5] text-[#525252]'}`}>{value === 'none' ? 'Без снимки' : value === 'after_only' ? 'Само след' : 'Преди и след'}</button>)}</div></fieldset>
               {layout !== 'none' && <div className="mt-4 grid gap-3 sm:grid-cols-2">{layout === 'before_after' && <PhotoField label="Преди" file={beforePhoto} onChange={(file) => selectPhoto(file, setBeforePhoto)} />}<PhotoField label="След" file={afterPhoto} onChange={(file) => selectPhoto(file, setAfterPhoto)} /></div>}
               <label className="mt-5 flex items-start gap-3 text-sm leading-6 text-[#525252]"><input required type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-1 h-4 w-4 accent-[#007956]" />Съгласен/на съм текстът и избраните снимки да бъдат показани публично след модерация. Потвърждавам, че имам право да споделя снимките.</label>

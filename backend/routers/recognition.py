@@ -3,6 +3,26 @@
 Entries carry no star rating and never affect clinic ranking or matching.
 Nothing becomes public before an admin approves both the story and its
 explicit display consent. Optional images are private while pending.
+
+Public:
+    GET  /api/recognition                          global published feed
+    GET  /api/public/clinics/{clinic_id}/recognition  one clinic's published entries
+    POST /api/recognition                           (patient) submit a story
+    POST /api/recognition/{id}/photos               (patient, owner) attach a photo
+    GET  /api/recognition/{id}/photos/{photo_id}    published-or-owner
+
+Admin:
+    GET    /api/admin/recognition?status=
+    GET    /api/admin/recognition/{id}/photos/{photo_id}   bypasses visibility gate
+    PATCH  /api/admin/recognition/{id}              set/clear the clinic tag
+    POST   /api/admin/recognition/{id}/approve
+    POST   /api/admin/recognition/{id}/reject
+    DELETE /api/admin/recognition/{id}              hard delete (distinct from reject)
+
+An entry's optional `clinic_id` links it to the same clinic-profile
+"Благодарности" section the reviews feature mirrors (see reviews.py's
+public_list_clinic_reviews) — set by the patient at submission, or
+added/corrected by an admin during moderation via the PATCH endpoint.
 """
 from __future__ import annotations
 
@@ -11,10 +31,11 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, UploadFile
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
+from audit import audit_log
 from auth import get_current_patient, get_current_patient_optional, get_current_user
 from community_safety import scrub_pii
 from database import db
@@ -41,6 +62,13 @@ class RecognitionCreate(BaseModel):
 
 class RecognitionModeration(BaseModel):
     moderation_notes: Optional[str] = Field(default=None, max_length=1200)
+
+
+class RecognitionClinicTagUpdate(BaseModel):
+    """Admin-only correction/addition of an entry's clinic tag. `clinic_id`
+    is nullable on purpose — sending null clears an existing (e.g.
+    mistaken) tag rather than requiring a separate "untag" endpoint."""
+    clinic_id: Optional[str] = Field(default=None, max_length=100)
 
 
 def _now() -> str:
@@ -92,6 +120,30 @@ async def list_recognition(limit: int = Query(default=30, ge=1, le=60)):
     entries = [entry async for entry in cursor]
     photos = await _photos_for([entry["id"] for entry in entries])
     return {"entries": [_public_entry(entry, photos.get(entry["id"], [])) for entry in entries]}
+
+
+@router.get("/public/clinics/{clinic_id}/recognition")
+async def public_list_clinic_recognition(
+    clinic_id: str, limit: int = Query(default=30, ge=1, le=60),
+):
+    """Published Wall of Recognition entries tagged to one clinic — the
+    per-clinic counterpart to /recognition's global feed, analogous to
+    reviews.py's public_list_clinic_reviews. 404 when the clinic itself
+    doesn't exist, same convention as the reviews endpoint; an existing
+    clinic with zero tagged entries returns an empty list, not 404."""
+    clinic = await db.clinics.find_one({"id": clinic_id}, {"_id": 0, "id": 1})
+    if not clinic:
+        raise HTTPException(status_code=404, detail="Clinic not found")
+    cursor = db.recognition_entries.find(
+        {"clinic_id": clinic_id, "status": "published", "display_permission": True},
+        {"_id": 0},
+    ).sort("published_at", -1).limit(limit)
+    entries = [entry async for entry in cursor]
+    photos = await _photos_for([entry["id"] for entry in entries])
+    return {
+        "clinic_id": clinic_id,
+        "entries": [_public_entry(entry, photos.get(entry["id"], [])) for entry in entries],
+    }
 
 
 @router.post(
@@ -289,3 +341,74 @@ async def reject_recognition(
     user: AdminUser = Depends(get_current_user),
 ):
     return await _moderate(entry_id, "rejected", body, user)
+
+
+@router.patch("/admin/recognition/{entry_id}")
+async def update_recognition_clinic_tag(
+    entry_id: str,
+    body: RecognitionClinicTagUpdate,
+    request: Request,
+    user: AdminUser = Depends(get_current_user),
+):
+    """Add, correct, or clear an entry's clinic tag — the admin-side half
+    of connecting Wall of Recognition to a clinic profile (patients can
+    also tag one at submission; this is for fixing a missing/wrong tag
+    during moderation, not a general-purpose entry editor)."""
+    entry = await db.recognition_entries.find_one({"id": entry_id}, {"_id": 0})
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entry not found")
+
+    clinic_name = None
+    if body.clinic_id:
+        clinic = await db.clinics.find_one(
+            {"id": body.clinic_id, "is_active": True},
+            {"_id": 0, "clinic_name": 1, "name": 1},
+        )
+        if not clinic:
+            raise HTTPException(status_code=404, detail="Клиниката не е намерена.")
+        clinic_name = clinic.get("clinic_name") or clinic.get("name")
+
+    await db.recognition_entries.update_one(
+        {"id": entry_id},
+        {"$set": {"clinic_id": body.clinic_id, "clinic_name": clinic_name}},
+    )
+    await audit_log(
+        "recognition.clinic_tag_updated",
+        actor=user,
+        actor_type="admin",
+        target_type="recognition_entry",
+        target_id=entry_id,
+        before_state={"clinic_id": entry.get("clinic_id")},
+        after_state={"clinic_id": body.clinic_id},
+        severity="info",
+        request=request,
+    )
+    return {"success": True, "clinic_id": body.clinic_id, "clinic_name": clinic_name}
+
+
+@router.delete("/admin/recognition/{entry_id}")
+async def delete_recognition(entry_id: str, request: Request, user: AdminUser = Depends(get_current_user)):
+    """Hard delete — distinct from reject, which keeps the row (visible in
+    the 'rejected' tab, reversible in spirit even though there's no
+    un-reject button today). Also soft-deletes its photos (is_deleted=True,
+    matching the rest of this codebase's convention of never physically
+    removing objects from R2 — see storage.py, which has no delete_object)."""
+    existing = await db.recognition_entries.find_one({"id": entry_id}, {"_id": 0})
+    result = await db.recognition_entries.delete_one({"id": entry_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    await db.recognition_photos.update_many({"entry_id": entry_id}, {"$set": {"is_deleted": True}})
+    await audit_log(
+        "recognition.deleted",
+        actor=user,
+        actor_type="admin",
+        target_type="recognition_entry",
+        target_id=entry_id,
+        before_state={
+            "status": (existing or {}).get("status"),
+            "clinic_id": (existing or {}).get("clinic_id"),
+        },
+        severity="warning",
+        request=request,
+    )
+    return {"success": True}

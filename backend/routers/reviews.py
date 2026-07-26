@@ -12,10 +12,11 @@ Clinic (auth=clinic):
     GET  /api/clinic/reviews
 
 Admin (auth=admin):
-    GET  /api/admin/reviews?status=&clinic_id=
-    GET  /api/admin/reviews/{id}
-    POST /api/admin/reviews/{id}/approve
-    POST /api/admin/reviews/{id}/reject
+    GET    /api/admin/reviews?status=&clinic_id=
+    GET    /api/admin/reviews/{id}
+    POST   /api/admin/reviews/{id}/approve
+    POST   /api/admin/reviews/{id}/reject
+    DELETE /api/admin/reviews/{id}   hard delete (distinct from reject)
 
 R1 design notes:
 - No QR generation library is added — pure URL is returned. Frontend
@@ -40,6 +41,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
+from audit import audit_log
 from auth import get_current_user, get_current_clinic
 from database import db
 from rate_limit import rate_limit
@@ -417,3 +419,28 @@ async def admin_reject_review(
     user: AdminUser = Depends(get_current_user),
 ):
     return await _moderate(review_id, "rejected", (body.moderation_notes if body else None), user)
+
+
+@router.delete("/admin/reviews/{review_id}")
+async def admin_delete_review(review_id: str, request: Request, user: AdminUser = Depends(get_current_user)):
+    """Hard delete — distinct from reject, which keeps the row around
+    (visible in the 'rejected' tab). For spam/abuse a moderator wants
+    gone entirely rather than just hidden."""
+    existing = await db.clinic_reviews.find_one({"id": review_id}, {"_id": 0})
+    result = await db.clinic_reviews.delete_one({"id": review_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Review not found")
+    await audit_log(
+        "review.deleted",
+        actor=user,
+        actor_type="admin",
+        target_type="clinic_review",
+        target_id=review_id,
+        before_state={
+            "status": (existing or {}).get("status"),
+            "clinic_id": (existing or {}).get("clinic_id"),
+        },
+        severity="warning",
+        request=request,
+    )
+    return {"success": True}

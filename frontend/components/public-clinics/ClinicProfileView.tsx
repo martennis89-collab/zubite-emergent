@@ -33,6 +33,8 @@ import {
 } from '@/lib/publicClinics'
 import ConsultationScheduler from './ConsultationScheduler'
 import EmptyStateCard from './EmptyStateCard'
+import { PublicReviewsSection } from '@/components/patient/PublicReviewsSection'
+import { PublicRecognitionSection } from '@/components/patient/PublicRecognitionSection'
 
 const PublicContactModal = dynamic(() => import('./PublicContactModal'), { ssr: false })
 const PatientChatModal = dynamic(
@@ -985,6 +987,20 @@ export default function ClinicProfileView({ clinic, chatContext }: Props) {
                   onStateResolved={setSchedulerState}
                   hasQuizContext={!!chatContext}
                 />
+              </div>
+
+              {/* Zubite-native reviews (R2) and Wall of Recognition —
+                  both always render regardless of tier: they're trust
+                  signals about the clinic itself, not premium profile
+                  content. Kept as two visually distinct sections (see
+                  each component's own framing) rather than merged, since
+                  reviews carry a star rating + moderation gate while
+                  Recognition entries deliberately never rate or rank. */}
+              <div className="mt-8">
+                <PublicReviewsSection clinicId={clinic.id} />
+              </div>
+              <div className="mt-6">
+                <PublicRecognitionSection clinicId={clinic.id} />
               </div>
 
               {clinic.care_pass_partner && <CarePassContextBlock />}

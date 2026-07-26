@@ -198,6 +198,12 @@ _TARGET_ALLOWED_KEYS: dict[str, frozenset[str]] = {
     "system": frozenset({
         "env", "app_env", "reason_code",
     }),
+    "recognition_entry": frozenset({
+        "clinic_id", "status",
+    }),
+    "clinic_review": frozenset({
+        "clinic_id", "status",
+    }),
 }
 
 # Metadata serialised size cap.

@@ -32,10 +32,30 @@ export async function listRecognition(): Promise<RecognitionEntry[]> {
   return data.entries || []
 }
 
+/** Published Wall of Recognition entries tagged to one clinic — backs
+ *  PublicRecognitionSection on the clinic profile page. Returns an empty
+ *  list (never throws) on any non-ok response so a fetch hiccup can't
+ *  break the rest of the profile — matches PublicReviewsSection's
+ *  fail-soft convention for the same page. */
+export async function listClinicRecognition(clinicId: string): Promise<RecognitionEntry[]> {
+  try {
+    const response = await fetch(
+      `${API_URL}/api/public/clinics/${encodeURIComponent(clinicId)}/recognition`,
+      { cache: 'no-store' },
+    )
+    if (!response.ok) return []
+    const data = await response.json()
+    return data.entries || []
+  } catch {
+    return []
+  }
+}
+
 export async function createRecognition(payload: {
   message: string
   display_name?: string
   treatment_label?: string
+  clinic_id?: string | null
   photo_layout: RecognitionEntry['photo_layout']
   consent_public_display: boolean
 }): Promise<{ id: string; message: string }> {
