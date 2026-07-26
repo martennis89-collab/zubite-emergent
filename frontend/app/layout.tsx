@@ -9,6 +9,7 @@ import { GoogleAnalyticsConsent } from '@/components/analytics/GoogleAnalyticsCo
 import { GA_MEASUREMENT_ID } from '@/lib/analytics/gtag'
 import { Suspense } from 'react'
 import { RouteDesignScope } from '@/components/RouteDesignScope'
+import { Analytics } from '@vercel/analytics/next'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://zubite.bg'),
@@ -148,6 +149,7 @@ export default function RootLayout({
         <CookieConsent />
         <MetaPixel />
         <OutbrainPixel />
+        <Analytics />
         {/* Hide Emergent badge injected by platform */}
         <style dangerouslySetInnerHTML={{ __html: `
           #emergent-badge,
