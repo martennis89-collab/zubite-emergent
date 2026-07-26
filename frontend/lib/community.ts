@@ -37,8 +37,11 @@ export interface QuestionListItem {
   answer_count: number
   upvotes: number
   has_upvoted: boolean
+  is_following: boolean
   created_at: string | null
   published_at: string | null
+  last_activity_at: string | null
+  last_answerer_display: string | null
 }
 
 export interface Answer {
@@ -250,6 +253,21 @@ export async function upvoteQuestion(questionId: string): Promise<{ upvoted: boo
   if (res.status === 401 || res.status === 403) throw new Error('AUTH_REQUIRED')
   if (!res.ok) throw new Error(await parseError(res, 'Неуспешно гласуване'))
   return (await res.json()) as { upvoted: boolean }
+}
+
+/** Toggle "watching" a thread — followers get an email + push notification
+ *  on every new answer (see backend/routers/community.py's
+ *  _notify_followers). Askers/answerers are auto-subscribed server-side;
+ *  this is both the explicit opt-in for anyone else and how any of them
+ *  can unfollow. */
+export async function toggleFollowQuestion(questionId: string): Promise<{ following: boolean }> {
+  const res = await fetch(
+    `${API_URL}/api/community/questions/${encodeURIComponent(questionId)}/follow`,
+    { method: 'POST', credentials: 'include' as RequestCredentials },
+  )
+  if (res.status === 401 || res.status === 403) throw new Error('AUTH_REQUIRED')
+  if (!res.ok) throw new Error(await parseError(res, 'Неуспешно записване'))
+  return (await res.json()) as { following: boolean }
 }
 
 export async function reportQuestion(questionId: string, reason: string): Promise<void> {

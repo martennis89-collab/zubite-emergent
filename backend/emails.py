@@ -1,7 +1,10 @@
 import asyncio
 import logging
 import resend
-from config import RESEND_API_KEY, SENDER_EMAIL, ADMIN_EMAIL, CITIES, TREATMENT_NAMES, BAND_NAMES, FRONTEND_URL
+from config import (
+    RESEND_API_KEY, SENDER_EMAIL, ADMIN_EMAIL, CITIES, TREATMENT_NAMES, BAND_NAMES,
+    FRONTEND_URL, PRODUCTION_URL,
+)
 
 
 async def send_lead_notification_email(lead_data: dict):
@@ -116,7 +119,9 @@ async def send_community_answer_email(
     to_email: str, *, question_title: str, question_slug: str,
     answerer_display: str, is_expert: bool,
 ):
-    """Notify a patient their Общност question got a new answer.
+    """Notify a follower (asker, a prior answerer, or anyone who hit
+    Follow — see community.py's qa_subscriptions/_notify_followers) that an
+    Общност thread they're watching got a new answer.
 
     Best-effort: like the other senders here, failures are logged and
     swallowed rather than raised — a missed notification email must never
@@ -125,7 +130,6 @@ async def send_community_answer_email(
         logging.warning("RESEND_API_KEY not configured - skipping community answer email")
         return None
 
-    base_url = "https://zubite.bg"
     badge = (
         '<span style="display:inline-block;background:#ccfbf1;color:#0f766e;'
         'font-size:12px;font-weight:600;border-radius:9999px;padding:2px 10px;">'
@@ -139,13 +143,13 @@ async def send_community_answer_email(
             <h1 style="color: white; margin: 0; font-size: 22px;">Zubite.bg</h1>
         </div>
         <div style="padding: 28px 24px; background: #f8fafc;">
-            <p style="color: #0f172a; font-size: 16px; margin: 0 0 8px 0;">Има нов отговор на вашия въпрос</p>
+            <p style="color: #0f172a; font-size: 16px; margin: 0 0 8px 0;">Нов отговор в тема, която следите</p>
             <div style="background: white; border-radius: 12px; padding: 16px 20px; margin: 16px 0; border: 1px solid #e2e8f0;">
                 <p style="color: #0f172a; font-weight: 600; margin: 0 0 6px 0;">{question_title}</p>
                 <p style="color: #64748b; font-size: 14px; margin: 0;">Отговори {answerer_display} {badge}</p>
             </div>
             <div style="text-align: center; padding-top: 8px;">
-                <a href="{base_url}/community/v/{question_slug}"
+                <a href="{PRODUCTION_URL}/community/v/{question_slug}"
                    style="display:inline-block;background:#0d9488;color:white;text-decoration:none;
                           padding:10px 22px;border-radius:8px;font-weight:600;">
                     Виж отговора

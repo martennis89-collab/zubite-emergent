@@ -108,6 +108,14 @@ PRODUCTION_URL = os.environ.get('PRODUCTION_URL', 'https://zubite.bg')
 # Default is enabled.
 AUDIT_LOGS_ENABLED = os.environ.get('AUDIT_LOGS_ENABLED', '1') != '0'
 
+# Web Push (VAPID) — Общност "follow a thread" notifications.
+# Optional like RESEND_API_KEY: unset locally is a no-op (push.push_enabled()
+# returns False and sends are skipped with a warning), not a hard failure.
+# Generate a pair with: python -m scripts.generate_vapid_keys
+VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY', '')
+VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY', '')
+VAPID_CLAIM_EMAIL = os.environ.get('VAPID_CLAIM_EMAIL', 'info@zubite.bg')
+
 # Public homepage counter. This starting value covers confirmed consultations
 # that predate the automated booking collections; live records supersede it.
 HOME_TRUST_CONSULTATIONS_BASELINE = max(

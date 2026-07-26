@@ -7,10 +7,14 @@ Public / patient:
     GET  /api/community/topics                    topic tiles + published counts
     POST /api/community/questions/{id}/report     (patient) flag a question
     POST /api/community/questions/{id}/answers    (patient) peer answer — post-moderated
+    POST /api/community/questions/{id}/follow     (patient) toggle "watch this thread"
     POST /api/community/answers/{id}/upvote       (patient) "това ми помогна"
     POST /api/community/answers/{id}/report       (patient) flag an answer
     POST /api/community/questions/{id}/photos              (patient, owner) attach a photo
     GET  /api/community/questions/{id}/photos/{photo_id}   published-or-owner
+    GET  /api/patient/push/vapid-public-key       public VAPID key for PushManager.subscribe()
+    POST /api/patient/push/subscribe              (patient) register a browser push subscription
+    POST /api/patient/push/unsubscribe            (patient) remove a browser push subscription
 
 Clinic:
     GET  /api/clinic/community/questions          queue matched to the clinic's treatments
@@ -40,6 +44,12 @@ Design (mirrors clinic_reviews):
 - PII (emails/phones) scrubbed before storage on every free-text field.
 - Asker/answerer identity is anonymised to a display snapshot.
 - IP/UA stored as SHA-256 hashes only; never raw.
+- Thread-follow notifications: asking or answering auto-subscribes you
+  (qa_subscriptions, source="asker"/"answerer"); anyone else can opt in via
+  the follow toggle (source="manual"). A new answer fans out to every
+  subscriber except whoever just posted it — in-app notification + email +
+  web push (push.py) — via _notify_followers, backgrounded with
+  asyncio.create_task so a slow send never blocks the answer response.
 - Question photos live in their own `qa_question_photos` collection, served
   through a purpose-built path (not the public blog `uploaded_files`/
   `/api/files/{id}` pattern, which is unconditionally public the instant
@@ -50,6 +60,7 @@ Design (mirrors clinic_reviews):
 """
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import html
 import re
@@ -66,18 +77,22 @@ from auth import (
     get_current_clinic,
 )
 from audit import audit_log
-from config import APP_NAME, CITIES
+from config import APP_NAME, CITIES, VAPID_PUBLIC_KEY
 from community_safety import scan_red_flags, scrub_pii, strip_urls
 from community_topics import COMMUNITY_TOPICS, get_topic, is_valid_topic, topics_for_clinic
 from community_seed_content import PERSONAS, SEED_BATCH_ID, SEED_ITEMS
 from database import db
 from emails import send_community_answer_email
+from push import push_enabled, send_push_to_patient
 from rate_limit import rate_limit
 from routers.public import (
     _resolve_partner_tier, _TIER_BOOST_LEGACY, _BASE_PACKAGE_BOOST, _public_profile_for_tier,
 )
 from routers.public_clinics import _public_visibility_query, slugify_clinic, resolve_city_slug
-from schemas import AdminUser, QaQuestionCreate, QaReportCreate, QaModerationBody, QaAnswerCreate
+from schemas import (
+    AdminUser, QaQuestionCreate, QaReportCreate, QaModerationBody, QaAnswerCreate,
+    PushSubscriptionCreate, PushSubscriptionDelete,
+)
 from storage import ALLOWED_IMAGE_TYPES, get_object, put_object
 
 _SOFIA_TZ = ZoneInfo("Europe/Sofia")
@@ -109,6 +124,26 @@ def _now() -> str:
 
 def _hash(value: str) -> str:
     return hashlib.sha256(value.encode()).hexdigest()
+
+
+async def _subscribe(question_id: str, patient_id: str, *, source: str) -> None:
+    """Idempotent: at most one subscription row per (question, patient).
+    Used both for the explicit Follow button (source="manual") and to
+    auto-subscribe an asker/answerer to their own thread (source="asker"/
+    "answerer") — see module docstring's notification design note above
+    _notify_followers."""
+    existing = await db.qa_subscriptions.find_one(
+        {"question_id": question_id, "patient_id": patient_id}, {"_id": 0, "id": 1},
+    )
+    if existing:
+        return
+    await db.qa_subscriptions.insert_one({
+        "id": str(uuid.uuid4()),
+        "question_id": question_id,
+        "patient_id": patient_id,
+        "source": source,
+        "created_at": _now(),
+    })
 
 
 # Minimal Cyrillic→Latin transliteration for readable, ASCII slugs.
@@ -157,6 +192,7 @@ def _public_question(
     include_body: bool = True,
     include_excerpt: bool = False,
     upvoted_ids: Optional[set] = None,
+    following_ids: Optional[set] = None,
 ) -> Dict[str, Any]:
     """Public-safe projection. Never exposes email/hashes/patient_id."""
     out = {
@@ -169,8 +205,14 @@ def _public_question(
         "answer_count": int(q.get("answer_count", 0)),
         "upvotes": int(q.get("upvotes", 0)),
         "has_upvoted": bool(upvoted_ids) and q["id"] in upvoted_ids,
+        "is_following": bool(following_ids) and q["id"] in following_ids,
         "created_at": q.get("created_at"),
         "published_at": q.get("published_at"),
+        # Forum-style "last activity" — falls back to when the question
+        # itself went live until the first answer sets these (see
+        # create_peer_answer/create_expert_answer).
+        "last_activity_at": q.get("last_activity_at") or q.get("published_at") or q.get("created_at"),
+        "last_answerer_display": q.get("last_answerer_display"),
     }
     if include_body:
         out["body"] = q.get("body")
@@ -228,6 +270,10 @@ async def create_question(
         "user_agent_hash": _hash(ua) if ua else None,
     }
     await db.qa_questions.insert_one(doc)
+    # Asking auto-subscribes you to your own thread (unfollow via the same
+    # toggle any other follower uses) — matches how forums like BG-Mamma
+    # default-watch a topic you start.
+    await _subscribe(doc["id"], patient["id"], source="asker")
 
     resp: Dict[str, Any] = {
         "success": True,
@@ -394,15 +440,25 @@ async def list_questions(
     docs = [doc async for doc in cursor]
 
     upvoted_ids: set = set()
+    following_ids: set = set()
     if patient and docs:
+        doc_ids = [d["id"] for d in docs]
         vote_cursor = db.qa_question_votes.find(
-            {"patient_id": patient["id"], "question_id": {"$in": [d["id"] for d in docs]}},
+            {"patient_id": patient["id"], "question_id": {"$in": doc_ids}},
             {"_id": 0, "question_id": 1},
         )
         upvoted_ids = {v["question_id"] async for v in vote_cursor}
+        sub_cursor = db.qa_subscriptions.find(
+            {"patient_id": patient["id"], "question_id": {"$in": doc_ids}},
+            {"_id": 0, "question_id": 1},
+        )
+        following_ids = {s["question_id"] async for s in sub_cursor}
 
     items = [
-        _public_question(doc, include_body=False, include_excerpt=True, upvoted_ids=upvoted_ids)
+        _public_question(
+            doc, include_body=False, include_excerpt=True,
+            upvoted_ids=upvoted_ids, following_ids=following_ids,
+        )
         for doc in docs
     ]
     return {"total": total, "limit": limit, "offset": offset, "items": items}
@@ -448,7 +504,17 @@ async def get_question(slug: str, patient=Depends(get_current_patient_optional))
         if qv:
             question_upvoted_ids = {doc["id"]}
 
-    out = _public_question(doc, include_body=True, upvoted_ids=question_upvoted_ids)
+    following_ids: set = set()
+    if patient:
+        sub = await db.qa_subscriptions.find_one(
+            {"question_id": doc["id"], "patient_id": patient["id"]}, {"_id": 0, "id": 1},
+        )
+        if sub:
+            following_ids = {doc["id"]}
+
+    out = _public_question(
+        doc, include_body=True, upvoted_ids=question_upvoted_ids, following_ids=following_ids,
+    )
     out["topic_related_path"] = (get_topic(doc["topic"]) or {}).get("related_path")
     out["answers"] = [_public_answer(a, upvoted_ids=upvoted_ids) for a in answer_docs]
     # A patient may answer if logged in and hasn't already posted on this
@@ -525,6 +591,30 @@ async def upvote_question(question_id: str, patient=Depends(get_current_patient)
     })
     await db.qa_questions.update_one({"id": question_id}, {"$inc": {"upvotes": 1}})
     return {"success": True, "upvoted": True}
+
+
+@router.post(
+    "/community/questions/{question_id}/follow",
+    dependencies=[Depends(rate_limit("community_upvote", 30, 600))],
+)
+async def follow_question(question_id: str, patient=Depends(get_current_patient)):
+    """Idempotent toggle for "watching" a thread — every subscriber gets an
+    email + push notification when a new answer lands (_notify_followers).
+    Askers and answerers are auto-subscribed elsewhere; this is both the
+    explicit opt-in for anyone else AND how any of them can unfollow."""
+    question = await db.qa_questions.find_one({"id": question_id}, {"_id": 0, "id": 1})
+    if not question:
+        raise HTTPException(status_code=404, detail="Въпросът не е намерен")
+
+    existing = await db.qa_subscriptions.find_one(
+        {"question_id": question_id, "patient_id": patient["id"]}, {"_id": 0, "id": 1},
+    )
+    if existing:
+        await db.qa_subscriptions.delete_one({"question_id": question_id, "patient_id": patient["id"]})
+        return {"success": True, "following": False}
+
+    await _subscribe(question_id, patient["id"], source="manual")
+    return {"success": True, "following": True}
 
 
 # ─── PUBLIC: question photos ───────────────────────────────────────
@@ -629,42 +719,60 @@ async def get_question_photo(
 
 # ─── PUBLIC: peer answers, upvotes, answer reports ────────────────
 
-async def _notify_asker(question: Dict[str, Any], *, answerer_patient_id: Optional[str],
-                         answerer_display: str, is_expert: bool) -> None:
-    """Record an in-app notification + best-effort email when a question
-    gets a new answer. Never notifies someone about their own answer to
-    their own question. Failures here must never break answer creation —
-    both the DB insert and the email send are swallowed on error."""
-    asker_id = question.get("patient_id")
-    if not asker_id or asker_id == answerer_patient_id:
+async def _notify_followers(question: Dict[str, Any], *, exclude_patient_id: Optional[str],
+                             answerer_display: str, is_expert: bool) -> None:
+    """Record an in-app notification + best-effort email + push for every
+    subscriber to this thread (asker, prior answerers, and anyone who hit
+    Follow — see qa_subscriptions / _subscribe), except whoever just posted
+    the answer. Replaces the old asker-only _notify_asker: a thread can now
+    have many followers, so callers background this via asyncio.create_task
+    rather than awaiting it inline, and each follower's notify is wrapped in
+    its own try/except so one bad email/push/DB write never skips the rest."""
+    subs_cursor = db.qa_subscriptions.find(
+        {"question_id": question["id"]}, {"_id": 0, "patient_id": 1},
+    )
+    follower_ids = {s["patient_id"] async for s in subs_cursor}
+    follower_ids.discard(exclude_patient_id)
+    if not follower_ids:
         return
-    try:
-        await db.qa_notifications.insert_one({
-            "id": str(uuid.uuid4()),
-            "patient_id": asker_id,
-            "type": "answer_received",
-            "question_id": question["id"],
-            "question_slug": question["slug"],
-            "question_title": question["title"],
-            "answerer_display": answerer_display,
-            "is_expert": is_expert,
-            "read": False,
-            "created_at": _now(),
-        })
-    except Exception:
-        pass
-    try:
-        asker = await db.patients.find_one({"id": asker_id}, {"_id": 0, "email": 1})
-        if asker and asker.get("email"):
-            await send_community_answer_email(
-                asker["email"],
-                question_title=question["title"],
-                question_slug=question["slug"],
-                answerer_display=answerer_display,
-                is_expert=is_expert,
+
+    for patient_id in follower_ids:
+        try:
+            await db.qa_notifications.insert_one({
+                "id": str(uuid.uuid4()),
+                "patient_id": patient_id,
+                "type": "answer_received",
+                "question_id": question["id"],
+                "question_slug": question["slug"],
+                "question_title": question["title"],
+                "answerer_display": answerer_display,
+                "is_expert": is_expert,
+                "read": False,
+                "created_at": _now(),
+            })
+        except Exception:
+            pass
+        try:
+            follower = await db.patients.find_one({"id": patient_id}, {"_id": 0, "email": 1})
+            if follower and follower.get("email"):
+                await send_community_answer_email(
+                    follower["email"],
+                    question_title=question["title"],
+                    question_slug=question["slug"],
+                    answerer_display=answerer_display,
+                    is_expert=is_expert,
+                )
+        except Exception:
+            pass
+        try:
+            await send_push_to_patient(
+                patient_id,
+                title="Нов отговор в тема, която следите",
+                body=f"{answerer_display} отговори на „{question['title']}“",
+                url=f"/community/v/{question['slug']}",
             )
-    except Exception:
-        pass
+        except Exception:
+            pass
 
 
 @router.post(
@@ -707,10 +815,17 @@ async def create_peer_answer(
         "created_at": _now(),
     }
     await db.qa_answers.insert_one(doc)
-    await db.qa_questions.update_one({"id": question_id}, {"$inc": {"answer_count": 1}})
-    await _notify_asker(
-        q, answerer_patient_id=patient["id"], answerer_display=author_display, is_expert=False,
+    await db.qa_questions.update_one(
+        {"id": question_id},
+        {"$inc": {"answer_count": 1},
+         "$set": {"last_activity_at": doc["created_at"], "last_answerer_display": author_display}},
     )
+    # Answering auto-subscribes you too — you'll be notified of further
+    # replies on the thread, same as the asker.
+    await _subscribe(question_id, patient["id"], source="answerer")
+    asyncio.create_task(_notify_followers(
+        q, exclude_patient_id=patient["id"], answerer_display=author_display, is_expert=False,
+    ))
     return {"success": True, "id": doc["id"]}
 
 
@@ -866,10 +981,14 @@ async def create_expert_answer(
         "created_at": _now(),
     }
     await db.qa_answers.insert_one(doc)
-    await db.qa_questions.update_one({"id": question_id}, {"$inc": {"answer_count": 1}})
-    await _notify_asker(
-        q, answerer_patient_id=None, answerer_display=author_display, is_expert=True,
+    await db.qa_questions.update_one(
+        {"id": question_id},
+        {"$inc": {"answer_count": 1},
+         "$set": {"last_activity_at": doc["created_at"], "last_answerer_display": author_display}},
     )
+    asyncio.create_task(_notify_followers(
+        q, exclude_patient_id=None, answerer_display=author_display, is_expert=True,
+    ))
     await audit_log(
         "community.expert_answer_created",
         actor_type="clinic",
@@ -913,6 +1032,54 @@ async def mark_all_notifications_read(patient=Depends(get_current_patient)):
         {"patient_id": patient["id"], "read": False}, {"$set": {"read": True}},
     )
     return {"success": True, "updated": result.modified_count}
+
+
+# ─── PATIENT: web push subscriptions ───────────────────────────────
+
+@router.get("/patient/push/vapid-public-key")
+async def get_vapid_public_key():
+    """Public — the browser needs this (as a Uint8Array applicationServerKey)
+    to call PushManager.subscribe() before any patient identity exists yet
+    for the request. Empty string when push isn't configured (see
+    config.VAPID_PUBLIC_KEY); the frontend treats that as "push unavailable"
+    and doesn't offer the opt-in."""
+    return {"public_key": VAPID_PUBLIC_KEY, "enabled": push_enabled()}
+
+
+@router.post("/patient/push/subscribe")
+async def subscribe_push(body: PushSubscriptionCreate, patient=Depends(get_current_patient)):
+    """Upsert by endpoint — a browser calling subscribe() again (e.g. after
+    the keys were never persisted, or on another device) must not create a
+    duplicate row for the same endpoint."""
+    existing = await db.push_subscriptions.find_one(
+        {"endpoint": body.endpoint}, {"_id": 0, "id": 1},
+    )
+    if existing:
+        await db.push_subscriptions.update_one(
+            {"endpoint": body.endpoint},
+            {"$set": {
+                "patient_id": patient["id"],
+                "keys": body.keys.model_dump(),
+                "updated_at": _now(),
+            }},
+        )
+        return {"success": True}
+    await db.push_subscriptions.insert_one({
+        "id": str(uuid.uuid4()),
+        "patient_id": patient["id"],
+        "endpoint": body.endpoint,
+        "keys": body.keys.model_dump(),
+        "created_at": _now(),
+    })
+    return {"success": True}
+
+
+@router.post("/patient/push/unsubscribe")
+async def unsubscribe_push(body: PushSubscriptionDelete, patient=Depends(get_current_patient)):
+    await db.push_subscriptions.delete_one(
+        {"endpoint": body.endpoint, "patient_id": patient["id"]},
+    )
+    return {"success": True}
 
 
 @router.get("/patient/community/mine")

@@ -4,7 +4,11 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { Search, Loader2 } from 'lucide-react'
 import { OtpLoginModal } from '@/components/OtpLoginModal'
 import { getMe, type PatientMe } from '@/lib/patientAuth'
-import { listQuestions, upvoteQuestion, type QuestionListItem, type QuestionListResponse } from '@/lib/community'
+import {
+  listQuestions, upvoteQuestion, toggleFollowQuestion,
+  type QuestionListItem, type QuestionListResponse,
+} from '@/lib/community'
+import { enablePushNotifications, pushSupported } from '@/lib/push'
 import { QuestionCard } from './QuestionCard'
 
 const PAGE_SIZE = 12
@@ -18,6 +22,7 @@ export function QuestionFeed({ topic, initial }: { topic?: string; initial: Ques
   const [loadingMore, setLoadingMore] = useState(false)
   const [patient, setPatient] = useState<PatientMe | null>(null)
   const [showLogin, setShowLogin] = useState(false)
+  const [pendingAction, setPendingAction] = useState<null | 'upvote' | 'follow'>(null)
   const [pendingId, setPendingId] = useState<string | null>(null)
 
   useEffect(() => { getMe().then(setPatient).catch(() => setPatient(null)) }, [])
@@ -71,14 +76,35 @@ export function QuestionFeed({ topic, initial }: { topic?: string; initial: Ques
   }
 
   const handleUpvote = (questionId: string) => {
-    if (!patient) { setPendingId(questionId); setShowLogin(true); return }
+    if (!patient) { setPendingAction('upvote'); setPendingId(questionId); setShowLogin(true); return }
     performUpvote(questionId)
+  }
+
+  const performFollow = async (questionId: string) => {
+    try {
+      const res = await toggleFollowQuestion(questionId)
+      setItems((prev) => prev.map((it) =>
+        it.id === questionId ? { ...it, is_following: res.following } : it,
+      ))
+      if (res.following && pushSupported()) {
+        enablePushNotifications().catch(() => {})
+      }
+    } catch {
+      /* transient — the button simply doesn't update */
+    }
+  }
+
+  const handleFollow = (questionId: string) => {
+    if (!patient) { setPendingAction('follow'); setPendingId(questionId); setShowLogin(true); return }
+    performFollow(questionId)
   }
 
   const onLoggedIn = (me: PatientMe) => {
     setPatient(me)
     setShowLogin(false)
-    if (pendingId) performUpvote(pendingId)
+    if (pendingId && pendingAction === 'upvote') performUpvote(pendingId)
+    if (pendingId && pendingAction === 'follow') performFollow(pendingId)
+    setPendingAction(null)
     setPendingId(null)
   }
 
@@ -102,7 +128,9 @@ export function QuestionFeed({ topic, initial }: { topic?: string; initial: Ques
         </div>
       ) : (
         <div className="taste-community-question-list space-y-3">
-          {items.map((q) => <QuestionCard key={q.id} q={q} onUpvote={handleUpvote} />)}
+          {items.map((q) => (
+            <QuestionCard key={q.id} q={q} onUpvote={handleUpvote} onFollow={handleFollow} />
+          ))}
         </div>
       )}
 
@@ -123,7 +151,7 @@ export function QuestionFeed({ topic, initial }: { topic?: string; initial: Ques
       <OtpLoginModal
         open={showLogin}
         onClose={() => setShowLogin(false)}
-        reason="за да гласуваш"
+        reason={pendingAction === 'follow' ? 'за да следиш темата' : 'за да гласуваш'}
         onSuccess={onLoggedIn}
       />
     </>

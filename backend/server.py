@@ -167,6 +167,12 @@ async def startup():
     await db.qa_question_photos.create_index("id", unique=True)
     await db.qa_question_photos.create_index([("question_id", 1), ("display_order", 1)])
     await db.qa_question_photos.create_index("patient_id")
+    # Thread-follow notifications — see community.py's _subscribe/_notify_followers.
+    await db.qa_subscriptions.create_index([("question_id", 1), ("patient_id", 1)], unique=True)
+    await db.qa_subscriptions.create_index("patient_id")
+    # Web push (VAPID) — see push.py.
+    await db.push_subscriptions.create_index("endpoint", unique=True)
+    await db.push_subscriptions.create_index("patient_id")
     # Wall of Recognition — gratitude stories are separate from reviews.
     await db.recognition_entries.create_index("id", unique=True)
     await db.recognition_entries.create_index([("status", 1), ("published_at", -1)])

@@ -1748,6 +1748,22 @@ class QaAnswerCreate(BaseModel):
     body: str = Field(min_length=10, max_length=3000)
 
 
+class PushSubscriptionKeys(BaseModel):
+    p256dh: str = Field(min_length=1, max_length=400)
+    auth: str = Field(min_length=1, max_length=200)
+
+
+class PushSubscriptionCreate(BaseModel):
+    """The PushSubscription object handed back by the browser's
+    PushManager.subscribe() — endpoint + the two encryption keys."""
+    endpoint: str = Field(min_length=1, max_length=2000)
+    keys: PushSubscriptionKeys
+
+
+class PushSubscriptionDelete(BaseModel):
+    endpoint: str = Field(min_length=1, max_length=2000)
+
+
 # ─── Multi-doctor booking system (Phase 1 — doctor roster) ─────────
 # A clinic-owned roster of doctors. Specialties reuse the same
 # treatment-category vocabulary as online orientation eligibility

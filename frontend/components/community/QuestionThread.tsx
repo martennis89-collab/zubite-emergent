@@ -15,14 +15,15 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ShieldCheck, Users, ThumbsUp, Loader2, Flag, Send } from 'lucide-react'
+import { ShieldCheck, Users, ThumbsUp, Loader2, Flag, Send, Bell, BellRing } from 'lucide-react'
 import { OtpLoginModal } from '@/components/OtpLoginModal'
 import { getMe, type PatientMe } from '@/lib/patientAuth'
 import {
   getQuestion, createPeerAnswer, upvoteAnswer, upvoteQuestion, reportAnswer,
-  questionPhotoUrl, type QuestionDetail, type Answer,
+  toggleFollowQuestion, questionPhotoUrl, type QuestionDetail, type Answer,
 } from '@/lib/community'
 import { timeAgo, initial } from '@/lib/communityDisplay'
+import { enablePushNotifications, pushSupported } from '@/lib/push'
 
 function AnswerCard({
   answer, tone, onUpvote, onReport,
@@ -94,7 +95,8 @@ export function QuestionThread({
   const [question, setQuestion] = useState<QuestionDetail>(initialQuestion)
   const [patient, setPatient] = useState<PatientMe | null>(null)
   const [showLogin, setShowLogin] = useState(false)
-  const [pendingAction, setPendingAction] = useState<null | 'answer' | 'upvote' | 'question-upvote'>(null)
+  const [pendingAction, setPendingAction] = useState<null | 'answer' | 'upvote' | 'question-upvote' | 'follow'>(null)
+  const [followBusy, setFollowBusy] = useState(false)
   const [pendingAnswerId, setPendingAnswerId] = useState<string | null>(null)
 
   const [draft, setDraft] = useState('')
@@ -107,7 +109,7 @@ export function QuestionThread({
     getMe().then(setPatient).catch(() => setPatient(null))
   }, [slug])
 
-  const requireLogin = (action: 'answer' | 'upvote' | 'question-upvote', answerId?: string) => {
+  const requireLogin = (action: 'answer' | 'upvote' | 'question-upvote' | 'follow', answerId?: string) => {
     setPendingAction(action)
     setPendingAnswerId(answerId ?? null)
     setShowLogin(true)
@@ -164,6 +166,31 @@ export function QuestionThread({
     }
   }
 
+  // Following prompts a browser push permission request right after — a
+  // direct continuation of the same click, which is what browsers expect
+  // before honoring Notification.requestPermission(). Skipped silently if
+  // the browser doesn't support push, push isn't configured server-side, or
+  // the patient declines — email notifications keep working either way.
+  const performFollow = async () => {
+    setFollowBusy(true)
+    try {
+      const res = await toggleFollowQuestion(question.id)
+      setQuestion((q) => ({ ...q, is_following: res.following }))
+      if (res.following && pushSupported()) {
+        enablePushNotifications().catch(() => {})
+      }
+    } catch {
+      /* transient — the button simply doesn't update */
+    } finally {
+      setFollowBusy(false)
+    }
+  }
+
+  const doFollow = () => {
+    if (!patient) return requireLogin('follow')
+    performFollow()
+  }
+
   const doUpvote = (answerId: string) => {
     if (!patient) return requireLogin('upvote', answerId)
     performUpvote(answerId)
@@ -191,6 +218,7 @@ export function QuestionThread({
     if (pendingAction === 'upvote' && pendingAnswerId) performUpvote(pendingAnswerId)
     if (pendingAction === 'question-upvote') performQuestionUpvote()
     if (pendingAction === 'answer') performSubmitAnswer()
+    if (pendingAction === 'follow') performFollow()
     setPendingAction(null)
     setPendingAnswerId(null)
   }
@@ -199,7 +227,11 @@ export function QuestionThread({
   const peers = question.answers.filter((a) => !a.is_expert)
 
   const loginReason =
-    pendingAction === 'upvote' || pendingAction === 'question-upvote' ? 'за да гласувате' : 'за да отговорите'
+    pendingAction === 'follow'
+      ? 'за да следите темата'
+      : pendingAction === 'upvote' || pendingAction === 'question-upvote'
+        ? 'за да гласувате'
+        : 'за да отговорите'
 
   return (
     <>
@@ -243,6 +275,24 @@ export function QuestionThread({
             }`}
           >
             <ThumbsUp className="h-3.5 w-3.5" /> И аз имам този въпрос{question.upvotes > 0 ? ` (${question.upvotes})` : ''}
+          </button>
+          <button
+            type="button"
+            onClick={doFollow}
+            disabled={followBusy}
+            aria-pressed={question.is_following}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition disabled:opacity-60 ${
+              question.is_following
+                ? 'bg-[#d0fae5] text-[#007956]'
+                : 'border border-[#e5e5e5] text-[#525252] hover:border-[#0a0a0a]'
+            }`}
+          >
+            {question.is_following ? (
+              <BellRing className="h-3.5 w-3.5" />
+            ) : (
+              <Bell className="h-3.5 w-3.5" />
+            )}
+            {question.is_following ? 'Следите темата' : 'Следи темата'}
           </button>
           {question.topic_related_path && (
             <Link href={question.topic_related_path} className="text-sm text-[#007956] hover:underline">

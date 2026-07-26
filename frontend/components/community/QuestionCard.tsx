@@ -1,14 +1,17 @@
 import Link from 'next/link'
-import { MessageCircle, ThumbsUp } from 'lucide-react'
+import { Bell, BellRing, MessageCircle, ThumbsUp } from 'lucide-react'
 import type { QuestionListItem } from '@/lib/community'
 import { timeAgo, initial } from '@/lib/communityDisplay'
 
 export function QuestionCard({
-  q, onUpvote,
+  q, onUpvote, onFollow,
 }: {
   q: QuestionListItem
   onUpvote: (questionId: string) => void
+  onFollow: (questionId: string) => void
 }) {
+  const hasActivity = q.last_answerer_display && q.answer_count > 0
+
   return (
     <article className="taste-community-question-card group">
       <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -34,6 +37,11 @@ export function QuestionCard({
           {initial(q.asker_display)}
         </div>
         <span className="truncate text-sm text-[#525252]">{q.asker_display}</span>
+        {hasActivity && q.last_activity_at && (
+          <span className="hidden truncate text-xs text-[#6b6b6b] sm:inline">
+            · последно отговори {q.last_answerer_display} · {timeAgo(q.last_activity_at)}
+          </span>
+        )}
 
         <div className="ml-auto flex items-center gap-3 text-sm text-[#6b6b6b]">
           <span className="inline-flex items-center gap-1">
@@ -49,6 +57,17 @@ export function QuestionCard({
             }`}
           >
             <ThumbsUp className="h-3.5 w-3.5" /> {q.upvotes > 0 ? q.upvotes : ''}
+          </button>
+          <button
+            type="button"
+            onClick={(e) => { e.preventDefault(); onFollow(q.id) }}
+            aria-label={`${q.is_following ? 'Спри да следиш' : 'Следи'}: ${q.title}`}
+            aria-pressed={q.is_following}
+            className={`inline-flex items-center gap-1 rounded-full px-2 py-1 transition ${
+              q.is_following ? 'bg-[#d0fae5] text-[#007956]' : 'hover:bg-[#f5f4f2]'
+            }`}
+          >
+            {q.is_following ? <BellRing className="h-3.5 w-3.5" /> : <Bell className="h-3.5 w-3.5" />}
           </button>
         </div>
       </div>
