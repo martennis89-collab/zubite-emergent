@@ -70,6 +70,7 @@ from typing import Any, Dict, List, Optional
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, UploadFile
+from pymongo.errors import DuplicateKeyError
 from starlette.concurrency import run_in_threadpool
 
 from auth import (
@@ -127,23 +128,30 @@ def _hash(value: str) -> str:
 
 
 async def _subscribe(question_id: str, patient_id: str, *, source: str) -> None:
-    """Idempotent: at most one subscription row per (question, patient).
-    Used both for the explicit Follow button (source="manual") and to
-    auto-subscribe an asker/answerer to their own thread (source="asker"/
-    "answerer") — see module docstring's notification design note above
-    _notify_followers."""
+    """Idempotent: at most one subscription row per (question, patient) —
+    enforced by a unique index (see server.py), since the find-then-insert
+    below isn't atomic. Used both for the explicit Follow button
+    (source="manual") and to auto-subscribe an asker/answerer to their own
+    thread (source="asker"/"answerer") — see module docstring's
+    notification design note above _notify_followers."""
     existing = await db.qa_subscriptions.find_one(
         {"question_id": question_id, "patient_id": patient_id}, {"_id": 0, "id": 1},
     )
     if existing:
         return
-    await db.qa_subscriptions.insert_one({
-        "id": str(uuid.uuid4()),
-        "question_id": question_id,
-        "patient_id": patient_id,
-        "source": source,
-        "created_at": _now(),
-    })
+    try:
+        await db.qa_subscriptions.insert_one({
+            "id": str(uuid.uuid4()),
+            "question_id": question_id,
+            "patient_id": patient_id,
+            "source": source,
+            "created_at": _now(),
+        })
+    except DuplicateKeyError:
+        # A concurrent request (e.g. a fast double-click on Follow) won
+        # the race and already inserted the same (question_id, patient_id)
+        # row — that's the idempotent outcome we want, not an error.
+        pass
 
 
 # Minimal Cyrillic→Latin transliteration for readable, ASCII slugs.
@@ -1050,27 +1058,26 @@ async def get_vapid_public_key():
 async def subscribe_push(body: PushSubscriptionCreate, patient=Depends(get_current_patient)):
     """Upsert by endpoint — a browser calling subscribe() again (e.g. after
     the keys were never persisted, or on another device) must not create a
-    duplicate row for the same endpoint."""
-    existing = await db.push_subscriptions.find_one(
-        {"endpoint": body.endpoint}, {"_id": 0, "id": 1},
-    )
-    if existing:
-        await db.push_subscriptions.update_one(
-            {"endpoint": body.endpoint},
-            {"$set": {
+    duplicate row for the same endpoint. Uses Mongo's own atomic upsert
+    (rather than a find-then-insert/update) so two near-simultaneous calls
+    for the same endpoint can't race past each other and trip the unique
+    index on `endpoint` (see server.py)."""
+    await db.push_subscriptions.update_one(
+        {"endpoint": body.endpoint},
+        {
+            "$set": {
                 "patient_id": patient["id"],
                 "keys": body.keys.model_dump(),
                 "updated_at": _now(),
-            }},
-        )
-        return {"success": True}
-    await db.push_subscriptions.insert_one({
-        "id": str(uuid.uuid4()),
-        "patient_id": patient["id"],
-        "endpoint": body.endpoint,
-        "keys": body.keys.model_dump(),
-        "created_at": _now(),
-    })
+            },
+            "$setOnInsert": {
+                "id": str(uuid.uuid4()),
+                "endpoint": body.endpoint,
+                "created_at": _now(),
+            },
+        },
+        upsert=True,
+    )
     return {"success": True}
 
 
