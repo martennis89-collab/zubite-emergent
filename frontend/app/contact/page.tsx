@@ -1,7 +1,8 @@
 import { Metadata } from 'next'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
-import { Mail, MapPin, Clock, Sparkles } from 'lucide-react'
+import { ContactForm } from '@/components/ContactForm'
+import { Mail, MapPin, Clock, Sparkles, Phone, MessageCircle } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: 'Контакти | Zubite.bg',
@@ -32,11 +33,8 @@ export default function ContactPage() {
             </p>
           </div>
 
-          {/* Contact channels — phone card intentionally hidden until a
-              real, verified Zubite.bg phone line is provided. The previous
-              "+359 888 123 456" was a placeholder; we don't ship dead tel:
-              links. Email + location remain as primary channels. */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6 mb-10">
+          {/* Contact channels — email, phone, Viber and location. */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 md:gap-6 mb-10">
             <a
               href="mailto:info@zubite.bg"
               className="group rounded-3xl bg-white/60 backdrop-blur-md ring-1 ring-white/70 shadow-[0_18px_40px_-22px_rgba(15,23,42,0.12)] hover:shadow-[0_28px_60px_-22px_rgba(13,148,136,0.25)] hover:ring-teal-200/60 transition-all duration-300 p-7 text-center"
@@ -48,6 +46,35 @@ export default function ContactPage() {
               <h2 className="font-medium text-slate-900 mb-1.5">Имейл</h2>
               <p className="text-sm text-slate-600 group-hover:text-teal-700 transition-colors">
                 info@zubite.bg
+              </p>
+            </a>
+
+            <a
+              href="tel:+359899807437"
+              className="group rounded-3xl bg-white/60 backdrop-blur-md ring-1 ring-white/70 shadow-[0_18px_40px_-22px_rgba(15,23,42,0.12)] hover:shadow-[0_28px_60px_-22px_rgba(13,148,136,0.25)] hover:ring-teal-200/60 transition-all duration-300 p-7 text-center"
+              data-testid="contact-phone-card"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-teal-50/80 ring-1 ring-teal-100 flex items-center justify-center mx-auto mb-4 group-hover:bg-teal-100 transition-colors">
+                <Phone className="w-5 h-5 text-teal-700" />
+              </div>
+              <h2 className="font-medium text-slate-900 mb-1.5">Телефон</h2>
+              <p className="text-sm text-slate-600 group-hover:text-teal-700 transition-colors">
+                +359 899 807 437
+              </p>
+            </a>
+
+            <a
+              href="viber://chat?number=%2B359895886528"
+              rel="noopener"
+              className="group rounded-3xl bg-white/60 backdrop-blur-md ring-1 ring-white/70 shadow-[0_18px_40px_-22px_rgba(15,23,42,0.12)] hover:shadow-[0_28px_60px_-22px_rgba(13,148,136,0.25)] hover:ring-teal-200/60 transition-all duration-300 p-7 text-center"
+              data-testid="contact-viber-card"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-teal-50/80 ring-1 ring-teal-100 flex items-center justify-center mx-auto mb-4 group-hover:bg-teal-100 transition-colors">
+                <MessageCircle className="w-5 h-5 text-teal-700" />
+              </div>
+              <h2 className="font-medium text-slate-900 mb-1.5">Viber</h2>
+              <p className="text-sm text-slate-600 group-hover:text-teal-700 transition-colors">
+                +359 895 886 528
               </p>
             </a>
 
@@ -86,6 +113,8 @@ export default function ContactPage() {
               </div>
             </div>
           </div>
+
+          <ContactForm />
         </div>
       </section>
 

@@ -647,6 +647,15 @@ class ClinicApplicationCreate(BaseModel):
     viber_phone: Optional[str] = Field(default=None, max_length=50)
 
 
+class ContactMessageCreate(BaseModel):
+    """Public contact-form submission (name, email, free-text message)."""
+    model_config = ConfigDict(extra="ignore")
+
+    name: str = Field(min_length=2, max_length=200)
+    email: EmailStr
+    message: str = Field(min_length=2, max_length=4000)
+
+
 class ClinicIntakeInviteCreate(BaseModel):
     """Admin-created private intake link.
 

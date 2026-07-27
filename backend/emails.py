@@ -821,3 +821,47 @@ async def send_care_pass_summary_email(
     except Exception as e:
         logging.error(f"send_care_pass_summary_email failed: {e}")
         return False
+
+
+async def send_contact_message_emails(message_data: dict) -> None:
+    """Fan out the two emails for a public contact-form submission:
+    an admin notification, plus a confirmation back to the sender.
+
+    Best-effort and isolated: each send is guarded and wrapped so a
+    failure (or a bad sender address) never bubbles up to the request.
+    User-supplied text is HTML-escaped via _h before insertion."""
+    name = _h(message_data.get("name"))
+    email = (message_data.get("email") or "").strip()
+    message_html = _h(message_data.get("message")).replace(chr(10), "<br>")
+
+    # 1. Admin notification
+    if ADMIN_EMAIL:
+        admin_html = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color:#0f172a;">Ново съобщение от контактната форма</h2>
+            <p><strong>Име:</strong> {name}</p>
+            <p><strong>Имейл:</strong> {_h(email)}</p>
+            <p><strong>Съобщение:</strong></p>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;color:#334155;">{message_html}</div>
+            <p style="color:#94a3b8;font-size:12px;margin-top:16px;">Отговори директно на {_h(email)}.</p>
+        </div>
+        """
+        try:
+            await _send_email(ADMIN_EMAIL, f"Ново съобщение от контактната форма: {name}", admin_html)
+        except Exception as e:
+            logging.error(f"contact admin notification failed: {e}")
+
+    # 2. Sender confirmation (isolated: a bad address must not fail the request)
+    if email:
+        confirm_html = f"""
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 540px; margin: 0 auto; padding: 32px 0;">
+            <h1 style="font-size:22px;color:#0f172a;margin-bottom:8px;">Получихме съобщението ти</h1>
+            <p style="color:#64748b;font-size:15px;line-height:1.6;">Здравей {name}, благодарим ти, че се свърза с Zubite.bg. Ще ти отговорим възможно най-скоро.</p>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin:20px 0;color:#334155;font-size:14px;">{message_html}</div>
+            <p style="color:#94a3b8;font-size:13px;line-height:1.5;">С уважение, Екипът на <a href="{_h(_admin_url(chr(47)))}" style="color:#0d9488;text-decoration:none;">Zubite.bg</a></p>
+        </div>
+        """
+        try:
+            await _send_email(email, "Получихме съобщението ти — Zubite.bg", confirm_html)
+        except Exception as e:
+            logging.error(f"contact confirmation to {email} failed: {e}")

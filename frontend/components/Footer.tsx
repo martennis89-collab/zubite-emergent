@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Facebook, Instagram, Mail } from 'lucide-react'
+import { Facebook, Instagram } from 'lucide-react'
 
 interface FooterProps {
   treatmentSlug?: string
@@ -36,10 +36,11 @@ const PLATFORM: FooterLink[] = [
   { label: 'Care Pass', href: '/care-pass' },
   { label: 'Zubite стандарт', href: '/clinic-standard' },
   { label: 'Журнал', href: '/blog' },
+  { label: 'Контакти', href: '/contact' },
 ]
 
 const FOR_CLINICS: FooterLink[] = [
-  { label: 'Стани партньор', href: '/for-clinics' },
+  { label: 'Работа с клиники', href: '/for-clinics' },
   { label: 'Клиничен вход', href: '/clinic' },
 ]
 
@@ -125,11 +126,6 @@ export function Footer({ treatmentSlug: _treatmentSlug }: FooterProps) {
                     </Link>
                   </li>
                 ))}
-                <li>
-                  <Link href="/contact" className="inline-flex items-center gap-1.5 text-[#525252] transition-colors duration-300 hover:text-[#B84900]">
-                    <Mail className="w-3.5 h-3.5" /> Контакти
-                  </Link>
-                </li>
               </ul>
             </div>
           </div>

@@ -12,7 +12,7 @@ from assessment_approaches import (
     matching_assessment_approaches,
 )
 from aligner_brands import public_aligner_brand_chips
-from schemas import Clinic, LeadCreate, LeadContactUpdate, Lead, RequestCallBody, RequestZubiteHelpBody, SaveCarePassEmailBody, UnlockResultBody, QuickChatLeadCreate, ClinicRecommendationPreferenceBody
+from schemas import Clinic, LeadCreate, LeadContactUpdate, Lead, RequestCallBody, RequestZubiteHelpBody, SaveCarePassEmailBody, UnlockResultBody, QuickChatLeadCreate, ClinicRecommendationPreferenceBody, ContactMessageCreate
 from auth import hash_password, get_current_patient, get_current_patient_optional
 from audit import audit_log
 from config import CITIES, HOME_TRUST_CONSULTATIONS_BASELINE, logger
@@ -24,6 +24,7 @@ from emails import (
     send_admin_selected_clinic_request_alert,
     send_admin_assisted_choice_request_alert,
     send_care_pass_summary_email,
+    send_contact_message_emails,
 )
 from rate_limit import rate_limit
 
@@ -2578,3 +2579,28 @@ async def seed(request: Request):
     )
 
     return {"message": "Seeded successfully"}
+
+
+@router.post("/contact-messages", dependencies=[Depends(rate_limit("contact_msg", 3, 600))])
+async def create_contact_message(payload: ContactMessageCreate):
+    """Public contact form: store the message, then notify admin + sender.
+
+    Mirrors create_clinic_application — persist first so nothing is lost if
+    email delivery is unavailable, then fan out best-effort notifications
+    (admin alert + sender confirmation) which never fail the request."""
+    doc = {
+        "id": str(uuid.uuid4()),
+        "name": payload.name,
+        "email": payload.email,
+        "message": payload.message,
+        "status": "new",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.contact_messages.insert_one(doc)
+
+    try:
+        await send_contact_message_emails(doc)
+    except Exception as e:
+        logger.error("contact-messages email fan-out failed: %s", e)
+
+    return {"status": "ok", "id": doc["id"]}

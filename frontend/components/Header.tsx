@@ -50,6 +50,12 @@ const NAV_ITEMS = [
     href: '/community',
     match: ['/community', '/ask', '/recognition'],
   },
+  {
+    id: 'clinics',
+    label: 'За клиники',
+    href: '/for-clinics',
+    match: ['/for-clinics', '/clinics'],
+  },
 ] as const
 
 export function Header({ home = false }: { home?: boolean }) {
