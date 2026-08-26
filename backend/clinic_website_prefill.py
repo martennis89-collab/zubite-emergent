@@ -233,8 +233,16 @@ async def draft_profile_from_site(site_text: str, *, website_url: str) -> Clinic
 
     client = anthropic.AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
     try:
+        # Sonnet, not Opus: this is bounded structured extraction + light
+        # copywriting from a few KB of site text, not open-ended reasoning
+        # — Sonnet 5 handles it well at roughly half Opus's per-token cost.
+        # Combined with the crawl's ~20k-char input cap, the follow prompt
+        # for max_tokens, and the rate limit on the endpoint that calls
+        # this (see clinics.py — 5 calls/hour/IP), a single admin spamming
+        # this feature nonstop still can't run up more than a few dollars
+        # a day; a normal onboarding pace costs cents.
         response = await client.messages.parse(
-            model="claude-opus-5",
+            model="claude-sonnet-5",
             max_tokens=4096,
             system=_SYSTEM_PROMPT,
             messages=[{

@@ -411,7 +411,10 @@ async def clinic_prefill_status(user: AdminUser = Depends(get_current_user)):
 
 @router.post(
     "/admin/clinic-applications/prefill-from-website",
-    dependencies=[Depends(rate_limit("admin_clinic_prefill", 10, 600))],
+    # Tight on purpose — this triggers a paid Anthropic API call. 5/hour/IP
+    # comfortably covers a real onboarding pace while capping worst-case
+    # spend if the button gets spammed (accidentally or otherwise).
+    dependencies=[Depends(rate_limit("admin_clinic_prefill", 5, 3600))],
 )
 async def prefill_clinic_application_from_website(
     body: ClinicWebsitePrefillRequest, user: AdminUser = Depends(get_current_user),
