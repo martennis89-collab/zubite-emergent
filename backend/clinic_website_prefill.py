@@ -16,6 +16,7 @@ founded_year, social/Google URLs) are asked for as plain extraction.
 """
 from __future__ import annotations
 
+import asyncio
 import ipaddress
 import logging
 import socket
@@ -157,7 +158,14 @@ async def crawl_clinic_site(website_url: str) -> tuple[str, List[str], List[str]
 
     Returns (combined_text, crawled_urls, warnings). Never raises for a
     single failed subpage — only the initial homepage fetch/validation
-    can abort the whole crawl."""
+    can abort the whole crawl.
+
+    Subpages are fetched concurrently, not one-by-one — sequentially, up to
+    _MAX_SUBPAGES pages at _FETCH_TIMEOUT each could take ~40s worst case
+    before the Claude call even starts, comfortably exceeding a typical
+    platform request-gateway timeout (a 502, not an application error, is
+    what that looks like from the browser). Concurrent fetch caps this
+    stage at roughly one timeout window instead of N."""
     _reject_unsafe_url(website_url)
 
     warnings: List[str] = []
@@ -178,17 +186,25 @@ async def crawl_clinic_site(website_url: str) -> tuple[str, List[str], List[str]
         crawled.append(website_url)
         blocks.append(f"=== {website_url} (начало) ===\n{_html_to_text(home_html)}")
 
-        for sub_url in _discover_subpage_urls(website_url, home_html):
-            if sum(len(b) for b in blocks) >= _MAX_TOTAL_CHARS:
-                break
+        subpage_urls = _discover_subpage_urls(website_url, home_html)
+
+        async def _fetch_subpage(sub_url: str) -> tuple[str, Optional[str], Optional[str]]:
             try:
                 resp = await client.get(sub_url)
                 resp.raise_for_status()
+                return sub_url, resp.text, None
             except Exception as e:
-                warnings.append(f"Пропусната страница {sub_url}: {e}")
+                return sub_url, None, str(e)
+
+        results = await asyncio.gather(*[_fetch_subpage(u) for u in subpage_urls])
+        for sub_url, html, err in results:
+            if err is not None:
+                warnings.append(f"Пропусната страница {sub_url}: {err}")
+                continue
+            if sum(len(b) for b in blocks) >= _MAX_TOTAL_CHARS:
                 continue
             crawled.append(sub_url)
-            blocks.append(f"=== {sub_url} ===\n{_html_to_text(resp.text)}")
+            blocks.append(f"=== {sub_url} ===\n{_html_to_text(html)}")
 
     combined = "\n\n".join(blocks)[:_MAX_TOTAL_CHARS]
     if len(combined) < 200:
