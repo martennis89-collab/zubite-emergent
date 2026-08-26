@@ -61,45 +61,45 @@ def prefill_enabled() -> bool:
 
 
 class ClinicWebsitePrefillDraft(BaseModel):
-    """Subset of ClinicApplicationCreate that a website crawl + AI pass can
-    plausibly populate. Everything stays optional except clinic_name —
-    an admin fills in whatever the crawl/model couldn't find before
-    submitting for real."""
-    clinic_name: str = Field(max_length=200)
+    # No class docstring, no per-field `description=`/`max_length=` — Claude's
+    # structured outputs rejected an earlier, more heavily annotated version
+    # of this model with "Schema is too complex" (a real, distinct API error
+    # from the union-type-count limit fixed earlier). Real length limits are
+    # still enforced where it actually matters: at submission time, when this
+    # draft's fields flow into ClinicApplicationCreate. This model's only job
+    # is extraction; keep its schema as flat and unadorned as possible.
+    #
     # Plain (non-Optional) string fields with an empty-string "not found"
-    # sentinel, rather than Optional[str] = None — Claude's structured
-    # outputs cap a schema at 16 nullable/union-typed parameters, and an
-    # earlier version of this model (18 Optional[str] fields) tripped that
-    # limit with a 400. founded_year is the one field that keeps Optional
-    # (0 is a bad "not found" sentinel for a year); everything else uses
-    # "" instead, which the frontend already treats identically to null.
-    city: str = Field(default="", max_length=100)
-    address: str = Field(default="", max_length=500)
-    contact_name: str = Field(default="", max_length=200)
-    phone: str = Field(default="", max_length=50)
-    email: str = Field(default="", max_length=200)
+    # sentinel, rather than Optional[str] = None — a schema with too many
+    # nullable/union-typed parameters (>16) is the other limit already hit
+    # once. founded_year is the one field that keeps Optional (0 is a bad
+    # "not found" sentinel for a year); the frontend already treats ""
+    # and null identically via `|| ''` fallbacks.
+    clinic_name: str
+    city: str = ""
+    address: str = ""
+    contact_name: str = ""
+    phone: str = ""
+    email: str = ""
     offers_aligners: bool = False
     offers_braces: bool = False
     offers_implants: bool = False
     treats_adults: bool = False
     treats_children: bool = False
     treatments_supported: List[str] = Field(default_factory=list)
-    short_description: str = Field(default="", max_length=500)
-    patient_intro: str = Field(default="", max_length=500)
+    short_description: str = ""
+    patient_intro: str = ""
     founded_year: Optional[int] = None
-    doctor_spotlight_name: str = Field(default="", max_length=200)
-    doctor_spotlight_role: str = Field(default="", max_length=200)
-    doctor_spotlight_bio: str = Field(default="", max_length=1000)
-    team_note: str = Field(default="", max_length=500)
-    clinic_story: str = Field(default="", max_length=1500)
-    environment_description: str = Field(default="", max_length=1000)
-    consultation_process: str = Field(default="", max_length=1000)
-    google_url: str = Field(default="", max_length=500)
-    facebook_url: str = Field(default="", max_length=500)
-    review_notes: str = Field(
-        default="", max_length=1000,
-        description="What's missing, uncertain, or worth the admin double-checking.",
-    )
+    doctor_spotlight_name: str = ""
+    doctor_spotlight_role: str = ""
+    doctor_spotlight_bio: str = ""
+    team_note: str = ""
+    clinic_story: str = ""
+    environment_description: str = ""
+    consultation_process: str = ""
+    google_url: str = ""
+    facebook_url: str = ""
+    review_notes: str = ""
 
 
 def _reject_unsafe_url(url: str) -> None:
@@ -278,4 +278,29 @@ async def draft_profile_from_site(site_text: str, *, website_url: str) -> Clinic
     draft.treatments_supported = [
         t for t in draft.treatments_supported if t in TREATMENT_LABELS
     ]
+    _truncate_to_application_limits(draft)
     return draft
+
+
+# Mirrors the max_length on the corresponding ClinicApplicationCreate
+# fields (schemas.py) — the draft schema itself carries no length
+# constraints (see the model's comment), so this is where they're
+# actually enforced, before the draft ever reaches an admin's edit form.
+# Without this, a slightly-too-long AI-generated field would sail through
+# the draft step and only fail as a cryptic validation error at final
+# submission.
+_APPLICATION_FIELD_LIMITS = {
+    "clinic_name": 200, "city": 100, "address": 500, "contact_name": 200,
+    "phone": 50, "email": 200, "short_description": 500, "patient_intro": 500,
+    "doctor_spotlight_name": 200, "doctor_spotlight_role": 200,
+    "doctor_spotlight_bio": 1000, "team_note": 500, "clinic_story": 1500,
+    "environment_description": 1000, "consultation_process": 1000,
+    "google_url": 500, "facebook_url": 500,
+}
+
+
+def _truncate_to_application_limits(draft: ClinicWebsitePrefillDraft) -> None:
+    for field, limit in _APPLICATION_FIELD_LIMITS.items():
+        value = getattr(draft, field)
+        if isinstance(value, str) and len(value) > limit:
+            setattr(draft, field, value[:limit])
