@@ -65,31 +65,38 @@ class ClinicWebsitePrefillDraft(BaseModel):
     an admin fills in whatever the crawl/model couldn't find before
     submitting for real."""
     clinic_name: str = Field(max_length=200)
-    city: Optional[str] = Field(default=None, max_length=100)
-    address: Optional[str] = Field(default=None, max_length=500)
-    contact_name: Optional[str] = Field(default=None, max_length=200)
-    phone: Optional[str] = Field(default=None, max_length=50)
-    email: Optional[str] = Field(default=None, max_length=200)
+    # Plain (non-Optional) string fields with an empty-string "not found"
+    # sentinel, rather than Optional[str] = None — Claude's structured
+    # outputs cap a schema at 16 nullable/union-typed parameters, and an
+    # earlier version of this model (18 Optional[str] fields) tripped that
+    # limit with a 400. founded_year is the one field that keeps Optional
+    # (0 is a bad "not found" sentinel for a year); everything else uses
+    # "" instead, which the frontend already treats identically to null.
+    city: str = Field(default="", max_length=100)
+    address: str = Field(default="", max_length=500)
+    contact_name: str = Field(default="", max_length=200)
+    phone: str = Field(default="", max_length=50)
+    email: str = Field(default="", max_length=200)
     offers_aligners: bool = False
     offers_braces: bool = False
     offers_implants: bool = False
     treats_adults: bool = False
     treats_children: bool = False
     treatments_supported: List[str] = Field(default_factory=list)
-    short_description: Optional[str] = Field(default=None, max_length=500)
-    patient_intro: Optional[str] = Field(default=None, max_length=500)
+    short_description: str = Field(default="", max_length=500)
+    patient_intro: str = Field(default="", max_length=500)
     founded_year: Optional[int] = None
-    doctor_spotlight_name: Optional[str] = Field(default=None, max_length=200)
-    doctor_spotlight_role: Optional[str] = Field(default=None, max_length=200)
-    doctor_spotlight_bio: Optional[str] = Field(default=None, max_length=1000)
-    team_note: Optional[str] = Field(default=None, max_length=500)
-    clinic_story: Optional[str] = Field(default=None, max_length=1500)
-    environment_description: Optional[str] = Field(default=None, max_length=1000)
-    consultation_process: Optional[str] = Field(default=None, max_length=1000)
-    google_url: Optional[str] = Field(default=None, max_length=500)
-    facebook_url: Optional[str] = Field(default=None, max_length=500)
-    review_notes: Optional[str] = Field(
-        default=None, max_length=1000,
+    doctor_spotlight_name: str = Field(default="", max_length=200)
+    doctor_spotlight_role: str = Field(default="", max_length=200)
+    doctor_spotlight_bio: str = Field(default="", max_length=1000)
+    team_note: str = Field(default="", max_length=500)
+    clinic_story: str = Field(default="", max_length=1500)
+    environment_description: str = Field(default="", max_length=1000)
+    consultation_process: str = Field(default="", max_length=1000)
+    google_url: str = Field(default="", max_length=500)
+    facebook_url: str = Field(default="", max_length=500)
+    review_notes: str = Field(
+        default="", max_length=1000,
         description="What's missing, uncertain, or worth the admin double-checking.",
     )
 
@@ -199,7 +206,8 @@ _SYSTEM_PROMPT = f"""Ти помагаш на администратор на Zu
 1. ФАКТИЧЕСКИ полета (clinic_name, city, address, phone, email, founded_year,
    google_url, facebook_url, treatments_supported, offers_*, treats_*) —
    извличай точно това, което пише на сайта. Не измисляй факти, които не са
-   подкрепени от текста. Ако нещо липсва, остави полето празно (null).
+   подкрепени от текста. Ако нещо липсва, остави полето като празен низ ""
+   (или null само за founded_year, ако годината не е посочена никъде).
 2. treatments_supported — избирай САМО измежду тази точна затворена листа
    (използвай текста дословно, не превеждай/променяй): {', '.join(TREATMENT_LABELS)}.
 3. КОПИРАЙТИНГ полета (short_description, patient_intro, doctor_spotlight_bio,

@@ -382,30 +382,30 @@ const PREFILL_TREATMENT_LABELS = [
 
 interface WebsitePrefillDraft {
   clinic_name: string
-  city?: string | null
-  address?: string | null
-  contact_name?: string | null
-  phone?: string | null
-  email?: string | null
+  city: string
+  address: string
+  contact_name: string
+  phone: string
+  email: string
   offers_aligners: boolean
   offers_braces: boolean
   offers_implants: boolean
   treats_adults: boolean
   treats_children: boolean
   treatments_supported: string[]
-  short_description?: string | null
-  patient_intro?: string | null
+  short_description: string
+  patient_intro: string
   founded_year?: number | null
-  doctor_spotlight_name?: string | null
-  doctor_spotlight_role?: string | null
-  doctor_spotlight_bio?: string | null
-  team_note?: string | null
-  clinic_story?: string | null
-  environment_description?: string | null
-  consultation_process?: string | null
-  google_url?: string | null
-  facebook_url?: string | null
-  review_notes?: string | null
+  doctor_spotlight_name: string
+  doctor_spotlight_role: string
+  doctor_spotlight_bio: string
+  team_note: string
+  clinic_story: string
+  environment_description: string
+  consultation_process: string
+  google_url: string
+  facebook_url: string
+  review_notes: string
 }
 
 function WebsitePrefillPanel({ onSubmitted }: { onSubmitted: () => Promise<void> }) {
