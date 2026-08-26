@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import ipaddress
+import json
 import logging
 import socket
 from typing import Any, List, Optional
@@ -212,6 +213,34 @@ async def crawl_clinic_site(website_url: str) -> tuple[str, List[str], List[str]
     return combined, crawled, warnings
 
 
+_JSON_SHAPE = """{
+  "clinic_name": "",
+  "city": "",
+  "address": "",
+  "contact_name": "",
+  "phone": "",
+  "email": "",
+  "offers_aligners": false,
+  "offers_braces": false,
+  "offers_implants": false,
+  "treats_adults": false,
+  "treats_children": false,
+  "treatments_supported": [],
+  "short_description": "",
+  "patient_intro": "",
+  "founded_year": null,
+  "doctor_spotlight_name": "",
+  "doctor_spotlight_role": "",
+  "doctor_spotlight_bio": "",
+  "team_note": "",
+  "clinic_story": "",
+  "environment_description": "",
+  "consultation_process": "",
+  "google_url": "",
+  "facebook_url": "",
+  "review_notes": ""
+}"""
+
 _SYSTEM_PROMPT = f"""Ти помагаш на администратор на Zubite.bg (българска платформа,
 свързваща пациенти с дентални клиники) да подготви кандидатура за партньорство
 на клиника, като извлечеш информация от нейния собствен уебсайт.
@@ -240,7 +269,12 @@ _SYSTEM_PROMPT = f"""Ти помагаш на администратор на Zu
    несигурно, или какво администраторът трябва да провери ръчно преди да
    изпрати кандидатурата (напр. "Не открих година на основаване.",
    "Телефонният номер на сайта изглежда остарял — провери.").
-"""
+
+Отговори САМО с валиден JSON обект в точно тази форма (същите ключове,
+същия ред, никакви допълнителни ключове) — без markdown code fences (```),
+без обяснения преди или след него, само самият JSON:
+
+{_JSON_SHAPE}"""
 
 
 async def draft_profile_from_site(site_text: str, *, website_url: str) -> ClinicWebsitePrefillDraft:
@@ -257,7 +291,19 @@ async def draft_profile_from_site(site_text: str, *, website_url: str) -> Clinic
         # this (see clinics.py — 5 calls/hour/IP), a single admin spamming
         # this feature nonstop still can't run up more than a few dollars
         # a day; a normal onboarding pace costs cents.
-        response = await client.messages.parse(
+        #
+        # Deliberately NOT using output_format/messages.parse() here —
+        # Anthropic's structured-outputs feature rejects this schema with
+        # "Schema is too complex" purely from having 25 properties (it
+        # fails in ~1-2s, before any generation even starts — a
+        # pre-flight schema-compilation check, not a per-field issue;
+        # already tried stripping every description/max_length and it
+        # made no difference). Plain generation with the exact JSON shape
+        # spelled out in the system prompt sidesteps that limit entirely,
+        # since the API then isn't constraining/validating the output
+        # against any schema at all — we parse and validate it ourselves
+        # below instead.
+        response = await client.messages.create(
             model="claude-sonnet-5",
             max_tokens=4096,
             system=_SYSTEM_PROMPT,
@@ -268,18 +314,43 @@ async def draft_profile_from_site(site_text: str, *, website_url: str) -> Clinic
                     f"Извлечено съдържание:\n\n{site_text}"
                 ),
             }],
-            output_format=ClinicWebsitePrefillDraft,
         )
     except anthropic.APIError as e:
         logging.error(f"Clinic website prefill: Anthropic API error: {e}")
         raise ValueError(f"Грешка при AI обработката: {e}")
 
-    draft = response.parsed_output
+    raw_text = next((b.text for b in response.content if b.type == "text"), "")
+    draft = _parse_draft_json(raw_text)
     draft.treatments_supported = [
         t for t in draft.treatments_supported if t in TREATMENT_LABELS
     ]
     _truncate_to_application_limits(draft)
     return draft
+
+
+def _parse_draft_json(raw_text: str) -> ClinicWebsitePrefillDraft:
+    """Claude was asked for bare JSON but models occasionally wrap it in a
+    ```json fence anyway — strip that defensively before parsing."""
+    text = raw_text.strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[1] if "\n" in text else text
+        if text.endswith("```"):
+            text = text[:-3]
+        text = text.strip()
+        if text.lower().startswith("json"):
+            text = text[4:].strip()
+
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as e:
+        logging.error(f"Clinic website prefill: model did not return valid JSON: {e}\nRaw: {raw_text[:500]}")
+        raise ValueError("AI отговорът не беше валиден JSON — опитайте отново.")
+
+    try:
+        return ClinicWebsitePrefillDraft(**data)
+    except Exception as e:
+        logging.error(f"Clinic website prefill: draft failed validation: {e}\nData: {data}")
+        raise ValueError(f"AI отговорът не съответстваше на очаквания формат: {e}")
 
 
 # Mirrors the max_length on the corresponding ClinicApplicationCreate
