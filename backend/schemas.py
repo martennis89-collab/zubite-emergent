@@ -573,7 +573,9 @@ class ClinicApplicationCreate(BaseModel):
     ]] = None
     partnership_motivation: Optional[str] = Field(default=None, max_length=1000)
     contact_consent: bool = False
-    source: Optional[Literal["public_partner_interest", "private_intake"]] = None
+    source: Optional[Literal[
+        "public_partner_interest", "private_intake", "admin_ai_prefill", "admin_manual",
+    ]] = None
 
     # Services and patient fit
     offers_aligners: bool = False
@@ -645,6 +647,12 @@ class ClinicApplicationCreate(BaseModel):
     wants_online_booking: Optional[bool] = None
     wants_viber_contact: Optional[bool] = None
     viber_phone: Optional[str] = Field(default=None, max_length=50)
+
+
+class ClinicWebsitePrefillRequest(BaseModel):
+    """Admin-only: crawl this clinic website and draft an application from
+    it. See backend/clinic_website_prefill.py."""
+    website_url: str = Field(min_length=4, max_length=500)
 
 
 class ContactMessageCreate(BaseModel):

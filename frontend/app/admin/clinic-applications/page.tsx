@@ -8,7 +8,7 @@ import {
   CheckCircle, XCircle, X, Clock, Search, ChevronLeft,
   Globe, MapPin, Phone, Mail, Calendar, Shield, Target,
   MessageSquare, Save, ArrowLeft, KeyRound, Copy, Check,
-  Layers, BadgeCheck, Plus, Ban, ShieldCheck,
+  Layers, BadgeCheck, Plus, Ban, ShieldCheck, Sparkles, AlertTriangle,
 } from 'lucide-react'
 import { AdminHeader } from '@/components/admin/AdminHeader'
 
@@ -369,6 +369,348 @@ function IntakeInvitePanel({
           )
         })}
       </div>
+    </section>
+  )
+}
+
+// Mirrors TREATMENT_LABELS in backend/clinic_website_prefill.py exactly —
+// same duplicated-constant convention as SOFIA_DISTRICTS_ADMIN above.
+const PREFILL_TREATMENT_LABELS = [
+  'Обща стоматология', 'Ортодонтия', 'Имплантология', 'Естетична стоматология',
+  'Детска стоматология', 'Орална хирургия', 'Пародонтология', 'Ендодонтия',
+]
+
+interface WebsitePrefillDraft {
+  clinic_name: string
+  city?: string | null
+  address?: string | null
+  contact_name?: string | null
+  phone?: string | null
+  email?: string | null
+  offers_aligners: boolean
+  offers_braces: boolean
+  offers_implants: boolean
+  treats_adults: boolean
+  treats_children: boolean
+  treatments_supported: string[]
+  short_description?: string | null
+  patient_intro?: string | null
+  founded_year?: number | null
+  doctor_spotlight_name?: string | null
+  doctor_spotlight_role?: string | null
+  doctor_spotlight_bio?: string | null
+  team_note?: string | null
+  clinic_story?: string | null
+  environment_description?: string | null
+  consultation_process?: string | null
+  google_url?: string | null
+  facebook_url?: string | null
+  review_notes?: string | null
+}
+
+function WebsitePrefillPanel({ onSubmitted }: { onSubmitted: () => Promise<void> }) {
+  const [enabled, setEnabled] = useState<boolean | null>(null)
+  const [websiteUrl, setWebsiteUrl] = useState('')
+  const [crawling, setCrawling] = useState(false)
+  const [error, setError] = useState('')
+  const [draft, setDraft] = useState<WebsitePrefillDraft | null>(null)
+  const [crawledPages, setCrawledPages] = useState<string[]>([])
+  const [warnings, setWarnings] = useState<string[]>([])
+  const [submitting, setSubmitting] = useState(false)
+  const [submitOk, setSubmitOk] = useState(false)
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/admin/clinic-applications/prefill-status`, { credentials: 'include' as RequestCredentials })
+      .then((r) => (r.ok ? r.json() : { enabled: false }))
+      .then((d) => setEnabled(!!d.enabled))
+      .catch(() => setEnabled(false))
+  }, [])
+
+  const extract = async (event: React.FormEvent) => {
+    event.preventDefault()
+    setCrawling(true)
+    setError('')
+    setDraft(null)
+    setSubmitOk(false)
+    try {
+      const response = await fetch(`${API_URL}/api/admin/clinic-applications/prefill-from-website`, {
+        method: 'POST',
+        credentials: 'include' as RequestCredentials,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ website_url: websiteUrl }),
+      })
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}))
+        setError(body.detail || 'Извличането не бе успешно. Проверете адреса.')
+        return
+      }
+      const data = await response.json()
+      setDraft(data.draft)
+      setCrawledPages(data.crawled_pages || [])
+      setWarnings(data.warnings || [])
+    } catch {
+      setError('Възникна грешка при свързването със сайта.')
+    } finally {
+      setCrawling(false)
+    }
+  }
+
+  const updateDraft = (patch: Partial<WebsitePrefillDraft>) => {
+    setDraft((prev) => (prev ? { ...prev, ...patch } : prev))
+  }
+
+  const toggleTreatment = (label: string) => {
+    if (!draft) return
+    const has = draft.treatments_supported.includes(label)
+    updateDraft({
+      treatments_supported: has
+        ? draft.treatments_supported.filter((t) => t !== label)
+        : [...draft.treatments_supported, label],
+    })
+  }
+
+  const canSubmit = !!draft && !!draft.clinic_name && !!draft.city && !!draft.contact_name && !!draft.phone && !!draft.email
+
+  const submitApplication = async () => {
+    if (!draft || !canSubmit) return
+    setSubmitting(true)
+    setError('')
+    try {
+      const response = await fetch(`${API_URL}/api/admin/clinic-applications`, {
+        method: 'POST',
+        credentials: 'include' as RequestCredentials,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...draft,
+          website: websiteUrl,
+          contact_consent: true,
+          source: 'admin_ai_prefill',
+        }),
+      })
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}))
+        setError(body.detail || 'Кандидатурата не бе изпратена.')
+        return
+      }
+      setSubmitOk(true)
+      setDraft(null)
+      setWebsiteUrl('')
+      await onSubmitted()
+    } catch {
+      setError('Възникна грешка при изпращането.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (enabled === false) return null // AI prefill not configured — intake links remain the only path.
+
+  return (
+    <section className="mb-8 overflow-hidden rounded-xl bg-white ring-1 ring-slate-200" data-testid="website-prefill-panel">
+      <div className="border-b border-slate-100 px-5 py-5">
+        <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900">
+          <Sparkles className="h-4 w-4 text-teal-600" />
+          Попълни от уебсайт (AI)
+        </h2>
+        <p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate-500">
+          За клиники с вече съществуващ сайт: извлечете информацията автоматично, прегледайте/редактирайте я и я изпратете
+          като кандидатура. За клиники без сайт продължавайте да използвате intake линковете по-горе.
+        </p>
+      </div>
+
+      <form onSubmit={extract} className="flex flex-col gap-3 bg-slate-50/70 px-5 py-4 sm:flex-row">
+        <input
+          required
+          type="url"
+          value={websiteUrl}
+          onChange={(event) => setWebsiteUrl(event.target.value)}
+          placeholder="https://клиника.bg"
+          className="h-11 flex-1 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition-colors focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
+          data-testid="prefill-website-url"
+        />
+        <button
+          type="submit"
+          disabled={crawling || enabled === null}
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-teal-600 px-5 text-sm font-medium text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
+          data-testid="prefill-extract-btn"
+        >
+          {crawling ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          {crawling ? 'Извлича се…' : 'Извлечи от сайта'}
+        </button>
+      </form>
+      {crawling && (
+        <p className="px-5 pb-3 text-xs text-slate-400">Може да отнеме 15–30 секунди — сайтът се обхожда и AI подготвя чернова.</p>
+      )}
+
+      {error && <p className="px-5 py-3 text-sm text-rose-700" role="alert">{error}</p>}
+
+      {submitOk && (
+        <p className="mx-5 my-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800" data-testid="prefill-submit-success">
+          Кандидатурата е изпратена и се появи в таблицата по-долу.
+        </p>
+      )}
+
+      {draft && (
+        <div className="space-y-5 border-t border-slate-100 px-5 py-5" data-testid="prefill-draft-form">
+          {draft.review_notes && (
+            <div className="flex items-start gap-2 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>{draft.review_notes}</p>
+            </div>
+          )}
+          {crawledPages.length > 0 && (
+            <p className="text-xs text-slate-400">Прегледани страници: {crawledPages.join(', ')}</p>
+          )}
+          {warnings.length > 0 && (
+            <ul className="list-inside list-disc text-xs text-slate-400">
+              {warnings.map((w, i) => <li key={i}>{w}</li>)}
+            </ul>
+          )}
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="text-xs font-medium text-slate-600">
+              Име на клиниката *
+              <input required value={draft.clinic_name} onChange={(e) => updateDraft({ clinic_name: e.target.value })}
+                className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
+            </label>
+            <label className="text-xs font-medium text-slate-600">
+              Град *
+              <input required value={draft.city || ''} onChange={(e) => updateDraft({ city: e.target.value })}
+                className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
+            </label>
+            <label className="text-xs font-medium text-slate-600 sm:col-span-2">
+              Адрес
+              <input value={draft.address || ''} onChange={(e) => updateDraft({ address: e.target.value })}
+                className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
+            </label>
+            <label className="text-xs font-medium text-slate-600">
+              Лице за контакт *
+              <input required value={draft.contact_name || ''} onChange={(e) => updateDraft({ contact_name: e.target.value })}
+                className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
+            </label>
+            <label className="text-xs font-medium text-slate-600">
+              Телефон *
+              <input required value={draft.phone || ''} onChange={(e) => updateDraft({ phone: e.target.value })}
+                className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
+            </label>
+            <label className="text-xs font-medium text-slate-600 sm:col-span-2">
+              Имейл *
+              <input required type="email" value={draft.email || ''} onChange={(e) => updateDraft({ email: e.target.value })}
+                className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
+            </label>
+          </div>
+
+          <div>
+            <p className="mb-2 text-xs font-medium text-slate-600">Услуги</p>
+            <div className="flex flex-wrap gap-2">
+              {PREFILL_TREATMENT_LABELS.map((label) => {
+                const active = draft.treatments_supported.includes(label)
+                return (
+                  <button
+                    type="button"
+                    key={label}
+                    onClick={() => toggleTreatment(label)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                      active ? 'border-teal-500 bg-teal-50 text-teal-700' : 'border-slate-200 text-slate-500 hover:border-slate-300'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-3">
+            {[
+              { key: 'offers_aligners', label: 'Алайнери' },
+              { key: 'offers_braces', label: 'Брекети' },
+              { key: 'offers_implants', label: 'Импланти' },
+              { key: 'treats_adults', label: 'Възрастни' },
+              { key: 'treats_children', label: 'Деца' },
+            ].map(({ key, label }) => (
+              <label key={key} className="flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={!!draft[key as keyof WebsitePrefillDraft]}
+                  onChange={(e) => updateDraft({ [key]: e.target.checked } as Partial<WebsitePrefillDraft>)}
+                  className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+
+          {([
+            ['short_description', 'Кратко описание', 2],
+            ['patient_intro', 'Обръщение към пациента', 2],
+            ['clinic_story', 'История на клиниката', 3],
+            ['environment_description', 'Среда / оборудване', 3],
+            ['consultation_process', 'Процес на консултация', 3],
+            ['team_note', 'Бележка за екипа', 2],
+          ] as Array<[keyof WebsitePrefillDraft, string, number]>).map(([key, label, rows]) => (
+            <label key={key} className="block text-xs font-medium text-slate-600">
+              {label}
+              <textarea
+                rows={rows}
+                value={(draft[key] as string) || ''}
+                onChange={(e) => updateDraft({ [key]: e.target.value } as Partial<WebsitePrefillDraft>)}
+                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-teal-500"
+              />
+            </label>
+          ))}
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <label className="text-xs font-medium text-slate-600">
+              Година на основаване
+              <input type="number" value={draft.founded_year ?? ''} onChange={(e) => updateDraft({ founded_year: e.target.value ? Number(e.target.value) : null })}
+                className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
+            </label>
+            <label className="text-xs font-medium text-slate-600">
+              Име на лекар
+              <input value={draft.doctor_spotlight_name || ''} onChange={(e) => updateDraft({ doctor_spotlight_name: e.target.value })}
+                className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
+            </label>
+            <label className="text-xs font-medium text-slate-600">
+              Роля / титла
+              <input value={draft.doctor_spotlight_role || ''} onChange={(e) => updateDraft({ doctor_spotlight_role: e.target.value })}
+                className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
+            </label>
+          </div>
+          <label className="block text-xs font-medium text-slate-600">
+            Биография на лекаря
+            <textarea rows={2} value={draft.doctor_spotlight_bio || ''} onChange={(e) => updateDraft({ doctor_spotlight_bio: e.target.value })}
+              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-teal-500" />
+          </label>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="text-xs font-medium text-slate-600">
+              Google профил
+              <input value={draft.google_url || ''} onChange={(e) => updateDraft({ google_url: e.target.value })}
+                className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
+            </label>
+            <label className="text-xs font-medium text-slate-600">
+              Facebook страница
+              <input value={draft.facebook_url || ''} onChange={(e) => updateDraft({ facebook_url: e.target.value })}
+                className="mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-teal-500" />
+            </label>
+          </div>
+
+          <div className="flex items-center justify-between border-t border-slate-100 pt-4">
+            <p className="text-xs text-slate-400">{!canSubmit && 'Попълнете полетата, отбелязани с *, преди изпращане.'}</p>
+            <button
+              type="button"
+              disabled={!canSubmit || submitting}
+              onClick={submitApplication}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-slate-900 px-5 text-sm font-medium text-white transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+              data-testid="prefill-submit-btn"
+            >
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+              Изпрати като кандидатура
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   )
 }
@@ -850,6 +1192,7 @@ export default function ClinicApplicationsPage() {
         </div>
 
         <IntakeInvitePanel invites={intakeInvites} onChanged={fetchApplications} />
+        <WebsitePrefillPanel onSubmitted={fetchApplications} />
 
         {/* Stat Cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">

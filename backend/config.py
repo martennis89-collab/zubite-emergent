@@ -116,6 +116,11 @@ VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY', '')
 VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY', '')
 VAPID_CLAIM_EMAIL = os.environ.get('VAPID_CLAIM_EMAIL', 'info@zubite.bg')
 
+# Clinic onboarding: AI prefill from an existing clinic website (admin-only).
+# Optional even in production — unset just disables the "Попълни от уебсайт"
+# admin action; the manual intake-link flow it sits next to needs no key.
+ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
+
 # Public homepage counter. This starting value covers confirmed consultations
 # that predate the automated booking collections; live records supersede it.
 HOME_TRUST_CONSULTATIONS_BASELINE = max(

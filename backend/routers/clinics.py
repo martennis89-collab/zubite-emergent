@@ -9,7 +9,7 @@ import resend
 
 from database import db
 from schemas import (
-    ClinicApplicationCreate, ClinicIntakeInviteCreate,
+    ClinicApplicationCreate, ClinicIntakeInviteCreate, ClinicWebsitePrefillRequest,
     ClinicLogin, ClinicUserOut, ClinicTokenResponse,
     ClinicProfileUpdate, ClinicPasswordChange, ClinicLeadStatusUpdate, AdminUser
 )
@@ -29,6 +29,7 @@ from phone_utils import normalize_msisdn_bg
 from storage import put_object, ALLOWED_IMAGE_TYPES
 from routers.public import _is_clinic_visible
 from aligner_brands import ALIGNER_BRAND_LABELS
+from clinic_website_prefill import crawl_clinic_site, draft_profile_from_site, prefill_enabled
 
 router = APIRouter()
 
@@ -398,6 +399,92 @@ async def create_clinic_application(application: ClinicApplicationCreate):
 async def get_clinic_applications(user: AdminUser = Depends(get_current_user)):
     apps = await db.clinic_applications.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
     return {"applications": apps}
+
+
+@router.get("/admin/clinic-applications/prefill-status")
+async def clinic_prefill_status(user: AdminUser = Depends(get_current_user)):
+    """Whether the 'Попълни от уебсайт' AI-prefill action is available —
+    lets the admin UI hide/disable it cleanly when ANTHROPIC_API_KEY isn't
+    configured, instead of the button just failing on click."""
+    return {"enabled": prefill_enabled()}
+
+
+@router.post(
+    "/admin/clinic-applications/prefill-from-website",
+    dependencies=[Depends(rate_limit("admin_clinic_prefill", 10, 600))],
+)
+async def prefill_clinic_application_from_website(
+    body: ClinicWebsitePrefillRequest, user: AdminUser = Depends(get_current_user),
+):
+    """Crawl a clinic's own website and draft an application from it —
+    never persisted here. The admin reviews/edits the returned draft in
+    the UI, then calls POST /admin/clinic-applications to actually submit
+    it. Doctors with no website keep using the existing intake-link flow
+    (POST /admin/clinic-intake-invites) unaffected by any of this."""
+    if not prefill_enabled():
+        raise HTTPException(
+            status_code=503,
+            detail="AI попълването не е конфигурирано (липсва ANTHROPIC_API_KEY).",
+        )
+    website_url = body.website_url.strip()
+    if not website_url.startswith(("http://", "https://")):
+        website_url = f"https://{website_url}"
+
+    try:
+        site_text, crawled_pages, warnings = await crawl_clinic_site(website_url)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    try:
+        draft = await draft_profile_from_site(site_text, website_url=website_url)
+    except ValueError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+    await audit_log(
+        "clinic_application.ai_prefill_generated",
+        actor=user,
+        actor_type="admin",
+        target_type="clinic_application_draft",
+        metadata={"website_url": website_url, "crawled_pages": len(crawled_pages)},
+        severity="info",
+    )
+    return {
+        "draft": draft.model_dump(),
+        "crawled_pages": crawled_pages,
+        "warnings": warnings,
+    }
+
+
+@router.post("/admin/clinic-applications")
+async def admin_create_clinic_application(
+    application: ClinicApplicationCreate, request: Request, user: AdminUser = Depends(get_current_user),
+):
+    """Admin-authenticated counterpart to the public create endpoint above
+    — used once an admin has reviewed/edited an AI-drafted (or manually
+    typed) application and is ready to submit it into the normal
+    moderation queue. Not rate-limited like the public endpoint (admin is
+    already authenticated); tagged with source for provenance."""
+    doc = {
+        "id": str(uuid.uuid4()),
+        **application.model_dump(),
+        "status": "pending",
+        "notes": "",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    if not doc.get("source"):
+        doc["source"] = "admin_manual"
+    await db.clinic_applications.insert_one(doc)
+    await audit_log(
+        "clinic_application.created_by_admin",
+        actor=user,
+        actor_type="admin",
+        target_type="clinic_application",
+        target_id=doc["id"],
+        metadata={"clinic_name": application.clinic_name, "source": doc["source"]},
+        severity="info",
+        request=request,
+    )
+    return {"status": "ok", "id": doc["id"]}
 
 
 @router.patch("/admin/clinic-applications/{app_id}")
