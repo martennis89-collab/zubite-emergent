@@ -2,14 +2,16 @@ from fastapi import APIRouter, HTTPException, Depends, Request, Response
 from fastapi.responses import StreamingResponse
 from typing import Optional, List
 from datetime import datetime, timezone
+import asyncio
 import csv
 import os
+from decimal import Decimal, ROUND_HALF_UP
 from io import StringIO
 
 from database import db
 from schemas import (
     AdminLogin, AdminUser, TokenResponse, LeadStatusUpdate, LeadUpdate,
-    ConfirmationBody, CleanupLeadsBody,
+    ConfirmationBody, CleanupLeadsBody, ClinicIntegration, LeadRevenue,
     RESET_ANALYTICS_TOKEN, RESET_BLOG_VIEWS_TOKEN, CLEANUP_LEADS_TOKEN,
 )
 from auth import (
@@ -24,6 +26,7 @@ from config import (
 )
 from rate_limit import rate_limit
 from audit import audit_log, diff_fields
+from clear_advance import report_status, report_revenue, encrypt_api_key
 
 
 def _mask_username(value: str | None) -> str | None:
@@ -219,6 +222,114 @@ async def admin_lead(lead_id: str, user: AdminUser = Depends(get_current_user)):
     return lead
 
 
+@router.post("/admin/clinics/{clinic_id}/clear-advance")
+async def admin_connect_clear_advance(clinic_id: str, data: ClinicIntegration, request: Request,
+                                      user: AdminUser = Depends(get_current_user)):
+    """Connect one clinic to its own Clear Advance organisation.
+
+    Zubite serves many clinics; a Clear Advance API key identifies exactly one.
+    So the key belongs to the clinic, not to the deployment, and there is no
+    environment-wide default -- a shared key would eventually report one clinic's
+    patient into another clinic's ad account.
+
+    The key is encrypted before it is stored and is never returned by any
+    endpoint, including this one.
+    """
+    clinic = await db.clinics.find_one({"id": clinic_id}, {"_id": 0, "id": 1, "name": 1})
+    if not clinic:
+        raise HTTPException(status_code=404, detail="Clinic not found")
+
+    encrypted = encrypt_api_key(data.api_key)
+    if not encrypted:
+        raise HTTPException(status_code=503,
+                            detail="CLEAR_ADVANCE_KEY_SECRET is not configured")
+
+    hint = f"...{data.api_key[-4:]}"
+    now = datetime.now(timezone.utc).isoformat()
+    await db.clinic_integrations.update_one(
+        {"clinic_id": clinic_id, "provider": "clear_advance"},
+        {"$set": {"clinic_id": clinic_id, "provider": "clear_advance",
+                  "api_key": encrypted, "key_hint": hint, "updated_at": now},
+         # Set once and never touched again -- this is the line the background
+         # sweep draws between "leads this clinic had before us", which are not
+         # ours to report, and everything after. Rotating the key must not move
+         # it, or a rotation would silently re-scope the backlog.
+         "$setOnInsert": {"connected_at": now}},
+        upsert=True,
+    )
+    # Audit the connection, never the key. `key_hint` is the last four
+    # characters only -- enough to tell two keys apart when someone asks which
+    # one is installed, useless to anyone who obtains the audit log.
+    await audit_log(
+        "clinic.clear_advance_connected",
+        actor=user,
+        actor_type="admin",
+        target_type="clinic",
+        target_id=clinic_id,
+        metadata={"key_hint": hint},
+        severity="warning",
+        request=request,
+    )
+    return {"ok": True, "clinic_id": clinic_id, "connected": True, "key_hint": hint}
+
+
+@router.get("/admin/clinics/{clinic_id}/clear-advance")
+async def admin_clear_advance_status(clinic_id: str,
+                                     user: AdminUser = Depends(get_current_user)):
+    """Whether a clinic is connected, and enough of the key to tell which one."""
+    record = await db.clinic_integrations.find_one(
+        {"clinic_id": clinic_id, "provider": "clear_advance"},
+        {"_id": 0, "key_hint": 1, "updated_at": 1, "connected_at": 1})
+    return {"connected": bool(record), **(record or {})}
+
+
+@router.post("/admin/leads/{lead_id}/revenue")
+async def admin_record_revenue(lead_id: str, data: LeadRevenue, request: Request,
+                               user: AdminUser = Depends(get_current_user)):
+    """Record what a patient paid, and report it as a conversion.
+
+    This is the fact the whole tracking chain exists to deliver: an attended
+    appointment says the marketing worked, but only the money says how well.
+
+    Stored as a list rather than a single field because a treatment plan can be
+    paid in stages, and overwriting would silently discard the earlier payment.
+    """
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    exponent = 0 if data.currency.upper() in ("JPY", "ISK") else 2
+    minor = int((Decimal(str(data.amount)) * (10 ** exponent)).quantize(
+        Decimal("1"), rounding=ROUND_HALF_UP))
+
+    entry = {
+        "reference": data.reference,
+        "amount_minor": minor,
+        "currency": data.currency.upper(),
+        "recorded_at": datetime.now(timezone.utc).isoformat(),
+    }
+    # The same reference twice is the same payment, not a second one.
+    existing = [r for r in (lead.get("revenue") or []) if r.get("reference") == data.reference]
+    if not existing:
+        await db.leads.update_one({"id": lead_id}, {"$push": {"revenue": entry}})
+        await audit_log(
+            "lead.revenue_recorded",
+            actor=user,
+            actor_type="admin",
+            target_type="lead",
+            target_id=lead_id,
+            metadata={"amount_minor": minor, "currency": data.currency.upper()},
+            severity="info",
+            request=request,
+        )
+
+    asyncio.create_task(
+        report_revenue(db, lead, minor, data.currency.upper(), data.reference))
+
+    return {"ok": True, "amount_minor": minor, "currency": data.currency.upper(),
+            "deduplicated": bool(existing)}
+
+
 @router.patch("/admin/leads/{lead_id}")
 async def admin_update_lead(lead_id: str, data: LeadStatusUpdate, request: Request, user: AdminUser = Depends(get_current_user)):
     update_dict = {k: v for k, v in data.model_dump().items() if v is not None}
@@ -253,6 +364,10 @@ async def admin_update_lead(lead_id: str, data: LeadStatusUpdate, request: Reque
                 severity="info",
                 request=request,
             )
+            # Fire-and-forget: Clear Advance being slow or down must never make
+            # a receptionist's status change fail or hang. A lead with no
+            # assigned clinic is reported to nobody -- see clear_advance.py.
+            asyncio.create_task(report_status(db, lead, update_dict["status"]))
         # Audit notes change with length-only metadata; NEVER store note bodies.
         if "notes" in update_dict:
             old_len = len(before.get("notes") or "") if isinstance(before.get("notes"), str) else 0
@@ -395,6 +510,10 @@ async def update_lead(lead_id: str, update: LeadUpdate, request: Request, user: 
                 severity="info",
                 request=request,
             )
+            # Fire-and-forget: Clear Advance being slow or down must never make
+            # a receptionist's status change fail or hang. A lead with no
+            # assigned clinic is reported to nobody -- see clear_advance.py.
+            asyncio.create_task(report_status(db, updated, update_data["status"]))
 
     return updated
 

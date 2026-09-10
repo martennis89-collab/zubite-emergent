@@ -1870,3 +1870,30 @@ class DoctorAssignmentBody(BaseModel):
     `doctor_id=None` clears the assignment."""
     model_config = ConfigDict(extra="ignore")
     doctor_id: Optional[str] = None
+
+
+# ─── Clear Advance ────────────────────────────────────────
+
+class ClinicIntegration(BaseModel):
+    """A clinic's own Clear Advance API key.
+
+    Write-only by design: it is encrypted on arrival and no endpoint returns it.
+    """
+    api_key: str = Field(min_length=8, max_length=200, pattern=r"^ca_sk_[A-Za-z0-9_-]+$")
+
+
+class LeadRevenue(BaseModel):
+    """Money a patient has actually agreed or paid.
+
+    `amount` is major units because that is what a receptionist types; it is
+    converted to minor units exactly, via Decimal, before it travels anywhere.
+    Money never touches a float: 1899.99 must not become 1899.9899999 on the way
+    to an ad platform that will bid on it.
+
+    `reference` identifies the payment, not the patient. It is the idempotency
+    key, so it must be stable across retries -- an invoice number, never a
+    timestamp -- and two genuine payments must carry two different references.
+    """
+    amount: float = Field(gt=0, le=10_000_000)
+    currency: str = Field(default="EUR", min_length=3, max_length=3)
+    reference: str = Field(min_length=1, max_length=200)

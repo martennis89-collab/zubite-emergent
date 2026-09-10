@@ -49,6 +49,14 @@ services:
         value: "1"
       - key: RESEND_API_KEY
         sync: false
+      # Clear Advance. Both are set in the dashboard: the URL because it differs
+      # per environment, the secret because it decrypts every connected clinic's
+      # API key. Unset means clinics simply are not reported -- the same
+      # unconfigured-is-valid rule the email sender follows.
+      - key: CLEAR_ADVANCE_API_URL
+        sync: false
+      - key: CLEAR_ADVANCE_KEY_SECRET
+        sync: false
       - key: SENDER_EMAIL
         value: hello@zubite.bg
       - key: ZUBITE_ADMIN_NOTIFICATION_EMAIL
