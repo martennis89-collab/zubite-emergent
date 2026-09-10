@@ -102,12 +102,37 @@ def test_the_stored_key_is_not_readable_without_the_secret():
     assert "ca_sk_secretvalue" not in record["api_key"]
 
 
-def test_only_outcomes_meaningful_to_an_ad_platform_are_mapped():
-    assert clear_advance.STATUS_OUTCOMES["BOOKED"] == "appointment_booked"
-    assert clear_advance.STATUS_OUTCOMES["ATTENDED"] == "appointment_attended"
-    # Internal workflow states are deliberately absent.
-    for internal in ("NEW", "CONTACTED", "UNQUALIFIED"):
+def test_mapped_statuses_are_ones_zubite_can_actually_produce():
+    """The first version of this map keyed on statuses that do not exist.
+
+    LEAD_STATUS_ALLOWED is NEW / CONTACTED / SCHEDULED / COMPLETED / CANCELLED,
+    and the PATCH endpoint rejects anything else with a 422. A map keyed on
+    "BOOKED" and "ATTENDED" could therefore never match a real lead, so nothing
+    was ever reported and nothing ever failed loudly enough to notice.
+    """
+    allowed = {"NEW", "CONTACTED", "SCHEDULED", "COMPLETED", "CANCELLED"}
+    assert set(clear_advance.STATUS_OUTCOMES) <= allowed
+    assert clear_advance.STATUS_OUTCOMES["SCHEDULED"] == "appointment_booked"
+
+
+def test_completed_is_not_reported_as_attendance():
+    """"Завършен" closes a lead out, including after a no-show."""
+    assert "COMPLETED" not in clear_advance.STATUS_OUTCOMES
+    for internal in ("NEW", "CONTACTED", "CANCELLED"):
         assert internal not in clear_advance.STATUS_OUTCOMES
+
+
+def test_a_no_show_is_never_an_attendance():
+    """The reason attendance is taken from the consultation at all.
+
+    Reporting a no-show as attendance would teach Meta to buy more of exactly
+    the patients who never turn up.
+    """
+    assert clear_advance.CONSULTATION_OUTCOMES["mark_attended"] == "appointment_attended"
+    assert clear_advance.CONSULTATION_OUTCOMES["book_consultation"] == "appointment_booked"
+    assert "mark_no_show" not in clear_advance.CONSULTATION_OUTCOMES
+    for other in ("cancel", "patient_declined", "not_suitable", "no_answer"):
+        assert other not in clear_advance.CONSULTATION_OUTCOMES
 
 
 def test_revenue_refuses_an_unusable_amount():

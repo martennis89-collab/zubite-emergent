@@ -45,9 +45,24 @@ MAX_REPORT_ATTEMPTS = 5
 # Zubite's vocabulary is not Clear Advance's. Only the outcomes that mean
 # something to an ad platform are mapped; everything else is internal workflow
 # and is deliberately not reported.
+#
+# Lead status is the coarse signal an admin sets by hand. "SCHEDULED"
+# ("Записан") is unambiguous, so it is reported. "COMPLETED" ("Завършен") is
+# not: it closes a lead out, and a lead closed after a no-show would be
+# indistinguishable from one closed after a real visit. Attendance comes from
+# the consultation instead -- see CONSULTATION_OUTCOMES.
 STATUS_OUTCOMES = {
-    "BOOKED": "appointment_booked",
-    "ATTENDED": "appointment_attended",
+    "SCHEDULED": "appointment_booked",
+}
+
+# A consultation request is where the visit itself is recorded, by the clinic,
+# with `mark_attended` and `mark_no_show` as separate actions. That distinction
+# is the whole reason attendance is taken from here: reporting a no-show as an
+# attendance would teach Meta to buy more of exactly the patients who never
+# turn up. `mark_no_show` is absent on purpose and must stay absent.
+CONSULTATION_OUTCOMES = {
+    "book_consultation": "appointment_booked",
+    "mark_attended": "appointment_attended",
 }
 
 
@@ -188,17 +203,21 @@ async def _linked_id(db, lead: Dict[str, Any]) -> Optional[str]:
     return lead.get("clear_advance_lead_id") or await report_lead(db, lead)
 
 
-async def report_status(db, lead: Dict[str, Any], status: str) -> bool:
-    """Report a status that means something to an ad platform.
+async def report_outcome(db, lead: Dict[str, Any], outcome: str) -> bool:
+    """Report one outcome for one lead.
 
-    The source event id is the lead plus the status, so the same transition sent
-    twice -- a double click, a retried request, a reconciliation sweep -- lands on
-    one record instead of inventing a second appointment.
+    The source event id is the lead plus the outcome, deliberately not the
+    thing that triggered it. The same booking can arrive from two directions --
+    an admin setting the lead to "Записан" and the clinic booking the
+    consultation -- and keying on the trigger would report that one appointment
+    twice. Keying on the lead means whichever arrives first wins and the other
+    collapses into it, which also makes a double click, a retried request or a
+    reconciliation sweep free.
+
+    The cost is that a second, genuinely separate appointment for the same
+    patient is not reported. That is the right way round: under-reporting a
+    conversion is recoverable, inventing one is not.
     """
-    outcome = STATUS_OUTCOMES.get((status or "").upper())
-    if not outcome:
-        return False
-
     key = await _clinic_key(db, lead)
     if not key:
         return False
@@ -214,6 +233,31 @@ async def report_status(db, lead: Dict[str, Any], status: str) -> bool:
         "lead_reference": remote_id,
         "occurred_at": datetime.now(timezone.utc).isoformat(),
     }))
+
+
+async def report_status(db, lead: Dict[str, Any], status: str) -> bool:
+    """Report a lead status that means something to an ad platform."""
+    outcome = STATUS_OUTCOMES.get((status or "").upper())
+    return await report_outcome(db, lead, outcome) if outcome else False
+
+
+async def report_consultation_action(db, lead_id: str, action_type: str) -> bool:
+    """Report what the clinic recorded against a consultation.
+
+    Takes the lead id rather than the lead because the caller has a
+    consultation request, and the routing, the consent and the Clear Advance
+    reference all live on the lead it came from.
+    """
+    outcome = CONSULTATION_OUTCOMES.get(action_type)
+    if not outcome or not lead_id:
+        return False
+
+    lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        logger.warning("Clear Advance: consultation points at missing lead %s", lead_id)
+        return False
+
+    return await report_outcome(db, lead, outcome)
 
 
 async def report_revenue(db, lead: Dict[str, Any], amount_minor: int,
