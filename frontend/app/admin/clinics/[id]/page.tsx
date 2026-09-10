@@ -53,19 +53,19 @@ const EMPTY_CONTACT: ContactDetails = {
 }
 
 // PATCH /admin/clinics/{id} drops any field sent as `null` rather than
-// clearing it, so a cleared optional field is sent as an empty string, which
-// does reach the database. The two email fields are the exception: the backend
-// validates them as addresses, so an empty one is omitted entirely instead --
-// sending '' would fail the whole save with a validation error, taking the
-// unrelated profile edits down with it.
-function contactPatch(c: ContactDetails): Record<string, string> {
-  const patch: Record<string, string> = {
-    clinic_name: c.clinic_name.trim(),
-    city: c.city.trim(),
-    address: c.address.trim(),
-    phone: c.phone.trim(),
-    website: c.website.trim(),
-    contact_person: c.contact_person.trim(),
+// clearing it, so a field the admin cleared is sent as an empty string, which
+// does reach the database. A field that was empty before and still is gets
+// omitted instead: many clinics predate these fields entirely, and writing ''
+// onto them would invent data that was never entered.
+//
+// The two email fields never travel as '' -- the backend validates them as
+// addresses, so an empty one would fail the whole save and take the unrelated
+// profile edits down with it.
+function contactPatch(c: ContactDetails, original: ContactDetails): Record<string, string> {
+  const patch: Record<string, string> = {}
+  for (const key of CLEARABLE_CONTACT_FIELDS) {
+    const value = c[key].trim()
+    if (value || original[key].trim()) patch[key] = value
   }
   const email = c.email.trim()
   if (email) patch.email = email
@@ -74,16 +74,22 @@ function contactPatch(c: ContactDetails): Record<string, string> {
   return patch
 }
 
-// Only the fields whose absence breaks something. A blank name empties the
-// public listing, a blank city orphans the clinic from its city page, and a
-// blank email is the clinic's login. Phone is deliberately not required even
-// though creating a clinic demands one: some older clinics have none, and
-// insisting here would block every unrelated profile edit on those until
-// somebody found a number.
-function requiredContactFields(c: ContactDetails): string | null {
-  if (!c.clinic_name.trim()) return 'Име на клиниката'
-  if (!c.city.trim()) return 'Град'
-  if (!c.email.trim()) return 'Имейл'
+const CLEARABLE_CONTACT_FIELDS = [
+  'clinic_name', 'city', 'address', 'phone', 'website', 'contact_person',
+] as const
+
+// Guards deletion, not absence. Emptying a name empties the public listing,
+// emptying a city orphans the clinic from its city page, and emptying an email
+// removes the clinic's login -- so each is refused, but only when there was
+// something there to begin with.
+//
+// A field that arrived empty stays optional. Plenty of clinics predate these
+// fields, and demanding one here would block every unrelated profile edit on
+// those until somebody went and found the missing value.
+function clearedRequiredField(c: ContactDetails, original: ContactDetails): string | null {
+  if (original.clinic_name.trim() && !c.clinic_name.trim()) return 'Име на клиниката'
+  if (original.city.trim() && !c.city.trim()) return 'Град'
+  if (original.email.trim() && !c.email.trim()) return 'Имейл'
   return null
 }
 
@@ -320,6 +326,9 @@ export default function AdminClinicEditPage() {
   // Editable contact details, kept separate from `clinicName` so the page
   // heading keeps showing the saved name while the field is being typed in.
   const [contact, setContact] = useState<ContactDetails>(EMPTY_CONTACT)
+  // What the server last gave us, so a save can tell "left empty" apart from
+  // "emptied by the admin" -- the first is normal, the second destroys data.
+  const originalContact = useRef<ContactDetails>(EMPTY_CONTACT)
   const [district, setDistrict] = useState('')
 
   const [profile, setProfile] = useState<ClinicProfile>({ profile_status: 'draft' })
@@ -349,16 +358,18 @@ export default function AdminClinicEditPage() {
       const j = await r.json()
       const c = j.clinic || {}
       setClinicName(c.clinic_name || c.name || '—')
-      setContact({
+      const loadedContact: ContactDetails = {
         clinic_name: c.clinic_name || c.name || '',
-        city: c.city || '',
+        city: c.city || c.city_name || '',
         address: c.address || '',
         phone: c.phone || '',
         email: c.email || '',
         website: c.website || '',
         contact_person: c.contact_person || '',
         notification_email: c.notification_email || '',
-      })
+      }
+      setContact(loadedContact)
+      originalContact.current = loadedContact
       const rawTier = (
         c.base_package === 'growth_partner'
           ? (c.founding_status === 'strategic_private' ? 'premium' : 'featured')
@@ -447,15 +458,15 @@ export default function AdminClinicEditPage() {
     // string as a value to write: a cleared name would be saved as a clinic
     // called nothing, and a cleared email would silently keep the old one
     // because contactPatch() omits it.
-    const missing = requiredContactFields(contact)
-    if (missing) {
-      setMessage({ type: 'err', text: `Задължително поле: ${missing}.` })
+    const cleared = clearedRequiredField(contact, originalContact.current)
+    if (cleared) {
+      setMessage({ type: 'err', text: `Полето „${cleared}" не може да остане празно.` })
       return
     }
     setSaving(true); setMessage(null)
     try {
       const body = {
-        ...contactPatch(contact),
+        ...contactPatch(contact, originalContact.current),
         partner_tier: tier,
         ...(district ? { district_slug: district } : {}),
         aligner_brands_supported: brands.map((b) => ({
