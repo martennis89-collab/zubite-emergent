@@ -36,6 +36,57 @@ const SOFIA_DISTRICTS_ADMIN = [
   { value: 'poduyane', label: 'Подуяне' },
 ]
 
+interface ContactDetails {
+  clinic_name: string
+  city: string
+  address: string
+  phone: string
+  email: string
+  website: string
+  contact_person: string
+  notification_email: string
+}
+
+const EMPTY_CONTACT: ContactDetails = {
+  clinic_name: '', city: '', address: '', phone: '',
+  email: '', website: '', contact_person: '', notification_email: '',
+}
+
+// PATCH /admin/clinics/{id} drops any field sent as `null` rather than
+// clearing it, so a cleared optional field is sent as an empty string, which
+// does reach the database. The two email fields are the exception: the backend
+// validates them as addresses, so an empty one is omitted entirely instead --
+// sending '' would fail the whole save with a validation error, taking the
+// unrelated profile edits down with it.
+function contactPatch(c: ContactDetails): Record<string, string> {
+  const patch: Record<string, string> = {
+    clinic_name: c.clinic_name.trim(),
+    city: c.city.trim(),
+    address: c.address.trim(),
+    phone: c.phone.trim(),
+    website: c.website.trim(),
+    contact_person: c.contact_person.trim(),
+  }
+  const email = c.email.trim()
+  if (email) patch.email = email
+  const notify = c.notification_email.trim()
+  if (notify) patch.notification_email = notify
+  return patch
+}
+
+// Only the fields whose absence breaks something. A blank name empties the
+// public listing, a blank city orphans the clinic from its city page, and a
+// blank email is the clinic's login. Phone is deliberately not required even
+// though creating a clinic demands one: some older clinics have none, and
+// insisting here would block every unrelated profile edit on those until
+// somebody found a number.
+function requiredContactFields(c: ContactDetails): string | null {
+  if (!c.clinic_name.trim()) return 'Име на клиниката'
+  if (!c.city.trim()) return 'Град'
+  if (!c.email.trim()) return 'Имейл'
+  return null
+}
+
 type Tier = 'standard' | 'featured' | 'premium'
 type ProfileStatus = 'draft' | 'published'
 
@@ -266,6 +317,9 @@ export default function AdminClinicEditPage() {
   // Care Pass-specific downgrade warning. Boolean — no admin editing.
   const [carePassPartner, setCarePassPartner] = useState(false)
   const [clinicName, setClinicName] = useState('')
+  // Editable contact details, kept separate from `clinicName` so the page
+  // heading keeps showing the saved name while the field is being typed in.
+  const [contact, setContact] = useState<ContactDetails>(EMPTY_CONTACT)
   const [district, setDistrict] = useState('')
 
   const [profile, setProfile] = useState<ClinicProfile>({ profile_status: 'draft' })
@@ -295,6 +349,16 @@ export default function AdminClinicEditPage() {
       const j = await r.json()
       const c = j.clinic || {}
       setClinicName(c.clinic_name || c.name || '—')
+      setContact({
+        clinic_name: c.clinic_name || c.name || '',
+        city: c.city || '',
+        address: c.address || '',
+        phone: c.phone || '',
+        email: c.email || '',
+        website: c.website || '',
+        contact_person: c.contact_person || '',
+        notification_email: c.notification_email || '',
+      })
       const rawTier = (
         c.base_package === 'growth_partner'
           ? (c.founding_status === 'strategic_private' ? 'premium' : 'featured')
@@ -379,9 +443,19 @@ export default function AdminClinicEditPage() {
   useEffect(() => { if (clinicId) load() }, [clinicId, load])
 
   const save = async () => {
+    // Checked here rather than left to the backend, which treats an empty
+    // string as a value to write: a cleared name would be saved as a clinic
+    // called nothing, and a cleared email would silently keep the old one
+    // because contactPatch() omits it.
+    const missing = requiredContactFields(contact)
+    if (missing) {
+      setMessage({ type: 'err', text: `Задължително поле: ${missing}.` })
+      return
+    }
     setSaving(true); setMessage(null)
     try {
       const body = {
+        ...contactPatch(contact),
         partner_tier: tier,
         ...(district ? { district_slug: district } : {}),
         aligner_brands_supported: brands.map((b) => ({
@@ -514,7 +588,87 @@ export default function AdminClinicEditPage() {
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
-        {/* Section 0 — Локация */}
+        {/* Section 0 — Контакти и данни */}
+        <Section title="Контакти и данни" testid="section-contact">
+          <p className="text-xs text-slate-500 leading-relaxed mb-4">
+            Основните данни на клиниката. Досега те можеха да се въведат само
+            при създаването ѝ — грешка в името, имейла или телефона изискваше
+            намеса в базата.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="Име на клиниката">
+              <ContactInput
+                value={contact.clinic_name} maxLength={200}
+                onChange={(v) => setContact((s) => ({ ...s, clinic_name: v }))}
+                testid="clinic-name-input"
+              />
+            </Field>
+            <Field
+              label="Град"
+              hint="Промяната на града преизчислява и адреса на клиниката в публичния сайт."
+            >
+              <ContactInput
+                value={contact.city} maxLength={100}
+                onChange={(v) => setContact((s) => ({ ...s, city: v }))}
+                testid="clinic-city-input"
+              />
+            </Field>
+            <Field label="Телефон">
+              <ContactInput
+                value={contact.phone} maxLength={50} type="tel"
+                onChange={(v) => setContact((s) => ({ ...s, phone: v }))}
+                testid="clinic-phone-input"
+              />
+            </Field>
+            <Field
+              label="Имейл"
+              hint="Това е и потребителското име на клиниката за вход в портала. Промяната сменя начина, по който клиниката влиза."
+            >
+              <ContactInput
+                value={contact.email} maxLength={200} type="email"
+                onChange={(v) => setContact((s) => ({ ...s, email: v }))}
+                testid="clinic-email-input"
+              />
+            </Field>
+            <div className="sm:col-span-2">
+              <Field label="Адрес">
+                <ContactInput
+                  value={contact.address} maxLength={500}
+                  onChange={(v) => setContact((s) => ({ ...s, address: v }))}
+                  testid="clinic-address-input"
+                />
+              </Field>
+            </div>
+            <Field label="Уебсайт">
+              <ContactInput
+                value={contact.website} maxLength={500}
+                onChange={(v) => setContact((s) => ({ ...s, website: v }))}
+                testid="clinic-website-input"
+              />
+            </Field>
+            <Field label="Лице за контакт">
+              <ContactInput
+                value={contact.contact_person} maxLength={200}
+                onChange={(v) => setContact((s) => ({ ...s, contact_person: v }))}
+                testid="clinic-contact-person-input"
+              />
+            </Field>
+            <div className="sm:col-span-2">
+              <Field
+                label="Имейл за известия"
+                hint="Ако е празно, известията отиват на имейла за вход."
+              >
+                <ContactInput
+                  value={contact.notification_email} maxLength={200} type="email"
+                  onChange={(v) => setContact((s) => ({ ...s, notification_email: v }))}
+                  testid="clinic-notification-email-input"
+                />
+              </Field>
+            </div>
+          </div>
+        </Section>
+
+        {/* Section 0.5 — Локация */}
         <Section title="Локация" testid="section-location">
           <div className="max-w-xs">
             <Field label="Квартал (само за София)">
@@ -1287,6 +1441,24 @@ export default function AdminClinicEditPage() {
 }
 
 /* ──────────────── small primitives ──────────────── */
+
+function ContactInput({
+  value, onChange, maxLength, type = 'text', testid,
+}: {
+  value: string; onChange: (v: string) => void;
+  maxLength?: number; type?: string; testid?: string;
+}) {
+  return (
+    <input
+      type={type}
+      value={value}
+      maxLength={maxLength}
+      onChange={(e) => onChange(e.target.value)}
+      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"
+      data-testid={testid}
+    />
+  )
+}
 
 function Section({ title, testid, children }: { title: string; testid: string; children: React.ReactNode }) {
   return (

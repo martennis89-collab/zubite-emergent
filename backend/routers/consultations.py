@@ -504,6 +504,23 @@ async def admin_update_clinic(
         derived_slug = resolve_city_slug({"city": update["city"]})
         if derived_slug:
             update["city_slug"] = derived_slug
+    # `email` is the clinic's login identity -- /clinic/login looks it up
+    # lowercased -- so it is normalised and checked for collisions exactly as it
+    # is on creation. Without this, an admin editing a clinic could store
+    # "Info@Clinic.BG" and lock that clinic out of its own portal, or give two
+    # clinics the same address, after which find_one() always returns whichever
+    # was created first and the other can never log in again. Both failures are
+    # silent at the point they are caused.
+    if "email" in update:
+        email = str(update["email"]).strip().lower()
+        clash = await db.clinics.find_one(
+            {"email": email, "id": {"$ne": clinic_id}}, {"_id": 0, "id": 1})
+        if clash:
+            raise HTTPException(status_code=400,
+                                detail="Clinic with this email already exists")
+        update["email"] = email
+    if "notification_email" in update:
+        update["notification_email"] = str(update["notification_email"]).strip().lower()
     if "clinic_status" in update and update["clinic_status"] not in CLINIC_STATUS_VALUES:
         raise HTTPException(status_code=400, detail="Invalid clinic_status")
     if "subscription_status" in update and update["subscription_status"] not in SUBSCRIPTION_STATUS_VALUES:
