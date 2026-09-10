@@ -24,6 +24,7 @@ means log and return. A reporting problem must never stop a clinic taking a lead
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 from datetime import datetime, timezone
@@ -35,6 +36,11 @@ from cryptography.fernet import Fernet
 logger = logging.getLogger(__name__)
 
 TIMEOUT_SECONDS = 5.0
+
+# A lead Clear Advance keeps rejecting -- an unusable phone number, a consent
+# flag it will not accept -- will be rejected identically forever. The sweep
+# below would otherwise retry it every ten minutes for the life of the clinic.
+MAX_REPORT_ATTEMPTS = 5
 
 # Zubite's vocabulary is not Clear Advance's. Only the outcomes that mean
 # something to an ad platform are mapped; everything else is internal workflow
@@ -170,6 +176,10 @@ async def report_lead(db, lead: Dict[str, Any]) -> Optional[str]:
                       "clear_advance_reported_at": datetime.now(timezone.utc)}},
         )
         logger.info("Clear Advance accepted lead %s as %s", lead_id, remote_id)
+    else:
+        # Counted so the sweep can eventually give up. _post has already logged
+        # why; this only records that it happened.
+        await db.leads.update_one({"id": lead_id}, {"$inc": {"clear_advance_attempts": 1}})
     return remote_id
 
 
@@ -237,3 +247,60 @@ async def report_revenue(db, lead: Dict[str, Any], amount_minor: int,
         "amount_minor": amount_minor,
         "currency": currency.upper(),
     }))
+
+
+async def report_pending_leads(db, limit: int = 50) -> int:
+    """Hand over assigned leads that were never reported. Returns how many landed.
+
+    Reporting is driven by assignment, not by creation, because an unassigned
+    lead has nobody to report it to. Assignment happens in a dozen places -- the
+    matcher, an admin editing a lead, a clinic claiming one, the profile
+    scheduler -- and hooking every one of them is a promise the next writer will
+    break. Sweeping for the end state is the choice `_backfill_patient_numbers`
+    already made in this codebase, for the same reason.
+
+    A clinic's own history is deliberately out of scope. Only leads created after
+    it connected are eligible: without that, connecting a clinic with two years
+    of leads would report all of them as fresh enquiries -- none attributable
+    (Meta's window is seven days), all of them arriving in the clinic's Clear
+    Advance list dated today.
+
+    An outcome on an older lead still works. `_linked_id` reports that one lead
+    on demand, which is a deliberate act about a named patient rather than a
+    bulk backfill.
+    """
+    if not _base_url():
+        return 0
+
+    reported = 0
+    integrations = await db.clinic_integrations.find(
+        {"provider": "clear_advance", "connected_at": {"$exists": True}},
+        {"_id": 0, "clinic_id": 1, "connected_at": 1},
+    ).to_list(None)
+
+    for integration in integrations:
+        if reported >= limit:
+            break
+        leads = await db.leads.find(
+            {
+                "assigned_clinic_id": integration["clinic_id"],
+                "clear_advance_lead_id": {"$exists": False},
+                # A lead with no consent has no lawful basis to be sent
+                # anywhere, so it is filtered here rather than left for Clear
+                # Advance to reject -- a rejection still means the name and
+                # phone number crossed the wire first.
+                "consent": True,
+                "created_at": {"$gte": integration["connected_at"]},
+                "clear_advance_attempts": {"$not": {"$gte": MAX_REPORT_ATTEMPTS}},
+            },
+            {"_id": 0},
+        ).sort("created_at", 1).to_list(limit - reported)
+
+        for lead in leads:
+            if await report_lead(db, lead):
+                reported += 1
+            # One clinic's backlog must not monopolise the connection pool or
+            # arrive at Clear Advance as a burst.
+            await asyncio.sleep(0.2)
+
+    return reported

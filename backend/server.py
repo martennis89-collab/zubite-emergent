@@ -99,6 +99,16 @@ async def startup():
     await db.leads.create_index([("phone", 1), ("created_at", -1)])
     await db.leads.create_index([("email", 1), ("created_at", -1)])
     await db.leads.create_index("patient_id")
+    # Clear Advance sweep: one clinic's leads, oldest first. Not a partial index
+    # on the unreported ones, tempting as that is -- Mongo rejects
+    # `$exists: false` in partialFilterExpression, so the filter has to be
+    # applied at query time and this index only narrows the scan to the clinic.
+    await db.leads.create_index([("assigned_clinic_id", 1), ("created_at", 1)])
+    try:
+        await db.clinic_integrations.create_index(
+            [("clinic_id", 1), ("provider", 1)], unique=True)
+    except Exception as exc:  # pre-existing duplicates must not block startup
+        print(f"[clear_advance] clinic_integrations index skipped: {exc}")
     # Clinic "Пациенти" section — global numeric patient ID. Every lead doc
     # carries `patient_number` explicitly as `null` until assigned (Pydantic
     # model_dump() writes all fields), so a plain `sparse` index does NOT
@@ -245,6 +255,7 @@ async def startup():
 
     init_storage()
     asyncio.create_task(auto_verification_loop())
+    asyncio.create_task(clear_advance_loop())
 
     from auth import auth_session_cleanup_loop
     asyncio.create_task(auth_session_cleanup_loop())
@@ -280,6 +291,28 @@ async def startup():
     await db.clinic_appointments.create_index([("clinic_id", 1), ("doctor_id", 1)])
     await db.online_orientation_bookings.create_index([("clinic_id", 1), ("doctor_id", 1)])
     await db.online_orientation_bookings.create_index("patient_id")
+
+
+async def clear_advance_loop():
+    """Background: hand newly assigned leads over to Clear Advance.
+
+    A lead can be assigned long after it arrives, by any of a dozen code paths,
+    so this sweeps for the end state rather than hooking each writer -- the same
+    reasoning as `_backfill_patient_numbers`. Every ten minutes rather than
+    hourly only because a clinic that has just connected should see its first
+    lead appear while it is still looking; nothing here is time-critical, since
+    Meta's attribution window is seven days wide.
+    """
+    from clear_advance import report_pending_leads
+    while True:
+        try:
+            await asyncio.sleep(600)
+            reported = await report_pending_leads(db)
+            if reported:
+                logger.info(f"Clear Advance: reported {reported} newly assigned leads")
+        except Exception as e:
+            # A reporting problem must never take the API down with it.
+            logger.error(f"Clear Advance sweep error: {e}")
 
 
 async def auto_verification_loop():

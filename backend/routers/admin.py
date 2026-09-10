@@ -245,11 +245,16 @@ async def admin_connect_clear_advance(clinic_id: str, data: ClinicIntegration, r
                             detail="CLEAR_ADVANCE_KEY_SECRET is not configured")
 
     hint = f"...{data.api_key[-4:]}"
+    now = datetime.now(timezone.utc).isoformat()
     await db.clinic_integrations.update_one(
         {"clinic_id": clinic_id, "provider": "clear_advance"},
         {"$set": {"clinic_id": clinic_id, "provider": "clear_advance",
-                  "api_key": encrypted, "key_hint": hint,
-                  "updated_at": datetime.now(timezone.utc).isoformat()}},
+                  "api_key": encrypted, "key_hint": hint, "updated_at": now},
+         # Set once and never touched again -- this is the line the background
+         # sweep draws between "leads this clinic had before us", which are not
+         # ours to report, and everything after. Rotating the key must not move
+         # it, or a rotation would silently re-scope the backlog.
+         "$setOnInsert": {"connected_at": now}},
         upsert=True,
     )
     # Audit the connection, never the key. `key_hint` is the last four
@@ -274,7 +279,7 @@ async def admin_clear_advance_status(clinic_id: str,
     """Whether a clinic is connected, and enough of the key to tell which one."""
     record = await db.clinic_integrations.find_one(
         {"clinic_id": clinic_id, "provider": "clear_advance"},
-        {"_id": 0, "key_hint": 1, "updated_at": 1})
+        {"_id": 0, "key_hint": 1, "updated_at": 1, "connected_at": 1})
     return {"connected": bool(record), **(record or {})}
 
 
