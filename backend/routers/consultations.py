@@ -14,6 +14,7 @@ consultation workflow that is *linked back* to leads via `lead_id`.
 from fastapi import APIRouter, HTTPException, Depends, Request
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone, timedelta
+import asyncio
 import uuid
 import logging
 
@@ -1811,6 +1812,16 @@ async def clinic_perform_action(
             )
         except Exception as exc:
             logger.warning(f"care_pass unlock (offline) failed: {exc}")
+
+    # Clear Advance: the clinic has just recorded what actually happened, which
+    # is the only place in Zubite that distinguishes an attended appointment
+    # from a no-show. Backgrounded, and never allowed to fail the action --
+    # a reporting problem must not stop a clinic marking a patient attended.
+    if refreshed and refreshed.get("lead_id"):
+        from clear_advance import report_consultation_action
+        asyncio.create_task(
+            report_consultation_action(db, refreshed["lead_id"], body.action_type)
+        )
 
     return {"request": refreshed, "appointment": appointment_doc}
 
