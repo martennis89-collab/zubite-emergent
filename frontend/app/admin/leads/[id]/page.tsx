@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Loader2, Save, Trash2, CheckCircle, XCircle } from 'lucide-react'
 import { LeadAttributionPanel } from '@/components/LeadAttributionPanel'
+import { LeadRevenuePanel, type RevenueEntry } from '@/components/admin/LeadRevenuePanel'
 import { AdminHeader } from '@/components/admin/AdminHeader'
 
 // Quiz questions mapping — covers both legacy (q1-q10) and new MasterQuiz
@@ -93,6 +94,11 @@ interface Lead {
   created_at: string
   answers?: Record<string, string>
   notes?: string
+  // Written by POST /admin/leads/{id}/revenue. A list rather than a single
+  // field because a treatment plan can be paid in stages.
+  revenue?: RevenueEntry[]
+  assigned_clinic_id?: string | null
+  clear_advance_lead_id?: string | null
 }
 
 export default function LeadDetailPage() {
@@ -158,6 +164,19 @@ export default function LeadDetailPage() {
     fetchLead()
   }, [router, leadId])
   
+  const refreshLead = async () => {
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+      const r = await fetch(`${API_URL}/api/admin/leads/${leadId}`, {
+        credentials: 'include' as RequestCredentials,
+      })
+      if (r.ok) setLead(await r.json())
+    } catch {
+      // A failed refresh leaves the panel showing the previous list, which is
+      // stale but not wrong — the write itself already succeeded.
+    }
+  }
+
   const handleSave = async () => {
     if (!lead) return
     
@@ -453,6 +472,18 @@ export default function LeadDetailPage() {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Revenue — full width, above attribution: what the patient paid is
+            the outcome, the campaign that produced them is the explanation. */}
+        <div className="mt-6">
+          <LeadRevenuePanel
+            leadId={lead.id}
+            revenue={lead.revenue || []}
+            assignedClinicId={lead.assigned_clinic_id}
+            clearAdvanceLeadId={lead.clear_advance_lead_id}
+            onRecorded={refreshLead}
+          />
         </div>
 
         {/* Attribution panel — full width below the two-column layout */}
