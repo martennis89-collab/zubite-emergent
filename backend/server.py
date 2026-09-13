@@ -263,6 +263,15 @@ async def startup():
 
     init_storage()
     asyncio.create_task(auto_verification_loop())
+    try:
+        await db.clear_advance_enrolments.create_index("clinic_id", unique=True)
+        await db.clear_advance_enrolments.create_index([("status", 1), ("next_attempt_at", 1)])
+        # Enrolment relies on this index to keep a manual connection
+        # authoritative, so it is ensured here rather than assumed.
+        await db.clinic_integrations.create_index(
+            [("clinic_id", 1), ("provider", 1)], unique=True)
+    except Exception as exc:  # pre-existing duplicates must not block startup
+        print(f"[clear_advance] enrolment indexes skipped: {exc}")
     asyncio.create_task(clear_advance_loop())
 
     from auth import auth_session_cleanup_loop
@@ -315,14 +324,17 @@ async def clear_advance_loop():
     while True:
         try:
             await asyncio.sleep(600)
-            from clear_advance import import_pending_leads
+            from clear_advance import import_pending_leads, process_pending_enrolments
+            # Enrol first, so a clinic connected in this pass has its leads
+            # reported in the same pass rather than ten minutes later.
+            enrolled = await process_pending_enrolments(db)
             reported = await report_pending_leads(db)
             imported = await import_pending_leads(db)
             outcomes = await process_pending_outcomes(db)
-            if reported or imported or outcomes["processed"]:
+            if enrolled or reported or imported or outcomes["processed"]:
                 logger.info(
-                    "Clear Advance sync: reported=%s imported=%s outcomes=%s",
-                    reported, imported, outcomes,
+                    "Clear Advance sync: enrolled=%s reported=%s imported=%s outcomes=%s",
+                    enrolled, reported, imported, outcomes,
                 )
         except Exception as e:
             # A reporting problem must never take the API down with it.

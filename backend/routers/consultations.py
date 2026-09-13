@@ -433,6 +433,17 @@ async def admin_create_clinic(
         after_state=doc,
         severity="info", request=request,
     )
+    # Every clinic created from here on is a Clear Advance client -- Zubite is
+    # itself Clear Advance's customer. Queued first so an outage cannot lose
+    # the intent, attempted at once so the clinic is usually enrolled before
+    # anyone looks, retried by the sweep otherwise. Never allowed to fail the
+    # creation of the clinic itself.
+    try:
+        from clear_advance import enrol_clinic, queue_clinic_enrolment
+        if await queue_clinic_enrolment(db, doc):
+            asyncio.create_task(enrol_clinic(db, doc["id"]))
+    except Exception as exc:
+        logger.warning(f"Clear Advance enrolment could not be queued for {doc['id']}: {exc}")
     return {
         "clinic": _public_clinic_dict(doc),
         "temporary_password": temp_password,

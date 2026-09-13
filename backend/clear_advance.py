@@ -917,3 +917,188 @@ async def import_pending_leads(db, limit: int = 100,
                 break
             page_cursor = next_cursor
     return imported
+
+# ─── Automatic enrolment ──────────────────────────────────────────────
+#
+# Zubite is itself a Clear Advance customer, so every clinic created on Zubite
+# becomes a Clear Advance organisation without anyone opening a console. The
+# work is split in two on purpose. Creating a clinic only writes an enrolment
+# marker, which cannot fail for any reason Clear Advance controls; delivering it
+# happens immediately in the background and again from the sweep until it
+# lands. Clinics that existed before this shipped never get a marker, so nothing
+# here can reach them.
+
+ENROLMENT_RETRY_DELAYS_SECONDS = (60, 300, 900, 3600, 21600)
+MAX_ENROLMENT_ATTEMPTS = 10
+# Waiting for configuration is not a failure, so it re-checks without spending
+# one of the attempts that would otherwise mark the clinic failed.
+NOT_CONFIGURED_RETRY_SECONDS = 3600
+# Long enough to outlast one request with retries, short enough that a worker
+# that died mid-enrolment frees the clinic well before the next sweep.
+ENROLMENT_CLAIM_SECONDS = 120
+
+
+def _partner_key() -> Optional[str]:
+    """The credential that lets Zubite create organisations in Clear Advance.
+
+    Distinct from every clinic key: this one creates tenants. It is read from
+    the environment only and is never written to Mongo or to a log.
+    """
+    return os.environ.get("CLEAR_ADVANCE_PARTNER_KEY", "").strip() or None
+
+
+def _is_duplicate_key(exc: Exception) -> bool:
+    return getattr(exc, "code", None) == 11000
+
+
+async def queue_clinic_enrolment(db, clinic: Dict[str, Any]) -> bool:
+    """Record that a newly created clinic must be enrolled. Idempotent.
+
+    Demo and showcase clinics are never enrolled: they exist to be looked at,
+    and an organisation for one would sit in Clear Advance as a fake client.
+    """
+    clinic_id = (clinic or {}).get("id")
+    if not clinic_id or clinic.get("is_demo") is True:
+        return False
+    now = datetime.now(timezone.utc).isoformat()
+    await db.clear_advance_enrolments.update_one(
+        {"clinic_id": clinic_id},
+        {"$setOnInsert": {"status": "pending", "attempts": 0,
+                          "created_at": now, "next_attempt_at": now}},
+        upsert=True,
+    )
+    return True
+
+
+async def _finish_enrolment(db, clinic_id: str, status: str, **fields: Any) -> None:
+    await db.clear_advance_enrolments.update_one(
+        {"clinic_id": clinic_id},
+        {"$set": {"status": status, "updated_at": datetime.now(timezone.utc).isoformat(),
+                  **{k: v for k, v in fields.items() if v is not None}},
+         "$unset": {"claimed_until": ""}},
+    )
+
+
+async def _defer_enrolment(db, row: Dict[str, Any], error: str) -> None:
+    attempts = int(row.get("attempts") or 0) + 1
+    now = datetime.now(timezone.utc)
+    update: Dict[str, Any] = {"attempts": attempts, "last_error": error,
+                              "updated_at": now.isoformat()}
+    if attempts >= MAX_ENROLMENT_ATTEMPTS:
+        update["status"] = "failed"
+        logger.error("Clear Advance: enrolment of clinic %s gave up after %s attempts (%s)",
+                     row["clinic_id"], attempts, error)
+    else:
+        delays = ENROLMENT_RETRY_DELAYS_SECONDS
+        update["next_attempt_at"] = (
+            now + timedelta(seconds=delays[min(attempts - 1, len(delays) - 1)])).isoformat()
+    await db.clear_advance_enrolments.update_one(
+        {"clinic_id": row["clinic_id"]}, {"$set": update, "$unset": {"claimed_until": ""}},
+    )
+
+
+async def enrol_clinic(db, clinic_id: str) -> bool:
+    """Create the clinic's Clear Advance organisation and connect the clinic.
+
+    Returns True when the clinic ends up connected, including when someone had
+    already connected it by hand -- which always wins, and is never overwritten.
+    """
+    now = datetime.now(timezone.utc)
+    now_iso = now.isoformat()
+
+    # Claim before calling out. The creation hook and the sweep can reach the
+    # same clinic at once, and Clear Advance revokes the previous partner-minted
+    # key on every call: without the claim, one worker could store a key the
+    # other had just caused to be revoked.
+    claimed = await db.clear_advance_enrolments.update_one(
+        {"clinic_id": clinic_id, "status": "pending", "next_attempt_at": {"$lte": now_iso},
+         "$or": [{"claimed_until": {"$exists": False}}, {"claimed_until": {"$lte": now_iso}}]},
+        {"$set": {"claimed_until": (now + timedelta(seconds=ENROLMENT_CLAIM_SECONDS)).isoformat()}},
+    )
+    if not getattr(claimed, "modified_count", 0):
+        return False
+    row = await db.clear_advance_enrolments.find_one({"clinic_id": clinic_id}, {"_id": 0})
+
+    clinic = await db.clinics.find_one(
+        {"id": clinic_id}, {"_id": 0, "id": 1, "clinic_name": 1, "name": 1, "is_demo": 1})
+    if not clinic:
+        await _finish_enrolment(db, clinic_id, "failed", last_error="clinic_not_found")
+        return False
+    if clinic.get("is_demo") is True:
+        await _finish_enrolment(db, clinic_id, "skipped", last_error="demo_clinic")
+        return False
+
+    existing = await db.clinic_integrations.find_one(
+        {"clinic_id": clinic_id, "provider": "clear_advance"}, {"_id": 0, "api_key": 1})
+    if existing and existing.get("api_key"):
+        await _finish_enrolment(db, clinic_id, "done", note="already_connected")
+        return True
+
+    partner_key = _partner_key()
+    if not (_base_url() and partner_key and _fernet()):
+        await db.clear_advance_enrolments.update_one(
+            {"clinic_id": clinic_id},
+            {"$set": {"last_error": "not_configured", "updated_at": now_iso,
+                      "next_attempt_at": (
+                          now + timedelta(seconds=NOT_CONFIGURED_RETRY_SECONDS)).isoformat()},
+             "$unset": {"claimed_until": ""}},
+        )
+        return False
+
+    name = (clinic.get("clinic_name") or clinic.get("name") or "").strip() or clinic_id
+    result = await _post("/api/v1/partner/organizations", partner_key,
+                         {"external_ref": clinic_id, "name": name})
+    api_key = (result or {}).get("api_key")
+    organization = (result or {}).get("organization") or {}
+    if not api_key:
+        await _defer_enrolment(db, row, "request_failed")
+        return False
+
+    encrypted = encrypt_api_key(api_key)
+    if not encrypted:
+        await _defer_enrolment(db, row, "encryption_unavailable")
+        return False
+
+    stored_at = datetime.now(timezone.utc).isoformat()
+    try:
+        # `api_key: {$exists: False}` in the filter is what keeps a manual
+        # connection authoritative. If one landed while this request was in
+        # flight, the filter no longer matches, the upsert collides with the
+        # unique (clinic_id, provider) index, and the manual key stays.
+        await db.clinic_integrations.update_one(
+            {"clinic_id": clinic_id, "provider": "clear_advance", "api_key": {"$exists": False}},
+            {"$set": {"api_key": encrypted, "key_hint": f"...{api_key[-4:]}",
+                      "updated_at": stored_at, "provisioned_by": "auto",
+                      "clear_advance_org_id": organization.get("id"),
+                      "clear_advance_org_slug": organization.get("slug")},
+             # Set once, like a manual connection: the sweep reports only leads
+             # created after this moment.
+             "$setOnInsert": {"connected_at": stored_at}},
+            upsert=True,
+        )
+    except Exception as exc:
+        if not _is_duplicate_key(exc):
+            raise
+        await _finish_enrolment(db, clinic_id, "done", note="already_connected")
+        return True
+
+    await _finish_enrolment(db, clinic_id, "done", org_slug=organization.get("slug"))
+    logger.info("Clear Advance: enrolled clinic %s as %s", clinic_id, organization.get("slug"))
+    return True
+
+
+async def process_pending_enrolments(db, limit: int = 20) -> int:
+    """Deliver enrolments that are due. Returns how many clinics were connected."""
+    if not (_base_url() and _partner_key()):
+        return 0
+    now_iso = datetime.now(timezone.utc).isoformat()
+    rows = await db.clear_advance_enrolments.find(
+        {"status": "pending", "next_attempt_at": {"$lte": now_iso}},
+        {"_id": 0, "clinic_id": 1},
+    ).sort("next_attempt_at", 1).to_list(limit)
+    enrolled = 0
+    for row in rows:
+        if await enrol_clinic(db, row["clinic_id"]):
+            enrolled += 1
+        await asyncio.sleep(0.2)
+    return enrolled
