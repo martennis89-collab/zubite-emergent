@@ -137,3 +137,39 @@ def test_the_same_booking_from_both_paths_collapses_into_one_event():
 
     assert sent[0]["source_event_id"] == from_consultation["source_event_id"]
     assert sent[0]["source_event_id"] == "L1:appointment_booked"
+
+
+def test_outcome_handoff_retries_then_records_success_health(monkeypatch):
+    attempts = []
+
+    async def fake_post(path, key, payload):
+        attempts.append(payload["outcome"])
+        return {"ok": True} if len(attempts) == 3 else None
+
+    async def no_sleep(_delay):
+        return None
+
+    monkeypatch.setattr(clear_advance, "_post", fake_post)
+    monkeypatch.setattr(clear_advance.asyncio, "sleep", no_sleep)
+    db = FakeDB([LEAD])
+    assert asyncio.run(clear_advance.report_consultation_action(db, "L1", "book_consultation"))
+    assert len(attempts) == 3
+    assert db.clinic_integrations.updates[-1][1]["$set"]["clear_advance_last_sync_ok"] is True
+
+
+def test_failed_outcome_handoff_records_a_failure_streak(monkeypatch):
+    attempts = []
+
+    async def fake_post(path, key, payload):
+        attempts.append(payload["outcome"])
+        return None
+
+    async def no_sleep(_delay):
+        return None
+
+    monkeypatch.setattr(clear_advance, "_post", fake_post)
+    monkeypatch.setattr(clear_advance.asyncio, "sleep", no_sleep)
+    db = FakeDB([LEAD])
+    assert not asyncio.run(clear_advance.report_consultation_action(db, "L1", "book_consultation"))
+    assert len(attempts) == 1 + len(clear_advance.OUTCOME_RETRY_DELAYS)
+    assert db.clinic_integrations.updates[-1][1]["$inc"]["clear_advance_sync_failure_streak"] == 1

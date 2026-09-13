@@ -32,6 +32,7 @@ export interface PatientContextSource {
   // page -- is deliberately withheld here. Only ever set by the list
   // endpoints, never by `_safe_source_context` itself.
   source_type: 'quiz' | 'article' | 'campaign' | 'direct' | 'unknown' | 'not_tracked'
+  origin_system?: string | null
   article_title: string | null
   article_slug: string | null
   utm_source: string | null
@@ -100,11 +101,15 @@ export function sourceBadgeLabel(src: PatientContextSource): { label: string; cl
     case 'quiz':
       return { label: SOURCE_TYPE_LABELS.quiz, cls: 'bg-teal-50 text-teal-700' }
     case 'direct':
-      return { label: SOURCE_TYPE_LABELS.direct, cls: 'bg-slate-100 text-slate-600' }
+      return src.origin_system === 'clear_advance'
+        ? { label: 'Clear Advance', cls: 'bg-emerald-50 text-emerald-700' }
+        : { label: SOURCE_TYPE_LABELS.direct, cls: 'bg-slate-100 text-slate-600' }
     case 'not_tracked':
       return { label: SOURCE_TYPE_LABELS.not_tracked, cls: 'bg-slate-50 text-slate-400 italic' }
     default:
-      return { label: SOURCE_TYPE_LABELS.unknown, cls: 'bg-slate-100 text-slate-500' }
+      return src.origin_system === 'clear_advance'
+        ? { label: 'Clear Advance', cls: 'bg-emerald-50 text-emerald-700' }
+        : { label: SOURCE_TYPE_LABELS.unknown, cls: 'bg-slate-100 text-slate-500' }
   }
 }
 

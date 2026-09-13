@@ -77,7 +77,7 @@ export default function ClinicRequestsPage() {
               Заявки за консултация
             </h1>
             <p className="text-slate-500 text-sm mt-1">
-              Пациентите, които са насочени към клиниката ви през Zubite.bg.
+              Всички запитвания към клиниката ви — от Zubite.bg и рекламните ви канали.
             </p>
           </div>
           {state === 'ready' && requests.length > 0 && (
@@ -282,7 +282,7 @@ function RequestsEmptyState({ filterActive, totalLoaded }: { filterActive: boole
         <>
           <div className="text-base font-medium text-slate-700">Все още няма заявки</div>
           <p className="mt-1 text-sm text-slate-500">
-            Когато Zubite.bg насочи пациент към вашата клиника, заявката ще се появи тук в реално време.
+            Когато пациент изпрати запитване през Zubite.bg, Facebook, Google или друг свързан канал, заявката ще се появи тук.
           </p>
         </>
       )}

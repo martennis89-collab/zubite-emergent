@@ -279,7 +279,9 @@ async def admin_clear_advance_status(clinic_id: str,
     """Whether a clinic is connected, and enough of the key to tell which one."""
     record = await db.clinic_integrations.find_one(
         {"clinic_id": clinic_id, "provider": "clear_advance"},
-        {"_id": 0, "key_hint": 1, "updated_at": 1, "connected_at": 1})
+        {"_id": 0, "key_hint": 1, "updated_at": 1, "connected_at": 1,
+         "clear_advance_last_sync_at": 1, "clear_advance_last_sync_kind": 1,
+         "clear_advance_last_sync_ok": 1, "clear_advance_sync_failure_streak": 1})
     return {"connected": bool(record), **(record or {})}
 
 

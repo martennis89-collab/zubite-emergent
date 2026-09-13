@@ -1471,6 +1471,7 @@ def _safe_source_context(lead: Dict[str, Any]) -> Dict[str, Any]:
     if not lead:
         return {
             "source_type": "unknown",
+            "origin_system": None,
             "article_title": None,
             "article_slug": None,
             "utm_source": None,
@@ -1499,6 +1500,7 @@ def _safe_source_context(lead: Dict[str, Any]) -> Dict[str, Any]:
             )
     return {
         "source_type": _classify_source_type(lead),
+        "origin_system": lead.get("origin_system"),
         "article_title": article_title,
         "article_slug": article_slug,
         "utm_source": lead.get("first_utm_source") or lead.get("latest_utm_source"),
@@ -1513,6 +1515,7 @@ def _safe_source_context(lead: Dict[str, Any]) -> Dict[str, Any]:
 # exactly these fields without re-deriving the list by hand and drifting
 # from what `_safe_source_context` above expects.
 SOURCE_CONTEXT_LEAD_FIELDS: Dict[str, int] = {
+    "origin_system": 1,
     "first_article_title": 1, "first_article_slug": 1,
     "latest_article_title": 1, "latest_article_slug": 1,
     "first_utm_source": 1, "first_utm_campaign": 1, "first_utm_ad": 1,
@@ -1561,6 +1564,7 @@ def _list_source_badge(lead: Optional[Dict[str, Any]], created_at: Any) -> Dict[
     if not created or created < ATTRIBUTION_LIST_VISIBLE_SINCE:
         return {
             "source_type": "not_tracked",
+            "origin_system": None,
             "article_title": None, "article_slug": None,
             "utm_source": None, "utm_campaign": None, "utm_ad": None,
             "content_path_summary": None,
@@ -1580,6 +1584,7 @@ async def _build_patient_context(req: Dict[str, Any]) -> Dict[str, Any]:
                 "_id": 0,
                 # Allow-list only — everything else is dropped.
                 "answers": 1,
+                "origin_system": 1,
                 # Orientation stage. MasterQuiz leads carry it in
                 # `answers.quiz_band`; treatment/city-quiz leads only have
                 # the lead-level `band`, so both are needed for the stage

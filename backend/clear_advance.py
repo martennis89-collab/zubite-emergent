@@ -27,6 +27,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
@@ -36,6 +37,7 @@ from cryptography.fernet import Fernet
 logger = logging.getLogger(__name__)
 
 TIMEOUT_SECONDS = 5.0
+OUTCOME_RETRY_DELAYS = (0.25, 0.75, 1.5)
 
 # A lead Clear Advance keeps rejecting -- an unusable phone number, a consent
 # flag it will not accept -- will be rejected identically forever. The sweep
@@ -118,16 +120,7 @@ async def _clinic_key(db, lead: Dict[str, Any]) -> Optional[str]:
         logger.debug("Clinic %s is not connected to Clear Advance", clinic_id)
         return None
 
-    f = _fernet()
-    if not f:
-        logger.error("Clinic %s has a stored key but CLEAR_ADVANCE_KEY_SECRET is unset", clinic_id)
-        return None
-    try:
-        return f.decrypt(stored.encode()).decode()
-    except Exception:
-        # Usually the secret was rotated without re-encrypting the stored keys.
-        logger.error("Could not decrypt the Clear Advance key for clinic %s", clinic_id)
-        return None
+    return _clear_advance_key(record or {}, clinic_id)
 
 
 async def _post(path: str, key: str, payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -151,6 +144,72 @@ async def _post(path: str, key: str, payload: Dict[str, Any]) -> Optional[Dict[s
         return None
 
 
+async def _get(path: str, key: str, params: Dict[str, str]) -> Optional[Dict[str, Any]]:
+    """Read a tenant-scoped Clear Advance feed page."""
+    base = _base_url()
+    if not base:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT_SECONDS) as client:
+            response = await client.get(
+                f"{base}{path}", params=params,
+                headers={"Authorization": f"Bearer {key}"},
+            )
+        if response.status_code >= 400:
+            logger.error("Clear Advance feed rejected: HTTP %s %s",
+                         response.status_code, response.text[:300])
+            return None
+        return response.json()
+    except Exception as exc:
+        logger.error("Clear Advance feed request to %s failed: %s", path, exc)
+        return None
+
+
+async def _post_with_retry(path: str, key: str, payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Retry a transient outcome handoff without duplicating the operation id."""
+    for attempt, delay in enumerate((0, *OUTCOME_RETRY_DELAYS)):
+        if attempt:
+            await asyncio.sleep(delay)
+        result = await _post(path, key, payload)
+        if result is not None:
+            return result
+    return None
+
+
+async def _record_sync_health(db, lead: Dict[str, Any], *, ok: bool, kind: str) -> None:
+    clinic_id = lead.get("assigned_clinic_id")
+    if not clinic_id:
+        return
+    now = datetime.now(timezone.utc)
+    update = {"$set": {
+        "clear_advance_last_sync_at": now,
+        "clear_advance_last_sync_kind": kind,
+        "clear_advance_last_sync_ok": ok,
+    }}
+    if ok:
+        update["$set"]["clear_advance_sync_failure_streak"] = 0
+    else:
+        update["$inc"] = {"clear_advance_sync_failure_streak": 1}
+    await db.clinic_integrations.update_one(
+        {"clinic_id": clinic_id, "provider": "clear_advance"}, update,
+    )
+
+
+def _clear_advance_key(record: Dict[str, Any], clinic_id: str) -> Optional[str]:
+    stored = record.get("api_key")
+    if not stored:
+        return None
+    f = _fernet()
+    if not f:
+        logger.error("Clinic %s has a stored key but CLEAR_ADVANCE_KEY_SECRET is unset", clinic_id)
+        return None
+    try:
+        return f.decrypt(stored.encode()).decode()
+    except Exception:
+        logger.error("Could not decrypt the Clear Advance key for clinic %s", clinic_id)
+        return None
+
+
 async def report_lead(db, lead: Dict[str, Any]) -> Optional[str]:
     """Hand a new enquiry over, and remember the id we get back.
 
@@ -164,7 +223,9 @@ async def report_lead(db, lead: Dict[str, Any]) -> Optional[str]:
     if not key or not _base_url():
         return None
 
-    consent = bool(lead.get("consent"))
+    # Imported leads preserve Clear Advance's separate consent flags. Native
+    # Zubite leads only have `consent`, so retain that fallback.
+    consent = bool(lead.get("consent_marketing", lead.get("consent")))
     result = await _post("/api/v1/leads", key, {
         "name": lead.get("name") or "",
         "phone": lead.get("phone") or "",
@@ -226,13 +287,16 @@ async def report_outcome(db, lead: Dict[str, Any], outcome: str) -> bool:
     if not remote_id:
         return False
 
-    return bool(await _post("/api/v1/outcomes", key, {
+    result = await _post_with_retry("/api/v1/outcomes", key, {
         "source_system": "zubite",
         "source_event_id": f"{lead.get('id')}:{outcome}",
         "outcome": outcome,
         "lead_reference": remote_id,
         "occurred_at": datetime.now(timezone.utc).isoformat(),
-    }))
+    })
+    ok = bool(result)
+    await _record_sync_health(db, lead, ok=ok, kind=outcome)
+    return ok
 
 
 async def report_status(db, lead: Dict[str, Any], status: str) -> bool:
@@ -282,7 +346,7 @@ async def report_revenue(db, lead: Dict[str, Any], amount_minor: int,
     if not remote_id:
         return False
 
-    return bool(await _post("/api/v1/outcomes", key, {
+    result = await _post_with_retry("/api/v1/outcomes", key, {
         "source_system": "zubite",
         "source_event_id": source_event_id,
         "outcome": "sale",
@@ -290,7 +354,10 @@ async def report_revenue(db, lead: Dict[str, Any], amount_minor: int,
         "occurred_at": datetime.now(timezone.utc).isoformat(),
         "amount_minor": amount_minor,
         "currency": currency.upper(),
-    }))
+    })
+    ok = bool(result)
+    await _record_sync_health(db, lead, ok=ok, kind="sale")
+    return ok
 
 
 async def report_pending_leads(db, limit: int = 50) -> int:
@@ -348,3 +415,127 @@ async def report_pending_leads(db, limit: int = 50) -> int:
             await asyncio.sleep(0.2)
 
     return reported
+
+
+def _imported_lead_doc(remote: Dict[str, Any], clinic_id: str, local_id: str) -> Dict[str, Any]:
+    """Normalize a Clear Advance lead into Zubite's existing lead shape."""
+    first = remote.get("first_touch") if isinstance(remote.get("first_touch"), dict) else {}
+    last = remote.get("last_touch") if isinstance(remote.get("last_touch"), dict) else {}
+    qualification = remote.get("qualification")
+    remote_status = str(remote.get("status") or "new").lower()
+    local_status = {
+        "new": "NEW", "contacted": "CONTACTED", "qualified": "CONTACTED",
+        "booked": "SCHEDULED", "attended": "COMPLETED", "won": "COMPLETED",
+        "lost": "CANCELLED",
+    }.get(remote_status, "NEW")
+    return {
+        "id": local_id,
+        "name": remote.get("name") or "",
+        "phone": remote.get("phone_e164") or "",
+        "email": remote.get("email"),
+        "consent": bool(remote.get("consent_privacy")),
+        "consent_privacy": bool(remote.get("consent_privacy")),
+        "consent_marketing": bool(remote.get("consent_marketing")),
+        "assigned_clinic_id": clinic_id,
+        "clinic_lead_status": "new",
+        "status": local_status,
+        "clear_advance_status": remote_status,
+        "source": remote.get("source") or "clear_advance",
+        "origin_system": "clear_advance",
+        "clear_advance_lead_id": remote.get("id"),
+        "clear_advance_imported_at": datetime.now(timezone.utc),
+        "created_at": remote.get("created_at") or datetime.now(timezone.utc).isoformat(),
+        "first_utm_source": first.get("utm_source") or remote.get("utm_source"),
+        "first_utm_campaign": first.get("utm_campaign") or remote.get("utm_campaign"),
+        "first_utm_ad": first.get("utm_content") or remote.get("utm_content"),
+        "latest_utm_source": last.get("utm_source") or remote.get("utm_source"),
+        "latest_utm_campaign": last.get("utm_campaign") or remote.get("utm_campaign"),
+        "latest_utm_ad": last.get("utm_content") or remote.get("utm_content"),
+        "first_landing_page": remote.get("landing_page"),
+        "first_referrer": remote.get("referrer"),
+        # Qualification answers remain clinic context and are never forwarded
+        # back to advertising destinations.
+        "answers": qualification if isinstance(qualification, dict) else {},
+    }
+
+
+async def import_clear_advance_lead(db, remote: Dict[str, Any], clinic_id: str) -> bool:
+    """Idempotently import one feed row and create its clinic request."""
+    remote_id = str(remote.get("id") or "")
+    if not remote_id:
+        return False
+
+    if remote.get("source_system") == "zubite" and remote.get("source_lead_id"):
+        local = await db.leads.find_one(
+            {"id": remote["source_lead_id"], "assigned_clinic_id": clinic_id},
+            {"_id": 0},
+        )
+        if local:
+            await db.leads.update_one(
+                {"id": local["id"]},
+                {"$set": {"clear_advance_lead_id": remote_id,
+                          "origin_system": local.get("origin_system") or "zubite"}},
+            )
+            from routers.consultations import _ensure_consultation_for_lead
+            await _ensure_consultation_for_lead(local, clinic_id)
+            return False
+
+    local = await db.leads.find_one(
+        {"clear_advance_lead_id": remote_id, "assigned_clinic_id": clinic_id},
+        {"_id": 0},
+    )
+    created = False
+    if not local:
+        local_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"clear-advance:{remote_id}"))
+        doc = _imported_lead_doc(remote, clinic_id, local_id)
+        try:
+            await db.leads.update_one({"id": local_id}, {"$setOnInsert": doc}, upsert=True)
+        except Exception:
+            # Another worker may have won the same deterministic upsert.
+            pass
+        local = await db.leads.find_one({"id": local_id}, {"_id": 0})
+        if not local:
+            return False
+        created = True
+
+    from routers.consultations import _ensure_consultation_for_lead
+    await _ensure_consultation_for_lead(local, clinic_id)
+    return created
+
+
+async def import_pending_leads(db, limit: int = 100) -> int:
+    """Pull new Clear Advance leads into each connected clinic workspace."""
+    if not _base_url():
+        return 0
+    imported = 0
+    integrations = await db.clinic_integrations.find(
+        {"provider": "clear_advance", "connected_at": {"$exists": True}},
+        {"_id": 0, "clinic_id": 1, "api_key": 1, "connected_at": 1,
+         "clear_advance_import_cursor": 1},
+    ).to_list(None)
+    for record in integrations:
+        if imported >= limit:
+            break
+        clinic_id = record.get("clinic_id")
+        key = _clear_advance_key(record, clinic_id or "")
+        if not key or not clinic_id:
+            continue
+        cursor = record.get("clear_advance_import_cursor")
+        params = {"limit": str(min(50, limit - imported))}
+        if cursor:
+            params["cursor"] = str(cursor)
+        elif record.get("connected_at"):
+            params["since"] = str(record["connected_at"])
+        page = await _get("/api/v1/leads", key, params)
+        if not page or not isinstance(page.get("leads"), list):
+            continue
+        for remote in page["leads"]:
+            if isinstance(remote, dict) and await import_clear_advance_lead(db, remote, clinic_id):
+                imported += 1
+        next_cursor = page.get("next_cursor")
+        if next_cursor:
+            await db.clinic_integrations.update_one(
+                {"clinic_id": clinic_id, "provider": "clear_advance"},
+                {"$set": {"clear_advance_import_cursor": next_cursor}},
+            )
+    return imported

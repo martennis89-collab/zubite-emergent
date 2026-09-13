@@ -294,7 +294,7 @@ async def startup():
 
 
 async def clear_advance_loop():
-    """Background: hand newly assigned leads over to Clear Advance.
+    """Background: synchronize lead facts in both directions.
 
     A lead can be assigned long after it arrives, by any of a dozen code paths,
     so this sweeps for the end state rather than hooking each writer -- the same
@@ -307,9 +307,11 @@ async def clear_advance_loop():
     while True:
         try:
             await asyncio.sleep(600)
+            from clear_advance import import_pending_leads
             reported = await report_pending_leads(db)
-            if reported:
-                logger.info(f"Clear Advance: reported {reported} newly assigned leads")
+            imported = await import_pending_leads(db)
+            if reported or imported:
+                logger.info("Clear Advance sync: reported=%s imported=%s", reported, imported)
         except Exception as e:
             # A reporting problem must never take the API down with it.
             logger.error(f"Clear Advance sweep error: {e}")
