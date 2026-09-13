@@ -13,6 +13,10 @@ Zubite.bg is a Next.js frontend backed by a FastAPI API.
 The complete provider setup, secret matrix, deployment order, smoke checks,
 rollback steps, and data migration notes are in [DEPLOYMENT.md](DEPLOYMENT.md).
 
+Known non-blocking engineering follow-ups, including the backend test harness
+portability work identified during the Clear Advance Phase 1/2 audit, are in
+[TECHNICAL_DEBT.md](TECHNICAL_DEBT.md).
+
 ## Local development with Docker
 
 1. Copy `backend/.env.example` to `backend/.env` and replace placeholder secrets.
