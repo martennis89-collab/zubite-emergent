@@ -14,45 +14,45 @@
 
   <g transform="translate(72 68)">
     <text class="brand" x="0" y="36" font-size="38" fill="#FFFFFF">Zubite<tspan fill="#00D294">.bg</tspan></text>
-    <text class="label" x="936" y="32" font-size="17" fill="#9FF0D2" text-anchor="end">ДОВЕРИЕ · БЕЗ ОБЕЩАНИЯ</text>
+    <text class="label" data-slot="eyebrow" x="936" y="32" font-size="17" fill="#9FF0D2" text-anchor="end">ДОВЕРИЕ · БЕЗ ОБЕЩАНИЯ</text>
 
-    <text class="display" x="0" y="218" font-size="82" fill="#FFFFFF">
+    <text class="display" data-slot="headline" x="0" y="218" font-size="82" fill="#FFFFFF">
       <tspan x="0">Проверено,</tspan>
       <tspan class="accent" x="0" dy="84" fill="#D0FAE5" letter-spacing="-1.5">не обещано.</tspan>
     </text>
-    <text class="body" x="0" y="386" font-size="27" fill="#D0FAE5">Доверието идва от прозрачни сигнали.</text>
+    <text class="body" data-slot="body" x="0" y="386" font-size="27" fill="#D0FAE5">Доверието идва от прозрачни сигнали.</text>
 
     <g transform="translate(0 460)">
       <g>
         <rect width="446" height="174" rx="26" fill="#FFFFFF"/>
         <circle cx="54" cy="54" r="28" fill="#D0FAE5"/><path d="m43 54 7 7 15-18" fill="none" stroke="#007956" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-        <text class="body" x="100" y="51" font-size="24" font-weight="700" fill="#0A0A0A">Проверима информация</text>
-        <text class="body" x="34" y="110" font-size="20" fill="#737373"><tspan x="34">Екип, услуги и възможности,</tspan><tspan x="34" dy="30">описани в профила.</tspan></text>
+        <text class="body" data-slot="card1.title" x="100" y="51" font-size="24" font-weight="700" fill="#0A0A0A">Проверима информация</text>
+        <text class="body" data-slot="card1.desc" x="34" y="110" font-size="20" fill="#737373"><tspan x="34">Екип, услуги и възможности,</tspan><tspan x="34" dy="30">описани в профила.</tspan></text>
       </g>
       <g transform="translate(490 0)">
         <rect width="446" height="174" rx="26" fill="#FFFFFF"/>
         <circle cx="54" cy="54" r="28" fill="#FFF0E5"/><path d="M42 54h24M54 42v24" stroke="#FF6B00" stroke-width="4" stroke-linecap="round"/>
-        <text class="body" x="100" y="51" font-size="24" font-weight="700" fill="#0A0A0A">Ясни критерии</text>
-        <text class="body" x="34" y="110" font-size="20" fill="#737373"><tspan x="34">Показваме защо виждаш</tspan><tspan x="34" dy="30">дадена възможност.</tspan></text>
+        <text class="body" data-slot="card2.title" x="100" y="51" font-size="24" font-weight="700" fill="#0A0A0A">Ясни критерии</text>
+        <text class="body" data-slot="card2.desc" x="34" y="110" font-size="20" fill="#737373"><tspan x="34">Показваме защо виждаш</tspan><tspan x="34" dy="30">дадена възможност.</tspan></text>
       </g>
       <g transform="translate(0 206)">
         <rect width="446" height="174" rx="26" fill="#FFFFFF"/>
         <circle cx="54" cy="54" r="28" fill="#D0FAE5"/><path d="M54 39v17l12 8" fill="none" stroke="#007956" stroke-width="4" stroke-linecap="round"/>
-        <text class="body" x="100" y="51" font-size="24" font-weight="700" fill="#0A0A0A">Време за отговор</text>
-        <text class="body" x="34" y="110" font-size="20" fill="#737373"><tspan x="34">Реален оперативен сигнал,</tspan><tspan x="34" dy="30">не маркетингово обещание.</tspan></text>
+        <text class="body" data-slot="card3.title" x="100" y="51" font-size="24" font-weight="700" fill="#0A0A0A">Време за отговор</text>
+        <text class="body" data-slot="card3.desc" x="34" y="110" font-size="20" fill="#737373"><tspan x="34">Реален оперативен сигнал,</tspan><tspan x="34" dy="30">не маркетингово обещание.</tspan></text>
       </g>
       <g transform="translate(490 206)">
         <rect width="446" height="174" rx="26" fill="#FFFFFF"/>
         <circle cx="54" cy="54" r="28" fill="#D0FAE5"/><path d="M42 66V44h24v22M47 51h14" fill="none" stroke="#007956" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-        <text class="body" x="100" y="51" font-size="24" font-weight="700" fill="#0A0A0A">Експертен преглед</text>
-        <text class="body" x="34" y="110" font-size="20" fill="#737373"><tspan x="34">Образователно съдържание,</tspan><tspan x="34" dy="30">проверено от специалист.</tspan></text>
+        <text class="body" data-slot="card4.title" x="100" y="51" font-size="24" font-weight="700" fill="#0A0A0A">Експертен преглед</text>
+        <text class="body" data-slot="card4.desc" x="34" y="110" font-size="20" fill="#737373"><tspan x="34">Образователно съдържание,</tspan><tspan x="34" dy="30">проверено от специалист.</tspan></text>
       </g>
     </g>
 
     <g transform="translate(0 920)">
       <rect width="294" height="58" rx="29" fill="#FF6B00"/>
-      <text class="body" x="147" y="37" font-size="20" font-weight="700" fill="#FFFFFF" text-anchor="middle">Виж как работи →</text>
-      <text class="body" x="936" y="36" font-size="19" fill="#D0FAE5" text-anchor="end">Ориентир, не диагноза.</text>
+      <text class="body" data-slot="cta" x="147" y="37" font-size="20" font-weight="700" fill="#FFFFFF" text-anchor="middle">Виж как работи →</text>
+      <text class="body" data-slot="disclaimer" x="936" y="36" font-size="19" fill="#D0FAE5" text-anchor="end">Ориентир, не диагноза.</text>
     </g>
   </g>
 </svg>

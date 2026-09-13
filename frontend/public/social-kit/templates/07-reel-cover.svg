@@ -15,13 +15,13 @@
 
   <g transform="translate(84 184)">
     <text class="brand" x="0" y="40" font-size="42" fill="#FFFFFF">Zubite<tspan fill="#00D294">.bg</tspan></text>
-    <g transform="translate(0 96)"><rect width="360" height="52" rx="26" fill="#D0FAE5"/><circle cx="28" cy="26" r="7" fill="#00D294"/><text class="label" x="52" y="33" font-size="19" fill="#007956">30 СЕКУНДИ · ЯСНО ОБЯСНЕНИЕ</text></g>
+    <g transform="translate(0 96)"><rect width="360" height="52" rx="26" fill="#D0FAE5"/><circle cx="28" cy="26" r="7" fill="#00D294"/><text class="label" data-slot="eyebrow" x="52" y="33" font-size="19" fill="#007956">30 СЕКУНДИ · ЯСНО ОБЯСНЕНИЕ</text></g>
 
-    <text class="display" x="0" y="382" font-size="122" fill="#FFFFFF">
+    <text class="display" data-slot="headline" x="0" y="382" font-size="122" fill="#FFFFFF">
       <tspan x="0">Захапката</tspan>
       <tspan class="accent" x="0" dy="122" fill="#FF6B00" letter-spacing="-2">за 30 секунди.</tspan>
     </text>
-    <text class="body" x="0" y="664" font-size="34" fill="#D4D4D4">
+    <text class="body" data-slot="body" x="0" y="664" font-size="34" fill="#D4D4D4">
       <tspan x="0">Какво можеш да забележиш сам —</tspan>
       <tspan x="0" dy="50">и какво изисква професионален преглед.</tspan>
     </text>
@@ -32,13 +32,13 @@
       <circle cx="456" cy="214" r="54" fill="#007956" opacity=".22"/>
       <path d="M326 474c22-112 68-168 130-168s108 56 130 168" fill="#007956" opacity=".18"/>
       <g transform="translate(376 202)"><circle cx="80" cy="80" r="64" fill="#0A0A0A" fill-opacity=".88"/><path d="m68 54 36 26-36 26Z" fill="#FFFFFF"/></g>
-      <g transform="translate(30 520)"><rect width="852" height="66" rx="33" fill="#FFFFFF" fill-opacity=".92"/><text class="body" x="426" y="42" font-size="23" font-weight="700" fill="#0A0A0A" text-anchor="middle">Замени с кадър на експерт, пациент или ясна демонстрация</text></g>
+      <g transform="translate(30 520)"><rect width="852" height="66" rx="33" fill="#FFFFFF" fill-opacity=".92"/><text class="body" data-slot="photoNote" x="426" y="42" font-size="23" font-weight="700" fill="#0A0A0A" text-anchor="middle">Замени с кадър на експерт, пациент или ясна демонстрация</text></g>
     </g>
 
     <g transform="translate(0 1510)">
       <rect width="286" height="64" rx="32" fill="#FF6B00"/>
-      <text class="body" x="143" y="41" font-size="22" font-weight="700" fill="#FFFFFF" text-anchor="middle">Гледай видеото →</text>
-      <text class="body" x="912" y="40" font-size="22" fill="#BDBDBD" text-anchor="end">Ориентир, не диагноза.</text>
+      <text class="body" data-slot="cta" x="143" y="41" font-size="22" font-weight="700" fill="#FFFFFF" text-anchor="middle">Гледай видеото →</text>
+      <text class="body" data-slot="disclaimer" x="912" y="40" font-size="22" fill="#BDBDBD" text-anchor="end">Ориентир, не диагноза.</text>
     </g>
   </g>
 </svg>
