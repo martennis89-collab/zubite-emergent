@@ -147,7 +147,7 @@ type SyncSummary = {
 
 const SYNC_STATUS_ROWS = [
   { key: 'SCHEDULED', label: 'Записан час', hint: 'Изпраща appointment booked' },
-  { key: 'ATTENDED', label: 'Потвърдено посещение', hint: 'Изпраща appointment attended само при отбелязано присъствие' },
+  { key: 'ATTENDED', label: 'Потвърдено посещение', hint: 'Изпраща appointment attended само при потвърдено присъствие.' },
 ]
 
 const SYNC_OUTCOMES = [
