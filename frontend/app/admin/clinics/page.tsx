@@ -13,6 +13,8 @@ interface PartnerClinic {
   clinic_name: string
   city: string
   email: string
+  // Set only on archived clinics: the address they gave back on archiving.
+  archived_email?: string | null
   phone?: string
   // Canonical (Feb 2026 cleanup). Backend always returns this.
   treatments_supported?: string[]
@@ -61,6 +63,9 @@ export default function AdminClinicsPage() {
   const [packageFilter, setPackageFilter] = useState<PackageFilter>('all')
   const [archiveTarget, setArchiveTarget] = useState<PartnerClinic | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
+  // Why an archive or restore was refused. Both used to ignore the reply, so a
+  // refused restore looked exactly like a click that did nothing.
+  const [notice, setNotice] = useState<string | null>(null)
   const router = useRouter()
 
   const load = useCallback(async () => {
@@ -110,10 +115,15 @@ export default function AdminClinicsPage() {
     if (!archiveTarget) return
     setBusyId(archiveTarget.id)
     try {
-      await fetch(`${API_URL}/api/admin/clinics/${archiveTarget.id}/archive`, {
+      setNotice(null)
+      const r = await fetch(`${API_URL}/api/admin/clinics/${archiveTarget.id}/archive`, {
         method: 'POST',
         credentials: 'include' as RequestCredentials,
       })
+      if (!r.ok) {
+        const body = await r.json().catch(() => ({}))
+        setNotice(typeof body.detail === 'string' ? body.detail : 'Клиниката не беше архивирана.')
+      }
       setArchiveTarget(null)
       await load()
     } finally { setBusyId(null) }
@@ -122,10 +132,17 @@ export default function AdminClinicsPage() {
   const unarchive = async (id: string) => {
     setBusyId(id)
     try {
-      await fetch(`${API_URL}/api/admin/clinics/${id}/unarchive`, {
+      setNotice(null)
+      const r = await fetch(`${API_URL}/api/admin/clinics/${id}/unarchive`, {
         method: 'POST',
         credentials: 'include' as RequestCredentials,
       })
+      if (!r.ok) {
+        // Typically: the clinic's email now belongs to a newer clinic. The
+        // backend names that clinic, so the message is enough to act on.
+        const body = await r.json().catch(() => ({}))
+        setNotice(typeof body.detail === 'string' ? body.detail : 'Клиниката не беше възстановена.')
+      }
       await load()
     } finally { setBusyId(null) }
   }
@@ -145,6 +162,16 @@ export default function AdminClinicsPage() {
             <Plus className="w-4 h-4" /> Нова клиника
           </button>
         </div>
+
+        {notice && (
+          <div
+            className="mb-4 rounded-xl bg-rose-50 ring-1 ring-rose-200 px-4 py-3 text-sm text-rose-800"
+            role="alert"
+            data-testid="admin-clinics-notice"
+          >
+            {notice}
+          </div>
+        )}
 
         {/* Archive filter tabs */}
         <div
@@ -245,7 +272,7 @@ export default function AdminClinicsPage() {
                         <Building2 className="w-4 h-4 text-slate-400" />
                         {c.clinic_name}
                       </div>
-                      <div className="text-xs text-slate-500">{c.email}</div>
+                      <div className="text-xs text-slate-500">{c.email || c.archived_email}</div>
                     </td>
                     <td className="px-4 py-3 text-slate-700">{c.city}</td>
                     <td className="px-4 py-3">

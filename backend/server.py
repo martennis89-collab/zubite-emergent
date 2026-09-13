@@ -261,6 +261,25 @@ async def startup():
     except Exception as exc:
         print(f"[migration] base_package backfill skipped: {exc}")
 
+    # Archiving now gives a clinic's email back (admin_archive_clinic). Clinics
+    # archived before that still hold theirs, which keeps the address blocked
+    # for new clinics and leaves the old login working. Move it aside once;
+    # the query matches nothing on every later start.
+    try:
+        freed = 0
+        async for c in db.clinics.find(
+            {"archived": True, "email": {"$exists": True}}, {"_id": 0, "id": 1, "email": 1}
+        ):
+            await db.clinics.update_one(
+                {"id": c["id"], "archived": True},
+                {"$set": {"archived_email": c.get("email")}, "$unset": {"email": ""}},
+            )
+            freed += 1
+        if freed:
+            print(f"[migration] freed the email of {freed} archived clinics")
+    except Exception as exc:
+        print(f"[migration] archived clinic email move skipped: {exc}")
+
     init_storage()
     asyncio.create_task(auto_verification_loop())
     try:
