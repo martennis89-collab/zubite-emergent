@@ -15,6 +15,7 @@ from cryptography.fernet import Fernet
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import clear_advance  # noqa: E402
+from schemas import ClearAdvanceStatusMappings  # noqa: E402
 
 SECRET = Fernet.generate_key().decode()
 
@@ -34,6 +35,39 @@ class FakeCollection:
         self.updates.append((query, update))
 
 
+class OutboxCursor:
+    def __init__(self, docs):
+        self.docs = docs
+
+    def sort(self, *_args):
+        return self
+
+    async def to_list(self, _limit):
+        return list(self.docs)
+
+
+class OutboxCollection(FakeCollection):
+    async def find_one(self, query, projection=None):
+        for doc in self.docs:
+            if all(doc.get(k) == v for k, v in query.items()):
+                return doc
+        return None
+
+    async def update_one(self, query, update, upsert=False):
+        existing = await self.find_one(query)
+        if not existing and upsert:
+            self.docs.append(dict(update.get("$setOnInsert") or {}))
+            return
+        self.updates.append((query, update))
+        if existing:
+            existing.update(update.get("$set") or {})
+            for key, value in (update.get("$inc") or {}).items():
+                existing[key] = int(existing.get(key) or 0) + value
+
+    def find(self, query, projection=None):
+        return OutboxCursor(self.docs)
+
+
 class FakeDB:
     def __init__(self, leads):
         self.leads = FakeCollection(leads)
@@ -42,6 +76,12 @@ class FakeDB:
             "provider": "clear_advance",
             "api_key": Fernet(SECRET.encode()).encrypt(b"ca_sk_key").decode(),
         }])
+
+
+class OutboxDB(FakeDB):
+    def __init__(self, leads):
+        super().__init__(leads)
+        self.clear_advance_outbox = OutboxCollection()
 
 
 LEAD = {
@@ -173,3 +213,42 @@ def test_failed_outcome_handoff_records_a_failure_streak(monkeypatch):
     assert not asyncio.run(clear_advance.report_consultation_action(db, "L1", "book_consultation"))
     assert len(attempts) == 1 + len(clear_advance.OUTCOME_RETRY_DELAYS)
     assert db.clinic_integrations.updates[-1][1]["$inc"]["clear_advance_sync_failure_streak"] == 1
+
+
+def test_outbox_makes_repeated_hooks_single_delivery(monkeypatch):
+    sent = []
+
+    async def fake_post(path, key, payload):
+        sent.append(payload)
+        return {"ok": True}
+
+    monkeypatch.setattr(clear_advance, "_post", fake_post)
+    db = OutboxDB([LEAD])
+    assert asyncio.run(clear_advance.report_consultation_action(db, "L1", "book_consultation"))
+    assert asyncio.run(clear_advance.report_consultation_action(db, "L1", "book_consultation"))
+    assert len(sent) == 1
+    assert db.clear_advance_outbox.docs[0]["status"] == "succeeded"
+    assert db.clear_advance_outbox.docs[0]["event_id"] == "L1:appointment_booked"
+
+
+def test_clinic_status_mapping_overrides_default(monkeypatch):
+    sent = []
+
+    async def fake_post(path, key, payload):
+        sent.append(payload)
+        return {"ok": True}
+
+    monkeypatch.setattr(clear_advance, "_post", fake_post)
+    db = FakeDB([LEAD])
+    db.clinic_integrations.docs[0]["status_mappings"] = {
+        "CONTACTED": "appointment_booked",
+    }
+    assert asyncio.run(clear_advance.report_status(db, LEAD, "CONTACTED"))
+    assert sent[0]["outcome"] == "appointment_booked"
+
+
+def test_status_mapping_schema_normalizes_and_rejects_unknown_outcomes():
+    parsed = ClearAdvanceStatusMappings(mappings={" scheduled ": "appointment_booked", "COMPLETED": None})
+    assert parsed.mappings == {"SCHEDULED": "appointment_booked", "COMPLETED": None}
+    with pytest.raises(ValueError):
+        ClearAdvanceStatusMappings(mappings={"NEW": "not_a_clear_advance_outcome"})

@@ -14,7 +14,10 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Loader2, MessageCircle, Check, Info, Image as ImageIcon, Trash2, Upload } from 'lucide-react'
+import {
+  Loader2, MessageCircle, Check, Info, Image as ImageIcon, Trash2, Upload,
+  RefreshCw, Save, CheckCircle2, XCircle,
+} from 'lucide-react'
 import { ClinicShell } from '@/components/ClinicShell'
 import { OrientationAvailabilityManager } from '@/components/clinic/OrientationAvailabilityManager'
 
@@ -99,6 +102,8 @@ export default function ClinicSettingsPage() {
 
         {profile && <ClinicLogoCard profile={profile} onSaved={load} />}
 
+        <ClearAdvanceSyncCard />
+
         <OrientationAvailabilityManager />
 
         {profile && (
@@ -123,6 +128,163 @@ export default function ClinicSettingsPage() {
       </div>
     </ClinicShell>
   )
+}
+
+type SyncState = 'loading' | 'ready' | 'saving' | 'syncing' | 'error'
+type SyncSummary = {
+  connected: boolean
+  key_hint?: string
+  connected_at?: string
+  updated_at?: string
+  clear_advance_last_sync_at?: string
+  clear_advance_last_sync_kind?: string
+  clear_advance_last_sync_ok?: boolean
+  clear_advance_sync_failure_streak?: number
+  pending_outbox: number
+  succeeded_outbox: number
+  status_mappings: Record<string, string | null>
+}
+
+const SYNC_STATUS_ROWS = [
+  { key: 'SCHEDULED', label: 'Записан час', hint: 'Изпраща appointment booked' },
+  { key: 'COMPLETED', label: 'Завършен', hint: 'Изпраща посещение само ако е потвърдено' },
+]
+
+const SYNC_OUTCOMES = [
+  { value: '', label: 'Не изпращай' },
+  { value: 'appointment_booked', label: 'Записана среща' },
+  { value: 'appointment_attended', label: 'Посещение' },
+  { value: 'sale', label: 'Продажба' },
+]
+
+function ClearAdvanceSyncCard() {
+  const [summary, setSummary] = useState<SyncSummary | null>(null)
+  const [state, setState] = useState<SyncState>('loading')
+  const [message, setMessage] = useState('')
+  const [mappings, setMappings] = useState<Record<string, string | null>>({})
+
+  const load = useCallback(async () => {
+    setMessage('')
+    try {
+      const r = await fetch(`${API_URL}/api/clinic/clear-advance`, {
+        credentials: 'include' as RequestCredentials,
+      })
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      const data: SyncSummary = await r.json()
+      setSummary(data)
+      setMappings(data.status_mappings || {})
+      setState('ready')
+    } catch {
+      setState('error')
+      setMessage('Не успяхме да заредим състоянието на синхронизацията.')
+    }
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  const saveMappings = async () => {
+    setState('saving')
+    setMessage('')
+    try {
+      const r = await fetch(`${API_URL}/api/clinic/clear-advance/mappings`, {
+        method: 'PATCH', credentials: 'include' as RequestCredentials,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mappings }),
+      })
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      const data: SyncSummary = await r.json()
+      setSummary(data)
+      setMappings(data.status_mappings || {})
+      setState('ready')
+      setMessage('Настройките са запазени.')
+    } catch {
+      setState('error')
+      setMessage('Настройките не бяха запазени.')
+    }
+  }
+
+  const runSync = async () => {
+    setState('syncing')
+    setMessage('')
+    try {
+      const r = await fetch(`${API_URL}/api/clinic/clear-advance/sync`, {
+        method: 'POST', credentials: 'include' as RequestCredentials,
+      })
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      const data = await r.json()
+      setSummary(data.sync)
+      setMappings(data.sync?.status_mappings || {})
+      setState('ready')
+      setMessage(`Синхронизацията приключи: ${data.imported || 0} нови заявки.`)
+    } catch {
+      setState('error')
+      setMessage('Синхронизацията не завърши. Опитайте отново след малко.')
+    }
+  }
+
+  if (state === 'loading') return <section className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 animate-pulse" data-testid="clear-advance-sync-loading"><div className="h-5 w-48 bg-slate-200 rounded" /><div className="mt-3 h-3 w-72 bg-slate-100 rounded" /></section>
+  if (state === 'error' && !summary) return <section className="bg-white border border-rose-200 rounded-2xl p-4 sm:p-6" data-testid="clear-advance-sync-error"><p className="text-sm text-rose-700">{message}</p></section>
+  if (!summary?.connected) return (
+    <section className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6" data-testid="clear-advance-sync-card">
+      <h2 className="font-serif text-lg font-semibold text-slate-900">Clear Advance</h2>
+      <p className="mt-1 text-sm text-slate-500">Клиниката не е свързана с Clear Advance. Когато бъде свързана, заявките от Facebook, Google и други канали ще се появяват тук.</p>
+    </section>
+  )
+
+  const syncing = state === 'saving' || state === 'syncing'
+  return (
+    <section className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 space-y-5" data-testid="clear-advance-sync-card">
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="font-serif text-lg font-semibold text-slate-900">Clear Advance синхронизация</h2>
+          <p className="mt-1 text-sm text-slate-500">Заявките и резултатите от рекламите се поддържат в двете системи.</p>
+        </div>
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full whitespace-nowrap"><CheckCircle2 className="w-3.5 h-3.5" /> Свързано</span>
+      </header>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+        <SyncMetric label="Чакащи събития" value={String(summary.pending_outbox)} tone={summary.pending_outbox ? 'warning' : 'normal'} />
+        <SyncMetric label="Изпратени" value={String(summary.succeeded_outbox)} tone="normal" />
+        <SyncMetric label="Последна синхронизация" value={summary.clear_advance_last_sync_at ? formatSyncDate(summary.clear_advance_last_sync_at) : 'Няма'} tone="normal" />
+        <SyncMetric label="Последен резултат" value={summary.clear_advance_last_sync_ok === false ? 'Грешка' : summary.clear_advance_last_sync_at ? 'Успешна' : 'Няма'} tone={summary.clear_advance_last_sync_ok === false ? 'error' : 'normal'} />
+      </div>
+
+      <div className="border-t border-slate-100 pt-4 space-y-3">
+        <div>
+          <h3 className="text-sm font-medium text-slate-800">Статус към Clear Advance</h3>
+          <p className="text-xs text-slate-500 mt-1">Избирайте само събития, които действително са настъпили.</p>
+        </div>
+        <div className="space-y-2">
+          {SYNC_STATUS_ROWS.map((row) => (
+            <label key={row.key} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-sm">
+              <span><span className="text-slate-700">{row.label}</span><span className="block text-xs text-slate-400">{row.hint}</span></span>
+              <select value={mappings[row.key] || ''} onChange={(e) => setMappings((old) => ({ ...old, [row.key]: e.target.value || null }))} className="w-full sm:w-52 border border-slate-200 rounded-lg px-2.5 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-200">
+                {SYNC_OUTCOMES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </label>
+          ))}
+        </div>
+        <button type="button" onClick={saveMappings} disabled={syncing} className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 disabled:opacity-60 rounded-lg">
+          {state === 'saving' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Запази картографирането
+        </button>
+      </div>
+
+      {summary.clear_advance_sync_failure_streak ? <p className="flex items-start gap-2 text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-xl p-3"><XCircle className="w-4 h-4 shrink-0 mt-0.5" /> Последните {summary.clear_advance_sync_failure_streak} опита не са успешни. Събитията остават в опашката за повторен опит.</p> : null}
+      {message && <p className="text-sm text-slate-600" role="status">{message}</p>}
+      <button type="button" onClick={runSync} disabled={syncing} className="inline-flex items-center gap-2 text-sm font-medium text-teal-700 hover:text-teal-800 disabled:opacity-60">
+        <RefreshCw className={`w-4 h-4 ${state === 'syncing' ? 'animate-spin' : ''}`} /> {state === 'syncing' ? 'Синхронизиране…' : 'Синхронизирай сега'}
+      </button>
+    </section>
+  )
+}
+
+function SyncMetric({ label, value, tone }: { label: string; value: string; tone: 'normal' | 'warning' | 'error' }) {
+  const color = tone === 'error' ? 'text-rose-700' : tone === 'warning' ? 'text-amber-700' : 'text-slate-900'
+  return <div className="bg-slate-50 rounded-xl p-3"><div className="text-xs text-slate-500">{label}</div><div className={`mt-1 font-medium ${color}`}>{value}</div></div>
+}
+
+function formatSyncDate(value: string) {
+  try { return new Intl.DateTimeFormat('bg-BG', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)) } catch { return 'Наскоро' }
 }
 
 function ReadOnlyRow({ label, value }: { label: string; value: string }) {

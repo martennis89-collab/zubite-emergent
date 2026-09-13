@@ -28,7 +28,7 @@ import asyncio
 import logging
 import os
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, Optional
 
 import httpx
@@ -38,6 +38,11 @@ logger = logging.getLogger(__name__)
 
 TIMEOUT_SECONDS = 5.0
 OUTCOME_RETRY_DELAYS = (0.25, 0.75, 1.5)
+OUTBOX_RETRY_DELAYS_SECONDS = (60, 300, 900, 3600)
+SUPPORTED_OUTCOMES = frozenset({
+    "appointment_booked", "appointment_attended", "sale",
+})
+DEFAULT_STATUS_MAPPINGS = {"SCHEDULED": "appointment_booked"}
 
 # A lead Clear Advance keeps rejecting -- an unusable phone number, a consent
 # flag it will not accept -- will be rejected identically forever. The sweep
@@ -180,6 +185,12 @@ async def _record_sync_health(db, lead: Dict[str, Any], *, ok: bool, kind: str) 
     clinic_id = lead.get("assigned_clinic_id")
     if not clinic_id:
         return
+    await _record_clinic_sync_health(db, clinic_id, ok=ok, kind=kind)
+
+
+async def _record_clinic_sync_health(db, clinic_id: str, *, ok: bool, kind: str) -> None:
+    if not clinic_id:
+        return
     now = datetime.now(timezone.utc)
     update = {"$set": {
         "clear_advance_last_sync_at": now,
@@ -193,6 +204,83 @@ async def _record_sync_health(db, lead: Dict[str, Any], *, ok: bool, kind: str) 
     await db.clinic_integrations.update_one(
         {"clinic_id": clinic_id, "provider": "clear_advance"}, update,
     )
+
+
+def _event_id(lead: Dict[str, Any], outcome: str) -> str:
+    """Stable idempotency key for one lead/outcome conversion."""
+    return f"{lead.get('id')}:{outcome}"
+
+
+async def _enqueue_outcome(db, lead: Dict[str, Any], outcome: str,
+                           payload: Dict[str, Any], *, event_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    """Persist an outbound conversion before attempting delivery.
+
+    Older test doubles do not expose the collection; production always does.
+    Keeping the fallback preserves the existing direct-delivery behavior for
+    those doubles while the real service gets durable retries.
+    """
+    outbox = getattr(db, "clear_advance_outbox", None)
+    if outbox is None:
+        return None
+    event_id = event_id or _event_id(lead, outcome)
+    now = datetime.now(timezone.utc)
+    doc = {
+        "id": str(uuid.uuid4()),
+        "event_id": event_id,
+        "clinic_id": lead.get("assigned_clinic_id"),
+        "lead_id": lead.get("id"),
+        "outcome": outcome,
+        "payload": payload,
+        "status": "pending",
+        "attempts": 0,
+        "created_at": now,
+        "updated_at": now,
+        "next_attempt_at": now,
+    }
+    await outbox.update_one(
+        {"event_id": event_id}, {"$setOnInsert": doc}, upsert=True,
+    )
+    return await outbox.find_one({"event_id": event_id}, {"_id": 0})
+
+
+async def _deliver_outcome(db, lead: Dict[str, Any], event: Dict[str, Any],
+                           key: str) -> bool:
+    """Deliver one outbox row and update its durable state."""
+    outbox = getattr(db, "clear_advance_outbox", None)
+    result = await _post_with_retry("/api/v1/outcomes", key, event["payload"])
+    ok = bool(result)
+    if outbox is not None:
+        now = datetime.now(timezone.utc)
+        attempt_number = int(event.get("attempts") or 0)
+        retry_after = OUTBOX_RETRY_DELAYS_SECONDS[
+            min(attempt_number, len(OUTBOX_RETRY_DELAYS_SECONDS) - 1)
+        ]
+        update = {
+            "$set": {
+                "status": "succeeded" if ok else "failed",
+                "updated_at": now,
+                "last_attempt_at": now,
+                "last_error": None if ok else "delivery_failed",
+                "completed_at": now if ok else None,
+                "next_attempt_at": None if ok else now + timedelta(seconds=retry_after),
+            },
+            "$inc": {"attempts": 1},
+        }
+        await outbox.update_one({"event_id": event["event_id"]}, update)
+    await _record_sync_health(db, lead, ok=ok, kind=event["outcome"])
+    return ok
+
+
+async def _status_outcome(db, lead: Dict[str, Any], status: str) -> Optional[str]:
+    """Resolve a clinic-specific status mapping, falling back to defaults."""
+    normalized = (status or "").upper()
+    record = await db.clinic_integrations.find_one(
+        {"clinic_id": lead.get("assigned_clinic_id"), "provider": "clear_advance"},
+        {"_id": 0, "status_mappings": 1},
+    )
+    mappings = (record or {}).get("status_mappings") or {}
+    outcome = mappings.get(normalized, DEFAULT_STATUS_MAPPINGS.get(normalized))
+    return outcome if outcome in SUPPORTED_OUTCOMES else None
 
 
 def _clear_advance_key(record: Dict[str, Any], clinic_id: str) -> Optional[str]:
@@ -279,6 +367,9 @@ async def report_outcome(db, lead: Dict[str, Any], outcome: str) -> bool:
     patient is not reported. That is the right way round: under-reporting a
     conversion is recoverable, inventing one is not.
     """
+    if outcome not in SUPPORTED_OUTCOMES:
+        return False
+
     key = await _clinic_key(db, lead)
     if not key:
         return False
@@ -287,13 +378,25 @@ async def report_outcome(db, lead: Dict[str, Any], outcome: str) -> bool:
     if not remote_id:
         return False
 
-    result = await _post_with_retry("/api/v1/outcomes", key, {
+    payload = {
         "source_system": "zubite",
-        "source_event_id": f"{lead.get('id')}:{outcome}",
+        "source_event_id": _event_id(lead, outcome),
         "outcome": outcome,
         "lead_reference": remote_id,
         "occurred_at": datetime.now(timezone.utc).isoformat(),
-    })
+    }
+    event = await _enqueue_outcome(db, lead, outcome, payload)
+    # A durable success is already delivered. This makes duplicate hooks and
+    # manual retries read-only after the first successful handoff.
+    if event and event.get("status") == "succeeded":
+        return True
+    if event:
+        return await _deliver_outcome(db, lead, {
+            "event_id": event["event_id"], "outcome": outcome,
+            "payload": event.get("payload") or payload,
+        }, key)
+
+    result = await _post_with_retry("/api/v1/outcomes", key, payload)
     ok = bool(result)
     await _record_sync_health(db, lead, ok=ok, kind=outcome)
     return ok
@@ -301,7 +404,7 @@ async def report_outcome(db, lead: Dict[str, Any], outcome: str) -> bool:
 
 async def report_status(db, lead: Dict[str, Any], status: str) -> bool:
     """Report a lead status that means something to an ad platform."""
-    outcome = STATUS_OUTCOMES.get((status or "").upper())
+    outcome = await _status_outcome(db, lead, status)
     return await report_outcome(db, lead, outcome) if outcome else False
 
 
@@ -346,7 +449,7 @@ async def report_revenue(db, lead: Dict[str, Any], amount_minor: int,
     if not remote_id:
         return False
 
-    result = await _post_with_retry("/api/v1/outcomes", key, {
+    payload = {
         "source_system": "zubite",
         "source_event_id": source_event_id,
         "outcome": "sale",
@@ -354,13 +457,22 @@ async def report_revenue(db, lead: Dict[str, Any], amount_minor: int,
         "occurred_at": datetime.now(timezone.utc).isoformat(),
         "amount_minor": amount_minor,
         "currency": currency.upper(),
-    })
+    }
+    event = await _enqueue_outcome(db, lead, "sale", payload, event_id=source_event_id)
+    if event and event.get("status") == "succeeded":
+        return True
+    if event:
+        return await _deliver_outcome(db, lead, {
+            "event_id": event["event_id"], "outcome": "sale",
+            "payload": event.get("payload") or payload,
+        }, key)
+    result = await _post_with_retry("/api/v1/outcomes", key, payload)
     ok = bool(result)
     await _record_sync_health(db, lead, ok=ok, kind="sale")
     return ok
 
 
-async def report_pending_leads(db, limit: int = 50) -> int:
+async def report_pending_leads(db, limit: int = 50, clinic_id: Optional[str] = None) -> int:
     """Hand over assigned leads that were never reported. Returns how many landed.
 
     Reporting is driven by assignment, not by creation, because an unassigned
@@ -384,8 +496,13 @@ async def report_pending_leads(db, limit: int = 50) -> int:
         return 0
 
     reported = 0
+    integration_query: Dict[str, Any] = {
+        "provider": "clear_advance", "connected_at": {"$exists": True},
+    }
+    if clinic_id:
+        integration_query["clinic_id"] = clinic_id
     integrations = await db.clinic_integrations.find(
-        {"provider": "clear_advance", "connected_at": {"$exists": True}},
+        integration_query,
         {"_id": 0, "clinic_id": 1, "connected_at": 1},
     ).to_list(None)
 
@@ -415,6 +532,43 @@ async def report_pending_leads(db, limit: int = 50) -> int:
             await asyncio.sleep(0.2)
 
     return reported
+
+
+async def process_pending_outcomes(db, limit: int = 50,
+                                   clinic_id: Optional[str] = None) -> Dict[str, int]:
+    """Deliver durable conversion events left by a failed request or restart."""
+    outbox = getattr(db, "clear_advance_outbox", None)
+    if outbox is None or not _base_url():
+        return {"processed": 0, "succeeded": 0, "failed": 0}
+    now = datetime.now(timezone.utc)
+    event_query: Dict[str, Any] = {
+        "status": {"$in": ["pending", "failed"]},
+        "$or": [{"next_attempt_at": {"$lte": now}}, {"next_attempt_at": {"$exists": False}}],
+    }
+    if clinic_id:
+        event_query["clinic_id"] = clinic_id
+    events = await outbox.find(event_query, {"_id": 0}).sort("created_at", 1).to_list(limit)
+    succeeded = 0
+    failed = 0
+    for event in events:
+        clinic_id = event.get("clinic_id")
+        lead_id = event.get("lead_id")
+        if not clinic_id or not lead_id:
+            failed += 1
+            continue
+        lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
+        record = await db.clinic_integrations.find_one(
+            {"clinic_id": clinic_id, "provider": "clear_advance"},
+            {"_id": 0, "api_key": 1},
+        )
+        key = _clear_advance_key(record or {}, clinic_id)
+        if not lead or not key:
+            failed += 1
+            continue
+        ok = await _deliver_outcome(db, lead, event, key)
+        succeeded += int(ok)
+        failed += int(not ok)
+    return {"processed": len(events), "succeeded": succeeded, "failed": failed}
 
 
 def _imported_lead_doc(remote: Dict[str, Any], clinic_id: str, local_id: str) -> Dict[str, Any]:
@@ -528,6 +682,7 @@ async def import_pending_leads(db, limit: int = 100) -> int:
             params["since"] = str(record["connected_at"])
         page = await _get("/api/v1/leads", key, params)
         if not page or not isinstance(page.get("leads"), list):
+            await _record_clinic_sync_health(db, clinic_id, ok=False, kind="import")
             continue
         for remote in page["leads"]:
             if isinstance(remote, dict) and await import_clear_advance_lead(db, remote, clinic_id):
@@ -538,4 +693,5 @@ async def import_pending_leads(db, limit: int = 100) -> int:
                 {"clinic_id": clinic_id, "provider": "clear_advance"},
                 {"$set": {"clear_advance_import_cursor": next_cursor}},
             )
+        await _record_clinic_sync_health(db, clinic_id, ok=True, kind="import")
     return imported

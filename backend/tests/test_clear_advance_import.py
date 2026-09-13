@@ -93,7 +93,13 @@ def test_import_sweep_stores_cursor_only_after_a_successful_page(monkeypatch):
     assert asyncio.run(clear_advance.import_pending_leads(db)) == 1
     assert imported == [("remote-1", "clinic-a")]
     assert calls[0][2]["since"] == "2026-09-13T00:00:00+00:00"
-    assert db.clinic_integrations.updates == [
+    cursor_updates = [u for u in db.clinic_integrations.updates
+                      if "clear_advance_import_cursor" in u[1].get("$set", {})]
+    assert cursor_updates == [
         ({"clinic_id": "clinic-a", "provider": "clear_advance"},
          {"$set": {"clear_advance_import_cursor": "cursor-2"}})
     ]
+    health_updates = [u for u in db.clinic_integrations.updates
+                      if "clear_advance_last_sync_kind" in u[1].get("$set", {})]
+    assert health_updates[-1][1]["$set"]["clear_advance_last_sync_kind"] == "import"
+    assert health_updates[-1][1]["$set"]["clear_advance_last_sync_ok"] is True

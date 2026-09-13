@@ -1882,6 +1882,30 @@ class ClinicIntegration(BaseModel):
     api_key: str = Field(min_length=8, max_length=200, pattern=r"^ca_sk_[A-Za-z0-9_-]+$")
 
 
+class ClearAdvanceStatusMappings(BaseModel):
+    """Clinic-owned mapping from a Zubite lead status to an ad outcome.
+
+    Only outcomes Clear Advance can deduplicate and forward to an ad platform
+    are accepted. A null value explicitly disables a mapping.
+    """
+    mappings: Dict[str, Optional[str]] = Field(default_factory=dict)
+
+    @field_validator("mappings")
+    @classmethod
+    def _validate_mappings(cls, value: Dict[str, Optional[str]]) -> Dict[str, Optional[str]]:
+        allowed = {"appointment_booked", "appointment_attended", "sale"}
+        normalized: Dict[str, Optional[str]] = {}
+        for status, outcome in value.items():
+            if not isinstance(status, str) or not status.strip():
+                raise ValueError("mapping status keys must be non-empty strings")
+            key = status.strip().upper()
+            if outcome is not None:
+                if not isinstance(outcome, str) or outcome not in allowed:
+                    raise ValueError(f"mapping outcome must be one of {sorted(allowed)} or null")
+            normalized[key] = outcome
+        return normalized
+
+
 class LeadRevenue(BaseModel):
     """Money a patient has actually agreed or paid.
 

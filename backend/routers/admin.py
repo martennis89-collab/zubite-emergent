@@ -13,11 +13,12 @@ from schemas import (
     AdminLogin, AdminUser, TokenResponse, LeadStatusUpdate, LeadUpdate,
     ConfirmationBody, CleanupLeadsBody, ClinicIntegration, LeadRevenue,
     RESET_ANALYTICS_TOKEN, RESET_BLOG_VIEWS_TOKEN, CLEANUP_LEADS_TOKEN,
+    ClearAdvanceStatusMappings,
 )
 from auth import (
     verify_password, create_token, get_current_user,
     revoke_session_by_jti, revoke_all_sessions_for_user,
-    cleanup_expired_auth_sessions,
+    cleanup_expired_auth_sessions, get_current_clinic,
 )
 from config import (
     IS_PRODUCTION, logger,
@@ -26,7 +27,10 @@ from config import (
 )
 from rate_limit import rate_limit
 from audit import audit_log, diff_fields
-from clear_advance import report_status, report_revenue, encrypt_api_key
+from clear_advance import (
+    DEFAULT_STATUS_MAPPINGS, encrypt_api_key, import_pending_leads,
+    process_pending_outcomes, report_pending_leads, report_revenue, report_status,
+)
 
 
 def _mask_username(value: str | None) -> str | None:
@@ -281,8 +285,95 @@ async def admin_clear_advance_status(clinic_id: str,
         {"clinic_id": clinic_id, "provider": "clear_advance"},
         {"_id": 0, "key_hint": 1, "updated_at": 1, "connected_at": 1,
          "clear_advance_last_sync_at": 1, "clear_advance_last_sync_kind": 1,
-         "clear_advance_last_sync_ok": 1, "clear_advance_sync_failure_streak": 1})
-    return {"connected": bool(record), **(record or {})}
+         "clear_advance_last_sync_ok": 1, "clear_advance_sync_failure_streak": 1,
+         "status_mappings": 1, "clear_advance_import_cursor": 1})
+    outbox = getattr(db, "clear_advance_outbox", None)
+    pending = await outbox.count_documents(
+        {"clinic_id": clinic_id, "status": {"$in": ["pending", "failed"]}}) if outbox else 0
+    succeeded = await outbox.count_documents(
+        {"clinic_id": clinic_id, "status": "succeeded"}) if outbox else 0
+    return {"connected": bool(record), "pending_outbox": pending,
+            "succeeded_outbox": succeeded,
+            "status_mappings": {**DEFAULT_STATUS_MAPPINGS,
+                                 **((record or {}).get("status_mappings") or {})},
+            **(record or {})}
+
+
+async def _clinic_clear_advance_status(clinic: dict) -> dict:
+    record = await db.clinic_integrations.find_one(
+        {"clinic_id": clinic["id"], "provider": "clear_advance"},
+        {"_id": 0, "key_hint": 1, "updated_at": 1, "connected_at": 1,
+         "clear_advance_last_sync_at": 1, "clear_advance_last_sync_kind": 1,
+         "clear_advance_last_sync_ok": 1, "clear_advance_sync_failure_streak": 1,
+         "status_mappings": 1, "clear_advance_import_cursor": 1})
+    outbox = getattr(db, "clear_advance_outbox", None)
+    pending = await outbox.count_documents(
+        {"clinic_id": clinic["id"], "status": {"$in": ["pending", "failed"]}}) if outbox else 0
+    succeeded = await outbox.count_documents(
+        {"clinic_id": clinic["id"], "status": "succeeded"}) if outbox else 0
+    return {"connected": bool(record), "pending_outbox": pending,
+            "succeeded_outbox": succeeded,
+            "status_mappings": {**DEFAULT_STATUS_MAPPINGS,
+                                 **((record or {}).get("status_mappings") or {})},
+            **(record or {})}
+
+
+@router.get("/clinic/clear-advance")
+async def clinic_clear_advance_status(clinic=Depends(get_current_clinic)):
+    """Clinic-safe connection, mapping and delivery-health summary."""
+    return await _clinic_clear_advance_status(clinic)
+
+
+@router.patch("/clinic/clear-advance/mappings")
+async def clinic_update_clear_advance_mappings(
+    data: ClearAdvanceStatusMappings,
+    request: Request,
+    clinic=Depends(get_current_clinic),
+):
+    """Save only this clinic's allowed status-to-outcome mappings."""
+    if not await db.clinic_integrations.find_one(
+        {"clinic_id": clinic["id"], "provider": "clear_advance"}, {"_id": 1}
+    ):
+        raise HTTPException(status_code=409, detail="Clear Advance is not connected")
+    await db.clinic_integrations.update_one(
+        {"clinic_id": clinic["id"], "provider": "clear_advance"},
+        {"$set": {"status_mappings": data.mappings,
+                   "status_mappings_updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    await audit_log(
+        "clinic.clear_advance_mappings_updated", actor_type="clinic",
+        target_type="clinic", target_id=clinic["id"],
+        metadata={"mapping_keys": sorted(data.mappings.keys())}, severity="info",
+        request=request,
+    )
+    return await _clinic_clear_advance_status(clinic)
+
+
+@router.post("/clinic/clear-advance/sync")
+async def clinic_run_clear_advance_sync(
+    request: Request,
+    clinic=Depends(get_current_clinic),
+):
+    """Run one bounded sync for this clinic and return its health snapshot."""
+    if not await db.clinic_integrations.find_one(
+        {"clinic_id": clinic["id"], "provider": "clear_advance"}, {"_id": 1}
+    ):
+        raise HTTPException(status_code=409, detail="Clear Advance is not connected")
+    reported = await report_pending_leads(db, clinic_id=clinic["id"])
+    imported = await import_pending_leads(db, clinic_id=clinic["id"])
+    outcomes = await process_pending_outcomes(db, clinic_id=clinic["id"])
+    await audit_log(
+        "clinic.clear_advance_sync_triggered", actor_type="clinic",
+        target_type="clinic", target_id=clinic["id"],
+        metadata={"reported": reported, "imported": imported,
+                  "outcomes_processed": outcomes["processed"],
+                  "outcomes_succeeded": outcomes["succeeded"],
+                  "outcomes_failed": outcomes["failed"]}, severity="info",
+        request=request,
+    )
+    return {"reported": reported, "imported": imported,
+            "outcomes": outcomes,
+            "sync": await _clinic_clear_advance_status(clinic)}
 
 
 @router.post("/admin/leads/{lead_id}/revenue")
