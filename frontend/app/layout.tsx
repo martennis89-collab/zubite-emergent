@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { generateOrganizationSchema, generateWebSiteSchema } from '@/lib/schema'
 import { CookieConsent } from '@/components/CookieConsent'
@@ -8,6 +8,7 @@ import { AttributionTracker } from '@/components/AttributionTracker'
 import { GoogleAnalyticsConsent } from '@/components/analytics/GoogleAnalyticsConsent'
 import { GA_MEASUREMENT_ID } from '@/lib/analytics/gtag'
 import { Suspense } from 'react'
+import { RouteDesignScope } from '@/components/RouteDesignScope'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://zubite.bg'),
@@ -17,6 +18,7 @@ export const metadata: Metadata = {
   authors: [{ name: 'Zubite.bg' }],
   creator: 'Zubite.bg',
   publisher: 'Zubite.bg',
+  manifest: '/manifest.webmanifest',
   robots: {
     index: true,
     follow: true,
@@ -27,9 +29,6 @@ export const metadata: Metadata = {
       'max-image-preview': 'large',
       'max-snippet': -1,
     },
-  },
-  alternates: {
-    canonical: 'https://zubite.bg',
   },
   openGraph: {
     type: 'website',
@@ -60,6 +59,13 @@ export const metadata: Metadata = {
   category: 'health',
 }
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#f5f4f2',
+}
+
 export default function RootLayout({
   children,
 }: {
@@ -71,10 +77,6 @@ export default function RootLayout({
   return (
     <html lang="bg">
       <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="manifest" href="/manifest.json" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
@@ -121,8 +123,7 @@ export default function RootLayout({
               } catch (e) { /* localStorage may be unavailable */ }
               gtag('js', new Date());
               gtag('config', '${GA_MEASUREMENT_ID}', {
-                anonymize_ip: true,
-                send_page_view: false
+                anonymize_ip: true
               });
             `,
           }}
@@ -132,12 +133,18 @@ export default function RootLayout({
             script so it bypasses any client-side Suspense boundary. */}
         <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`} />
       </head>
-      <body className="antialiased overflow-x-hidden bg-[#FCFAF8] text-slate-900">
+      {/* suppressHydrationWarning is scoped to just this element's own
+          attributes — it does not hide real content/tree mismatches
+          deeper in the app. Needed because browser extensions (Grammarly,
+          ColorZilla, etc.) inject attributes like data-gr-ext-installed /
+          cz-shortcut-listen directly onto <body> before React hydrates,
+          which is a well-known false-positive, not an app bug. */}
+      <body className="overflow-x-hidden bg-[#F5F4F2] text-[#0A0A0A] antialiased" suppressHydrationWarning>
         <Suspense fallback={null}>
           <AttributionTracker />
         </Suspense>
         <GoogleAnalyticsConsent />
-        {children}
+        <RouteDesignScope>{children}</RouteDesignScope>
         <CookieConsent />
         <MetaPixel />
         <OutbrainPixel />

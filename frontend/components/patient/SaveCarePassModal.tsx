@@ -160,21 +160,21 @@ export function SaveCarePassModal({
                     id="save-care-pass-title"
                     className="font-serif text-lg sm:text-xl font-semibold text-slate-900 leading-snug"
                   >
-                    Запази резултата и Care Pass на имейл
+                    Запази резултата на имейл
                   </h2>
                 </div>
               </div>
 
               <p className="text-sm text-slate-600 leading-relaxed mb-4">
-                Ще ти изпратим кратко резюме на твоя ориентир и информация
-                за Care Pass. Това е ориентир, не диагноза.
+                Ще ти изпратим кратко резюме на твоя ориентир и ясна
+                следваща стъпка. Това е ориентир, не диагноза.
               </p>
 
               {/* What you'll receive — compact chip strip */}
               <ul className="mb-5 flex flex-wrap gap-1.5" data-testid="save-care-pass-bullets">
                 {[
                   { icon: ShieldCheck, label: 'Твоят ориентир' },
-                  { icon: Sparkles, label: 'Care Pass — обяснение' },
+                  { icon: Sparkles, label: 'Следваща стъпка' },
                   { icon: Mail, label: 'Как продължаваме' },
                 ].map(({ icon: Icon, label }) => (
                   <li
@@ -215,7 +215,7 @@ export function SaveCarePassModal({
                   />
                   <span className="text-[13px] text-slate-600 leading-relaxed">
                     Съгласен/-сна съм Zubite.bg да ми изпрати моя ориентир
-                    и информация за Care Pass на този имейл.
+                    на този имейл.
                   </span>
                 </label>
 

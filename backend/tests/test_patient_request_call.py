@@ -1,9 +1,9 @@
 """Patient layer P4 — `POST /api/leads/{lead_id}/request-call` tests.
 
-Covers the full hard product rule: ONE lead may request a call from ONLY
-ONE clinic, and the selected clinic MUST be in the recommended set.
-Validates duplicate protection, consent storage, payload shape, rate
-limit, and isolation across clinics.
+Covers the product rule that one lead may contact multiple recommended
+clinics while duplicate submissions to the same clinic stay idempotent.
+Validates consent storage, payload shape, rate limit, and isolation across
+clinics.
 
 Conventions mirror test_patient_recommended_clinics.py: in-process ASGI,
 isolated test DB, no network.
@@ -225,6 +225,8 @@ def test_02_updates_lead_selection_fields(app):
     saved = _run(_database.db.leads.find_one({"id": lead}, {"_id": 0}))
     assert saved["selected_clinic_id"] == clinic
     assert saved["selected_clinic_request_id"]
+    assert saved["selected_clinic_ids"] == [clinic]
+    assert saved["selected_clinic_request_ids"] == [saved["selected_clinic_request_id"]]
     assert saved["request_call_status"] == "requested"
     assert saved["clinic_selection_source"] == "clinic_profile"
     assert saved["consent_to_share_clinic"] is True
@@ -264,8 +266,8 @@ def test_04_second_request_same_clinic_idempotent(app):
     assert count == 1
 
 
-# 5. Second request for same lead → DIFFERENT clinic returns 409.
-def test_05_second_request_different_clinic_409(app):
+# 5. The same lead may contact a second recommended clinic.
+def test_05_second_request_different_clinic_allowed(app):
     import database as _database
     lead = _make_lead()
     clinic_a = _make_clinic(name="ClinicA")
@@ -273,12 +275,12 @@ def test_05_second_request_different_clinic_409(app):
     s1, _ = _post_request_call(app, lead, _valid_body(clinic_a))
     assert s1 == 200
     s2, b2 = _post_request_call(app, lead, _valid_body(clinic_b))
-    assert s2 == 409, b2
-    assert b2["detail"]["code"] == "already_requested"
-    assert b2["detail"]["clinic"]["id"] == clinic_a
-    # Still only one consultation request.
+    assert s2 == 200, b2
+    assert b2["clinic"]["id"] == clinic_b
     count = _run(_database.db.consultation_requests.count_documents({"lead_id": lead}))
-    assert count == 1
+    assert count == 2
+    saved = _run(_database.db.leads.find_one({"id": lead}, {"_id": 0}))
+    assert set(saved["selected_clinic_ids"]) == {clinic_a, clinic_b}
 
 
 # 6. Pre-existing flow consultation_request blocks duplicate creation
@@ -308,8 +310,8 @@ def test_06_existing_flow_request_blocks_creation(app):
     assert count == 1
 
 
-def test_06b_existing_flow_request_blocks_different_clinic(app):
-    """Same setup as 06, but POSTing a different clinic → 409."""
+def test_06b_existing_flow_request_allows_different_clinic(app):
+    """A pre-existing request for one clinic does not block another."""
     import database as _database
     lead = _make_lead()
     clinic_a = _make_clinic(name="ClinicA")
@@ -324,10 +326,10 @@ def test_06b_existing_flow_request_blocks_different_clinic(app):
         "created_at": _now_iso(),
     }))
     s, b = _post_request_call(app, lead, _valid_body(clinic_b))
-    assert s == 409
-    assert b["detail"]["code"] == "already_requested"
+    assert s == 200, b
+    assert b["clinic"]["id"] == clinic_b
     count = _run(_database.db.consultation_requests.count_documents({"lead_id": lead}))
-    assert count == 1
+    assert count == 2
 
 
 # 7. Clinic outside recommended list → 400.
@@ -592,6 +594,24 @@ def test_state_after_request(app):
     assert b["selected_clinic_id"] == clinic
     assert b["request_call_status"] == "requested"
     assert b["clinic"]["id"] == clinic
+    assert b["request_count"] == 1
+    assert b["requested_clinic_ids"] == [clinic]
+
+
+def test_state_after_multiple_clinic_requests(app):
+    lead = _make_lead()
+    clinic_a = _make_clinic(name="ClinicA")
+    clinic_b = _make_clinic(name="ClinicB")
+    _post_request_call(app, lead, _valid_body(clinic_a))
+    _post_request_call(app, lead, _valid_body(clinic_b))
+    s, b = _get_state(app, lead)
+    assert s == 200
+    assert b["request_count"] == 2
+    assert b["requested_clinic_ids"] == [clinic_a, clinic_b]
+    assert {clinic["id"] for clinic in b["requested_clinics"]} == {
+        clinic_a,
+        clinic_b,
+    }
 
 
 def test_state_404_for_unknown_lead(app):

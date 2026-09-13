@@ -23,18 +23,7 @@ export interface HomeBlogPost {
 // ─── Shared constants ──────────────────────────────────────────────
 export const QUIZ_URL = '/quiz'
 
-export const HERO_BG =
-  'https://static.prod-images.emergentagent.com/jobs/25b55d94-1ed6-49c7-af05-4dd6f19863cf/images/ee418e7567bbb08fdf27e9d9873be33914cd827a79e42b9833f9728687f9addb.png'
-
-// User-provided premium asset renders (Feb 2026)
-export const ASSET_B_GLASS_PANELS =
-  'https://customer-assets.emergentagent.com/job_25b55d94-1ed6-49c7-af05-4dd6f19863cf/artifacts/d3zg8noc_ChatGPT%20Image%20May%2017%2C%202026%2C%2010_04_41%20AM.png'
-export const ASSET_C_APP_MOCKUP =
-  'https://customer-assets.emergentagent.com/job_25b55d94-1ed6-49c7-af05-4dd6f19863cf/artifacts/owz9rhgj_ChatGPT%20Image%20May%2017%2C%202026%2C%2010_05_03%20AM.png'
-export const ASSET_E_CARE_PASS_CARD =
-  'https://customer-assets.emergentagent.com/job_25b55d94-1ed6-49c7-af05-4dd6f19863cf/artifacts/kyba9eaq_ChatGPT%20Image%20May%2017%2C%202026%2C%2010_21_45%20AM.png'
-export const ASSET_F_FINAL_CTA_BG =
-  'https://customer-assets.emergentagent.com/job_25b55d94-1ed6-49c7-af05-4dd6f19863cf/artifacts/jdhdxffb_ChatGPT%20Image%20May%2017%2C%202026%2C%2010_05_42%20AM.png'
+export const ASSET_E_CARE_PASS_CARD = '/images/stitch/care-pass.webp'
 
 // ─── Reveal-on-scroll helper ───────────────────────────────────────
 export function useReveal<T extends HTMLElement>() {

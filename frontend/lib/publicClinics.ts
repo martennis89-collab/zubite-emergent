@@ -1,16 +1,59 @@
 /**
  * Public clinic directory — types, API helpers, and tier mapping.
  *
- * Single source of truth for `/kliniki` listing surface. Mirrors the
+ * Single source of truth for `/clinics` listing surface. Mirrors the
  * shape of `GET /api/public/clinics` and intentionally lives next to
  * `lib/api.ts` so the quiz-driven results flow stays untouched.
  */
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+/**
+ * Base URL for the backend.
+ *
+ * These helpers run in BOTH contexts. On the server (SSR/RSC) the
+ * browser-facing `NEXT_PUBLIC_API_URL` may be unreachable — in Docker it
+ * points at a host-published port that does not exist inside the
+ * container, and in production it takes a needless round trip out to the
+ * public internet. `INTERNAL_API_URL` / `BACKEND_INTERNAL_URL` exist for
+ * this (the same vars `next.config.js` already uses for its `/api`
+ * rewrite), so prefer them server-side and fall back to the public URL.
+ *
+ * Trailing slashes are stripped: a stray one produces `//api/...` and a
+ * 404, and the value is baked in at build time on Vercel — a known
+ * migration footgun, so it is handled here rather than trusted to config.
+ */
+function resolveApiUrl(): string {
+  const isServer = typeof window === 'undefined'
+  const raw = isServer
+    ? process.env.INTERNAL_API_URL ||
+      process.env.BACKEND_INTERNAL_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      ''
+    : process.env.NEXT_PUBLIC_API_URL || ''
+  return raw.replace(/\/+$/, '')
+}
+
+const API_URL = resolveApiUrl()
 
 /** Public partner tier — derived from the existing `partner_tier` field on
  *  the clinic doc. No parallel schema. */
 export type PartnerTier = 'standard' | 'featured' | 'premium'
+
+export type AssessmentApproach =
+  | 'airway_breathing'
+  | 'swallowing_orofacial'
+  | 'speech_articulation'
+  | 'posture_balance'
+  | 'facial_asymmetry'
+  | 'functional_orthodontics'
+
+export const ASSESSMENT_APPROACH_LABELS: Record<AssessmentApproach, string> = {
+  airway_breathing: 'Дишане и дихателни пътища',
+  swallowing_orofacial: 'Преглъщане и орофациални навици',
+  speech_articulation: 'Говор и артикулация',
+  posture_balance: 'Стойка и мускулен баланс',
+  facial_asymmetry: 'Лицева асиметрия',
+  functional_orthodontics: 'Функционален ортодонтски подход',
+}
 
 /** Public-facing tier label (never the raw internal tier name).
  *  Feb 2026 pricing revamp: only Verified / Growth are public. Any
@@ -33,7 +76,9 @@ export type ReviewSummary = {
 
 export type DoctorSpotlight = {
   name: string | null
+  kind: 'owner' | 'lead_doctor'
   role: string | null
+  specialties: string[]
   bio: string | null
 }
 
@@ -53,6 +98,12 @@ export type ProfileTreatmentDetail = {
   note: string | null
 }
 
+export type TreatmentCaseCount = {
+  treatment: string
+  completed_cases: number
+  as_of_year: number | null
+}
+
 export type PublicClinic = {
   id: string
   slug: string
@@ -62,9 +113,13 @@ export type PublicClinic = {
   area: string | null
   treatments: string[]
   specialties: string[]
+  assessment_approaches?: AssessmentApproach[]
   short_description: string | null
   patient_intro: string | null
+  founded_year: number | null
+  years_in_business: number | null
   treatment_focus: string[]
+  treatment_case_counts: TreatmentCaseCount[]
   hero_image_url: string | null
   doctor_spotlight_image_url: string | null
   team_image_url: string | null
@@ -78,12 +133,52 @@ export type PublicClinic = {
   accepts_adults: boolean | null
   accepts_children: boolean | null
   profile_information_reviewed: boolean
+  /**
+   * LEGACY audit field. Do NOT gate rendering on this — it is not
+   * written from the canonical `base_package`, so every clinic created
+   * after the Feb-2026 pricing revamp reports "standard" here no matter
+   * what they pay. Use `entitlements` below. Kept only for the public
+   * status label and for legacy admin code.
+   */
   partner_tier: PartnerTier
+  /** Canonical commercial package (Feb 2026 revamp). */
+  base_package?: 'verified_profile' | 'growth_partner' | null
+  /**
+   * Entitlement-derived render flags computed server-side from
+   * `entitlements.py`. This is the single source of truth for which
+   * profile sections a clinic is entitled to.
+   */
+  entitlements?: {
+    enhanced_clinic_profile: boolean
+    structured_trust_signals: boolean
+    treatment_service_map: 'limited' | 'full'
+    max_treatment_sections: number
+    case_library_eligibility: boolean
+    expert_qa: boolean
+    /** Gates the "Съобщение до клиниката" chat CTA. Independent of
+     *  `viber_phone` above. */
+    patient_chat_channels: boolean
+  }
   public_status_label: string
   /** Feb 2026 booking engine — when true, patient can open the
    *  full booking calendar via `/booking/{id}`. When false, only
    *  the contact CTA (phone / lead form) is shown. */
   booking_enabled?: boolean
+  /**
+   * Clinic's Viber number in E.164, or null. The server only sends it
+   * when the package grants the chat channel AND the clinic enabled it,
+   * so render the Viber CTA on presence alone — do not combine it with
+   * `entitlements` or `base_package` here.
+   */
+  viber_phone?: string | null
+  /**
+   * 'online' | 'accepting' | null. 'online' means the clinic has been
+   * active within the last 15 minutes (a real signal, not literal
+   * live-presence — see `_chat_presence` server-side); 'accepting' means
+   * the chat channel is entitled but the clinic hasn't been seen
+   * recently; null means don't render a presence badge at all.
+   */
+  chat_presence?: 'online' | 'accepting' | null
   review: ReviewSummary | null
   long_description: string | null
   consultation_process: string | null
@@ -136,6 +231,29 @@ export type PublicClinicFilters = {
   accepts_children?: boolean
 }
 
+export const CLINIC_CONTACT_ACTION_COPY = {
+  label: 'Заяви контакт',
+  description: 'Клиниката ще се свърже с теб.',
+} as const
+
+export type ClinicDirectorySearchParams = Record<string, string | string[] | undefined>
+
+export function clinicFiltersFromSearchParams(
+  params: ClinicDirectorySearchParams,
+): PublicClinicFilters {
+  const first = (key: string) => {
+    const value = params[key]
+    return Array.isArray(value) ? value[0] : value
+  }
+  return {
+    city: first('city') || undefined,
+    specialty: first('specialty') || undefined,
+    online_consultation: first('online') === '1',
+    accepts_adults: first('adults') === '1',
+    accepts_children: first('children') === '1',
+  }
+}
+
 function buildQuery(f: PublicClinicFilters): string {
   const sp = new URLSearchParams()
   if (f.city) sp.set('city', f.city)
@@ -176,6 +294,7 @@ export const TREATMENT_LABELS: Record<string, string> = {
   aligners: 'Алайнери',
   ortodontia: 'Ортодонтия',
   orthodontics: 'Ортодонтия',
+  ortho: 'Ортодонтия',
   implants: 'Импланти',
   implantologia: 'Импланти',
   dentalni_implanti: 'Дентални импланти',
@@ -184,6 +303,21 @@ export const TREATMENT_LABELS: Record<string, string> = {
   estetichna_stomatologia: 'Естетична стоматология',
   endodontics: 'Ендодонтия',
   pediatric: 'Детска стоматология',
+  // Added 2026-07: these slugs are in active use (lib/pricing.ts keys,
+  // the /braces + /aligners-vs-braces + /tmj + /sleep-airway routes) but
+  // had no label, so `treatmentLabel()` fell through to its raw-slug
+  // fallback and printed English ("braces", "veneers") to Bulgarian
+  // patients. Labels below match the wording used elsewhere on the site.
+  braces: 'Брекети',
+  breketi: 'Брекети',
+  veneers: 'Фасети',
+  bonding: 'Бондинг',
+  whitening: 'Избелване',
+  tmj: 'TMJ / челюстни стави',
+  sleep_airway: 'Сън и дишане',
+  'sleep-airway': 'Сън и дишане',
+  hygiene: 'Хигиена и венци',
+  periodontics: 'Пародонтология',
 }
 
 /** URL specialty slug → canonical backend treatment key. The backend stores
@@ -220,7 +354,7 @@ export function resolveSpecialtySlug(urlSlug: string): string | null {
   return SPECIALTY_URL_MAP[k] || null
 }
 
-/** Specialty-aware page heading for `/kliniki/[city]/[specialty]`.
+/** Specialty-aware page heading for `/clinics/[city]/[specialty]`.
  *  Hand-crafted so SEO/intent matches natural Bulgarian search phrases. */
 export function specialtyCityHeading(specialtySlug: string, cityName: string): string {
   const k = specialtySlug.toLowerCase()
@@ -251,13 +385,13 @@ export function treatmentLabel(slug: string): string {
   return TREATMENT_LABELS[slug] || slug.replace(/_/g, ' ')
 }
 
-/** Build the canonical profile URL for a clinic — `/kliniki/[city]/[specialty]/[slug]`.
+/** Build the canonical profile URL for a clinic — `/clinics/[city]/[specialty]/[slug]`.
  *  `specialty` is the FIRST treatment slug from the clinic's list, or a
  *  generic `klinika` fallback if treatments is empty (still SEO-safe). */
 export function clinicProfileHref(c: PublicClinic): string {
   const city = c.city_slug || 'all'
   const specialty = c.treatments[0] || 'klinika'
-  return `/kliniki/${city}/${specialty}/${c.slug || c.id}`
+  return `/clinics/${city}/${specialty}/${c.slug || c.id}`
 }
 
 /** City slug → Bulgarian display name. Falls back to capitalising the

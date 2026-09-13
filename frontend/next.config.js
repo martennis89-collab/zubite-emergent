@@ -20,11 +20,15 @@
 // follow-up with a dedicated test of every page that uses inline scripts.
 // ─────────────────────────────────────────────────────────────────────
 
+// Dev-only allowance so Impeccable live mode can load. Guarded by NODE_ENV.
+const __impeccableLiveDev =
+  process.env.NODE_ENV === 'development' ? ' http://localhost:8400' : ''
+
 const CSP = [
   "default-src 'self'",
   // Scripts — Next needs unsafe-inline for hydration; restrict third-parties
   // to the analytics/pixel hosts we actually load post-consent.
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net",
+  `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://amplify.outbrain.com${__impeccableLiveDev}`,
   // Styles — Tailwind / Next inject inline styles
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
@@ -34,7 +38,7 @@ const CSP = [
   // Media (video previews etc.)
   "media-src 'self' https: data:",
   // Network calls — same origin, plus analytics endpoints.
-  "connect-src 'self' https: https://www.google-analytics.com https://*.facebook.com https://www.facebook.com",
+  `connect-src 'self' https: https://www.google-analytics.com https://*.facebook.com https://www.facebook.com${__impeccableLiveDev}`,
   // Frames — only Make.com/embedded video if needed in future; for now keep tight.
   "frame-src 'self' https://www.youtube.com https://www.facebook.com",
   // Workers / object — block plugins / java applets
@@ -59,9 +63,12 @@ const securityHeaders = [
 
 const nextConfig = {
   reactStrictMode: true,
+  // This is a self-contained Vercel project rooted at frontend/. Avoid
+  // monorepo lockfiles outside this directory influencing standalone traces.
+  outputFileTracingRoot: __dirname,
   images: {
     domains: [],
-    unoptimized: true,
+    unoptimized: false,
   },
   output: 'standalone',
   async rewrites() {
@@ -73,6 +80,19 @@ const nextConfig = {
       },
     ]
   },
+  // Legacy Bulgarian routes → English canonicals. Permanent (301) so search
+  // engines transfer ranking and old links / QR codes keep working. The
+  // nested clinic-catalog path (`/kliniki/[city]/[specialty]/[slug]`) is
+  // covered by the `:path*` wildcard rule.
+  async redirects() {
+    return [
+      { source: '/kliniki', destination: '/clinics', permanent: true },
+      { source: '/kliniki/:path*', destination: '/clinics/:path*', permanent: true },
+      { source: '/breketi', destination: '/braces', permanent: true },
+      { source: '/za-kliniki', destination: '/for-clinics', permanent: true },
+      { source: '/standart-za-kliniki', destination: '/clinic-standard', permanent: true },
+    ]
+  },
   async headers() {
     return [
       {
@@ -80,6 +100,13 @@ const nextConfig = {
         // return JSON — they just travel along the response.
         source: '/:path*',
         headers: securityHeaders,
+      },
+      {
+        source: '/clinic-intake/:path*',
+        headers: [
+          { key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive, nosnippet' },
+          { key: 'Cache-Control', value: 'private, no-store, max-age=0' },
+        ],
       },
     ]
   },

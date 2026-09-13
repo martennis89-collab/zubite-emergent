@@ -116,6 +116,10 @@ _BASE_ENTITLEMENTS_VERIFIED: Dict[str, Any] = {
     "annual_category_insight_snapshot": False,
     # booking (Feb 2026 booking engine — Verified is CTA-only)
     "booking_enabled": False,
+    # Direct patient chat channels (Viber deep link today; in-platform chat
+    # once file storage moves off Emergent). Part of the Growth online-
+    # consultation bundle — Verified keeps the plain phone CTA.
+    "patient_chat_channels": False,
     # legacy alias (kept so older FE code doesn't break)
     "partner_access": False,
 }
@@ -150,6 +154,8 @@ _BASE_ENTITLEMENTS_GROWTH: Dict[str, Any] = {
     "annual_category_insight_snapshot": True,
     # booking calendar — enabled by default for Growth
     "booking_enabled": True,
+    # Direct patient chat channels — see the Verified map above.
+    "patient_chat_channels": True,
     # legacy alias
     "partner_access": True,
 }

@@ -14,6 +14,7 @@ consultation workflow that is *linked back* to leads via `lead_id`.
 from fastapi import APIRouter, HTTPException, Depends, Request
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone, timedelta
+import asyncio
 import uuid
 import logging
 
@@ -38,6 +39,7 @@ from audit import audit_log, diff_fields
 from auth import get_current_user, get_current_clinic, hash_password
 from emails import _send_email  # internal helper; safe wrapper
 from config import RESEND_API_KEY, SENDER_EMAIL, PRODUCTION_URL
+from routers.public import _is_clinic_visible
 
 logger = logging.getLogger(__name__)
 
@@ -386,7 +388,7 @@ async def admin_create_clinic(
     import secrets as _secrets
     temp_password = _secrets.token_urlsafe(12)
     now = _now_iso()
-    # Public listing (`/kliniki`) expects a canonical `name` + `city_slug`
+    # Public listing (`/clinics`) expects a canonical `name` + `city_slug`
     # + `is_active` triple. Legacy admin docs only had `clinic_name` +
     # free-text `city`, which excluded them from the public list. Mirror
     # both fields on insert so new clinics surface immediately.
@@ -493,7 +495,7 @@ async def admin_update_clinic(
     if not update:
         raise HTTPException(status_code=400, detail="No fields to update")
     # Keep the canonical public-listing fields in sync when admin edits
-    # `clinic_name` or `city`. Public `/kliniki` filters on `name` +
+    # `clinic_name` or `city`. Public `/clinics` filters on `name` +
     # `city_slug` — legacy edits that only touched `clinic_name`/`city`
     # would otherwise leave stale values behind.
     if "clinic_name" in update:
@@ -503,6 +505,23 @@ async def admin_update_clinic(
         derived_slug = resolve_city_slug({"city": update["city"]})
         if derived_slug:
             update["city_slug"] = derived_slug
+    # `email` is the clinic's login identity -- /clinic/login looks it up
+    # lowercased -- so it is normalised and checked for collisions exactly as it
+    # is on creation. Without this, an admin editing a clinic could store
+    # "Info@Clinic.BG" and lock that clinic out of its own portal, or give two
+    # clinics the same address, after which find_one() always returns whichever
+    # was created first and the other can never log in again. Both failures are
+    # silent at the point they are caused.
+    if "email" in update:
+        email = str(update["email"]).strip().lower()
+        clash = await db.clinics.find_one(
+            {"email": email, "id": {"$ne": clinic_id}}, {"_id": 0, "id": 1})
+        if clash:
+            raise HTTPException(status_code=400,
+                                detail="Clinic with this email already exists")
+        update["email"] = email
+    if "notification_email" in update:
+        update["notification_email"] = str(update["notification_email"]).strip().lower()
     if "clinic_status" in update and update["clinic_status"] not in CLINIC_STATUS_VALUES:
         raise HTTPException(status_code=400, detail="Invalid clinic_status")
     if "subscription_status" in update and update["subscription_status"] not in SUBSCRIPTION_STATUS_VALUES:
@@ -532,6 +551,11 @@ async def admin_update_clinic(
         if bp not in BASE_PACKAGES:
             raise HTTPException(status_code=400, detail="Invalid base_package")
         update["base_package"] = bp
+        # Keep the deprecated audit field aligned for legacy readers.
+        # `base_package` remains canonical; this mirror prevents the old
+        # editor summary and any not-yet-migrated code from disagreeing.
+        if "partner_tier" not in user_provided:
+            update["partner_tier"] = "featured" if bp == "growth_partner" else "standard"
         # Auto-fill locked pricing defaults when the admin switches
         # packages and hasn't manually overridden pricing in the same
         # request. Founding Growth intro pricing is applied only when
@@ -545,6 +569,10 @@ async def admin_update_clinic(
         if fs not in FOUNDING_STATUS_VALUES:
             raise HTTPException(status_code=400, detail="Invalid founding_status")
         update["founding_status"] = fs
+        if fs == "strategic_private" and "partner_tier" not in user_provided:
+            update["partner_tier"] = "premium"
+        elif update.get("base_package") == "growth_partner" and "partner_tier" not in user_provided:
+            update["partner_tier"] = "featured"
         if fs == "founding_growth" and "monthly_price_eur" not in user_provided:
             # Only auto-apply the founding intro monthly if the admin
             # didn't override in this request. Overrides an earlier
@@ -612,6 +640,45 @@ async def admin_update_clinic(
             for item in focus:
                 if not isinstance(item, str) or len(item) > 80:
                     raise HTTPException(status_code=400, detail="Invalid treatment_focus item")
+
+        doctor_specialties = profile.get("doctor_spotlight_specialties") or []
+        if isinstance(doctor_specialties, list):
+            if len(doctor_specialties) > 8:
+                raise HTTPException(
+                    status_code=400,
+                    detail="doctor_spotlight_specialties exceeds 8 items",
+                )
+            seen_specialties: set[str] = set()
+            for item in doctor_specialties:
+                if not isinstance(item, str) or not item.strip() or len(item) > 80:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Invalid doctor_spotlight_specialties item",
+                    )
+                specialty_key = item.strip().casefold()
+                if specialty_key in seen_specialties:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="doctor_spotlight_specialties contains duplicates",
+                    )
+                seen_specialties.add(specialty_key)
+
+        treatment_case_counts = profile.get("treatment_case_counts") or []
+        if isinstance(treatment_case_counts, list):
+            if len(treatment_case_counts) > 12:
+                raise HTTPException(
+                    status_code=400,
+                    detail="treatment_case_counts exceeds 12 items",
+                )
+            seen_treatments: set[str] = set()
+            for row in treatment_case_counts:
+                treatment_key = (row.get("treatment") or "").strip().casefold()
+                if treatment_key in seen_treatments:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="treatment_case_counts contains duplicate treatments",
+                    )
+                seen_treatments.add(treatment_key)
 
         cases = profile.get("case_library") or []
         if isinstance(cases, list):
@@ -831,6 +898,7 @@ async def admin_get_consultation_request(
         "clinic_city": clinic_city,
         "appointment": appointment,
         "lead": lead,
+        "patient_context": await _build_patient_context(req),
     }
 
 
@@ -902,10 +970,21 @@ async def admin_assign_consultation_to_clinic(
     if not isinstance(req_id, str):
         raise HTTPException(status_code=400, detail="Invalid id")
     clinic = await db.clinics.find_one(
-        {"id": body.clinic_id}, {"_id": 0, "id": 1, "clinic_name": 1, "email": 1, "notification_email": 1}
+        {"id": body.clinic_id},
+        {"_id": 0, "id": 1, "clinic_name": 1, "email": 1, "notification_email": 1,
+         "clinic_status": 1, "status": 1, "is_active": 1, "archived": 1, "is_demo": 1},
     )
     if not clinic:
         raise HTTPException(status_code=404, detail="Clinic not found")
+    if not _is_clinic_visible(clinic):
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Clinic is not currently eligible for new lead assignment "
+                f"(clinic_status={clinic.get('clinic_status')!r}, status={clinic.get('status')!r}). "
+                "Reactivate the clinic before assigning."
+            ),
+        )
     req = await db.consultation_requests.find_one({"id": req_id}, {"_id": 0})
     if not req:
         raise HTTPException(status_code=404, detail="Request not found")
@@ -985,9 +1064,22 @@ async def admin_create_consultation_request(
     """Manual creation — rare. Auto-creation happens via lead assign flow."""
     now = _now_iso()
     if data.assigned_clinic_id:
-        clinic = await db.clinics.find_one({"id": data.assigned_clinic_id}, {"_id": 0, "id": 1})
+        clinic = await db.clinics.find_one(
+            {"id": data.assigned_clinic_id},
+            {"_id": 0, "id": 1, "clinic_status": 1, "status": 1, "is_active": 1,
+             "archived": 1, "is_demo": 1},
+        )
         if not clinic:
             raise HTTPException(status_code=404, detail="Clinic not found")
+        if not _is_clinic_visible(clinic):
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "Clinic is not currently eligible for new lead assignment "
+                    f"(clinic_status={clinic.get('clinic_status')!r}, status={clinic.get('status')!r}). "
+                    "Reactivate the clinic before assigning."
+                ),
+            )
     doc = {
         "id": _new_id(),
         **data.model_dump(),
@@ -1078,6 +1170,24 @@ async def clinic_list_consultation_requests(clinic=Depends(get_current_clinic)):
     requests = await db.consultation_requests.find(
         {"assigned_clinic_id": cid}, {"_id": 0}
     ).sort("created_at", -1).to_list(1000)
+
+    # Batch-fetch the leads behind these requests so every row gets a
+    # `source_badge` -- the same _safe_source_context the request DETAIL
+    # page already renders -- in one query instead of one per request.
+    lead_ids = [r["lead_id"] for r in requests if r.get("lead_id")]
+    leads_by_id: Dict[str, Dict[str, Any]] = {}
+    if lead_ids:
+        cursor = db.leads.find(
+            {"id": {"$in": lead_ids}},
+            {**SOURCE_CONTEXT_LEAD_FIELDS, "_id": 0, "id": 1},
+        )
+        async for lead in cursor:
+            leads_by_id[lead["id"]] = lead
+
+    for r in requests:
+        r["source_badge"] = _list_source_badge(
+            leads_by_id.get(r.get("lead_id")), r.get("created_at"))
+
     return {"requests": requests}
 
 
@@ -1110,6 +1220,9 @@ _QUIZ_QUESTION_LABELS: Dict[str, str] = {
     "main_concern":      "Основен повод",
     "age_range":         "Възрастова група",
     "segment":           "За кого е заявката",
+    # Intake context captured on the city step of MasterQuiz (optional).
+    "has_files":         "Налични материали",
+    "preferred_channel": "Предпочитан контакт",
 }
 
 # Friendly value labels for known answer codes. Keys missing here fall
@@ -1133,6 +1246,102 @@ _QUIZ_VALUE_LABELS: Dict[str, Dict[str, str]] = {
                           "exploring": "Тества вариантите"},
     "urgency":           {"high": "Висока", "moderate": "Умерена", "low": "Ниска"},
     "can_travel":        {"yes": "Да", "no": "Не"},
+    # `segment` is emitted by MasterQuiz as a raw English enum; without
+    # this the clinic-facing brief printed "adult" / "child".
+    "segment":           {"adult": "Възрастен",
+                          "teen": "Тийнейджър (12–17 г.)",
+                          "child": "Дете (под 12 г.)"},
+    # Intake context (MasterQuiz city step).
+    "has_files":         {"photos": "Снимки на зъбите",
+                          "opg": "OPG / скенер",
+                          "plan": "План или оферта",
+                          "none": "Няма"},
+    "preferred_channel": {"call": "Обаждане",
+                          "message": "Съобщение",
+                          "any": "Няма значение"},
+}
+
+# ── MasterQuiz (homepage flagship) ──────────────────────────────────
+# WHY THIS EXISTS: `_QUIZ_QUESTION_LABELS` above was written for the
+# treatment/city quizzes, whose answer keys are `seriousness`, `timing`,
+# `can_travel`… MasterQuiz — the quiz the entire homepage funnels into —
+# emits `a1..a10` (adult), `t1..t8` (teen), `c1..c8` (child) instead.
+# `_safe_quiz_summary` drops any key it has no label for, so every
+# homepage lead reached the clinic with exactly ONE row surfaced
+# (`segment`). Ten answered questions were collected, stored, and thrown
+# away at render time — while Growth Partner is sold "patient-reported
+# context". These labels close that gap.
+#
+# The labels are deliberately clinical shorthand, not the patient-facing
+# question text ("Коя от тези усмивки е най-близка до твоята?" → "Подредба
+# на зъбите"). The clinic needs the signal at a glance; the patient's
+# phrasing is noise in a brief. Keep in sync with QUESTION_SETS in
+# frontend/components/MasterQuiz.tsx.
+_MASTER_QUIZ_LABELS: Dict[str, str] = {
+    # adult
+    "a1": "Подредба на зъбите",
+    "a2": "Крие зъбите при усмивка",
+    "a3": "Равномерна захапка",
+    "a4": "Дъвче едностранно",
+    "a5": "Дишане през устата",
+    "a6": "Щракане в челюстта",
+    "a7": "Сутрешно напрежение в челюстта",
+    "a8": "Износване на зъбите",
+    "a9": "Главоболие / напрежение",
+    "a10": "Подозирал/а проблем преди теста",
+    # teen
+    "t1": "Подредба на зъбите",
+    "t2": "Притеснява се от усмивката си",
+    "t3": "Неравномерна захапка",
+    "t4": "Дъвче едностранно",
+    "t5": "Струпани постоянни зъби",
+    "t6": "Дишане през устата",
+    "t7": "Затруднения с говора",
+    "t8": "Родителят очаква нужда от лечение",
+    # child
+    "c1": "Подредба на зъбите",
+    "c2": "Дишане през устата",
+    "c3": "Хъркане / неспокоен сън",
+    "c4": "Смучене на пръст / биберон",
+    "c5": "Тясна челюст / липса на място",
+    "c6": "Видима разлика в захапката",
+    "c7": "Отворена уста през деня",
+    "c8": "Родителят очаква нужда от преглед",
+}
+
+# Shared value vocabulary for the MasterQuiz keys above.
+_MASTER_QUIZ_VALUES: Dict[str, str] = {
+    "crowded": "Видимо струпани",
+    "mild": "Леко струпани",
+    "aligned": "Подредени",
+    "yes": "Да",
+    "no": "Не",
+    "sometimes": "Понякога",
+    "unsure": "Не е сигурен/а",
+    "past": "Преди да, вече не",
+}
+
+# Clinical flags derived by the quiz scorer — the highest-signal output it
+# produces, and previously not surfaced to the clinic at all.
+_QUIZ_FLAG_LABELS: Dict[str, str] = {
+    "crowding": "Струпване",
+    "bite_issue": "Захапка",
+    "airway": "Дишане",
+    "tension": "Напрежение",
+    "wear": "Износване",
+    "development": "Развитие",
+}
+
+# Orientation stage shown to the patient on their result screen. The
+# clinic should see the same words the patient saw.
+_QUIZ_BAND_LABELS: Dict[str, str] = {
+    "low": "Ранен етап",
+    "moderate": "Развиващ се етап",
+    "high": "Напреднал етап",
+    # legacy/lead-level band values
+    "GREEN": "Ранен етап",
+    "YELLOW": "Развиващ се етап",
+    "RED": "Напреднал етап",
 }
 
 # Safe surface for the "source of arrival" panel — never expose the raw
@@ -1167,31 +1376,94 @@ def _classify_source_type(lead: Dict[str, Any]) -> str:
 
 def _safe_quiz_summary(lead: Dict[str, Any]) -> List[Dict[str, str]]:
     """Return ONLY known safe quiz answers in `{question_label, answer_label}`
-    rows. Drops any key we don't have a label for."""
+    rows. Drops any key we don't have a label for.
+
+    Covers both answer vocabularies: the treatment/city quizzes
+    (`seriousness`, `timing`, …) and MasterQuiz (`a1..a10`/`t1..t8`/
+    `c1..c8`). Order is stable and deliberate — MasterQuiz answers first
+    in question order, since that quiz drives the homepage funnel.
+    """
     out: List[Dict[str, str]] = []
     if not lead:
         return out
     answers = lead.get("answers") or {}
     if not isinstance(answers, dict):
         return out
+
+    def _clean(raw: Any) -> Optional[str]:
+        # Only allow primitive types — never serialise nested dicts/lists.
+        if raw is None or raw == "" or not isinstance(raw, (str, int, float, bool)):
+            return None
+        s = str(raw).strip()
+        if not s:
+            return None
+        return s[:199].rstrip() + "…" if len(s) > 200 else s
+
+    def _render(key: str, raw: Any, value_map: Dict[str, str]) -> Optional[str]:
+        """Render one answer. Handles multi-select answers (a list of
+        option codes, e.g. `has_files`) by mapping each item through the
+        value vocabulary and joining. Deliberately narrow: only a list of
+        primitives is accepted, capped at 6, so this cannot be used to
+        serialise arbitrary nested data into a clinic-facing payload.
+        """
+        if isinstance(raw, list):
+            parts: List[str] = []
+            for item in raw[:6]:
+                v = _clean(item)
+                if v is None:
+                    continue
+                parts.append(value_map.get(v, v))
+            return ", ".join(parts) if parts else None
+        v = _clean(raw)
+        return None if v is None else value_map.get(v, v)
+
+    # MasterQuiz answers, in question order (a1, a2, … then t…, then c…).
+    for key, label in _MASTER_QUIZ_LABELS.items():
+        if key not in answers:
+            continue
+        val = _clean(answers.get(key))
+        if val is None:
+            continue
+        out.append({
+            "question_label": label,
+            "answer_label": _MASTER_QUIZ_VALUES.get(val, val),
+        })
+
+    # Treatment/city-quiz answers + MasterQuiz intake context.
     for key, label in _QUIZ_QUESTION_LABELS.items():
         if key not in answers:
             continue
-        raw = answers.get(key)
-        if raw is None or raw == "":
+        display = _render(key, answers.get(key), _QUIZ_VALUE_LABELS.get(key) or {})
+        if display is None:
             continue
-        # Only allow primitive types — never serialise nested dicts/lists.
-        if not isinstance(raw, (str, int, float, bool)):
-            continue
-        raw_str = str(raw).strip()
-        if not raw_str:
-            continue
-        if len(raw_str) > 200:
-            raw_str = raw_str[:199].rstrip() + "…"
-        value_map = _QUIZ_VALUE_LABELS.get(key) or {}
-        display = value_map.get(raw_str, raw_str)
         out.append({"question_label": label, "answer_label": display})
     return out
+
+
+def _safe_quiz_signals(lead: Dict[str, Any]) -> Dict[str, Any]:
+    """The quiz's own derived output: orientation stage + clinical flags.
+
+    This is the highest-signal part of the brief — it is what the patient
+    was actually shown on their result screen — and it was previously not
+    sent to the clinic at all. Keeping it aligned matters: the clinic
+    should know what the patient was told before they speak.
+    """
+    if not lead:
+        return {"stage_label": None, "flags": []}
+    answers = lead.get("answers") or {}
+    if not isinstance(answers, dict):
+        answers = {}
+
+    raw_band = answers.get("quiz_band") or lead.get("band")
+    stage = _QUIZ_BAND_LABELS.get(str(raw_band).strip()) if raw_band else None
+
+    raw_flags = answers.get("quiz_flags")
+    flags: List[str] = []
+    if isinstance(raw_flags, list):
+        for f in raw_flags:
+            if isinstance(f, str) and f in _QUIZ_FLAG_LABELS:
+                flags.append(_QUIZ_FLAG_LABELS[f])
+    return {"stage_label": stage, "flags": flags}
 
 
 def _safe_source_context(lead: Dict[str, Any]) -> Dict[str, Any]:
@@ -1199,6 +1471,7 @@ def _safe_source_context(lead: Dict[str, Any]) -> Dict[str, Any]:
     if not lead:
         return {
             "source_type": "unknown",
+            "origin_system": None,
             "article_title": None,
             "article_slug": None,
             "utm_source": None,
@@ -1227,6 +1500,7 @@ def _safe_source_context(lead: Dict[str, Any]) -> Dict[str, Any]:
             )
     return {
         "source_type": _classify_source_type(lead),
+        "origin_system": lead.get("origin_system"),
         "article_title": article_title,
         "article_slug": article_slug,
         "utm_source": lead.get("first_utm_source") or lead.get("latest_utm_source"),
@@ -1234,6 +1508,68 @@ def _safe_source_context(lead: Dict[str, Any]) -> Dict[str, Any]:
         "utm_ad": lead.get("first_utm_ad") or lead.get("latest_utm_ad"),
         "content_path_summary": content_path_summary,
     }
+
+
+# The subset of lead fields `_safe_source_context` actually reads. Kept as
+# its own constant so the requests/patients LIST endpoints can batch-fetch
+# exactly these fields without re-deriving the list by hand and drifting
+# from what `_safe_source_context` above expects.
+SOURCE_CONTEXT_LEAD_FIELDS: Dict[str, int] = {
+    "origin_system": 1,
+    "first_article_title": 1, "first_article_slug": 1,
+    "latest_article_title": 1, "latest_article_slug": 1,
+    "first_utm_source": 1, "first_utm_campaign": 1, "first_utm_ad": 1,
+    "latest_utm_source": 1, "latest_utm_campaign": 1, "latest_utm_ad": 1,
+    "first_landing_page_type": 1, "latest_landing_page_type": 1,
+    "first_landing_page": 1, "first_referrer": 1,
+    "pages_viewed_before_conversion": 1,
+    "blog_assisted_conversion": 1,
+}
+
+# The requests/patients LIST screens show attribution starting from this
+# date. This is a deliberate product decision, not a data limitation -- the
+# underlying UTM/referrer fields have been captured on leads for a long
+# time, and `_safe_source_context` above already renders the exact same
+# answer, unconditionally, on the request and patient DETAIL pages. A
+# clinic that scans its list every day should not see attribution appear
+# retroactively on a patient it already looked at without it; the detail
+# pages are deliberately left as they were.
+ATTRIBUTION_LIST_VISIBLE_SINCE = datetime(2026, 9, 13, tzinfo=timezone.utc)
+
+
+def _parse_dt(value: Any) -> Optional[datetime]:
+    if isinstance(value, datetime):
+        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    if isinstance(value, str):
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+        return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+    return None
+
+
+def _list_source_badge(lead: Optional[Dict[str, Any]], created_at: Any) -> Dict[str, Any]:
+    """Compact attribution for one row of a LIST endpoint.
+
+    `source_type: "not_tracked"` is deliberately distinct from "unknown":
+    "unknown" means `_safe_source_context` looked at a real lead and
+    genuinely could not classify it; "not_tracked" means this row predates
+    ATTRIBUTION_LIST_VISIBLE_SINCE, and the real answer -- knowable, and
+    still shown on that lead's own detail page -- is withheld here on
+    purpose. Conflating the two would make an old, untracked lead look
+    exactly like a real classification failure on a new one.
+    """
+    created = _parse_dt(created_at)
+    if not created or created < ATTRIBUTION_LIST_VISIBLE_SINCE:
+        return {
+            "source_type": "not_tracked",
+            "origin_system": None,
+            "article_title": None, "article_slug": None,
+            "utm_source": None, "utm_campaign": None, "utm_ad": None,
+            "content_path_summary": None,
+        }
+    return _safe_source_context(lead or {})
 
 
 async def _build_patient_context(req: Dict[str, Any]) -> Dict[str, Any]:
@@ -1248,6 +1584,12 @@ async def _build_patient_context(req: Dict[str, Any]) -> Dict[str, Any]:
                 "_id": 0,
                 # Allow-list only — everything else is dropped.
                 "answers": 1,
+                "origin_system": 1,
+                # Orientation stage. MasterQuiz leads carry it in
+                # `answers.quiz_band`; treatment/city-quiz leads only have
+                # the lead-level `band`, so both are needed for the stage
+                # line to resolve for every lead type.
+                "band": 1,
                 "first_article_title": 1, "first_article_slug": 1,
                 "latest_article_title": 1, "latest_article_slug": 1,
                 "first_utm_source": 1, "first_utm_campaign": 1, "first_utm_ad": 1,
@@ -1265,6 +1607,7 @@ async def _build_patient_context(req: Dict[str, Any]) -> Dict[str, Any]:
     # P5 patient_message: truncate to 1000 (matches storage cap) for UI.
     pm_raw = req.get("patient_message")
     patient_message = (pm_raw[:1000] if isinstance(pm_raw, str) else None)
+    signals = _safe_quiz_signals(lead)
     return {
         "label": "Информация, споделена от пациента",
         "treatment_interest": req.get("treatment_interest"),
@@ -1273,6 +1616,11 @@ async def _build_patient_context(req: Dict[str, Any]) -> Dict[str, Any]:
         "urgency": req.get("urgency"),
         "main_concern": (main_concern_raw[:500] if main_concern_raw else None),
         "patient_message": patient_message,
+        # The orientation the patient was actually shown — stage + the
+        # scorer's clinical flags. Lets the clinic open the call already
+        # knowing what the patient has been told.
+        "stage_label": signals["stage_label"],
+        "signal_flags": signals["flags"],
         "quiz_summary": _safe_quiz_summary(lead),
         "source_context": _safe_source_context(lead),
     }
@@ -1548,10 +1896,67 @@ async def clinic_perform_action(
         except Exception as exc:
             logger.warning(f"care_pass unlock (offline) failed: {exc}")
 
+    # Clear Advance: the clinic has just recorded what actually happened, which
+    # is the only place in Zubite that distinguishes an attended appointment
+    # from a no-show. Backgrounded, and never allowed to fail the action --
+    # a reporting problem must not stop a clinic marking a patient attended.
+    if refreshed and refreshed.get("lead_id"):
+        from clear_advance import report_consultation_action
+        asyncio.create_task(
+            report_consultation_action(db, refreshed["lead_id"], body.action_type)
+        )
+
     return {"request": refreshed, "appointment": appointment_doc}
 
 
 # ─── Clinic: Calendar / Appointments ──────────────────────
+
+def _orientation_booking_to_appointment(b: Dict[str, Any]) -> Dict[str, Any]:
+    """Adapt an `online_orientation_bookings` row into the `Appointment`
+    shape the clinic calendar UI already renders, so free online-orientation
+    slots booked from a clinic's public profile show up alongside manually
+    created in-clinic appointments instead of only being visible on the
+    separate "Онлайн ориентация" actions page. `online_orientation_booking_id`
+    (rather than reusing `consultation_request_id`) tells the frontend to
+    link back to that actions page, since that's still where confirm/reject
+    actually happens — this endpoint stays read-only for these rows.
+    """
+    scheduled_at = b.get("scheduled_at") or b.get("created_at")
+    duration = int(b.get("duration_minutes") or 20)
+    end_time = scheduled_at
+    try:
+        start_dt = datetime.fromisoformat(str(scheduled_at).replace("Z", "+00:00"))
+        end_time = (start_dt + timedelta(minutes=duration)).isoformat()
+    except (ValueError, TypeError):
+        pass
+    return {
+        "id": b["id"],
+        "clinic_id": b.get("clinic_id"),
+        "consultation_request_id": None,
+        "online_orientation_booking_id": b["id"],
+        "patient_name": b.get("patient_name") or "Пациент",
+        "patient_phone": b.get("patient_phone") or "",
+        "treatment_category": b.get("treatment_category"),
+        "appointment_type": "online_orientation",
+        "start_time": scheduled_at,
+        "end_time": end_time,
+        "status": b.get("status"),
+        "notes": b.get("patient_note"),
+        "doctor_id": b.get("doctor_id"),
+        "created_at": b.get("created_at"),
+        "updated_at": b.get("updated_at"),
+    }
+
+
+# Terminal/dead statuses excluded from the calendar — matches the "История"
+# (history) grouping on the online-orientation actions page. The calendar is
+# forward-looking; finished bookings would just be noise.
+_ORIENTATION_CALENDAR_TERMINAL_STATUSES = {
+    "completed", "no_show", "converted_to_in_clinic", "not_suitable",
+    "cancelled_by_patient", "cancelled_by_clinic", "rejected_by_clinic",
+    "expired_pending_confirmation",
+}
+
 
 @router.get("/clinic/appointments")
 async def clinic_list_appointments(
@@ -1559,12 +1964,35 @@ async def clinic_list_appointments(
     status: Optional[str] = None,
     appointment_type: Optional[str] = None,
 ):
-    q: Dict[str, Any] = {"clinic_id": clinic["id"]}
-    if isinstance(status, str) and status:
-        q["status"] = status
-    if isinstance(appointment_type, str) and appointment_type:
-        q["appointment_type"] = appointment_type
-    appts = await db.clinic_appointments.find(q, {"_id": 0}).sort("start_time", 1).to_list(2000)
+    # "online_orientation" is a synthetic type that only ever exists on
+    # adapted rows below — it never matches a real clinic_appointments doc,
+    # so filtering by it skips that collection entirely rather than
+    # (correctly, but confusingly) always returning zero rows.
+    wants_orientation_only = appointment_type == "online_orientation"
+    wants_real_type_only = bool(appointment_type) and not wants_orientation_only
+
+    appts: List[Dict[str, Any]] = []
+    if not wants_orientation_only:
+        q: Dict[str, Any] = {"clinic_id": clinic["id"]}
+        if isinstance(status, str) and status:
+            q["status"] = status
+        if wants_real_type_only:
+            q["appointment_type"] = appointment_type
+        appts = await db.clinic_appointments.find(q, {"_id": 0}).sort("start_time", 1).to_list(2000)
+
+    if not wants_real_type_only:
+        orientation_q: Dict[str, Any] = {
+            "clinic_id": clinic["id"],
+            "status": {"$nin": list(_ORIENTATION_CALENDAR_TERMINAL_STATUSES)},
+        }
+        if isinstance(status, str) and status:
+            orientation_q["status"] = status
+        orientation_rows = await db.online_orientation_bookings.find(
+            orientation_q, {"_id": 0},
+        ).to_list(2000)
+        appts.extend(_orientation_booking_to_appointment(b) for b in orientation_rows)
+        appts.sort(key=lambda a: a.get("start_time") or "")
+
     return {"appointments": appts}
 
 

@@ -17,6 +17,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Sparkles, ShieldCheck, Calendar, ChevronRight, Loader2, CheckCircle2 } from 'lucide-react'
 import { trackEvent as gaTrackEvent } from '@/lib/analytics/gtag'
+import { OrientationCalendar } from '@/components/patient/OrientationCalendar'
+import { SaveBookingBanner } from '@/components/patient/SaveBookingBanner'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -130,6 +132,7 @@ export function FreeOnlineOrientationSection({ leadId }: { leadId: string }) {
           <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5" />
           <span>Заявката за онлайн час е изпратена. Клиниката ще я прегледа и потвърди.</span>
         </div>
+        <SaveBookingBanner claimLeadId={leadId} />
       </section>
     )
   }
@@ -200,7 +203,9 @@ function ClinicRow({
   onView: () => void
 }) {
   const [open, setOpen] = useState(false)
-  const visibleSlots = clinic.slots.slice(0, 8)
+  const availableDayCount = new Set(
+    clinic.slots.map((s) => s.scheduled_at_local.slice(0, 10)),
+  ).size
   return (
     <li
       className="border border-slate-200 rounded-xl p-4 transition-colors hover:border-slate-300"
@@ -221,7 +226,10 @@ function ClinicRow({
           <p className="text-xs text-slate-500 mt-2 inline-flex items-center gap-1">
             <Calendar className="w-3.5 h-3.5" />
             {clinic.slot_duration_minutes} мин ·{' '}
-            <span className="text-slate-700">{clinic.slots.length} свободни часа</span>
+            <span className="text-slate-700">
+              {clinic.slots.length} свободни часа в {availableDayCount}{' '}
+              {availableDayCount === 1 ? 'ден' : 'дни'}
+            </span>
           </p>
         </div>
         <button
@@ -235,22 +243,12 @@ function ClinicRow({
         </button>
       </div>
       {open && (
-        <div className="mt-3 flex flex-wrap gap-2" data-testid={`free-orient-slots-${clinic.clinic_id}`}>
-          {visibleSlots.map((s) => (
-            <button
-              key={s.slot_id} type="button"
-              onClick={() => onPick(s)}
-              className="px-3 py-1.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200 text-xs hover:bg-teal-100"
-              data-testid={`free-orient-slot-${s.slot_id}`}
-            >
-              {s.label_local_bg}
-            </button>
-          ))}
-          {clinic.slots.length > visibleSlots.length && (
-            <span className="text-xs text-slate-500 self-center">
-              +{clinic.slots.length - visibleSlots.length} още
-            </span>
-          )}
+        <div data-testid={`free-orient-slots-${clinic.clinic_id}`}>
+          <OrientationCalendar
+            slots={clinic.slots}
+            onPick={onPick}
+            testIdPrefix={`free-orient-${clinic.clinic_id}`}
+          />
         </div>
       )}
     </li>

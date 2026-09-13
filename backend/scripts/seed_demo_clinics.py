@@ -110,8 +110,18 @@ DEMO_CLINICS = [
                 "комуникация и предвидим резултат. Имаме интраорален скенер "
                 "и собствена 3D работна станция за планиране."
             ),
+            "founded_year": 2018,
             "treatment_focus": [
                 "Invisalign", "Алайнери", "Ортодонтия за възрастни",
+            ],
+            # Demo-only aggregate experience used to preview the Growth
+            # trust-signal module. The public page identifies the source as
+            # clinic-provided, and the demo banner makes clear these are not
+            # real-clinic claims.
+            "treatment_case_counts": [
+                {"treatment": "Invisalign", "completed_cases": 184, "as_of_year": 2026},
+                {"treatment": "Алайнери", "completed_cases": 312, "as_of_year": 2026},
+                {"treatment": "Импланти", "completed_cases": 96, "as_of_year": 2026},
             ],
             "hero_image_url":
                 "https://images.unsplash.com/photo-1606811971618-4486d14f3f99?w=1200",
@@ -122,7 +132,13 @@ DEMO_CLINICS = [
                 "4. Време за решение — без натиск"
             ),
             "doctor_spotlight_name": "д-р Демо Иванов",
+            "doctor_spotlight_kind": "lead_doctor",
             "doctor_spotlight_role": "Ортодонт · Зав. отделение",
+            "doctor_spotlight_specialties": [
+                "Алайнерно лечение",
+                "Ортодонтия за възрастни",
+                "Комплексна захапка",
+            ],
             "doctor_spotlight_bio": (
                 "Специализира алайнерно лечение и ортодонтия за възрастни. "
                 "Член на ESLO и активен лектор по случаи с комплексна захапка."
@@ -182,6 +198,7 @@ DEMO_CLINICS = [
                 "водачи, интраорален скенер и колаборация с външни "
                 "ортодонти и протетици за комплексни случаи."
             ),
+            "founded_year": 2009,
             "environment_description": (
                 "Обширно пространство с 6 кабинета, отделна стая за "
                 "консултации, тиха стая за дигитално планиране и собствена "
@@ -190,6 +207,13 @@ DEMO_CLINICS = [
             "treatment_focus": [
                 "Цялостно възстановяване", "Импланти", "Invisalign",
                 "Дигитално планиране",
+            ],
+            # Demo-only aggregate experience; see the Growth profile module.
+            "treatment_case_counts": [
+                {"treatment": "Импланти", "completed_cases": 428, "as_of_year": 2026},
+                {"treatment": "Цялостно възстановяване", "completed_cases": 157, "as_of_year": 2026},
+                {"treatment": "Invisalign", "completed_cases": 236, "as_of_year": 2026},
+                {"treatment": "Алайнери", "completed_cases": 319, "as_of_year": 2026},
             ],
             "hero_image_url":
                 "https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=1200",
@@ -201,7 +225,13 @@ DEMO_CLINICS = [
                 "5. Време за решение и второ мнение, ако искаш"
             ),
             "doctor_spotlight_name": "д-р Демо Петров",
+            "doctor_spotlight_kind": "owner",
             "doctor_spotlight_role": "Имплантолог · Сертифициран от ITI",
+            "doctor_spotlight_specialties": [
+                "Комплексна имплантология",
+                "Цялостно възстановяване",
+                "All-on-4 / All-on-6",
+            ],
             "doctor_spotlight_bio": (
                 "20+ години опит в комплексна имплантология и пълно "
                 "възстановяване. Лектор на ITI Congress 2023. Специализира "

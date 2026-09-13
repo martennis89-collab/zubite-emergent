@@ -35,8 +35,8 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 API_URL = os.environ.get("API_URL", "http://localhost:8001")
-ADMIN_USER = "admin@zubite.bg"
-ADMIN_PASS = "password"
+ADMIN_USER = os.environ.get("ADMIN_USER", "admin@zubite.bg")
+ADMIN_PASS = os.environ.get("ADMIN_PASS", "password")
 
 
 def _h(token: str) -> dict:
@@ -228,7 +228,7 @@ def run_all():
                     "email": "tester@example.bg",
                     "consent": False,
                     "disclaimer_acknowledged": True,
-                    "source_path": f"/kliniki/sofia/{ok_clinic['id']}",
+                    "source_path": f"/clinics/sofia/{ok_clinic['id']}",
                 },
                 timeout=10,
             )
@@ -305,7 +305,7 @@ def run_all():
                     "patient_note": "Звънни ми след 18:00",
                     "consent": True,
                     "disclaimer_acknowledged": True,
-                    "source_path": f"/kliniki/sofia/orthodontics/pcs-{ok_clinic['id'][:6]}",
+                    "source_path": f"/clinics/sofia/orthodontics/pcs-{ok_clinic['id'][:6]}",
                     "utm_source": "organic",
                     "utm_campaign": "clinic_profile",
                 },
@@ -333,7 +333,7 @@ def run_all():
             assert lead.get("contact_details_submitted") is True
             assert lead.get("care_pass_eligible") is False  # clinic is NOT Care Pass partner
             assert lead.get("care_pass_unlocked") is False
-            assert lead.get("source_path") == f"/kliniki/sofia/orthodontics/pcs-{ok_clinic['id'][:6]}"
+            assert lead.get("source_path") == f"/clinics/sofia/orthodontics/pcs-{ok_clinic['id'][:6]}"
 
             booking = await db.online_orientation_bookings.find_one(
                 {"id": booking_id}, {"_id": 0},

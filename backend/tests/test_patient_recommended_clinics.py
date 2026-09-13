@@ -13,7 +13,7 @@ In-process ASGI tests covering the 13 cases enumerated in the P2 spec:
   9.  does NOT auto-fill with out-of-city clinics to reach 3
   10. 0 matches returns empty list + assisted_help_available=true + message
   11. deterministic order by score then name (alphabetical tiebreak)
-  12. selection_rule shows view-up-to-3, request-call-from-1
+  12. selection_rule shows view-up-to-3 with no contact limit
   13. rate limit returns 429 after configured window
 """
 from __future__ import annotations
@@ -270,7 +270,7 @@ ALLOWED_CLINIC_FIELDS = {
     # on participating clinics only. Never on every clinic.
     "care_pass_partner",
     # Public profile slug (Feb 2026) — surfaced for future profile-unification
-    # refactor; safe to expose (slug is already publicly visible on /kliniki).
+    # refactor; safe to expose (slug is already publicly visible on /clinics).
     "slug",
 }
 
@@ -503,7 +503,7 @@ def test_10_zero_matches_returns_empty_with_assisted_help(app):
     assert "Zubite" in body.get("message", "")
     # selection_rule still echoed for client UI consistency.
     assert body["selection_rule"]["can_view_clinics"] == 3
-    assert body["selection_rule"]["can_request_call_from_clinics"] == 1
+    assert body["selection_rule"]["can_request_call_from_clinics"] is None
 
 
 # ─── 11. Deterministic order: score desc, then alphabetical asc ───
@@ -536,7 +536,7 @@ def test_12_selection_rule_present_and_correct(app):
     sr = body["selection_rule"]
     assert sr == {
         "can_view_clinics": 3,
-        "can_request_call_from_clinics": 1,
+        "can_request_call_from_clinics": None,
         "assisted_choice_available": True,
     }
     assert body["assisted_help_available"] is True

@@ -6,9 +6,9 @@ This is a sales / QA / demo-only asset. The clinic is:
     ZUBITE_INCLUDE_DEMO_CLINICS preview gate).
   • `_is_clinic_visible` already blocks any `is_demo` clinic from
     quiz-driven recommendations.
-  • Direct URL `/kliniki/sofia/<specialty>/<slug>` resolves only when
+  • Direct URL `/clinics/sofia/<specialty>/<slug>` resolves only when
     the preview env enables demo clinics; in production the lookup
-    returns 404. Either way, sitemap.ts never lists `/kliniki/*` so
+    returns 404. Either way, sitemap.ts never lists `/clinics/*` so
     Google can't crawl into it.
 
 Run from `/app/backend`:
@@ -72,8 +72,17 @@ SHOWCASE_CLINIC: dict = {
             "обяснение от клиниката за това как протича първата "
             "консултация и какви очаквания да имаш."
         ),
+        "founded_year": 2009,
         "treatment_focus": [
             "Invisalign", "Алайнери", "Импланти", "Цялостно възстановяване",
+        ],
+        # Example-only Growth trust signals. The showcase and public profile
+        # both identify this clinic as demo content.
+        "treatment_case_counts": [
+            {"treatment": "Invisalign", "completed_cases": 284, "as_of_year": 2026},
+            {"treatment": "Алайнери", "completed_cases": 391, "as_of_year": 2026},
+            {"treatment": "Импланти", "completed_cases": 512, "as_of_year": 2026},
+            {"treatment": "Цялостно възстановяване", "completed_cases": 163, "as_of_year": 2026},
         ],
         "hero_image_url":
             "https://images.unsplash.com/photo-1606811971618-4486d14f3f99?w=1600",
@@ -82,7 +91,13 @@ SHOWCASE_CLINIC: dict = {
         "doctor_video_url":
             "https://example.com/zubite-demo-doctor-intro",
         "doctor_spotlight_name": "д-р Демо Иванов",
+        "doctor_spotlight_kind": "owner",
         "doctor_spotlight_role": "Имплантолог · Сертифициран от ITI",
+        "doctor_spotlight_specialties": [
+            "Комплексна имплантология",
+            "Цялостно възстановяване",
+            "Дигитално планиране",
+        ],
         "doctor_spotlight_bio": (
             "Демонстрационна биография: 20+ години опит в комплексна "
             "имплантология и пълно възстановяване. (Това е примерен "

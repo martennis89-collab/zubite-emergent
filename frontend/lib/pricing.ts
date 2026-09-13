@@ -92,6 +92,25 @@ export const TREATMENT_PRICES: TreatmentPricing = {
 // Price disclaimer - must appear under every price block
 export const PRICE_DISCLAIMER = 'Цените са ориентировъчни и зависят от сложност, план и клиника.'
 
+// Orthodontic treatment duration — ORIENTATION ONLY.
+// These are general market ranges for Bulgaria, NOT a per-case prediction:
+// the quiz reads reported symptoms, it cannot forecast how long a given
+// patient's treatment will run. Figures mirror the already-approved copy in
+// TREATMENT_EXPLANATIONS.orthodontics ('обикновено продължава между 12 и 24
+// месеца, но леките случаи могат да се коригират и за 6 месеца') and
+// ALIGNERS_FAQS ('Леките случаи могат да се завършат за 6-12 месеца'), so
+// there is a single source of truth rather than a second set of numbers.
+export const ORTHO_DURATION = {
+  typical: '12 – 24 месеца',
+  mild: '6 – 12 месеца',
+  note: 'Срокът зависи от сложността на случая и от това колко редовно се носи апаратът.',
+}
+
+// Shown wherever a price/duration range is presented as orientation rather
+// than a quote — keeps the "not a personal estimate" framing consistent.
+export const PRICE_NOT_PERSONAL_NOTE =
+  'Това са общи диапазони за България, не оценка на твоя случай. Точна цена и срок се определят след преглед.'
+
 // Orthodontics special note for aligners
 export const ALIGNERS_COMPLEX_NOTE = 'При много сложни случаи при топ специалисти може да достигне горната граница.'
 

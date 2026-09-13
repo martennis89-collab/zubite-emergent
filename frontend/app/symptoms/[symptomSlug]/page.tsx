@@ -290,7 +290,7 @@ export default async function SymptomDetailPage({ params }: PageProps) {
             <p className="mt-5 text-[13px] text-slate-500 leading-relaxed max-w-md mx-auto">
               Можеш да{' '}
               <Link
-                href="/kliniki"
+                href="/clinics"
                 className="text-teal-700 hover:text-teal-800 font-medium underline-offset-4 hover:underline"
                 data-testid="symptom-catalog-link"
               >

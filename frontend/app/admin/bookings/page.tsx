@@ -49,6 +49,9 @@ export default function AdminBookingsPage() {
       const r = await fetch(`${API_URL}/api/admin/bookings/${id}/${path}`, {
         method: 'POST', credentials: 'include' as RequestCredentials,
       })
+      // TODO(analytics): fire `admin_sent_clinic_reminder` here (path ===
+      // 'send-reminder' / 'resend-clinic') once an admin-side event tracker
+      // exists — no such tracker exists yet in this repo.
       if (r.ok) setNote(msg)
       else setNote('Грешка при действието.')
       setTimeout(() => setNote(null), 3000)

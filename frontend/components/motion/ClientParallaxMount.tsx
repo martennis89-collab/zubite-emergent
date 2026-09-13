@@ -9,7 +9,7 @@
  * drift on scroll. No DOM is rendered by this component itself.
  *
  * Drop one of these at the top of any server page (e.g. /care-pass,
- * /treatments, /breketi) to opt that page into the parallax system
+ * /treatments, /braces) to opt that page into the parallax system
  * that has lived on the homepage since June 2026. Mobile / reduced
  * motion are honoured inside the hook itself.
  */

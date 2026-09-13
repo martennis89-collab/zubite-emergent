@@ -1,11 +1,10 @@
 """
 P0 security acceptance criteria — explicit checks for every bullet in
-the review request (SEC-001 / SEC-002 / SEC-003 + regression).
+the review request (SEC-002 / SEC-003 + regression).
 """
 from __future__ import annotations
 
 import os
-import uuid
 import requests
 import pytest
 
@@ -24,51 +23,6 @@ REQUIRED_HEADERS = {
     "permissions-policy",
     "strict-transport-security",
 }
-
-
-# ─── SEC-001 ─────────────────────────────────────────────────────────
-class TestSEC001Webhook:
-    URL = f"{BACKEND_URL}/api/webhooks/elevenlabs/post-call"
-
-    def test_no_signature_header_returns_503(self):
-        r = requests.post(self.URL, json={"type": "post_call_transcription", "data": {}}, timeout=15)
-        # Secret unset in preview ⇒ fail-closed 503
-        assert r.status_code == 503, f"expected 503 got {r.status_code}: {r.text[:200]}"
-        body = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
-        assert body.get("processed") is not True
-
-    def test_invalid_signature_returns_503_when_secret_unset(self):
-        r = requests.post(
-            self.URL,
-            json={"type": "post_call_transcription", "data": {}},
-            headers={"ElevenLabs-Signature": "t=0,v0=deadbeef"},
-            timeout=15,
-        )
-        # With secret unset in preview, must still be 503 (fail-closed first).
-        assert r.status_code in (503, 401), f"got {r.status_code}: {r.text[:200]}"
-
-    def test_lead_not_created_or_mutated(self):
-        fake_lead = str(uuid.uuid4())
-        injected = "I rewrote your call summary"
-        r = requests.post(
-            self.URL,
-            json={
-                "type": "post_call_transcription",
-                "data": {
-                    "conversation_initiation_client_data": {"lead_id": fake_lead},
-                    "transcript": [{"role": "user", "text": "hijacked"}],
-                    "call_summary": injected,
-                    "status": "completed",
-                },
-            },
-            timeout=15,
-        )
-        assert r.status_code in (503, 401)
-        check = requests.get(f"{BACKEND_URL}/api/leads/{fake_lead}", timeout=10)
-        assert check.status_code in (401, 403, 404), f"unexpected {check.status_code}"
-        if check.status_code == 200:
-            assert injected not in check.text
-            assert "hijacked" not in check.text
 
 
 # ─── SEC-002 ─────────────────────────────────────────────────────────

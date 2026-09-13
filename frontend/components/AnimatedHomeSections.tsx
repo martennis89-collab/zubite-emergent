@@ -708,7 +708,7 @@ export function AnimatedFooter() {
             <Link href="/symptoms" className="hover:text-teal-600 hover:-translate-y-0.5 transition-all duration-300">Симптоми</Link>
             <Link href="/orthodontics" className="hover:text-teal-600 hover:-translate-y-0.5 transition-all duration-300">Ортодонтия</Link>
             <Link href="/blog" className="hover:text-teal-600 hover:-translate-y-0.5 transition-all duration-300">Блог</Link>
-            <Link href="/za-kliniki" className="hover:text-teal-600 hover:-translate-y-0.5 transition-all duration-300">За клиники</Link>
+            <Link href="/for-clinics" className="hover:text-teal-600 hover:-translate-y-0.5 transition-all duration-300">За клиники</Link>
             <Link href="/privacy" className="hover:text-teal-600 hover:-translate-y-0.5 transition-all duration-300">Поверителност</Link>
             <Link href="/contact" className="hover:text-teal-600 hover:-translate-y-0.5 transition-all duration-300">Контакти</Link>
           </nav>

@@ -48,17 +48,6 @@ export function ClinicMatchEmptyState({
         {message || MANUAL_RECOMMENDATION_COPY.submittedBody}
       </p>
 
-      {/* Care Pass helper — Feb 2026 wording: Care Pass is now universal
-          in our partner network, so we simply remind the patient that
-          it lives inside every partner clinic, without conditional
-          framing. */}
-      <p
-        className="text-[11.5px] text-slate-500 leading-relaxed max-w-md mx-auto mb-6 bg-slate-50/80 ring-1 ring-slate-200/60 rounded-lg px-3 py-2"
-        data-testid="match-empty-care-pass-helper"
-      >
-        Care Pass е включен в партньорската ни мрежа. Получаваш го при посещение в партньорска клиника.
-      </p>
-
       <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
         <Link
           href="/"
@@ -71,7 +60,7 @@ export function ClinicMatchEmptyState({
           <ArrowRight className="w-4 h-4" />
         </Link>
         <Link
-          href="/kliniki"
+          href="/clinics"
           className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-white/65 backdrop-blur-xl ring-1 ring-white/80 text-slate-700 text-sm font-medium hover:bg-white transition-all shadow-[0_8px_24px_-14px_rgba(15,23,42,0.18)]"
           data-testid="match-empty-public-catalog"
         >

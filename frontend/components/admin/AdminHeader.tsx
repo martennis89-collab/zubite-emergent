@@ -11,7 +11,9 @@ import {
   TrendingUp,
   Newspaper,
   Star,
+  MessageCircleQuestion,
   Sparkles,
+  Heart,
   LogOut,
 } from 'lucide-react'
 
@@ -22,10 +24,18 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
  * across every page under `/admin/*` (except the login screen).
  *
  * Two layouts:
- *   - List pages (e.g. /admin/dashboard, /admin/clinics): full nav.
+ *   - List pages (e.g. /admin/dashboard, /admin/clinics): nav.
  *   - Detail / editor pages: pass `backHref` + `backLabel` to render a
  *     compact "← Back" link in place of the nav bar. Logout is still
  *     available on the right.
+ *
+ * Primary navigation on desktop (lg+) now lives in the persistent left
+ * AdminSidebar (see components/admin/AdminSidebar.tsx, mounted once in
+ * app/admin/layout.tsx) — 11 nav items in one horizontal row was
+ * overlapping once every label was shown at lg+. The `<nav>` below is
+ * `lg:hidden`: it's kept only as the narrower-screen (mobile/tablet)
+ * fallback, where the sidebar is hidden. ADMIN_NAV is the single shared
+ * source both components read from.
  */
 
 export interface AdminNavItem {
@@ -81,6 +91,20 @@ export const ADMIN_NAV: AdminNavItem[] = [
     icon: Star,
     testId: 'admin-nav-reviews',
     matchPrefix: '/admin/reviews',
+  },
+  {
+    href: '/admin/community',
+    label: 'Общност',
+    icon: MessageCircleQuestion,
+    testId: 'admin-nav-community',
+    matchPrefix: '/admin/community',
+  },
+  {
+    href: '/admin/recognition',
+    label: 'Благодарности',
+    icon: Heart,
+    testId: 'admin-nav-recognition',
+    matchPrefix: '/admin/recognition',
   },
   {
     href: '/admin/analytics',
@@ -139,7 +163,7 @@ export function AdminHeader({ backHref, backLabel, pageTitle }: Props) {
 
   return (
     <header
-      className="bg-white border-b border-slate-200 sticky top-0 z-40"
+      className="taste-admin-header bg-white border-b border-slate-200 sticky top-0 z-40"
       data-testid="admin-header"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -193,8 +217,8 @@ export function AdminHeader({ backHref, backLabel, pageTitle }: Props) {
               </Link>
             ) : (
               <nav
-                className="flex items-center gap-1 sm:gap-2"
-                aria-label="Admin navigation"
+                className="flex items-center gap-1 sm:gap-2 lg:hidden"
+                aria-label="Admin navigation (compact)"
               >
                 {ADMIN_NAV.map((item) => {
                   const Icon = item.icon

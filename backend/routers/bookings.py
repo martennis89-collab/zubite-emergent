@@ -20,7 +20,7 @@ except Exception:  # pragma: no cover
     resend = None  # type: ignore
 
 from database import db
-from auth import get_current_user, get_current_clinic
+from auth import get_current_user, get_current_clinic, get_current_patient_optional
 from audit import audit_log
 from config import RESEND_API_KEY, SENDER_EMAIL, PRODUCTION_URL
 from schemas import AdminUser
@@ -208,6 +208,7 @@ async def public_create_booking(
     clinic_id: str,
     body: BookingCreate,
     request: Request,
+    patient: Optional[Dict[str, Any]] = Depends(get_current_patient_optional),
 ):
     clinic = await _load_clinic(clinic_id)
     if not await _booking_enabled(clinic):
@@ -255,6 +256,9 @@ async def public_create_booking(
         "clinic_id": clinic_id,
         "doctor_id": body.doctor_id,
         "lead_id": body.lead_id,
+        # Auto-linked to the logged-in patient account, if any — never
+        # trusted from the client (BookingCreate has no patient_id field).
+        "patient_id": patient["id"] if patient else None,
         "patient_name": body.patient_name.strip(),
         "patient_email": body.patient_email,
         "patient_phone": body.patient_phone.strip(),

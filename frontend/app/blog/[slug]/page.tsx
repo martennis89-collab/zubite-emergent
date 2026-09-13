@@ -65,8 +65,14 @@ const CATEGORY_NAMES: Record<string, string> = {
 
 async function getBlogPost(slug: string): Promise<BlogPost | null> {
   try {
-    // Use the public API URL for server-side rendering
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || process.env.REACT_APP_BACKEND_URL || ''
+    // Server components cannot use a relative `/api` URL. In Docker the
+    // browser uses the same-origin rewrite, while SSR reaches FastAPI through
+    // the internal service hostname.
+    const API_URL =
+      process.env.BACKEND_INTERNAL_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      process.env.REACT_APP_BACKEND_URL ||
+      'http://localhost:8001'
     
     const response = await fetch(`${API_URL}/api/blog/posts/${slug}`, {
       next: { revalidate: 60 },
@@ -84,8 +90,13 @@ async function getBlogPost(slug: string): Promise<BlogPost | null> {
   }
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const post = await getBlogPost(params.slug)
+type BlogPostPageProps = {
+  params: Promise<{ slug: string }>
+}
+
+export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
+  const { slug } = await params
+  const post = await getBlogPost(slug)
   
   if (!post) {
     return {
@@ -126,8 +137,9 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 // Simple markdown to HTML converter — extracted to lib/markdownToHtml.ts so
 // the admin Test Render preview can use the exact same renderer.
 
-export default async function BlogPostPage({ params }: { params: { slug: string } }) {
-  const post = await getBlogPost(params.slug)
+export default async function BlogPostPage({ params }: BlogPostPageProps) {
+  const { slug } = await params
+  const post = await getBlogPost(slug)
   
   if (!post) {
     notFound()
@@ -141,7 +153,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
   return (
     <main className="min-h-screen bg-[#FCFAF8] text-slate-900 overflow-x-hidden" data-testid="blog-post-page">
       <Header />
-      <BlogViewTracker postSlug={params.slug} postTitle={post.title} />
+      <BlogViewTracker postSlug={slug} postTitle={post.title} />
 
       {/* Decorative orbs */}
       <div aria-hidden className="absolute top-20 -left-32 w-[30rem] h-[30rem] rounded-full bg-teal-200/25 blur-3xl pointer-events-none" />

@@ -1,4 +1,5 @@
 import { Metadata } from 'next'
+import { Suspense } from 'react'
 import { MasterQuiz } from '@/components/MasterQuiz'
 
 export const metadata: Metadata = {
@@ -8,5 +9,9 @@ export const metadata: Metadata = {
 }
 
 export default function QuizPage() {
-  return <MasterQuiz />
+  return (
+    <Suspense fallback={null}>
+      <MasterQuiz />
+    </Suspense>
+  )
 }

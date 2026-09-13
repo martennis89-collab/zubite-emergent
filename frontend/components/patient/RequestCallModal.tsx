@@ -200,8 +200,8 @@ export function RequestCallModal({
               {phase === 'success'
                 ? 'Готово.'
                 : phase === 'error' && error?.code === 'already_requested'
-                  ? 'Вече сте избрали клиника'
-                  : 'Потвърдете заявката'}
+                  ? 'Вече избра клиника'
+                  : 'Потвърди заявката'}
             </h3>
             <p className="text-sm text-slate-500 mt-1 truncate">
               За {clinic.name}
@@ -287,8 +287,8 @@ function FormBody({
   return (
     <>
       <p className="text-sm text-slate-700 leading-relaxed mb-5">
-        Ще споделим вашето име, телефон и информацията от оценката с избраната
-        клиника, за да може да се свърже с вас.
+        Ще споделим името ти, телефона ти и информацията от оценката с избраната
+        клиника, за да може да се свърже с теб.
       </p>
 
       {showConfirm ? (
@@ -297,7 +297,7 @@ function FormBody({
           data-testid="request-call-contact-confirm"
         >
           <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
-            Ще се свържем с вас на:
+            Клиниката ще се свърже с теб на:
           </p>
           <ul className="space-y-1.5 text-sm text-slate-800">
             {prefillName && (
@@ -347,7 +347,7 @@ function FormBody({
           />
           {phone.length > 0 && !phoneOk && (
             <p className="mt-1.5 text-[11px] text-rose-600">
-              Моля, въведете телефон с поне 6 цифри.
+              Въведи телефон с поне 6 цифри.
             </p>
           )}
         </>
@@ -376,23 +376,9 @@ function FormBody({
           data-testid="request-call-inline-error"
         >
           <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-          <span>{error.message || 'Възникна грешка. Опитайте отново.'}</span>
+          <span>{error.message || 'Не успяхме да изпратим заявката. Опитай отново.'}</span>
         </div>
       )}
-
-      {/* Care Pass — subtle note before submit. Visible inside the modal
-          so the patient sees the after-visit benefit at decision time. */}
-      <div
-        className="mt-4 rounded-lg border border-teal-100 bg-teal-50/60 p-3 flex items-start gap-2.5 text-xs text-slate-700"
-        data-testid="request-call-care-pass-note"
-      >
-        <ShieldCheck className="w-4 h-4 mt-0.5 flex-shrink-0 text-teal-600" />
-        <span className="leading-relaxed">
-          След посещение на консултацията ще получите{' '}
-          <span className="font-semibold text-slate-900">Zubite Care Pass</span>{' '}
-          от клиниката — с партньорски ползи и предложения за орална грижа.
-        </span>
-      </div>
 
       <div className="mt-6 flex flex-col-reverse sm:flex-row gap-2.5 sm:justify-end">
         <button
@@ -436,21 +422,9 @@ function SuccessBody({
             Изпратихме заявката към избраната клиника.
           </p>
           <p className="text-xs text-emerald-800 mt-1 leading-relaxed">
-            Тя ще може да се свърже с вас според процеса си за обработка на
-            заявки.
+            Клиниката ще се свърже с теб според процеса си за обработка на заявки.
           </p>
         </div>
-      </div>
-
-      <div
-        className="rounded-lg bg-teal-50/70 border border-teal-100 p-3 mb-4 flex items-start gap-2.5"
-        data-testid="request-call-success-care-pass"
-      >
-        <ShieldCheck className="w-4 h-4 mt-0.5 flex-shrink-0 text-teal-600" />
-        <p className="text-xs text-slate-700 leading-relaxed">
-          След като посетите консултацията, попитайте клиниката за вашия{' '}
-          <span className="font-semibold text-slate-900">Zubite Care Pass</span>.
-        </p>
       </div>
 
       <p className="text-xs text-slate-500 mb-5 inline-flex items-center gap-1.5">
@@ -487,7 +461,7 @@ function DuplicateBody({
         <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
         <div>
           <p className="text-sm font-medium text-amber-900">
-            {message || 'Вече сте изпратили заявка към клиника за този резултат.'}
+            {message || 'Вече изпрати заявка към клиника за този резултат.'}
           </p>
           {clinic?.name && (
             <p

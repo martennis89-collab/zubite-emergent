@@ -1,7 +1,10 @@
 import asyncio
 import logging
 import resend
-from config import RESEND_API_KEY, SENDER_EMAIL, ADMIN_EMAIL, CITIES, TREATMENT_NAMES, BAND_NAMES
+from config import (
+    RESEND_API_KEY, SENDER_EMAIL, ADMIN_EMAIL, CITIES, TREATMENT_NAMES, BAND_NAMES,
+    FRONTEND_URL, PRODUCTION_URL,
+)
 
 
 async def send_lead_notification_email(lead_data: dict):
@@ -66,6 +69,115 @@ async def send_lead_notification_email(lead_data: dict):
         return None
 
 
+async def send_patient_otp_email(email: str, code: str):
+    """Send a passwordless one-time login code to a patient (Общност accounts).
+
+    OTP-only: the code is the sole credential. Kept deliberately plain and
+    fast; no tracking, no marketing. Returns the Resend result or None."""
+    if not RESEND_API_KEY:
+        logging.warning("RESEND_API_KEY not configured - skipping patient OTP email")
+        return None
+
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); padding: 24px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 22px;">Zubite.bg</h1>
+        </div>
+        <div style="padding: 28px 24px; background: #f8fafc; text-align: center;">
+            <p style="color: #0f172a; font-size: 16px; margin: 0 0 8px 0;">Вашият код за вход в Общността</p>
+            <p style="color: #64748b; font-size: 14px; margin: 0 0 20px 0;">Въведете този код, за да продължите. Валиден е 5 минути.</p>
+            <div style="display: inline-block; background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 28px;">
+                <span style="font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #0f172a;">{code}</span>
+            </div>
+            <p style="color: #94a3b8; font-size: 12px; margin: 24px 0 0 0;">
+                Ако не сте поискали този код, просто игнорирайте това съобщение.
+            </p>
+        </div>
+        <div style="background: #0f172a; padding: 16px; text-align: center;">
+            <p style="color: #94a3b8; font-size: 12px; margin: 0;">&copy; Zubite.bg</p>
+        </div>
+    </div>
+    """
+
+    params = {
+        "from": SENDER_EMAIL,
+        "to": [email],
+        "subject": f"Код за вход в Zubite: {code}",
+        "html": html_content,
+    }
+
+    try:
+        email_result = await asyncio.to_thread(resend.Emails.send, params)
+        logging.info(f"Patient OTP email sent to {email}, email_id: {email_result.get('id')}")
+        return email_result
+    except Exception as e:
+        logging.error(f"Failed to send patient OTP email: {str(e)}")
+        return None
+
+
+async def send_community_answer_email(
+    to_email: str, *, question_title: str, question_slug: str,
+    answerer_display: str, is_expert: bool,
+):
+    """Notify a follower (asker, a prior answerer, or anyone who hit
+    Follow — see community.py's qa_subscriptions/_notify_followers) that an
+    Общност thread they're watching got a new answer.
+
+    Best-effort: like the other senders here, failures are logged and
+    swallowed rather than raised — a missed notification email must never
+    block the answer itself from publishing."""
+    if not RESEND_API_KEY:
+        logging.warning("RESEND_API_KEY not configured - skipping community answer email")
+        return None
+
+    badge = (
+        '<span style="display:inline-block;background:#ccfbf1;color:#0f766e;'
+        'font-size:12px;font-weight:600;border-radius:9999px;padding:2px 10px;">'
+        "Проверена клиника</span>"
+        if is_expert else ""
+    )
+
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); padding: 24px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 22px;">Zubite.bg</h1>
+        </div>
+        <div style="padding: 28px 24px; background: #f8fafc;">
+            <p style="color: #0f172a; font-size: 16px; margin: 0 0 8px 0;">Нов отговор в тема, която следите</p>
+            <div style="background: white; border-radius: 12px; padding: 16px 20px; margin: 16px 0; border: 1px solid #e2e8f0;">
+                <p style="color: #0f172a; font-weight: 600; margin: 0 0 6px 0;">{question_title}</p>
+                <p style="color: #64748b; font-size: 14px; margin: 0;">Отговори {answerer_display} {badge}</p>
+            </div>
+            <div style="text-align: center; padding-top: 8px;">
+                <a href="{PRODUCTION_URL}/community/v/{question_slug}"
+                   style="display:inline-block;background:#0d9488;color:white;text-decoration:none;
+                          padding:10px 22px;border-radius:8px;font-weight:600;">
+                    Виж отговора
+                </a>
+            </div>
+        </div>
+        <div style="background: #0f172a; padding: 16px; text-align: center;">
+            <p style="color: #94a3b8; font-size: 12px; margin: 0;">&copy; Zubite.bg</p>
+        </div>
+    </div>
+    """
+
+    params = {
+        "from": SENDER_EMAIL,
+        "to": [to_email],
+        "subject": f"Нов отговор: {question_title}",
+        "html": html_content,
+    }
+
+    try:
+        email_result = await asyncio.to_thread(resend.Emails.send, params)
+        logging.info(f"Community answer email sent to {to_email}, email_id: {email_result.get('id')}")
+        return email_result
+    except Exception as e:
+        logging.error(f"Failed to send community answer email: {str(e)}")
+        return None
+
+
 async def send_lead_confirmation_email(lead_data: dict):
     """Send confirmation email to the lead (patient) after quiz submission."""
     if not RESEND_API_KEY:
@@ -119,6 +231,78 @@ async def send_lead_confirmation_email(lead_data: dict):
         return result
     except Exception as e:
         logging.error(f"Failed to send lead confirmation email to {email}: {e}")
+        return None
+
+
+async def send_quiz_result_email(lead_data: dict):
+    """Send the patient's quiz orientation without implying clinic contact."""
+    if not RESEND_API_KEY:
+        return None
+
+    email = lead_data.get("email")
+    lead_id = lead_data.get("id")
+    if not email or not lead_id:
+        return None
+
+    band = lead_data.get("band", "GREEN")
+    result_by_band = {
+        "GREEN": {
+            "title": "Леки сигнали, които си струва да наблюдаваш",
+            "copy": (
+                "Отговорите ти показват малко сигнали. Това не изключва тема "
+                "за обсъждане, но е добра отправна точка за спокоен първи разговор със специалист."
+            ),
+            "next": "Наблюдение и профилактичен преглед",
+        },
+        "YELLOW": {
+            "title": "Няколко сигнала заслужават професионален поглед",
+            "copy": (
+                "Отговорите ти насочват към няколко сигнала, които е добре да "
+                "бъдат обсъдени със специалист. Това е ориентир, а не диагноза."
+            ),
+            "next": "Консултация в близко време",
+        },
+        "RED": {
+            "title": "Комбинацията от сигнали заслужава оценка скоро",
+            "copy": (
+                "Отговорите ти показват няколко сигнала наведнъж. Това не е "
+                "диагноза, но е ясен ориентир да обсъдиш ситуацията със специалист скоро."
+            ),
+            "next": "Не отлагай професионалната оценка",
+        },
+    }
+    result = result_by_band.get(band, result_by_band["GREEN"])
+    result_url = f"{FRONTEND_URL.rstrip('/')}/results/{lead_id}"
+
+    html = f"""
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;color:#1B1C1B;">
+      <p style="margin:0 0 12px;color:#006A61;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">Zubite.bg · Твоят ориентир</p>
+      <h1 style="margin:0;font-size:28px;line-height:1.2;color:#111111;">{result["title"]}</h1>
+      <p style="margin:18px 0 0;color:#45464D;font-size:16px;line-height:1.65;">{result["copy"]}</p>
+      <div style="margin:24px 0;padding:18px 20px;background:#F0FDFA;border:1px solid #B3EEE6;border-radius:10px;">
+        <p style="margin:0 0 6px;color:#006A61;font-size:12px;font-weight:700;text-transform:uppercase;">Следваща стъпка</p>
+        <p style="margin:0;color:#1B1C1B;font-size:16px;font-weight:600;">{result["next"]}</p>
+      </div>
+      <a href="{result_url}" style="display:inline-block;padding:13px 20px;background:#006A61;color:#ffffff;text-decoration:none;border-radius:8px;font-size:15px;font-weight:700;">Отвори пълния резултат</a>
+      <p style="margin:24px 0 0;color:#64748B;font-size:13px;line-height:1.55;">Този резултат е ориентировъчен и не замества преглед или диагноза. Не сме споделили данните ти с клиника.</p>
+    </div>
+    """
+
+    try:
+        result_send = await asyncio.to_thread(resend.Emails.send, {
+            "from": SENDER_EMAIL,
+            "to": [email],
+            "subject": "Твоят ориентировъчен резултат — Zubite.bg",
+            "html": html,
+        })
+        logging.info(
+            "Quiz result email sent to %s, email_id: %s",
+            email,
+            result_send.get("id"),
+        )
+        return result_send
+    except Exception as exc:
+        logging.error("Failed to send quiz result email to %s: %s", email, exc)
         return None
 
 
@@ -262,6 +446,59 @@ def _admin_url(path: str) -> str:
     if not path.startswith("/"):
         path = "/" + path
     return f"{base}{path}"
+
+
+async def send_clinic_chat_notification(
+    *,
+    to_email: str,
+    clinic_name: str | None = None,
+) -> bool:
+    """Tell a clinic a patient has opened an online consultation thread.
+
+    Carries NO message text and NO attachment on purpose. The patient may
+    have written about their health and attached an X-ray; that is
+    special-category data and must stay behind the dashboard login rather
+    than sitting in an unencrypted mailbox. This is a nudge, not a copy.
+    """
+    if not RESEND_API_KEY:
+        logging.warning("RESEND_API_KEY not configured - skipping chat notification")
+        return False
+
+    url = _admin_url("/clinic/dashboard/chats")
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #5eead4 0%, #14b8a6 100%); padding: 24px; text-align: center;">
+            <h1 style="color: #0f172a; margin: 0; font-size: 22px;">Нов онлайн разговор</h1>
+        </div>
+        <div style="padding: 24px; background: #f8fafc;">
+            <div style="background: white; border-radius: 12px; padding: 20px; border: 1px solid #e2e8f0;">
+                <p style="color: #0f172a; margin: 0 0 12px 0; font-size: 15px;">
+                    Пациент започна онлайн разговор с вас в Zubite.
+                </p>
+                <p style="color: #64748b; margin: 0 0 20px 0; font-size: 14px; line-height: 1.6;">
+                    Съобщението и приложените файлове са достъпни само във вашето табло —
+                    не ги изпращаме по имейл.
+                </p>
+                <a href="{url}" style="display: inline-block; background: #14b8a6; color: white; text-decoration: none; padding: 12px 20px; border-radius: 999px; font-weight: 500; font-size: 14px;">
+                    Отвори разговора
+                </a>
+            </div>
+        </div>
+    </div>
+    """
+    params = {
+        "from": SENDER_EMAIL,
+        "to": [to_email],
+        "subject": "Нов онлайн разговор в Zubite",
+        "html": html_content,
+    }
+    try:
+        result = await asyncio.to_thread(resend.Emails.send, params)
+        logging.info(f"Clinic chat notification sent to {to_email}, email_id: {result.get('id')}")
+        return True
+    except Exception as e:
+        logging.error(f"Failed to send clinic chat notification: {str(e)}")
+        return False
 
 
 async def send_admin_selected_clinic_request_alert(
@@ -584,3 +821,47 @@ async def send_care_pass_summary_email(
     except Exception as e:
         logging.error(f"send_care_pass_summary_email failed: {e}")
         return False
+
+
+async def send_contact_message_emails(message_data: dict) -> None:
+    """Fan out the two emails for a public contact-form submission:
+    an admin notification, plus a confirmation back to the sender.
+
+    Best-effort and isolated: each send is guarded and wrapped so a
+    failure (or a bad sender address) never bubbles up to the request.
+    User-supplied text is HTML-escaped via _h before insertion."""
+    name = _h(message_data.get("name"))
+    email = (message_data.get("email") or "").strip()
+    message_html = _h(message_data.get("message")).replace(chr(10), "<br>")
+
+    # 1. Admin notification
+    if ADMIN_EMAIL:
+        admin_html = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color:#0f172a;">Ново съобщение от контактната форма</h2>
+            <p><strong>Име:</strong> {name}</p>
+            <p><strong>Имейл:</strong> {_h(email)}</p>
+            <p><strong>Съобщение:</strong></p>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;color:#334155;">{message_html}</div>
+            <p style="color:#94a3b8;font-size:12px;margin-top:16px;">Отговори директно на {_h(email)}.</p>
+        </div>
+        """
+        try:
+            await _send_email(ADMIN_EMAIL, f"Ново съобщение от контактната форма: {name}", admin_html)
+        except Exception as e:
+            logging.error(f"contact admin notification failed: {e}")
+
+    # 2. Sender confirmation (isolated: a bad address must not fail the request)
+    if email:
+        confirm_html = f"""
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 540px; margin: 0 auto; padding: 32px 0;">
+            <h1 style="font-size:22px;color:#0f172a;margin-bottom:8px;">Получихме съобщението ти</h1>
+            <p style="color:#64748b;font-size:15px;line-height:1.6;">Здравей {name}, благодарим ти, че се свърза с Zubite.bg. Ще ти отговорим възможно най-скоро.</p>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin:20px 0;color:#334155;font-size:14px;">{message_html}</div>
+            <p style="color:#94a3b8;font-size:13px;line-height:1.5;">С уважение, Екипът на <a href="{_h(_admin_url(chr(47)))}" style="color:#0d9488;text-decoration:none;">Zubite.bg</a></p>
+        </div>
+        """
+        try:
+            await _send_email(email, "Получихме съобщението ти — Zubite.bg", confirm_html)
+        except Exception as e:
+            logging.error(f"contact confirmation to {email} failed: {e}")

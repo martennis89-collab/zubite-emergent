@@ -1,5 +1,7 @@
 // Shared labels and helpers for the consultation workflow UI.
 
+import type { PatientContextSource } from '@/components/PatientContextSection'
+
 export const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
   new:                  { label: 'Нова',                  cls: 'bg-slate-100 text-slate-700' },
   assigned:             { label: 'Назначена',             cls: 'bg-teal-100 text-teal-700' },
@@ -27,6 +29,9 @@ export const APPOINTMENT_TYPE_LABELS: Record<string, string> = {
   cosmetic_consultation: 'Естетика',
   full_mouth_rehab_consultation: 'Цяла уста',
   general_consultation: 'Обща',
+  // Synthetic type for online_orientation_bookings adapted into the
+  // Appointment shape — see clinic_list_appointments in consultations.py.
+  online_orientation: 'Онлайн ориентация',
 }
 
 export const TREATMENT_LABELS: Record<string, string> = {
@@ -233,6 +238,71 @@ export const APPT_STATUS_LABELS: Record<string, string> = {
   attended: 'Посетила',
   no_show: 'Не се яви',
   cancelled: 'Отменена',
+  // online_orientation_bookings statuses — kept as their native strings
+  // (not force-mapped onto the vocabulary above) since the distinction
+  // between "pending" and "confirmed" is exactly the action item on the
+  // calendar. Tones for these live in APPT_STATUS_TONES below.
+  pending_clinic_confirmation: 'Чака потвърждение',
+  confirmed_by_clinic: 'Потвърдена',
+  scheduled: 'Насрочена',
+}
+
+// Badge/block color classes for appointment statuses, shared between the
+// week-grid and list views. Falls back to a neutral slate tone.
+export const APPT_STATUS_TONES: Record<string, string> = {
+  booked: 'bg-teal-100 text-teal-700',
+  confirmed: 'bg-emerald-100 text-emerald-700',
+  rescheduled: 'bg-amber-100 text-amber-800',
+  attended: 'bg-emerald-100 text-emerald-700',
+  no_show: 'bg-rose-100 text-rose-700',
+  cancelled: 'bg-slate-200 text-slate-500',
+  completed: 'bg-emerald-100 text-emerald-700',
+  pending_clinic_confirmation: 'bg-amber-100 text-amber-800',
+  confirmed_by_clinic: 'bg-emerald-100 text-emerald-700',
+  scheduled: 'bg-emerald-100 text-emerald-700',
+}
+
+// Combined status vocabulary for "Моите резервации" (frontend/app/profile/page.tsx)
+// — spans clinic_bookings' BOOKING_STATUSES and online_orientation_bookings'
+// ORIENTATION_BOOKING_STATUS_VALUES (backend/bookings_core.py,
+// backend/schemas.py). Keyed by the raw status string; the two vocabularies
+// share 4 identical values with identical meaning (completed, no_show,
+// cancelled_by_patient, cancelled_by_clinic), so one map covers both rather
+// than duplicating entries across two.
+export const BOOKING_STATUS_LABELS: Record<string, string> = {
+  pending_confirmation: 'Чака потвърждение',
+  confirmed: 'Потвърдена',
+  rescheduled: 'Преместена',
+  pending_clinic_confirmation: 'Чака потвърждение от клиниката',
+  confirmed_by_clinic: 'Потвърдена от клиниката',
+  rejected_by_clinic: 'Отказана от клиниката',
+  expired_pending_confirmation: 'Изтекла заявка',
+  scheduled: 'Насрочена',
+  converted_to_in_clinic: 'Прехвърлена в клиника',
+  not_suitable: 'Неподходяща',
+  needs_admin_review: 'На преглед',
+  completed: 'Проведена',
+  no_show: 'Не се яви',
+  cancelled_by_patient: 'Отменена от вас',
+  cancelled_by_clinic: 'Отменена от клиниката',
+}
+
+export const BOOKING_STATUS_TONES: Record<string, string> = {
+  pending_confirmation: 'bg-amber-100 text-amber-800',
+  confirmed: 'bg-emerald-100 text-emerald-700',
+  rescheduled: 'bg-amber-100 text-amber-800',
+  pending_clinic_confirmation: 'bg-amber-100 text-amber-800',
+  confirmed_by_clinic: 'bg-emerald-100 text-emerald-700',
+  rejected_by_clinic: 'bg-rose-100 text-rose-700',
+  expired_pending_confirmation: 'bg-slate-100 text-slate-500',
+  scheduled: 'bg-emerald-100 text-emerald-700',
+  converted_to_in_clinic: 'bg-teal-100 text-teal-700',
+  not_suitable: 'bg-rose-100 text-rose-700',
+  needs_admin_review: 'bg-violet-100 text-violet-700',
+  completed: 'bg-emerald-100 text-emerald-700',
+  no_show: 'bg-rose-100 text-rose-700',
+  cancelled_by_patient: 'bg-slate-100 text-slate-500',
+  cancelled_by_clinic: 'bg-rose-100 text-rose-700',
 }
 
 export const ACTION_SUCCESS_MESSAGES: Record<string, string> = {
@@ -385,6 +455,29 @@ export function isSameLocalDay(a: Date, b: Date): boolean {
   )
 }
 
+// Deterministic per-doctor color, used to give each doctor's calendar
+// lane a distinct accent without needing to store a color on the Doctor
+// record. Same doctor id always maps to the same swatch across renders.
+const DOCTOR_COLOR_PALETTE = [
+  { dot: 'bg-teal-500', text: 'text-teal-700' },
+  { dot: 'bg-violet-500', text: 'text-violet-700' },
+  { dot: 'bg-amber-500', text: 'text-amber-700' },
+  { dot: 'bg-rose-500', text: 'text-rose-700' },
+  { dot: 'bg-sky-500', text: 'text-sky-700' },
+  { dot: 'bg-lime-500', text: 'text-lime-700' },
+  { dot: 'bg-fuchsia-500', text: 'text-fuchsia-700' },
+  { dot: 'bg-orange-500', text: 'text-orange-700' },
+]
+
+export function doctorColor(doctorId: string): { dot: string; text: string } {
+  let hash = 0
+  for (let i = 0; i < doctorId.length; i++) {
+    hash = (hash * 31 + doctorId.charCodeAt(i)) | 0
+  }
+  const idx = Math.abs(hash) % DOCTOR_COLOR_PALETTE.length
+  return DOCTOR_COLOR_PALETTE[idx]
+}
+
 export interface ConsultationRequest {
   id: string
   patient_name: string
@@ -410,6 +503,11 @@ export interface ConsultationRequest {
   utm_campaign?: string | null
   utm_adset?: string | null
   utm_ad?: string | null
+  // Compact attribution for the list view -- same computation as
+  // `patient_context.source_context` on the detail page, gated by
+  // ATTRIBUTION_LIST_VISIBLE_SINCE on the backend. Absent on responses
+  // from before this field existed, hence optional.
+  source_badge?: PatientContextSource
   status: string
   assigned_clinic_id?: string | null
   assigned_clinic_name?: string | null
@@ -433,6 +531,10 @@ export interface Appointment {
   id: string
   clinic_id: string
   consultation_request_id?: string | null
+  // Set only for rows adapted from online_orientation_bookings — links back
+  // to the "Онлайн ориентация" actions page, the only place confirm/reject
+  // actually happens for these.
+  online_orientation_booking_id?: string | null
   patient_name: string
   patient_phone: string
   treatment_category?: string | null
@@ -441,6 +543,9 @@ export interface Appointment {
   end_time: string
   status: string
   notes?: string | null
+  // Staff-internal assignment (Phase 3) — never patient-chosen, never
+  // affects availability/slot generation.
+  doctor_id?: string | null
   created_at: string
   updated_at?: string
 }
@@ -465,6 +570,7 @@ export const APPOINTMENT_TYPES: Array<{ value: string; label: string }> = [
   { value: 'cosmetic_consultation', label: 'Естетика' },
   { value: 'full_mouth_rehab_consultation', label: 'Цяла уста' },
   { value: 'general_consultation', label: 'Обща' },
+  { value: 'online_orientation', label: 'Онлайн ориентация' },
 ]
 
 // Patient-flow request type (driven by `created_from` on the consultation_request

@@ -2,10 +2,9 @@
  * Google Analytics 4 helpers — Consent Mode v2 compliant.
  *
  * Single source of truth for the GA4 measurement ID and the gtag wrapper.
- * Loading + consent-default initialisation lives in
- * `components/analytics/GoogleAnalyticsConsent.tsx`. This module exposes
- * type-safe helpers that the rest of the app can import without dealing
- * with `window` typings directly.
+ * Loading + consent-default initialisation lives in `app/layout.tsx`;
+ * `GoogleAnalyticsConsent.tsx` bridges later banner changes. This module
+ * exposes type-safe helpers without leaking window typings to feature code.
  */
 
 export const GA_MEASUREMENT_ID = 'G-1EXHPR6JYS'
@@ -75,10 +74,9 @@ export function updateMarketingConsent(granted: boolean) {
 }
 
 /**
- * Manually fire a page_view. Because we run GA in App Router and disable
- * `send_page_view` in the initial config, we send page views ourselves on
- * pathname change. No-op if analytics consent is still denied — Consent
- * Mode v2 drops the hit at the Google tag level either way.
+ * Explicit page-view escape hatch for flows outside normal App Router
+ * navigation. Regular page views come from GA4 Enhanced Measurement so this
+ * helper must not be wired globally or it will create duplicate hits.
  */
 export function trackPageView(url: string) {
   safeGtag('event', 'page_view', {

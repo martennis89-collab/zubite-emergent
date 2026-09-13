@@ -11,7 +11,8 @@ interface Lead {
   name: string
   email: string
   phone: string
-  city_slug: string
+  // Optional: the quiz funnel creates leads before city is known.
+  city_slug?: string | null
   treatment_type: string
   band: string
   created_at: string
@@ -188,7 +189,7 @@ export default function AdminLeadsPage() {
                       <div className="text-slate-700 text-sm">{lead.email}</div>
                       <div className="text-slate-500 text-sm">{lead.phone}</div>
                     </td>
-                    <td className="py-4 px-4 text-slate-700 capitalize">{lead.city_slug}</td>
+                    <td className="py-4 px-4 text-slate-700 capitalize">{lead.city_slug || '—'}</td>
                     <td className="py-4 px-4 text-slate-700">{lead.treatment_type}</td>
                     <td className="py-4 px-4 text-slate-500">
                       {new Date(lead.created_at).toLocaleDateString('bg-BG')}

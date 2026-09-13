@@ -46,7 +46,7 @@ from schemas import (
     ORIENTATION_TOPIC_LABELS_BG,
     ORIENTATION_TREATMENT_CATEGORIES,
 )
-from auth import get_current_user, get_current_clinic
+from auth import get_current_user, get_current_clinic, get_current_patient_optional
 from audit import audit_log
 from orientation_access import get_online_orientation_access_status
 from orientation_slots import (
@@ -270,6 +270,7 @@ async def patient_create_booking(
     lead_id: str,
     payload: OnlineOrientationBookingCreate,
     request: Request,
+    patient: Optional[Dict[str, Any]] = Depends(get_current_patient_optional),
 ):
     """Create a booking request in `pending_clinic_confirmation`.
     Holds a soft lock on the slot for 24h. NO Care Pass change."""
@@ -365,6 +366,10 @@ async def patient_create_booking(
         "id": _new_id(),
         "clinic_id": clinic["id"],
         "lead_id": lead_id,
+        # Auto-linked to the logged-in patient account, if any — never
+        # trusted from the client body (defence-in-depth, same as the PII
+        # fields below being pulled server-side from the lead).
+        "patient_id": patient["id"] if patient else None,
         # PII pulled server-side from the lead — never accepted in the
         # POST body (defence-in-depth).
         "patient_name": lead.get("name"),

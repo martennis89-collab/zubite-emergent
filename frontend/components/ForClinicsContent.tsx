@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * /za-kliniki — premium navy B2B SaaS partner-acquisition page.
+ * /for-clinics — premium navy B2B SaaS partner-acquisition page.
  *
  * Visual direction (Feb 2026):
  *   • Premium dark navy hero + governance + final CTA sections
@@ -631,7 +631,7 @@ function TrustSignalSection() {
             </div>
 
             <a
-              href="/standart-za-kliniki"
+              href="/clinic-standard"
               className="inline-flex items-center gap-1.5 pt-2 text-sm font-medium text-teal-700 hover:text-teal-800 transition-colors"
               data-testid="zk-trust-standard-link"
             >
@@ -932,7 +932,7 @@ const sectionTitleClass =
 
 function SectionDivider({ icon: Icon, label }: { icon: React.ElementType; label: string }) {
   return (
-    <div className={sectionTitleClass}>
+    <div className={`${sectionTitleClass} application-section-divider`}>
       <Icon className="w-4 h-4" />
       <span>{label}</span>
       <div className="flex-1 h-px bg-white/10" />
@@ -946,10 +946,10 @@ function Toggle({
   checked: boolean; onChange: (v: boolean) => void; label: string; testId?: string
 }) {
   return (
-    <label className="flex items-center gap-3 cursor-pointer select-none">
+    <label className="application-toggle flex items-center gap-3 cursor-pointer select-none">
       <span
         className={
-          'relative w-10 h-6 rounded-full transition-colors ' +
+          'application-toggle-track relative w-10 h-6 rounded-full transition-colors ' +
           (checked ? 'bg-teal-500' : 'bg-slate-700')
         }
         data-testid={testId}
@@ -972,51 +972,162 @@ function Toggle({
   )
 }
 
-function ApplicationSection() {
+interface ApplicationSectionProps {
+  submissionEndpoint?: string
+  privateMode?: boolean
+  initialClinicName?: string
+  initialEmail?: string
+}
+
+export function ApplicationSection({
+  submissionEndpoint = '/api/clinic-applications',
+  privateMode = false,
+  initialClinicName = '',
+  initialEmail = '',
+}: ApplicationSectionProps = {}) {
   const [form, setForm] = useState({
-    clinic_name: '',
+    clinic_name: initialClinicName,
     city: '',
     address: '',
+    district_slug: '',
     website: '',
     contact_name: '',
     phone: '',
-    email: '',
+    email: initialEmail,
+    package_interest: '',
     offers_aligners: false,
     offers_braces: false,
     offers_implants: false,
     treats_adults: false,
     treats_children: false,
+    treatments_supported: '',
+    treatment_focus: '',
+    short_description: '',
+    google_url: '',
+    facebook_url: '',
+    superdoc_url: '',
+    aligner_brands: [] as string[],
+    claimed_official_provider_brands: [] as string[],
+    founded_year: '',
+    patient_intro: '',
+    treatment_case_counts: '',
+    doctor_spotlight_kind: 'lead_doctor',
+    doctor_spotlight_name: '',
+    doctor_spotlight_role: '',
+    doctor_spotlight_specialties: '',
+    doctor_spotlight_bio: '',
+    assessment_approaches: [] as string[],
+    team_note: '',
+    clinic_story: '',
+    environment_description: '',
+    consultation_process: '',
+    hero_image_url: '',
+    doctor_spotlight_image_url: '',
+    team_image_url: '',
+    environment_image_url: '',
+    clinic_video_url: '',
+    doctor_video_url: '',
+    case_library_summary: '',
+    case_media_url: '',
+    patient_consent_available: '',
     years_experience: '',
     number_of_cases_per_month: '',
     do_you_use_digital_scans: '',
     what_types_of_patients_are_best_for_you: '',
     average_response_time: '',
+    wants_online_booking: '',
+    wants_viber_contact: '',
+    viber_phone: '',
   })
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
 
-  const set = (key: string, value: string | boolean) =>
+  const set = (key: string, value: string | boolean | string[]) =>
     setForm((f) => ({ ...f, [key]: value }))
 
-  // ⚠️ Submit handler is intentionally identical to the previous
-  // implementation. Backend payload shape preserved verbatim.
+  const toggleListValue = (key: 'aligner_brands' | 'claimed_official_provider_brands' | 'assessment_approaches', value: string) => {
+    const current = form[key]
+    set(key, current.includes(value) ? current.filter((item) => item !== value) : [...current, value])
+  }
+
+  const commaList = (value: string, limit: number) =>
+    value.split(/[,;\n]/).map((item) => item.trim()).filter(Boolean).slice(0, limit)
+
+  const optional = (value: string) => value.trim() || null
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setStatus('loading')
     try {
       const payload = {
         ...form,
-        website: form.website || null,
+        package_interest: form.package_interest || 'unsure',
+        district_slug: optional(form.district_slug),
+        website: optional(form.website),
+        treatments_supported: commaList(form.treatments_supported, 12),
+        treatment_focus: commaList(form.treatment_focus, 12),
+        short_description: optional(form.short_description),
+        google_url: optional(form.google_url),
+        facebook_url: optional(form.facebook_url),
+        superdoc_url: optional(form.superdoc_url),
+        founded_year: form.founded_year ? parseInt(form.founded_year) : null,
+        patient_intro: optional(form.patient_intro),
+        treatment_case_counts: form.treatment_case_counts
+          .split('\n')
+          .map((line) => {
+            const [treatment, count, year] = line.split('|').map((part) => part.trim())
+            return {
+              treatment,
+              completed_cases: Number.parseInt(count || '', 10),
+              as_of_year: year ? Number.parseInt(year, 10) : null,
+            }
+          })
+          .filter((row) => row.treatment && Number.isFinite(row.completed_cases) && row.completed_cases > 0),
+        claimed_official_provider_brands: form.claimed_official_provider_brands.filter(
+          (brand) => form.aligner_brands.includes(brand),
+        ),
+        doctor_spotlight_kind:
+          form.doctor_spotlight_name || form.doctor_spotlight_role || form.doctor_spotlight_bio
+            ? form.doctor_spotlight_kind
+            : null,
+        doctor_spotlight_name: optional(form.doctor_spotlight_name),
+        doctor_spotlight_role: optional(form.doctor_spotlight_role),
+        doctor_spotlight_specialties: commaList(form.doctor_spotlight_specialties, 8),
+        doctor_spotlight_bio: optional(form.doctor_spotlight_bio),
+        team_note: optional(form.team_note),
+        clinic_story: optional(form.clinic_story),
+        environment_description: optional(form.environment_description),
+        consultation_process: optional(form.consultation_process),
+        hero_image_url: optional(form.hero_image_url),
+        doctor_spotlight_image_url: optional(form.doctor_spotlight_image_url),
+        team_image_url: optional(form.team_image_url),
+        environment_image_url: optional(form.environment_image_url),
+        clinic_video_url: optional(form.clinic_video_url),
+        doctor_video_url: optional(form.doctor_video_url),
+        case_library_summary: optional(form.case_library_summary),
+        case_media_url: optional(form.case_media_url),
+        patient_consent_available:
+          form.patient_consent_available === 'yes' ? true
+            : form.patient_consent_available === 'no' ? false
+              : null,
         years_experience: form.years_experience ? parseInt(form.years_experience) : null,
-        number_of_cases_per_month: form.number_of_cases_per_month || null,
+        number_of_cases_per_month: optional(form.number_of_cases_per_month),
         do_you_use_digital_scans:
           form.do_you_use_digital_scans === 'yes' ? true
             : form.do_you_use_digital_scans === 'no' ? false
               : null,
-        what_types_of_patients_are_best_for_you:
-          form.what_types_of_patients_are_best_for_you || null,
-        average_response_time: form.average_response_time || null,
+        what_types_of_patients_are_best_for_you: optional(form.what_types_of_patients_are_best_for_you),
+        average_response_time: optional(form.average_response_time),
+        wants_online_booking:
+          form.wants_online_booking === 'yes' ? true
+            : form.wants_online_booking === 'no' ? false
+              : null,
+        wants_viber_contact:
+          form.wants_viber_contact === 'yes' ? true
+            : form.wants_viber_contact === 'no' ? false
+              : null,
+        viber_phone: optional(form.viber_phone),
       }
-      const res = await fetch(`${API_URL}/api/clinic-applications`, {
+      const res = await fetch(`${API_URL}${submissionEndpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -1031,48 +1142,96 @@ function ApplicationSection() {
   return (
     <section
       id="application"
-      className="relative py-24 md:py-32 overflow-hidden"
+      className={
+        privateMode
+          ? 'taste-private-intake-form-section'
+          : 'relative py-24 md:py-32 overflow-hidden'
+      }
       data-testid="clinics-application"
-      style={{
+      style={privateMode ? undefined : {
         background:
           'radial-gradient(ellipse 60% 50% at 50% 0%, rgba(20,184,166,0.18) 0%, transparent 60%),' +
           'linear-gradient(135deg, #0B1620 0%, #0E1A24 100%)',
       }}
     >
-      <div aria-hidden className="absolute -top-32 left-1/2 -translate-x-1/2 w-[720px] h-[480px] rounded-full bg-teal-500/10 blur-3xl pointer-events-none" />
-      <div className="relative max-w-3xl mx-auto px-5 sm:px-8">
+      {!privateMode && (
+        <div aria-hidden className="absolute -top-32 left-1/2 -translate-x-1/2 w-[720px] h-[480px] rounded-full bg-teal-500/10 blur-3xl pointer-events-none" />
+      )}
+      <div className={privateMode ? 'taste-private-intake-form-wrap' : 'relative max-w-3xl mx-auto px-5 sm:px-8'}>
         {status === 'success' ? (
           <div className="text-center py-12">
             <div className="w-20 h-20 rounded-full bg-teal-500/15 ring-1 ring-teal-300/30 flex items-center justify-center mx-auto mb-8">
               <CheckCircle2 className="w-10 h-10 text-teal-300" />
             </div>
             <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-white mb-4">
-              Благодарим за интереса
+              {privateMode ? 'Информацията е изпратена' : 'Благодарим за интереса'}
             </h2>
             <p className="text-slate-300 text-lg max-w-md mx-auto">
-              Ще прегледаме вашата кандидатура и ще се свържем с вас в рамките
-              на 48 часа.
+              {privateMode
+                ? 'Данните вече са налични за преглед от екипа на Zubite.bg. Ще се свържем с вас при нужда от уточнение.'
+                : 'Ще прегледаме вашата кандидатура и ще се свържем с вас в рамките на 48 часа.'}
             </p>
           </div>
         ) : (
           <>
-            <div className="text-center mb-12">
+            <div className={privateMode ? 'taste-private-intake-form-heading' : 'text-center mb-12'}>
               <p className="font-sans text-xs font-semibold tracking-[0.25em] uppercase text-teal-300 mb-3">
-                Кандидатстване
+                {privateMode ? 'Информация за профила' : 'Кандидатстване'}
               </p>
               <h2 className="font-serif text-[1.75rem] sm:text-[2.25rem] font-semibold text-white leading-[1.1] mb-4">
-                Подайте кратка форма за партньорство
+                {privateMode ? 'Попълнете това, с което разполагате' : 'Подайте кратка форма за партньорство'}
               </h2>
               <p className="text-slate-300 text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
-                Ще прегледаме съответствието с партньорската мрежа и ще се свържем с вас в рамките на 48 часа.
+                {privateMode
+                  ? 'Задължителните полета са отбелязани със звезда. Разширената информация може да бъде допълнена и след първоначалния преглед.'
+                  : 'Ще прегледаме съответствието с партньорската мрежа и ще се свържем с вас в рамките на 48 часа.'}
               </p>
             </div>
 
             <form
               onSubmit={handleSubmit}
-              className="bg-white/[0.04] backdrop-blur-xl ring-1 ring-white/12 rounded-2xl p-6 sm:p-8 md:p-10 space-y-8"
+              className={
+                privateMode
+                  ? 'taste-private-intake-form space-y-8'
+                  : 'bg-white/[0.04] backdrop-blur-xl ring-1 ring-white/12 rounded-2xl p-6 sm:p-8 md:p-10 space-y-8'
+              }
               data-testid="clinic-application-form"
             >
+              <SectionDivider icon={Layers} label="Пакет, който разглеждате" />
+              <fieldset>
+                <legend className="text-sm text-slate-300 mb-3">
+                  Това е интерес, не автоматично активиране на пакет. Ако не сте сигурни, ще ви помогнем да изберете.
+                </legend>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {[
+                    { value: 'verified_profile', title: 'Verified Profile', text: 'Проверен основен профил' },
+                    { value: 'growth_partner', title: 'Growth Partner', text: 'Разширен профил и пациентски потоци' },
+                    { value: 'unsure', title: 'Не съм сигурен/а', text: 'Кратка консултация с екипа' },
+                  ].map((option) => (
+                    <label
+                      key={option.value}
+                      className={`application-package-option cursor-pointer rounded-xl border p-4 transition-colors ${
+                        form.package_interest === option.value
+                          ? 'border-teal-300 bg-teal-300/10'
+                          : 'border-white/15 bg-white/[0.03] hover:border-white/25'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="package_interest"
+                        value={option.value}
+                        checked={form.package_interest === option.value}
+                        onChange={(e) => set('package_interest', e.target.value)}
+                        className="sr-only"
+                        required
+                      />
+                      <span className="block text-sm font-semibold text-white">{option.title}</span>
+                      <span className="mt-1 block text-xs leading-relaxed text-slate-400">{option.text}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+
               {/* ── Clinic Info ── */}
               <SectionDivider icon={Building2} label="Информация за клиниката" />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1096,6 +1255,28 @@ function ApplicationSection() {
                   <label className={labelClass}>Адрес *</label>
                   <input type="text" required value={form.address} onChange={(e) => set('address', e.target.value)} className={inputClass} placeholder="ул. Витоша 15" data-testid="input-address" />
                 </div>
+                {form.city === 'София' && (
+                  <div>
+                    <label className={labelClass}>Квартал</label>
+                    <select value={form.district_slug} onChange={(e) => set('district_slug', e.target.value)} className={selectClass} data-testid="input-district">
+                      <option value="" className="bg-slate-900">Изберете квартал</option>
+                      <option value="lozenets" className="bg-slate-900">Лозенец</option>
+                      <option value="mladost" className="bg-slate-900">Младост</option>
+                      <option value="lyulin" className="bg-slate-900">Люлин</option>
+                      <option value="druzhba" className="bg-slate-900">Дружба</option>
+                      <option value="iztok" className="bg-slate-900">Изток</option>
+                      <option value="izgrev" className="bg-slate-900">Изгрев</option>
+                      <option value="studentski-grad" className="bg-slate-900">Студентски град</option>
+                      <option value="vitosha" className="bg-slate-900">Витоша</option>
+                      <option value="boyana" className="bg-slate-900">Бояна</option>
+                      <option value="center" className="bg-slate-900">Център</option>
+                      <option value="krasno-selo" className="bg-slate-900">Красно село</option>
+                      <option value="ovcha-kupel" className="bg-slate-900">Овча купел</option>
+                      <option value="nadezhda" className="bg-slate-900">Надежда</option>
+                      <option value="poduyane" className="bg-slate-900">Подуяне</option>
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label className={labelClass}>Уебсайт</label>
                   <input type="url" value={form.website} onChange={(e) => set('website', e.target.value)} className={inputClass} placeholder="https://example.com" data-testid="input-website" />
@@ -1128,6 +1309,85 @@ function ApplicationSection() {
                 <Toggle checked={form.treats_adults} onChange={(v) => set('treats_adults', v)} label="Третира възрастни" testId="toggle-adults" />
                 <Toggle checked={form.treats_children} onChange={(v) => set('treats_children', v)} label="Третира деца" testId="toggle-children" />
               </div>
+              <div>
+                <label className={labelClass}>Други лечения и услуги</label>
+                <input
+                  type="text"
+                  value={form.treatments_supported}
+                  onChange={(e) => set('treatments_supported', e.target.value)}
+                  className={inputClass}
+                  placeholder="Естетична стоматология, хирургия, ендодонтия…"
+                  data-testid="input-treatments-supported"
+                />
+                <p className="mt-2 text-xs text-slate-500">Разделете с запетая. В профила ще подредим до 3 основни секции за Verified и до 8 за Growth.</p>
+              </div>
+
+              <details open className="application-details group rounded-2xl border border-white/10 bg-white/[0.025] p-5">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-white">
+                  Данни за проверения профил
+                  <ChevronDown className="h-4 w-4 text-teal-300 transition-transform group-open:rotate-180" />
+                </summary>
+                <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                  Това е съдържанието, което пациентите ще видят след преглед и одобрение от Zubite.
+                </p>
+                <div className="mt-6 space-y-6">
+                  <div>
+                    <label className={labelClass}>Кратко описание на клиниката</label>
+                    <textarea rows={3} maxLength={500} value={form.short_description} onChange={(e) => set('short_description', e.target.value)} className={`${inputClass} resize-none`} placeholder="Какво правите, за кого и с какъв подход — до 500 знака." data-testid="input-short-description" />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Приоритетни лечения за профила</label>
+                    <input type="text" value={form.treatment_focus} onChange={(e) => set('treatment_focus', e.target.value)} className={inputClass} placeholder="Алайнери, импланти, детска стоматология…" data-testid="input-treatment-focus" />
+                  </div>
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                    <div>
+                      <label className={labelClass}>Google профил</label>
+                      <input type="url" value={form.google_url} onChange={(e) => set('google_url', e.target.value)} className={inputClass} placeholder="https://…" data-testid="input-google-url" />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Facebook страница</label>
+                      <input type="url" value={form.facebook_url} onChange={(e) => set('facebook_url', e.target.value)} className={inputClass} placeholder="https://…" data-testid="input-facebook-url" />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Superdoc профил</label>
+                      <input type="url" value={form.superdoc_url} onChange={(e) => set('superdoc_url', e.target.value)} className={inputClass} placeholder="https://…" data-testid="input-superdoc-url" />
+                    </div>
+                  </div>
+                  {(form.offers_aligners || form.treatments_supported.toLocaleLowerCase('bg-BG').includes('алайн')) && (
+                    <fieldset>
+                      <legend className={labelClass}>Алайнер системи, с които работите</legend>
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                        {[
+                          ['invisalign', 'Invisalign'],
+                          ['spark', 'Spark'],
+                          ['angel_aligner', 'Angel Aligner'],
+                          ['dentalign', 'Dentalign'],
+                          ['clearcorrect', 'ClearCorrect'],
+                        ].map(([value, label]) => (
+                          <label key={value} className="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-200">
+                            <input type="checkbox" checked={form.aligner_brands.includes(value)} onChange={() => toggleListValue('aligner_brands', value)} className="accent-teal-400" />
+                            {label}
+                          </label>
+                        ))}
+                      </div>
+                      {form.aligner_brands.length > 0 && (
+                        <div className="mt-4">
+                          <p className={labelClass}>За кои марки заявявате официален provider статус?</p>
+                          <div className="flex flex-wrap gap-3">
+                            {form.aligner_brands.map((value) => (
+                              <label key={value} className="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-200">
+                                <input type="checkbox" checked={form.claimed_official_provider_brands.includes(value)} onChange={() => toggleListValue('claimed_official_provider_brands', value)} className="accent-teal-400" />
+                                {value.replaceAll('_', ' ')}
+                              </label>
+                            ))}
+                          </div>
+                          <p className="mt-2 text-xs text-slate-500">Zubite ще покаже „официален provider“ само след проверка на доказателството.</p>
+                        </div>
+                      )}
+                    </fieldset>
+                  )}
+                </div>
+              </details>
 
               {/* ── Qualification ── */}
               <SectionDivider icon={ShieldCheck} label="Квалификация" />
@@ -1163,26 +1423,198 @@ function ApplicationSection() {
                 <textarea rows={3} value={form.what_types_of_patients_are_best_for_you} onChange={(e) => set('what_types_of_patients_are_best_for_you', e.target.value)} className={`${inputClass} resize-none`} placeholder="Напр. възрастни с леки до средни ортодонтски проблеми..." data-testid="input-patient-types" />
               </div>
 
+              {(form.package_interest === 'growth_partner' || form.package_interest === 'unsure') && (
+                <details open className="application-details application-details-growth group rounded-2xl border border-teal-300/20 bg-teal-300/[0.035] p-5">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-white">
+                    Разширен Growth профил
+                    <ChevronDown className="h-4 w-4 text-teal-300 transition-transform group-open:rotate-180" />
+                  </summary>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                    Тези полета изграждат по-пълен профил. Може да ги попълните сега или да изпратите наличните материали като линкове.
+                  </p>
+
+                  <div className="mt-6 space-y-8">
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                      <div>
+                        <label className={labelClass}>Година на основаване</label>
+                        <input type="number" min="1900" max={new Date().getFullYear()} value={form.founded_year} onChange={(e) => set('founded_year', e.target.value)} className={inputClass} placeholder="2012" data-testid="input-founded-year" />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Кратко обръщение към пациента</label>
+                        <textarea rows={3} maxLength={500} value={form.patient_intro} onChange={(e) => set('patient_intro', e.target.value)} className={`${inputClass} resize-none`} placeholder="Как бихте посрещнали пациент, който разглежда профила ви?" data-testid="input-patient-intro" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>Завършени случаи по лечение</label>
+                      <textarea rows={4} value={form.treatment_case_counts} onChange={(e) => set('treatment_case_counts', e.target.value)} className={`${inputClass} resize-none font-mono text-sm`} placeholder={'Алайнери | 240 | 2026\nИмпланти | 180 | 2026'} data-testid="input-treatment-case-counts" />
+                      <p className="mt-2 text-xs text-slate-500">По един ред: лечение | потвърден брой | година. Данните се обозначават като предоставени от клиниката.</p>
+                    </div>
+
+                    <div className="space-y-5">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-300">Водещ лекар / собственик</p>
+                      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                        <div>
+                          <label className={labelClass}>Кого представяме?</label>
+                          <select value={form.doctor_spotlight_kind} onChange={(e) => set('doctor_spotlight_kind', e.target.value)} className={selectClass} data-testid="input-doctor-kind">
+                            <option value="lead_doctor" className="bg-slate-900">Водещ лекар</option>
+                            <option value="owner" className="bg-slate-900">Собственик на клиниката</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className={labelClass}>Име</label>
+                          <input type="text" value={form.doctor_spotlight_name} onChange={(e) => set('doctor_spotlight_name', e.target.value)} className={inputClass} placeholder="Д-р…" data-testid="input-doctor-name" />
+                        </div>
+                        <div>
+                          <label className={labelClass}>Роля / титла</label>
+                          <input type="text" value={form.doctor_spotlight_role} onChange={(e) => set('doctor_spotlight_role', e.target.value)} className={inputClass} placeholder="Ортодонт, управител…" data-testid="input-doctor-role" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className={labelClass}>Специалности</label>
+                        <input type="text" value={form.doctor_spotlight_specialties} onChange={(e) => set('doctor_spotlight_specialties', e.target.value)} className={inputClass} placeholder="Ортодонтия за възрастни, детска ортодонтия…" data-testid="input-doctor-specialties" />
+                      </div>
+                      <div>
+                        <label className={labelClass}>Кратка биография</label>
+                        <textarea rows={4} maxLength={1000} value={form.doctor_spotlight_bio} onChange={(e) => set('doctor_spotlight_bio', e.target.value)} className={`${inputClass} resize-none`} data-testid="input-doctor-bio" />
+                      </div>
+                      <fieldset>
+                        <legend className={labelClass}>Какво включвате в оценката?</legend>
+                        <p className="mb-3 text-xs text-slate-500">Това описва подход, не специалност, рейтинг или сигнал за „най-добър лекар“.</p>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {[
+                            ['airway_breathing', 'Дишане и дихателни пътища'],
+                            ['swallowing_orofacial', 'Преглъщане и орофациални навици'],
+                            ['speech_articulation', 'Говор и артикулация'],
+                            ['posture_balance', 'Стойка и мускулен баланс'],
+                            ['facial_asymmetry', 'Лицева асиметрия'],
+                            ['functional_orthodontics', 'Функционален ортодонтски подход'],
+                          ].map(([value, label]) => (
+                            <label key={value} className="flex min-h-11 cursor-pointer items-start gap-2 rounded-xl border border-white/10 px-3 py-3 text-sm text-slate-200">
+                              <input type="checkbox" checked={form.assessment_approaches.includes(value)} onChange={() => toggleListValue('assessment_approaches', value)} className="mt-0.5 accent-teal-400" />
+                              {label}
+                            </label>
+                          ))}
+                        </div>
+                      </fieldset>
+                      <div>
+                        <label className={labelClass}>Бележка за екипа</label>
+                        <textarea rows={3} maxLength={500} value={form.team_note} onChange={(e) => set('team_note', e.target.value)} className={`${inputClass} resize-none`} placeholder="Езици, роли, начин на работа…" data-testid="input-team-note" />
+                      </div>
+                    </div>
+
+                    <div className="space-y-5">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-300">История и преживяване</p>
+                      <div>
+                        <label className={labelClass}>История на клиниката</label>
+                        <textarea rows={4} maxLength={1500} value={form.clinic_story} onChange={(e) => set('clinic_story', e.target.value)} className={`${inputClass} resize-none`} data-testid="input-clinic-story" />
+                      </div>
+                      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                        <div>
+                          <label className={labelClass}>Среда и оборудване</label>
+                          <textarea rows={4} maxLength={1000} value={form.environment_description} onChange={(e) => set('environment_description', e.target.value)} className={`${inputClass} resize-none`} data-testid="input-environment-description" />
+                        </div>
+                        <div>
+                          <label className={labelClass}>Как протича първата консултация?</label>
+                          <textarea rows={4} maxLength={1000} value={form.consultation_process} onChange={(e) => set('consultation_process', e.target.value)} className={`${inputClass} resize-none`} data-testid="input-consultation-process" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-5">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-300">Снимки и видео</p>
+                      <p className="text-sm text-slate-400">Поставете публичен или споделен линк към конкретния файл. Не изпращайте пациентски снимки без валидно съгласие.</p>
+                      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                        {[
+                          ['hero_image_url', 'Основна снимка на клиниката', 'input-hero-image-url'],
+                          ['doctor_spotlight_image_url', 'Снимка на водещия лекар', 'input-doctor-image-url'],
+                          ['team_image_url', 'Снимка на екипа', 'input-team-image-url'],
+                          ['environment_image_url', 'Снимка на средата / оборудването', 'input-environment-image-url'],
+                          ['clinic_video_url', 'Видео на клиниката', 'input-clinic-video-url'],
+                          ['doctor_video_url', 'Видео на лекаря', 'input-doctor-video-url'],
+                        ].map(([key, label, testId]) => (
+                          <div key={key}>
+                            <label className={labelClass}>{label}</label>
+                            <input type="url" value={form[key as keyof typeof form] as string} onChange={(e) => set(key, e.target.value)} className={inputClass} placeholder="https://…" data-testid={testId} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-5">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-300">Библиотека със случаи</p>
+                      <div>
+                        <label className={labelClass}>Какви анонимизирани случаи можете да покажете?</label>
+                        <textarea rows={4} maxLength={2000} value={form.case_library_summary} onChange={(e) => set('case_library_summary', e.target.value)} className={`${inputClass} resize-none`} placeholder="Лечение, продължителност, използвани материали и особености — без лични данни." data-testid="input-case-library-summary" />
+                      </div>
+                      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                        <div>
+                          <label className={labelClass}>Споделена папка със снимки</label>
+                          <input type="url" value={form.case_media_url} onChange={(e) => set('case_media_url', e.target.value)} className={inputClass} placeholder="https://…" data-testid="input-case-media-url" />
+                        </div>
+                        <div>
+                          <label className={labelClass}>Имате ли документирано пациентско съгласие?</label>
+                          <select value={form.patient_consent_available} onChange={(e) => set('patient_consent_available', e.target.value)} className={selectClass} data-testid="input-patient-consent">
+                            <option value="" className="bg-slate-900">Изберете</option>
+                            <option value="yes" className="bg-slate-900">Да</option>
+                            <option value="no" className="bg-slate-900">Все още не</option>
+                          </select>
+                        </div>
+                      </div>
+                      <p className="text-xs leading-relaxed text-slate-500">Публикуването и статусът на всеки случай се настройват отделно след одобрение. Intake формата не публикува автоматично материали.</p>
+                    </div>
+                  </div>
+                </details>
+              )}
+
               {/* ── Operations ── */}
               <SectionDivider icon={Clock} label="Операции" />
-              <div>
-                <label className={labelClass}>Средно време за отговор на запитване</label>
-                <select value={form.average_response_time} onChange={(e) => set('average_response_time', e.target.value)} className={selectClass} data-testid="input-response-time">
-                  <option value="" className="bg-slate-900">Изберете</option>
-                  <option value="<1h" className="bg-slate-900">Под 1 час</option>
-                  <option value="1-6h" className="bg-slate-900">1 – 6 часа</option>
-                  <option value="24h" className="bg-slate-900">До 24 часа</option>
-                  <option value=">24h" className="bg-slate-900">Над 24 часа</option>
-                </select>
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                <div>
+                  <label className={labelClass}>Средно време за отговор</label>
+                  <select value={form.average_response_time} onChange={(e) => set('average_response_time', e.target.value)} className={selectClass} data-testid="input-response-time">
+                    <option value="" className="bg-slate-900">Изберете</option>
+                    <option value="<1h" className="bg-slate-900">Под 1 час</option>
+                    <option value="1-6h" className="bg-slate-900">1 – 6 часа</option>
+                    <option value="24h" className="bg-slate-900">До 24 часа</option>
+                    <option value=">24h" className="bg-slate-900">Над 24 часа</option>
+                  </select>
+                </div>
+                <div>
+                  <label className={labelClass}>Желаете ли онлайн записване?</label>
+                  <select value={form.wants_online_booking} onChange={(e) => set('wants_online_booking', e.target.value)} className={selectClass} data-testid="input-wants-booking">
+                    <option value="" className="bg-slate-900">Изберете</option>
+                    <option value="yes" className="bg-slate-900">Да</option>
+                    <option value="no" className="bg-slate-900">Не</option>
+                  </select>
+                </div>
+                <div>
+                  <label className={labelClass}>Желаете ли Viber контакт?</label>
+                  <select value={form.wants_viber_contact} onChange={(e) => set('wants_viber_contact', e.target.value)} className={selectClass} data-testid="input-wants-viber">
+                    <option value="" className="bg-slate-900">Изберете</option>
+                    <option value="yes" className="bg-slate-900">Да</option>
+                    <option value="no" className="bg-slate-900">Не</option>
+                  </select>
+                </div>
               </div>
+              {form.wants_viber_contact === 'yes' && (
+                <div>
+                  <label className={labelClass}>Телефон за Viber</label>
+                  <input type="tel" value={form.viber_phone} onChange={(e) => set('viber_phone', e.target.value)} className={inputClass} placeholder="+359…" data-testid="input-viber-phone" />
+                </div>
+              )}
 
               {/* ── Submit ── */}
               <div className="pt-4">
                 <button
                   type="submit"
                   disabled={status === 'loading'}
-                  className="w-full flex items-center justify-center gap-2 px-8 py-4 rounded-full text-slate-900 font-medium transition-all hover:-translate-y-0.5 shadow-[0_18px_40px_-12px_rgba(94,234,212,0.45)] disabled:opacity-60 disabled:cursor-not-allowed"
-                  style={{ backgroundImage: 'linear-gradient(135deg,#5eead4 0%,#2dd4bf 60%,#14b8a6 100%)' }}
+                  className={
+                    privateMode
+                      ? 'taste-private-intake-submit'
+                      : 'w-full flex items-center justify-center gap-2 px-8 py-4 rounded-full text-slate-900 font-medium transition-all hover:-translate-y-0.5 shadow-[0_18px_40px_-12px_rgba(94,234,212,0.45)] disabled:opacity-60 disabled:cursor-not-allowed'
+                  }
+                  style={privateMode ? undefined : { backgroundImage: 'linear-gradient(135deg,#5eead4 0%,#2dd4bf 60%,#14b8a6 100%)' }}
                   data-testid="footer-apply-btn"
                 >
                   {status === 'loading' ? (
@@ -1192,14 +1624,16 @@ function ApplicationSection() {
                     </>
                   ) : (
                     <>
-                      <span>Изпрати кандидатура</span>
+                      <span>{privateMode ? 'Изпрати информацията' : 'Изпрати кандидатура'}</span>
                       <ArrowUpRight className="w-5 h-5" />
                     </>
                   )}
                 </button>
-                <p className="mt-3 text-center text-[11px] text-slate-500">
-                  Или се свържи с екипа: <Link href="/contact" className="text-teal-300 hover:text-teal-200">контактна форма</Link>.
-                </p>
+                {!privateMode && (
+                  <p className="mt-3 text-center text-[11px] text-slate-500">
+                    Или се свържи с екипа: <Link href="/contact" className="text-teal-300 hover:text-teal-200">контактна форма</Link>.
+                  </p>
+                )}
               </div>
 
               {status === 'error' && (

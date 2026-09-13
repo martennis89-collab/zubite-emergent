@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Loader2, Star, Clock, CheckCircle2, XCircle, ShieldCheck, Inbox,
-  Building2, MessageSquare, Filter,
+  Building2, MessageSquare, Filter, Trash2,
 } from 'lucide-react'
 import { AdminHeader } from '@/components/admin/AdminHeader'
 
@@ -115,6 +115,20 @@ export default function AdminReviewsPage() {
         })
         await load()
       }
+    } finally {
+      setActingId(null)
+    }
+  }
+
+  const deleteReview = async (id: string) => {
+    if (!window.confirm('Изтрий това мнение завинаги? Действието не може да бъде отменено.')) return
+    setActingId(id)
+    try {
+      const r = await fetch(`${API_URL}/api/admin/reviews/${id}`, {
+        method: 'DELETE',
+        credentials: 'include' as RequestCredentials,
+      })
+      if (r.ok) await load()
     } finally {
       setActingId(null)
     }
@@ -275,6 +289,16 @@ export default function AdminReviewsPage() {
                         {r.clinic_name || r.clinic_id}
                       </span>
                     </span>
+                    <button
+                      type="button"
+                      disabled={acting}
+                      onClick={() => deleteReview(r.id)}
+                      title="Изтрий завинаги"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-white px-2.5 py-1 text-xs font-medium text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+                      data-testid={`admin-review-delete-${r.id}`}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />Изтрий
+                    </button>
                   </div>
 
                   <p

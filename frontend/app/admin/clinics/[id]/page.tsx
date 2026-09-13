@@ -8,8 +8,90 @@ import { AdminHeader } from '@/components/admin/AdminHeader'
 import { CaseLibraryEditor, type CaseRow as EditorCaseRow } from '@/components/admin/CaseLibraryEditor'
 import { ClinicPackageSection } from '@/components/admin/ClinicPackageSection'
 import { ImageUploadField } from '@/components/admin/ImageUploadField'
+import {
+  ASSESSMENT_APPROACH_LABELS,
+  treatmentLabel,
+  type AssessmentApproach,
+} from '@/lib/publicClinics'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+
+// Sofia neighbourhoods only. Kept in sync manually with SOFIA_DISTRICTS
+// in backend/config.py (same convention as other city/district lists
+// duplicated across this codebase, e.g. CITIES in MasterQuiz.tsx).
+const SOFIA_DISTRICTS_ADMIN = [
+  { value: 'lozenets', label: 'Лозенец' },
+  { value: 'mladost', label: 'Младост' },
+  { value: 'lyulin', label: 'Люлин' },
+  { value: 'druzhba', label: 'Дружба' },
+  { value: 'iztok', label: 'Изток' },
+  { value: 'izgrev', label: 'Изгрев' },
+  { value: 'studentski-grad', label: 'Студентски град' },
+  { value: 'vitosha', label: 'Витоша' },
+  { value: 'boyana', label: 'Бояна' },
+  { value: 'center', label: 'Център' },
+  { value: 'krasno-selo', label: 'Красно село' },
+  { value: 'ovcha-kupel', label: 'Овча купел' },
+  { value: 'nadezhda', label: 'Надежда' },
+  { value: 'poduyane', label: 'Подуяне' },
+]
+
+interface ContactDetails {
+  clinic_name: string
+  city: string
+  address: string
+  phone: string
+  email: string
+  website: string
+  contact_person: string
+  notification_email: string
+}
+
+const EMPTY_CONTACT: ContactDetails = {
+  clinic_name: '', city: '', address: '', phone: '',
+  email: '', website: '', contact_person: '', notification_email: '',
+}
+
+// PATCH /admin/clinics/{id} drops any field sent as `null` rather than
+// clearing it, so a field the admin cleared is sent as an empty string, which
+// does reach the database. A field that was empty before and still is gets
+// omitted instead: many clinics predate these fields entirely, and writing ''
+// onto them would invent data that was never entered.
+//
+// The two email fields never travel as '' -- the backend validates them as
+// addresses, so an empty one would fail the whole save and take the unrelated
+// profile edits down with it.
+function contactPatch(c: ContactDetails, original: ContactDetails): Record<string, string> {
+  const patch: Record<string, string> = {}
+  for (const key of CLEARABLE_CONTACT_FIELDS) {
+    const value = c[key].trim()
+    if (value || original[key].trim()) patch[key] = value
+  }
+  const email = c.email.trim()
+  if (email) patch.email = email
+  const notify = c.notification_email.trim()
+  if (notify) patch.notification_email = notify
+  return patch
+}
+
+const CLEARABLE_CONTACT_FIELDS = [
+  'clinic_name', 'city', 'address', 'phone', 'website', 'contact_person',
+] as const
+
+// Guards deletion, not absence. Emptying a name empties the public listing,
+// emptying a city orphans the clinic from its city page, and emptying an email
+// removes the clinic's login -- so each is refused, but only when there was
+// something there to begin with.
+//
+// A field that arrived empty stays optional. Plenty of clinics predate these
+// fields, and demanding one here would block every unrelated profile edit on
+// those until somebody went and found the missing value.
+function clearedRequiredField(c: ContactDetails, original: ContactDetails): string | null {
+  if (original.clinic_name.trim() && !c.clinic_name.trim()) return 'Име на клиниката'
+  if (original.city.trim() && !c.city.trim()) return 'Град'
+  if (original.email.trim() && !c.email.trim()) return 'Имейл'
+  return null
+}
 
 type Tier = 'standard' | 'featured' | 'premium'
 type ProfileStatus = 'draft' | 'published'
@@ -43,11 +125,19 @@ interface ReviewSources {
   superdoc_url?: string | null
 }
 
+interface TreatmentCaseCountRow {
+  treatment: string
+  completed_cases: number | null
+  as_of_year?: number | null
+}
+
 interface ClinicProfile {
   profile_status: ProfileStatus
   short_description?: string
   patient_intro?: string
+  founded_year?: number | null
   treatment_focus?: string[]
+  treatment_case_counts?: TreatmentCaseCountRow[]
   hero_image_url?: string
   clinic_video_url?: string
   doctor_video_url?: string
@@ -55,7 +145,10 @@ interface ClinicProfile {
   team_image_url?: string
   environment_image_url?: string
   doctor_spotlight_name?: string
+  doctor_spotlight_kind?: 'owner' | 'lead_doctor'
   doctor_spotlight_role?: string
+  doctor_spotlight_specialties?: string[]
+  assessment_approaches?: AssessmentApproach[]
   doctor_spotlight_bio?: string
   team_note?: string
   clinic_story?: string
@@ -159,23 +252,27 @@ const tierRank = (t: Tier) => TIER_ORDER.indexOf(t)
 const VISIBILITY: Record<string, Tier[]> = {
   // ── existing profile fields ───────────────────────────────────
   short_description:        ['standard', 'featured', 'premium'],
+  founded_year:             ['featured', 'premium'],
   treatment_focus:          ['standard', 'featured', 'premium'],
+  treatment_case_counts:     ['featured', 'premium'],
   review_sources:           ['standard', 'featured', 'premium'],
   patient_intro:            ['featured', 'premium'],
-  hero_image_url:           ['premium'],
-  doctor_spotlight_image_url:['premium'],
-  team_image_url:           ['premium'],
-  environment_image_url:    ['premium'],
-  clinic_video_url:         ['premium'],
-  doctor_video_url:         ['premium'],
-  doctor_spotlight_name:    ['premium'],
-  doctor_spotlight_role:    ['premium'],
-  doctor_spotlight_bio:     ['premium'],
-  team_note:                ['premium'],
-  clinic_story:             ['premium'],
-  environment_description:  ['premium'],
-  consultation_process:     ['premium'],
-  case_library:             ['premium'],
+  hero_image_url:           ['featured', 'premium'],
+  doctor_spotlight_image_url:['featured', 'premium'],
+  team_image_url:           ['featured', 'premium'],
+  environment_image_url:    ['featured', 'premium'],
+  clinic_video_url:         ['featured', 'premium'],
+  doctor_video_url:         ['featured', 'premium'],
+  doctor_spotlight_name:    ['featured', 'premium'],
+  doctor_spotlight_kind:    ['featured', 'premium'],
+  doctor_spotlight_role:    ['featured', 'premium'],
+  doctor_spotlight_specialties:['featured', 'premium'],
+  doctor_spotlight_bio:     ['featured', 'premium'],
+  team_note:                ['featured', 'premium'],
+  clinic_story:             ['featured', 'premium'],
+  environment_description:  ['featured', 'premium'],
+  consultation_process:     ['featured', 'premium'],
+  case_library:             ['featured', 'premium'],
   // ── partner-access matrix (Feb 2026 package doc) ─────────────
   care_pass_partner:         ['featured', 'premium'],
   quiz_result_participation: ['featured', 'premium'],
@@ -226,12 +323,29 @@ export default function AdminClinicEditPage() {
   // Care Pass-specific downgrade warning. Boolean — no admin editing.
   const [carePassPartner, setCarePassPartner] = useState(false)
   const [clinicName, setClinicName] = useState('')
+  // Editable contact details, kept separate from `clinicName` so the page
+  // heading keeps showing the saved name while the field is being typed in.
+  const [contact, setContact] = useState<ContactDetails>(EMPTY_CONTACT)
+  // What the server last gave us, so a save can tell "left empty" apart from
+  // "emptied by the admin" -- the first is normal, the second destroys data.
+  const originalContact = useRef<ContactDetails>(EMPTY_CONTACT)
+  const [district, setDistrict] = useState('')
 
   const [profile, setProfile] = useState<ClinicProfile>({ profile_status: 'draft' })
   const [focusInput, setFocusInput] = useState('')
+  const [doctorSpecialtyInput, setDoctorSpecialtyInput] = useState('')
+  const [supportedTreatments, setSupportedTreatments] = useState<string[]>([])
   const [cases, setCases] = useState<CaseRow[]>([])
   const caseKeyRef = useRef<number>(0)
   const [brands, setBrands] = useState<AlignerBrandEntry[]>([])
+
+  const handleBasePackageChange = useCallback((basePackage: 'verified_profile' | 'growth_partner', foundingStatus: string) => {
+    const nextTier: Tier = basePackage === 'growth_partner'
+      ? (foundingStatus === 'strategic_private' ? 'premium' : 'featured')
+      : 'standard'
+    setTier(nextTier)
+    setTierBeforeSave(nextTier)
+  }, [])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -244,16 +358,44 @@ export default function AdminClinicEditPage() {
       const j = await r.json()
       const c = j.clinic || {}
       setClinicName(c.clinic_name || c.name || '—')
-      const rawTier = (c.partner_tier || (c.is_premium ? 'premium' : c.is_featured ? 'featured' : 'standard')) as Tier
+      const loadedContact: ContactDetails = {
+        clinic_name: c.clinic_name || c.name || '',
+        city: c.city || c.city_name || '',
+        address: c.address || '',
+        phone: c.phone || '',
+        email: c.email || '',
+        website: c.website || '',
+        contact_person: c.contact_person || '',
+        notification_email: c.notification_email || '',
+      }
+      setContact(loadedContact)
+      originalContact.current = loadedContact
+      const rawTier = (
+        c.base_package === 'growth_partner'
+          ? (c.founding_status === 'strategic_private' ? 'premium' : 'featured')
+          : c.base_package === 'verified_profile'
+            ? 'standard'
+            : (c.partner_tier || (c.is_premium ? 'premium' : c.is_featured ? 'featured' : 'standard'))
+      ) as Tier
       setTier(rawTier)
       setTierBeforeSave(rawTier)
       setCarePassPartner(c.care_pass_partner === true)
+      setDistrict(c.district_slug || '')
+      setSupportedTreatments(
+        Array.isArray(c.treatments_supported)
+          ? c.treatments_supported
+          : Array.isArray(c.treatments_offered)
+            ? c.treatments_offered
+            : [],
+      )
       const p: ClinicProfile = c.clinic_profile || { profile_status: 'draft' }
       setProfile({
         profile_status: (p.profile_status as ProfileStatus) || 'draft',
         short_description: p.short_description || '',
         patient_intro: p.patient_intro || '',
+        founded_year: typeof p.founded_year === 'number' ? p.founded_year : null,
         treatment_focus: p.treatment_focus || [],
+        treatment_case_counts: p.treatment_case_counts || [],
         hero_image_url: p.hero_image_url || '',
         clinic_video_url: p.clinic_video_url || '',
         doctor_video_url: p.doctor_video_url || '',
@@ -261,7 +403,10 @@ export default function AdminClinicEditPage() {
         team_image_url: p.team_image_url || '',
         environment_image_url: p.environment_image_url || '',
         doctor_spotlight_name: p.doctor_spotlight_name || '',
+        doctor_spotlight_kind: p.doctor_spotlight_kind || 'lead_doctor',
         doctor_spotlight_role: p.doctor_spotlight_role || '',
+        doctor_spotlight_specialties: p.doctor_spotlight_specialties || [],
+        assessment_approaches: p.assessment_approaches || [],
         doctor_spotlight_bio: p.doctor_spotlight_bio || '',
         team_note: p.team_note || '',
         clinic_story: p.clinic_story || '',
@@ -309,10 +454,21 @@ export default function AdminClinicEditPage() {
   useEffect(() => { if (clinicId) load() }, [clinicId, load])
 
   const save = async () => {
+    // Checked here rather than left to the backend, which treats an empty
+    // string as a value to write: a cleared name would be saved as a clinic
+    // called nothing, and a cleared email would silently keep the old one
+    // because contactPatch() omits it.
+    const cleared = clearedRequiredField(contact, originalContact.current)
+    if (cleared) {
+      setMessage({ type: 'err', text: `Полето „${cleared}" не може да остане празно.` })
+      return
+    }
     setSaving(true); setMessage(null)
     try {
       const body = {
+        ...contactPatch(contact, originalContact.current),
         partner_tier: tier,
+        ...(district ? { district_slug: district } : {}),
         aligner_brands_supported: brands.map((b) => ({
           brand: b.brand,
           relationship: b.relationship,
@@ -324,7 +480,20 @@ export default function AdminClinicEditPage() {
           profile_status: profile.profile_status,
           short_description: profile.short_description || null,
           patient_intro: profile.patient_intro || null,
+          founded_year: typeof profile.founded_year === 'number' ? profile.founded_year : null,
           treatment_focus: (profile.treatment_focus || []).filter(Boolean),
+          treatment_case_counts: (profile.treatment_case_counts || []).flatMap((row) => {
+            const treatment = row.treatment.trim()
+            const completedCases = row.completed_cases
+            if (!treatment || typeof completedCases !== 'number' || !Number.isInteger(completedCases) || completedCases < 1) {
+              return []
+            }
+            return [{
+              treatment,
+              completed_cases: completedCases,
+              as_of_year: typeof row.as_of_year === 'number' ? row.as_of_year : null,
+            }]
+          }),
           hero_image_url: profile.hero_image_url || null,
           clinic_video_url: profile.clinic_video_url || null,
           doctor_video_url: profile.doctor_video_url || null,
@@ -332,7 +501,12 @@ export default function AdminClinicEditPage() {
           team_image_url: profile.team_image_url || null,
           environment_image_url: profile.environment_image_url || null,
           doctor_spotlight_name: profile.doctor_spotlight_name || null,
+          doctor_spotlight_kind: profile.doctor_spotlight_kind || 'lead_doctor',
           doctor_spotlight_role: profile.doctor_spotlight_role || null,
+          doctor_spotlight_specialties: Array.from(new Set(
+            (profile.doctor_spotlight_specialties || []).map((item) => item.trim()).filter(Boolean),
+          )),
+          assessment_approaches: profile.assessment_approaches || [],
           doctor_spotlight_bio: profile.doctor_spotlight_bio || null,
           team_note: profile.team_note || null,
           clinic_story: profile.clinic_story || null,
@@ -425,6 +599,105 @@ export default function AdminClinicEditPage() {
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
+        {/* Section 0 — Контакти и данни */}
+        <Section title="Контакти и данни" testid="section-contact">
+          <p className="text-xs text-slate-500 leading-relaxed mb-4">
+            Основните данни на клиниката. Досега те можеха да се въведат само
+            при създаването ѝ — грешка в името, имейла или телефона изискваше
+            намеса в базата.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="Име на клиниката">
+              <ContactInput
+                value={contact.clinic_name} maxLength={200}
+                onChange={(v) => setContact((s) => ({ ...s, clinic_name: v }))}
+                testid="clinic-name-input"
+              />
+            </Field>
+            <Field
+              label="Град"
+              hint="Промяната на града преизчислява и адреса на клиниката в публичния сайт."
+            >
+              <ContactInput
+                value={contact.city} maxLength={100}
+                onChange={(v) => setContact((s) => ({ ...s, city: v }))}
+                testid="clinic-city-input"
+              />
+            </Field>
+            <Field label="Телефон">
+              <ContactInput
+                value={contact.phone} maxLength={50} type="tel"
+                onChange={(v) => setContact((s) => ({ ...s, phone: v }))}
+                testid="clinic-phone-input"
+              />
+            </Field>
+            <Field
+              label="Имейл"
+              hint="Това е и потребителското име на клиниката за вход в портала. Промяната сменя начина, по който клиниката влиза."
+            >
+              <ContactInput
+                value={contact.email} maxLength={200} type="email"
+                onChange={(v) => setContact((s) => ({ ...s, email: v }))}
+                testid="clinic-email-input"
+              />
+            </Field>
+            <div className="sm:col-span-2">
+              <Field label="Адрес">
+                <ContactInput
+                  value={contact.address} maxLength={500}
+                  onChange={(v) => setContact((s) => ({ ...s, address: v }))}
+                  testid="clinic-address-input"
+                />
+              </Field>
+            </div>
+            <Field label="Уебсайт">
+              <ContactInput
+                value={contact.website} maxLength={500}
+                onChange={(v) => setContact((s) => ({ ...s, website: v }))}
+                testid="clinic-website-input"
+              />
+            </Field>
+            <Field label="Лице за контакт">
+              <ContactInput
+                value={contact.contact_person} maxLength={200}
+                onChange={(v) => setContact((s) => ({ ...s, contact_person: v }))}
+                testid="clinic-contact-person-input"
+              />
+            </Field>
+            <div className="sm:col-span-2">
+              <Field
+                label="Имейл за известия"
+                hint="Ако е празно, известията отиват на имейла за вход."
+              >
+                <ContactInput
+                  value={contact.notification_email} maxLength={200} type="email"
+                  onChange={(v) => setContact((s) => ({ ...s, notification_email: v }))}
+                  testid="clinic-notification-email-input"
+                />
+              </Field>
+            </div>
+          </div>
+        </Section>
+
+        {/* Section 0.5 — Локация */}
+        <Section title="Локация" testid="section-location">
+          <div className="max-w-xs">
+            <Field label="Квартал (само за София)">
+              <select
+                value={district}
+                onChange={(e) => setDistrict(e.target.value)}
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"
+                data-testid="clinic-district-select"
+              >
+                <option value="">— не е зададено —</option>
+                {SOFIA_DISTRICTS_ADMIN.map((d) => (
+                  <option key={d.value} value={d.value}>{d.label}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
+        </Section>
+
         {/* Section 1 — Партньорски пакет */}
         <Section title="Партньорски пакет" testid="section-partner-status">
           <p className="text-xs text-slate-500 leading-relaxed mb-4" data-testid="tier-trust-guardrail">
@@ -433,9 +706,9 @@ export default function AdminClinicEditPage() {
             гарантирана позиция.
           </p>
           <p className="text-[11px] text-amber-700 italic leading-relaxed mb-3">
-            Feb 2026 revamp: за пълно конфигуриране на pricing / founding / billing / entitlements / add-ons
-            използвай новата секция „Package & Billing" по-долу. Тази стара секция остава само за
-            съвместимост с легаси `partner_tier` в базата.
+            Обобщение само за преглед. Променяй пакета, founding условията,
+            billing, entitlements и add-ons от „Package & Billing" по-долу.
+            Така `base_package` остава единственият източник на истина.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {TIER_LABELS.map((t) => {
@@ -445,9 +718,9 @@ export default function AdminClinicEditPage() {
                 <button
                   key={t.value}
                   type="button"
-                  onClick={() => setTier(t.value)}
+                  disabled
                   className={
-                    'relative text-left rounded-2xl ring-1 p-4 transition-all ' +
+                    'relative cursor-default text-left rounded-2xl ring-1 p-4 ' +
                     (active
                       ? 'ring-teal-500 shadow-[0_10px_24px_-14px_rgba(15,118,110,0.35)] bg-white'
                       : 'ring-slate-200 bg-slate-50 hover:bg-white hover:ring-slate-300')
@@ -508,6 +781,7 @@ export default function AdminClinicEditPage() {
         <ClinicPackageSection
           clinicId={clinicId}
           onNotify={(m) => setMessage(m)}
+          onBasePackageChange={handleBasePackageChange}
         />
 
         {/* Section 1.5 — Founding Growth Partner offer (only for Growth tier) */}
@@ -590,6 +864,28 @@ export default function AdminClinicEditPage() {
               data-testid="field-short_description"
             />
           </Field>
+          <Field label="Година на основаване (Growth)" hint={visibilityHint(tier, 'founded_year')}>
+            <input
+              type="number"
+              min={1900}
+              max={new Date().getFullYear()}
+              step={1}
+              value={profile.founded_year ?? ''}
+              onChange={(e) => {
+                const value = e.target.value === '' ? null : Number(e.target.value)
+                setProfile({
+                  ...profile,
+                  founded_year: typeof value === 'number' && Number.isFinite(value) ? value : null,
+                })
+              }}
+              placeholder="напр. 2012"
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
+              data-testid="field-founded_year"
+            />
+            <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
+              В публичния профил Zubite изчислява автоматично годините практика, за да не остарява стойността.
+            </p>
+          </Field>
           <Field label="Кратко обръщение към пациента (до 500)" hint={visibilityHint(tier, 'patient_intro')}>
             <textarea
               value={profile.patient_intro || ''}
@@ -600,7 +896,7 @@ export default function AdminClinicEditPage() {
               data-testid="field-patient_intro"
             />
           </Field>
-          <Field label="Фокус на лечение (до 12 елемента)" hint={visibilityHint(tier, 'treatment_focus')}>
+          <Field label="Фокус на клиниката (до 12 лечения)" hint={visibilityHint(tier, 'treatment_focus')}>
             <div className="flex flex-wrap gap-1.5 mb-2">
               {(profile.treatment_focus || []).map((tf, i) => (
                 <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-xs">
@@ -617,7 +913,7 @@ export default function AdminClinicEditPage() {
                 value={focusInput}
                 onChange={(e) => setFocusInput(e.target.value)}
                 maxLength={80}
-                placeholder="напр. aligners"
+                placeholder="напр. Алайнери"
                 className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm"
                 data-testid="field-treatment_focus_input"
               />
@@ -634,6 +930,144 @@ export default function AdminClinicEditPage() {
                 data-testid="field-treatment_focus_add"
               >+</button>
             </div>
+          </Field>
+
+          <Field
+            label="Завършени случаи по лечение (Growth)"
+            hint={visibilityHint(tier, 'treatment_case_counts')}
+          >
+            <p className="mb-3 text-xs leading-relaxed text-slate-500">
+              Попълвайте само официално потвърдени обобщени данни. В публичния профил те се обозначават като предоставени от клиниката и не се смесват с публикуваните пациентски случаи.
+            </p>
+            <div className="space-y-2" data-testid="field-treatment_case_counts">
+              {(profile.treatment_case_counts || []).map((row, index) => (
+                <div
+                  key={index}
+                  className="grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)_minmax(0,0.7fr)_auto] sm:items-end"
+                >
+                  <label className="block">
+                    <span className="mb-1 block text-[11px] font-medium text-slate-600">Лечение</span>
+                    {supportedTreatments.length > 0 ? (
+                      <select
+                        value={row.treatment}
+                        onChange={(e) => setProfile({
+                          ...profile,
+                          treatment_case_counts: (profile.treatment_case_counts || []).map((item, itemIndex) => (
+                            itemIndex === index ? { ...item, treatment: e.target.value } : item
+                          )),
+                        })}
+                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                      >
+                        <option value="">Изберете лечение</option>
+                        {Array.from(new Set([...supportedTreatments, row.treatment].filter(Boolean))).map((treatment) => (
+                          <option key={treatment} value={treatment}>{treatmentLabel(treatment)}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        value={row.treatment}
+                        onChange={(e) => setProfile({
+                          ...profile,
+                          treatment_case_counts: (profile.treatment_case_counts || []).map((item, itemIndex) => (
+                            itemIndex === index ? { ...item, treatment: e.target.value } : item
+                          )),
+                        })}
+                        maxLength={80}
+                        placeholder="напр. Импланти"
+                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                      />
+                    )}
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-[11px] font-medium text-slate-600">Завършени случаи</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={1000000}
+                      step={1}
+                      value={row.completed_cases ?? ''}
+                      onChange={(e) => {
+                        const value = e.target.value === '' ? null : Number(e.target.value)
+                        setProfile({
+                          ...profile,
+                          treatment_case_counts: (profile.treatment_case_counts || []).map((item, itemIndex) => (
+                            itemIndex === index
+                              ? { ...item, completed_cases: typeof value === 'number' && Number.isFinite(value) ? value : null }
+                              : item
+                          )),
+                        })
+                      }}
+                      placeholder="напр. 240"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-[11px] font-medium text-slate-600">Към година</span>
+                    <input
+                      type="number"
+                      min={2000}
+                      max={new Date().getFullYear()}
+                      step={1}
+                      value={row.as_of_year ?? ''}
+                      onChange={(e) => {
+                        const value = e.target.value === '' ? null : Number(e.target.value)
+                        setProfile({
+                          ...profile,
+                          treatment_case_counts: (profile.treatment_case_counts || []).map((item, itemIndex) => (
+                            itemIndex === index
+                              ? { ...item, as_of_year: typeof value === 'number' && Number.isFinite(value) ? value : null }
+                              : item
+                          )),
+                        })
+                      }}
+                      placeholder={String(new Date().getFullYear())}
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setProfile({
+                      ...profile,
+                      treatment_case_counts: (profile.treatment_case_counts || []).filter((_, itemIndex) => itemIndex !== index),
+                    })}
+                    className="grid h-10 w-10 place-items-center rounded-lg border border-slate-200 bg-white text-slate-400 transition-colors hover:border-rose-200 hover:text-rose-600"
+                    aria-label={`Премахни данните за ${row.treatment || 'лечението'}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if ((profile.treatment_case_counts || []).length >= 12) return
+                const usedTreatments = new Set((profile.treatment_case_counts || []).map((row) => row.treatment))
+                const nextTreatment = supportedTreatments.find((treatment) => !usedTreatments.has(treatment)) || ''
+                if (supportedTreatments.length > 0 && !nextTreatment) return
+                setProfile({
+                  ...profile,
+                  treatment_case_counts: [
+                    ...(profile.treatment_case_counts || []),
+                    { treatment: nextTreatment, completed_cases: null, as_of_year: new Date().getFullYear() },
+                  ],
+                })
+              }}
+              disabled={
+                (profile.treatment_case_counts || []).length >= 12
+                || (
+                  supportedTreatments.length > 0
+                  && supportedTreatments.every((treatment) => (
+                    (profile.treatment_case_counts || []).some((row) => row.treatment === treatment)
+                  ))
+                )
+              }
+              className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
+              data-testid="field-treatment_case_counts_add"
+            >
+              <Plus className="h-4 w-4" />
+              Добави лечение
+            </button>
           </Field>
         </Section>
 
@@ -690,8 +1124,8 @@ export default function AdminClinicEditPage() {
           </Field>
         </Section>
 
-        {/* Section 6 — Лекар / екип */}
-        <Section title="Лекар / екип" testid="section-doctor">
+        {/* Section 6 — Собственик / водещ лекар / екип */}
+        <Section title="Собственик / водещ лекар" testid="section-doctor">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <ImageUploadField
               label="Снимка на лекаря (spotlight)"
@@ -710,17 +1144,99 @@ export default function AdminClinicEditPage() {
               aspect="landscape"
             />
           </div>
+          <Field label="Кого представяме" hint={visibilityHint(tier, 'doctor_spotlight_kind')}>
+            <select
+              value={profile.doctor_spotlight_kind || 'lead_doctor'}
+              onChange={(e) => setProfile({
+                ...profile,
+                doctor_spotlight_kind: e.target.value as 'owner' | 'lead_doctor',
+              })}
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"
+              data-testid="field-doctor_spotlight_kind"
+            >
+              <option value="lead_doctor">Водещ лекар</option>
+              <option value="owner">Собственик на клиниката</option>
+            </select>
+          </Field>
           <Field label="Име на лекар" hint={visibilityHint(tier, 'doctor_spotlight_name')}>
             <input value={profile.doctor_spotlight_name || ''} onChange={(e) => setProfile({ ...profile, doctor_spotlight_name: e.target.value })}
               maxLength={200} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" data-testid="field-doctor_spotlight_name" />
           </Field>
-          <Field label="Роля" hint={visibilityHint(tier, 'doctor_spotlight_role')}>
+          <Field label="Професионална роля / титла" hint={visibilityHint(tier, 'doctor_spotlight_role')}>
             <input value={profile.doctor_spotlight_role || ''} onChange={(e) => setProfile({ ...profile, doctor_spotlight_role: e.target.value })}
               maxLength={200} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" data-testid="field-doctor_spotlight_role" />
+          </Field>
+          <Field label="Специалности (до 8)" hint={visibilityHint(tier, 'doctor_spotlight_specialties')}>
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              {(profile.doctor_spotlight_specialties || []).map((specialty, index) => (
+                <span key={specialty} className="inline-flex items-center gap-1 rounded-full bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-800">
+                  {specialty}
+                  <button
+                    type="button"
+                    onClick={() => setProfile({
+                      ...profile,
+                      doctor_spotlight_specialties: (profile.doctor_spotlight_specialties || []).filter((_, itemIndex) => itemIndex !== index),
+                    })}
+                    className="text-teal-500 hover:text-rose-600"
+                    aria-label={`Премахни специалност ${specialty}`}
+                  >×</button>
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input
+                value={doctorSpecialtyInput}
+                onChange={(e) => setDoctorSpecialtyInput(e.target.value)}
+                maxLength={80}
+                placeholder="напр. Ортодонтия за възрастни"
+                className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm"
+                data-testid="field-doctor_specialty_input"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const value = doctorSpecialtyInput.trim()
+                  const current = profile.doctor_spotlight_specialties || []
+                  if (!value || current.length >= 8) return
+                  if (current.some((item) => item.toLocaleLowerCase('bg-BG') === value.toLocaleLowerCase('bg-BG'))) return
+                  setProfile({ ...profile, doctor_spotlight_specialties: [...current, value] })
+                  setDoctorSpecialtyInput('')
+                }}
+                disabled={(profile.doctor_spotlight_specialties || []).length >= 8}
+                className="rounded-lg bg-slate-900 px-3 py-2 text-sm text-white disabled:cursor-not-allowed disabled:opacity-50"
+                data-testid="field-doctor_specialty_add"
+              >+</button>
+            </div>
           </Field>
           <Field label="Биография (до 1000)" hint={visibilityHint(tier, 'doctor_spotlight_bio')}>
             <textarea value={profile.doctor_spotlight_bio || ''} onChange={(e) => setProfile({ ...profile, doctor_spotlight_bio: e.target.value })}
               maxLength={1000} rows={4} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" data-testid="field-doctor_spotlight_bio" />
+          </Field>
+          <Field
+            label="Подход при оценката"
+            hint="Описва какво клиниката включва в оценката. Не е специалност, рейтинг или знак за „най-добър лекар“."
+          >
+            <div className="grid gap-2 sm:grid-cols-2" data-testid="field-assessment_approaches">
+              {(Object.entries(ASSESSMENT_APPROACH_LABELS) as Array<[AssessmentApproach, string]>).map(([value, label]) => {
+                const checked = (profile.assessment_approaches || []).includes(value)
+                return (
+                  <label key={value} className={`flex cursor-pointer items-start gap-2 rounded-lg border p-3 text-sm ${checked ? 'border-teal-300 bg-teal-50 text-teal-900' : 'border-slate-200 bg-white text-slate-700'}`}>
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => setProfile({
+                        ...profile,
+                        assessment_approaches: checked
+                          ? (profile.assessment_approaches || []).filter((item) => item !== value)
+                          : [...(profile.assessment_approaches || []), value],
+                      })}
+                      className="mt-0.5 accent-teal-600"
+                    />
+                    <span>{label}</span>
+                  </label>
+                )
+              })}
+            </div>
           </Field>
           <Field label="Бележка за екипа" hint={visibilityHint(tier, 'team_note')}>
             <textarea value={profile.team_note || ''} onChange={(e) => setProfile({ ...profile, team_note: e.target.value })}
@@ -728,8 +1244,8 @@ export default function AdminClinicEditPage() {
           </Field>
         </Section>
 
-        {/* Section 7 — Premium съдържание */}
-        <Section title="Premium съдържание" testid="section-premium">
+        {/* Section 7 — Growth profile enrichment */}
+        <Section title="Разширено съдържание (Growth)" testid="section-premium">
           <ImageUploadField
             label="Снимка на средата / оборудването"
             value={profile.environment_image_url || ''}
@@ -936,6 +1452,24 @@ export default function AdminClinicEditPage() {
 }
 
 /* ──────────────── small primitives ──────────────── */
+
+function ContactInput({
+  value, onChange, maxLength, type = 'text', testid,
+}: {
+  value: string; onChange: (v: string) => void;
+  maxLength?: number; type?: string; testid?: string;
+}) {
+  return (
+    <input
+      type={type}
+      value={value}
+      maxLength={maxLength}
+      onChange={(e) => onChange(e.target.value)}
+      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"
+      data-testid={testid}
+    />
+  )
+}
 
 function Section({ title, testid, children }: { title: string; testid: string; children: React.ReactNode }) {
   return (

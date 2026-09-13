@@ -29,8 +29,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Gift, CheckCircle2, ArrowRight } from 'lucide-react'
 
-const CARE_PASS_CARD_ASSET =
-  'https://customer-assets.emergentagent.com/job_25b55d94-1ed6-49c7-af05-4dd6f19863cf/artifacts/kyba9eaq_ChatGPT%20Image%20May%2017%2C%202026%2C%2010_21_45%20AM.png'
+const CARE_PASS_CARD_ASSET = '/images/stitch/care-pass.webp'
 
 interface BaseProps {
   testid?: string
@@ -133,11 +132,10 @@ function FullVariant({ testid, className, showLearnMore }: FullProps) {
           <Image
             src={CARE_PASS_CARD_ASSET}
             alt="Zubite Care Pass — карта с отстъпки за продукти за орална хигиена"
-            width={720}
-            height={720}
+            width={1280}
+            height={960}
+            sizes="(max-width: 640px) 90vw, 360px"
             className="relative w-full h-auto drop-shadow-[0_30px_60px_rgba(0,0,0,0.45)]"
-            unoptimized
-            priority
           />
         </div>
       </div>
@@ -168,10 +166,10 @@ function CompactVariant({ testid, className, showLearnMore }: CompactProps) {
           <Image
             src={CARE_PASS_CARD_ASSET}
             alt="Zubite Care Pass"
-            width={480}
-            height={480}
+            width={1280}
+            height={960}
+            sizes="200px"
             className="relative w-full h-auto drop-shadow-[0_18px_40px_rgba(0,0,0,0.4)]"
-            unoptimized
           />
         </div>
 

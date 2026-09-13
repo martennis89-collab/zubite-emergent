@@ -117,7 +117,8 @@ interface Lead {
   name: string
   email: string
   phone: string
-  city_slug: string
+  // Optional: the quiz funnel creates leads before city is known.
+  city_slug?: string | null
   treatment_type: string
   band: string
   status: string

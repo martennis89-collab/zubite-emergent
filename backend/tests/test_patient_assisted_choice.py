@@ -1,8 +1,7 @@
 """Patient layer P5 — `POST /api/leads/{lead_id}/request-zubite-help` tests.
 
-Covers the assisted-choice flow's hard product rule: a lead can be on
-AT MOST one choice path (selected clinic OR Zubite-help). Both flows
-share the same `leads` document for the atomic CAS guard.
+Covers the assisted-choice flow as an optional service that can coexist
+with direct contact requests to one or more clinics.
 
 Conventions mirror the P4 tests: in-process ASGI, isolated test DB,
 no network.
@@ -267,20 +266,18 @@ def test_04_second_request_idempotent(app):
     assert count == 1
 
 
-# 5. Lead with selected clinic returns 409 already_requested_clinic.
-def test_05_clinic_first_blocks_help(app):
+# 5. Contacting a clinic does not block optional Zubite help.
+def test_05_clinic_first_allows_help(app):
     lead = _make_lead()
     clinic = _make_clinic()
     _post_call(app, lead, _valid_call_body(clinic))
     s, b = _post_help(app, lead, _valid_help_body())
-    assert s == 409, b
-    assert b["detail"]["code"] == "already_requested_clinic"
-    assert b["detail"]["clinic"]["id"] == clinic
+    assert s == 200, b
+    assert b["success"] is True
 
 
-# 6. Pre-existing recommended_clinics_flow consultation_request blocks help
-#    (even if lead.selected_clinic_id is somehow missing — partial write).
-def test_06_existing_flow_request_blocks_help(app):
+# 6. A pre-existing clinic request does not block optional Zubite help.
+def test_06_existing_flow_request_allows_help(app):
     import database as _database
     lead = _make_lead()
     clinic = _make_clinic()
@@ -292,19 +289,19 @@ def test_06_existing_flow_request_blocks_help(app):
         "status": "assigned", "created_at": _now_iso(),
     }))
     s, b = _post_help(app, lead, _valid_help_body())
-    assert s == 409
-    assert b["detail"]["code"] == "already_requested_clinic"
+    assert s == 200, b
+    assert b["success"] is True
 
 
-# 7. After assisted-choice, request-call returns 409 with help code.
-def test_07_help_first_blocks_clinic(app):
+# 7. Asking Zubite for help does not block direct clinic contact.
+def test_07_help_first_allows_clinic(app):
     lead = _make_lead()
     clinic = _make_clinic()
     s1, _ = _post_help(app, lead, _valid_help_body())
     assert s1 == 200
     s2, b2 = _post_call(app, lead, _valid_call_body(clinic))
-    assert s2 == 409, b2
-    assert b2["detail"]["code"] == "already_requested_zubite_help"
+    assert s2 == 200, b2
+    assert b2["clinic"]["id"] == clinic
 
 
 # 8. Missing consent → 422.

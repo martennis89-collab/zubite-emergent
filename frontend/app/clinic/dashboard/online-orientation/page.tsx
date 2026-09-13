@@ -27,6 +27,7 @@ interface Booking {
   status: string
   topic: string
   topic_label_bg?: string
+  treatment_category?: string | null
   scheduled_at: string
   duration_minutes: number
   patient_name: string | null
@@ -38,6 +39,34 @@ interface Booking {
   expires_at: string | null
   created_at: string
   clinic_confirmed_at: string | null
+  // Staff-internal assignment (Phase 3) — never patient-chosen, never
+  // affects availability/slot generation.
+  doctor_id?: string | null
+}
+
+interface Doctor {
+  id: string
+  name: string
+  specialties: string[]
+  accepts_online: boolean
+  accepts_in_person: boolean
+  active: boolean
+}
+
+interface AssignConflict {
+  source: 'physical' | 'online'
+  patient_name?: string | null
+}
+
+// `topic` (aligners_braces/implants/cosmetic/gums_periodontology/...) and
+// doctor `specialties` (ORIENTATION_TREATMENT_CATEGORIES) are different
+// vocabularies — this bridges the common cases for the specialty-match
+// star. `treatment_category`, when present on the booking, already uses
+// the same vocabulary as specialties and is preferred.
+const TOPIC_TO_SPECIALTIES: Record<string, string[]> = {
+  aligners_braces: ['orthodontics', 'aligners'],
+  implants: ['implants'],
+  cosmetic: ['cosmetic_dentistry'],
 }
 
 const STATUS_LABELS_BG: Record<string, string> = {
@@ -77,10 +106,14 @@ const TERMINAL = new Set([
 const PENDING = new Set(['pending_clinic_confirmation'])
 const CONFIRMED = new Set(['confirmed_by_clinic', 'scheduled'])
 
+type Tab = 'pending' | 'confirmed' | 'past'
+
 export default function ClinicOrientationBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([])
+  const [doctors, setDoctors] = useState<Doctor[]>([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
+  const [activeTab, setActiveTab] = useState<Tab>('pending')
 
   const load = useCallback(async () => {
     setLoading(true); setErr('')
@@ -94,6 +127,28 @@ export default function ClinicOrientationBookingsPage() {
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/clinic/doctors`, { credentials: 'include' as RequestCredentials })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d) setDoctors(d.doctors || []) })
+  }, [])
+
+  const assignDoctor = async (bookingId: string, doctorId: string): Promise<AssignConflict[]> => {
+    const r = await fetch(`${API_URL}/api/clinic/online-orientation-bookings/${bookingId}/assign-doctor`, {
+      method: 'PATCH',
+      credentials: 'include' as RequestCredentials,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ doctor_id: doctorId || null }),
+    })
+    if (!r.ok) throw new Error('assign failed')
+    const data = await r.json()
+    // Update the one row in place rather than calling `load()` — that
+    // flips `loading` and unmounts the whole list (skeleton), which would
+    // wipe the conflict warning this same call just produced.
+    setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, doctor_id: data.doctor_id } : b)))
+    return data.conflicts || []
+  }
 
   const act = async (id: string, action: string, note?: string) => {
     const r = await fetch(`${API_URL}/api/clinic/online-orientation-bookings/${id}/action`, {
@@ -114,6 +169,14 @@ export default function ClinicOrientationBookingsPage() {
   const pending = bookings.filter((b) => PENDING.has(b.status))
   const confirmed = bookings.filter((b) => CONFIRMED.has(b.status))
   const past = bookings.filter((b) => TERMINAL.has(b.status))
+
+  const TABS: Array<{ key: Tab; label: string; count: number }> = [
+    { key: 'pending', label: 'Чакат потвърждение', count: pending.length },
+    { key: 'confirmed', label: 'Потвърдени / насрочени', count: confirmed.length },
+    { key: 'past', label: 'История', count: past.length },
+  ]
+  const activeGroup =
+    activeTab === 'pending' ? pending : activeTab === 'confirmed' ? confirmed : past
 
   return (
     <ClinicShell>
@@ -146,9 +209,42 @@ export default function ClinicOrientationBookingsPage() {
           </div>
         ) : (
           <>
-            <BookingsGroup title={`Чакат потвърждение (${pending.length})`} bookings={pending} act={act} variant="pending" testid="clinic-orient-pending-group" />
-            <BookingsGroup title={`Потвърдени / насрочени (${confirmed.length})`} bookings={confirmed} act={act} variant="confirmed" testid="clinic-orient-confirmed-group" />
-            <BookingsGroup title={`История (${past.length})`} bookings={past} act={act} variant="past" testid="clinic-orient-past-group" />
+            {/* Tabs — was three always-stacked sections, which meant
+                scrolling past pending + history just to see what's actually
+                confirmed and coming up. Each tab is its own focused list. */}
+            <div
+              className="inline-flex bg-slate-100 rounded-lg p-1"
+              role="tablist"
+              aria-label="Статус на заявките"
+            >
+              {TABS.map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === t.key}
+                  onClick={() => setActiveTab(t.key)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    activeTab === t.key
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                  data-testid={`clinic-orient-tab-${t.key}`}
+                >
+                  {t.label} ({t.count})
+                </button>
+              ))}
+            </div>
+
+            <BookingsGroup
+              title={TABS.find((t) => t.key === activeTab)!.label}
+              bookings={activeGroup}
+              act={act}
+              variant={activeTab}
+              testid={`clinic-orient-${activeTab}-group`}
+              doctors={doctors}
+              assignDoctor={assignDoctor}
+            />
           </>
         )}
       </div>
@@ -157,13 +253,15 @@ export default function ClinicOrientationBookingsPage() {
 }
 
 function BookingsGroup({
-  title, bookings, act, variant, testid,
+  title, bookings, act, variant, testid, doctors, assignDoctor,
 }: {
   title: string
   bookings: Booking[]
   act: (id: string, action: string, note?: string) => Promise<void>
   variant: 'pending' | 'confirmed' | 'past'
   testid: string
+  doctors: Doctor[]
+  assignDoctor: (bookingId: string, doctorId: string) => Promise<AssignConflict[]>
 }) {
   if (bookings.length === 0) {
     return (
@@ -179,7 +277,7 @@ function BookingsGroup({
       <ul className="space-y-3">
         {bookings.map((b) => (
           <li key={b.id} className="border border-slate-100 rounded-xl p-3 sm:p-4" data-testid={`clinic-orient-card-${b.id}`}>
-            <BookingCard booking={b} act={act} variant={variant} />
+            <BookingCard booking={b} act={act} variant={variant} doctors={doctors} assignDoctor={assignDoctor} />
           </li>
         ))}
       </ul>
@@ -188,20 +286,46 @@ function BookingsGroup({
 }
 
 function BookingCard({
-  booking, act, variant,
+  booking, act, variant, doctors, assignDoctor,
 }: {
   booking: Booking
   act: (id: string, action: string, note?: string) => Promise<void>
   variant: 'pending' | 'confirmed' | 'past'
+  doctors: Doctor[]
+  assignDoctor: (bookingId: string, doctorId: string) => Promise<AssignConflict[]>
 }) {
   const [noteInput, setNoteInput] = useState(booking.internal_clinic_note || '')
   const [working, setWorking] = useState<string | null>(null)
+  const [assignConflicts, setAssignConflicts] = useState<AssignConflict[]>([])
+  const [assignErr, setAssignErr] = useState('')
+  const [assigning, setAssigning] = useState(false)
   const run = async (action: string, note?: string) => {
     setWorking(action)
     try { await act(booking.id, action, note) }
     finally { setWorking(null) }
   }
+  const onAssignDoctor = async (doctorId: string) => {
+    setAssignErr(''); setAssignConflicts([]); setAssigning(true)
+    try {
+      const conflicts = await assignDoctor(booking.id, doctorId)
+      setAssignConflicts(conflicts)
+    } catch {
+      setAssignErr('Лекарят не бе назначен.')
+    } finally {
+      setAssigning(false)
+    }
+  }
   const tone = STATUS_TONES[booking.status] || 'bg-slate-50 text-slate-700 border-slate-200'
+  const onlineDoctors = doctors.filter((d) => d.accepts_online && d.active)
+  const targetSpecialties = booking.treatment_category
+    ? [booking.treatment_category]
+    : (TOPIC_TO_SPECIALTIES[booking.topic] || [])
+  const sortedDoctors = [...onlineDoctors].sort((a, b) => {
+    const aMatch = a.specialties.some((s) => targetSpecialties.includes(s))
+    const bMatch = b.specialties.some((s) => targetSpecialties.includes(s))
+    if (aMatch !== bMatch) return aMatch ? -1 : 1
+    return a.name.localeCompare(b.name)
+  })
 
   return (
     <div className="space-y-2">
@@ -247,6 +371,39 @@ function BookingCard({
           band={String(booking.quiz_summary['band'] ?? '—')}{' · '}
           сегмент={String(booking.quiz_summary['segment'] ?? '—')}{' · '}
           score={String(booking.quiz_summary['score_total'] ?? '—')}
+        </div>
+      )}
+
+      {/* Doctor assignment (Phase 3, staff-internal — never patient-chosen) */}
+      {onlineDoctors.length > 0 && (
+        <div className="mt-2">
+          <label className="block text-[11px] text-slate-500" htmlFor={`doctor-assign-${booking.id}`}>
+            Лекар
+          </label>
+          <select
+            id={`doctor-assign-${booking.id}`}
+            value={booking.doctor_id || ''}
+            onChange={(e) => onAssignDoctor(e.target.value)}
+            disabled={assigning}
+            className="mt-1 w-full sm:w-56 border border-slate-200 rounded-lg px-2 py-1 text-xs bg-white disabled:opacity-50"
+            data-testid={`doctor-assign-select-${booking.id}`}
+          >
+            <option value="">— Не е назначен —</option>
+            {sortedDoctors.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}{d.specialties.some((s) => targetSpecialties.includes(s)) ? ' ★' : ''}
+              </option>
+            ))}
+          </select>
+          {assignConflicts.length > 0 && (
+            <p
+              className="mt-1 text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1"
+              data-testid={`doctor-assign-conflict-${booking.id}`}
+            >
+              Внимание: лекарят вече има {assignConflicts.length === 1 ? 'друг ангажимент' : `${assignConflicts.length} други ангажимента`} по това време.
+            </p>
+          )}
+          {assignErr && <p className="mt-1 text-[11px] text-rose-700">{assignErr}</p>}
         </div>
       )}
 

@@ -2,18 +2,15 @@
 
 import { useState, useEffect, useRef, ReactNode } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { ArrowRight, ArrowLeft, Loader2, CheckCircle, MapPin, X, User, Users, Baby, ShieldCheck } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { ArrowRight, ArrowLeft, Bot, Loader2, User, Users, Baby, ShieldCheck } from 'lucide-react'
 import {
   trackQuizStart,
   trackQuestionAnswered,
-  trackQuizComplete,
-  trackSoftCommit,
-  trackLeadSubmit
+  trackQuizComplete
 } from './MetaPixel'
 import { trackEvent as gaTrackEvent } from '@/lib/analytics/gtag'
 import { getStoredAttribution } from '@/lib/attribution'
-import { MANUAL_RECOMMENDATION_COPY } from '@/lib/manualRecommendationCopy'
 
 // ─── Types ────────────────────────────────────────────────
 type Segment = 'adult' | 'teen' | 'child'
@@ -32,14 +29,6 @@ interface QuizQuestion {
   question: string
   type: 'text' | 'visual'
   options: QuizOption[]
-}
-
-interface ResultContent {
-  bandLabel: string
-  headline: string
-  explanation: string
-  urgency: string
-  education: string
 }
 
 // ─── SVG Visuals ──────────────────────────────────────────
@@ -145,8 +134,8 @@ const ADULT_QUESTIONS: QuizQuestion[] = [
     id: 'a5', type: 'text',
     question: 'Случва ли се да дишаш през устата (особено нощем)?',
     options: [
-      { label: 'Да', value: 'yes', score: 2, tags: ['airway'] },
-      { label: 'Понякога', value: 'sometimes', score: 1, tags: ['airway'] },
+      { label: 'Да', value: 'yes', score: 2, tags: ['airway', 'approach_airway'] },
+      { label: 'Понякога', value: 'sometimes', score: 1, tags: ['airway', 'approach_airway'] },
       { label: 'Не', value: 'no', score: 0 },
     ]
   },
@@ -181,8 +170,8 @@ const ADULT_QUESTIONS: QuizQuestion[] = [
     id: 'a9', type: 'text',
     question: 'Имаш ли главоболие, напрежение във врата или ушите без ясна причина?',
     options: [
-      { label: 'Да', value: 'yes', score: 2, tags: ['tension'] },
-      { label: 'Понякога', value: 'sometimes', score: 1 },
+      { label: 'Да', value: 'yes', score: 2, tags: ['tension', 'approach_posture'] },
+      { label: 'Понякога', value: 'sometimes', score: 1, tags: ['approach_posture'] },
       { label: 'Не', value: 'no', score: 0 },
     ]
   },
@@ -247,8 +236,8 @@ const TEEN_QUESTIONS: QuizQuestion[] = [
     id: 't6', type: 'text',
     question: 'Диша ли често през устата?',
     options: [
-      { label: 'Да', value: 'yes', score: 2, tags: ['airway'] },
-      { label: 'Понякога', value: 'sometimes', score: 1, tags: ['airway'] },
+      { label: 'Да', value: 'yes', score: 2, tags: ['airway', 'approach_airway'] },
+      { label: 'Понякога', value: 'sometimes', score: 1, tags: ['airway', 'approach_airway'] },
       { label: 'Не', value: 'no', score: 0 },
     ]
   },
@@ -256,8 +245,8 @@ const TEEN_QUESTIONS: QuizQuestion[] = [
     id: 't7', type: 'text',
     question: 'Има ли затруднения с говор или произнасяне на определени звуци?',
     options: [
-      { label: 'Да', value: 'yes', score: 2, tags: ['development'] },
-      { label: 'Понякога', value: 'sometimes', score: 1 },
+      { label: 'Да', value: 'yes', score: 2, tags: ['development', 'approach_speech'] },
+      { label: 'Понякога', value: 'sometimes', score: 1, tags: ['approach_speech'] },
       { label: 'Не', value: 'no', score: 0 },
     ]
   },
@@ -286,8 +275,8 @@ const CHILD_QUESTIONS: QuizQuestion[] = [
     id: 'c2', type: 'text',
     question: 'Диша ли често през устата (особено нощем)?',
     options: [
-      { label: 'Да', value: 'yes', score: 2, tags: ['airway'] },
-      { label: 'Понякога', value: 'sometimes', score: 1, tags: ['airway'] },
+      { label: 'Да', value: 'yes', score: 2, tags: ['airway', 'approach_airway'] },
+      { label: 'Понякога', value: 'sometimes', score: 1, tags: ['airway', 'approach_airway'] },
       { label: 'Не', value: 'no', score: 0 },
     ]
   },
@@ -295,7 +284,7 @@ const CHILD_QUESTIONS: QuizQuestion[] = [
     id: 'c3', type: 'text',
     question: 'Хърка ли или има неспокоен сън?',
     options: [
-      { label: 'Да', value: 'yes', score: 2, tags: ['airway'] },
+      { label: 'Да', value: 'yes', score: 2, tags: ['airway', 'approach_airway'] },
       { label: 'Понякога', value: 'sometimes', score: 1 },
       { label: 'Не', value: 'no', score: 0 },
     ]
@@ -304,8 +293,8 @@ const CHILD_QUESTIONS: QuizQuestion[] = [
     id: 'c4', type: 'text',
     question: 'Смуче ли пръст или използва ли биберон дълго време?',
     options: [
-      { label: 'Да', value: 'yes', score: 2, tags: ['development'] },
-      { label: 'Преди да, вече не', value: 'past', score: 1, tags: ['development'] },
+      { label: 'Да', value: 'yes', score: 2, tags: ['development', 'approach_swallowing'] },
+      { label: 'Преди да, вече не', value: 'past', score: 1, tags: ['development', 'approach_swallowing'] },
       { label: 'Не', value: 'no', score: 0 },
     ]
   },
@@ -331,8 +320,8 @@ const CHILD_QUESTIONS: QuizQuestion[] = [
     id: 'c7', type: 'text',
     question: 'Държи ли устата си често отворена през деня?',
     options: [
-      { label: 'Да', value: 'yes', score: 2, tags: ['airway'] },
-      { label: 'Понякога', value: 'sometimes', score: 1, tags: ['airway'] },
+      { label: 'Да', value: 'yes', score: 2, tags: ['airway', 'approach_airway'] },
+      { label: 'Понякога', value: 'sometimes', score: 1, tags: ['airway', 'approach_airway'] },
       { label: 'Не', value: 'no', score: 0 },
     ]
   },
@@ -430,94 +419,7 @@ const MICRO_INSIGHTS: Record<Segment, Record<number, string>> = {
   },
 }
 
-// ─── Result Content ───────────────────────────────────────
-const RESULT_CONTENT: Record<Segment, Record<ResultBand, ResultContent>> = {
-  adult: {
-    low: {
-      bandLabel: 'Нисък приоритет',
-      headline: 'Изглежда, че си в добра позиция.',
-      explanation: 'Отговорите ти показват малко сигнали. Това не изключва напълно проблем, но е добра новина — нещата изглеждат под контрол.',
-      urgency: 'Добра идея е да провериш поне веднъж при ортодонт — дори за спокойствие.',
-      education: 'Дори при нисък резултат, някои проблеми се развиват бавно и незабележимо. Ранната оценка е винаги по-добрият избор.',
-    },
-    moderate: {
-      bandLabel: 'Има сигнали за внимание',
-      headline: 'Има признаци, които заслужават внимание.',
-      explanation: 'Отговорите ти показват модел, който често се задълбочава с времето — износване, напрежение или проблем със захапката. Не е спешно, но не е и нещо за игнориране.',
-      urgency: 'Добре е да потърсиш професионална оценка скоро, за да разбереш какви са вариантите ти.',
-      education: 'Този резултат не е диагноза. Той показва, че има достатъчно сигнали, за да си струва консултация със специалист — преди лечението да стане по-сложно.',
-    },
-    high: {
-      bandLabel: 'Висок приоритет',
-      headline: 'Отговорите ти показват сериозни сигнали.',
-      explanation: 'Комбинацията от симптоми — захапка, напрежение, износване — често означава проблем, който се влошава. Колкото по-рано действаш, толкова по-леко и по-евтино е лечението.',
-      urgency: 'Препоръчваме ти да потърсиш специалист възможно най-скоро.',
-      education: 'Това не е диагноза, но е ясен сигнал, че ситуацията изисква професионална оценка. Не отлагай — разликата може да бъде голяма.',
-    },
-  },
-  teen: {
-    low: {
-      bandLabel: 'Нисък приоритет',
-      headline: 'Засега нещата изглеждат добре.',
-      explanation: 'Отговорите показват малко сигнали за проблем. Тийнейджърските години обаче са ключов период за развитие на захапката.',
-      urgency: 'Профилактичен преглед при ортодонт е добра идея — особено в този период на растеж.',
-      education: 'Между 12 и 17 години лечението е най-ефективно и най-бързо. Ранната оценка може да спести много време и средства по-късно.',
-    },
-    moderate: {
-      bandLabel: 'Има сигнали за внимание',
-      headline: 'Има признаци, които заслужават внимание.',
-      explanation: 'Отговорите показват няколко сигнала — струпани зъби, захапка или дишане. В тийнейджърска възраст тези проблеми могат да се коригират значително по-лесно.',
-      urgency: 'Сега е идеалният момент за консултация — докато растежът все още работи във ваша полза.',
-      education: 'Тийнейджърските години са "златният прозорец" за ортодонтска корекция. Костите все още растат, което прави лечението по-бързо и по-ефективно.',
-    },
-    high: {
-      bandLabel: 'Висок приоритет',
-      headline: 'Отговорите показват ясни сигнали за проблем.',
-      explanation: 'Комбинацията от струпване, захапка и евентуално дишане показва, че е важно да се действа. В тази възраст корекцията все още е много по-лесна, отколкото при възрастен.',
-      urgency: 'Не изпускайте този прозорец — консултацията при ортодонт е важна стъпка сега.',
-      education: 'Ранното лечение при тийнейджъри не само подобрява усмивката, но и предотвратява по-сериозни функционални проблеми в бъдеще.',
-    },
-  },
-  child: {
-    low: {
-      bandLabel: 'Нисък приоритет',
-      headline: 'Засега нещата изглеждат нормално.',
-      explanation: 'Отговорите показват малко сигнали. При деца под 12 г. обаче развитието тепърва предстои и е важно да се наблюдава.',
-      urgency: 'Първият преглед при ортодонт се препоръчва на 7-годишна възраст — дори без видим проблем.',
-      education: 'Много проблеми при деца се развиват тихо. Ранната оценка може да предотврати нуждата от по-сложно лечение по-късно.',
-    },
-    moderate: {
-      bandLabel: 'Има сигнали за внимание',
-      headline: 'Забелязваме сигнали, които заслужават внимание.',
-      explanation: 'Дишането през устата, тесните челюсти или ранното струпване са сигнали, че развитието може да не върви по план. При децата интервенцията е най-проста и най-ефективна.',
-      urgency: 'Препоръчваме преглед при ортодонт — ранната намеса може да промени хода на развитие.',
-      education: 'При деца целта не е брекети — а насочване на растежа. Малка интервенция сега може да спести голямо лечение по-късно.',
-    },
-    high: {
-      bandLabel: 'Висок приоритет',
-      headline: 'Отговорите показват няколко важни сигнала.',
-      explanation: 'Комбинацията от дишане, навици, тясна челюст и захапка показва, че е важно да се действа навреме. При деца ранната намеса е най-ефективна.',
-      urgency: 'Моля, не отлагайте — преглед при ортодонт е важна стъпка.',
-      education: 'Ранната интервенция при деца (interceptive orthodontics) може да коригира проблеми с растежа преди те да станат постоянни. Това е инвестиция в бъдещето.',
-    },
-  },
-}
-
 // ─── Scoring ──────────────────────────────────────────────
-const CITIES = [
-  { value: 'sofia', label: 'София' },
-  { value: 'plovdiv', label: 'Пловдив' },
-  { value: 'varna', label: 'Варна' },
-  { value: 'burgas', label: 'Бургас' },
-  { value: 'ruse', label: 'Русе' },
-  { value: 'stara-zagora', label: 'Стара Загора' },
-  { value: 'pleven', label: 'Плевен' },
-  { value: 'sliven', label: 'Сливен' },
-  { value: 'dobrich', label: 'Добрич' },
-  { value: 'shumen', label: 'Шумен' },
-  { value: 'haskovo', label: 'Хасково' },
-]
-
 function calculateResult(answers: { value: string; score: number; tags?: string[] }[], segment: Segment) {
   const totalScore = answers.reduce((s, a) => s + a.score, 0)
   const tagCounts: Record<string, number> = {}
@@ -536,28 +438,18 @@ function calculateResult(answers: { value: string; score: number; tags?: string[
   return { band, totalScore, flags, tagCounts }
 }
 
-const SEGMENT_LABELS: Record<Segment, string> = { adult: 'възрастен', teen: 'тийнейджър', child: 'дете' }
-
-const getBandStyles = (band: ResultBand) => {
-  switch (band) {
-    case 'low': return { bgGradient: 'from-emerald-50 to-emerald-100/30', borderColor: 'border-emerald-200', textColor: 'text-emerald-800', accentBg: 'bg-emerald-100', dotColor: 'bg-emerald-500', labelBg: 'bg-emerald-100', labelText: 'text-emerald-700' }
-    case 'moderate': return { bgGradient: 'from-amber-50 to-amber-100/30', borderColor: 'border-amber-200', textColor: 'text-amber-800', accentBg: 'bg-amber-100', dotColor: 'bg-amber-500', labelBg: 'bg-amber-100', labelText: 'text-amber-700' }
-    case 'high': return { bgGradient: 'from-red-50 to-red-100/30', borderColor: 'border-red-200', textColor: 'text-red-800', accentBg: 'bg-red-100', dotColor: 'bg-red-500', labelBg: 'bg-red-100', labelText: 'text-red-700' }
-  }
-}
-
 const generateSessionId = () => `quiz_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
 // ─── Component ────────────────────────────────────────────
 export function MasterQuiz() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [segment, setSegment] = useState<Segment | null>(null)
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [answers, setAnswers] = useState<{ questionId: string; value: string; score: number; tags?: string[] }[]>([])
   const [result, setResult] = useState<{ band: ResultBand; totalScore: number; flags: string[] } | null>(null)
-  const [step, setStep] = useState<'segment' | 'quiz' | 'insight' | 'result' | 'soft_commit' | 'form' | 'exit'>('segment')
+  const [step, setStep] = useState<'segment' | 'quiz' | 'insight' | 'result'>('segment')
   const [formVersion, setFormVersion] = useState<'A' | 'B'>('A')
-  const [formData, setFormData] = useState({ city: '' })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [isClient, setIsClient] = useState(false)
@@ -591,15 +483,9 @@ export function MasterQuiz() {
     } catch { /* silent */ }
   }
 
-  if (!isClient) {
-    return <main className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="w-8 h-8 text-teal-500 animate-spin" /></main>
-  }
-
-  const questions = segment ? QUESTION_SETS[segment] : []
-  const totalQ = questions.length
-  const progress = result ? 100 : segment ? ((currentQuestion) / totalQ) * 100 : 0
-
   // ─── Handlers ─────────────────────────────────────────
+  // Declared before the isClient early-return (not a hook, so this is
+  // safe) so the URL-segment auto-select effect below can call it.
   const handleSegmentSelect = (seg: Segment) => {
     setIsTransitioning(true)
     trackEvent('segment_selected', { segment: seg })
@@ -627,6 +513,30 @@ export function MasterQuiz() {
       setIsTransitioning(false)
     }, 200)
   }
+
+  // Homepage entry points (e.g. "Детето диша през устата") can pass
+  // ?segment=child|teen|adult to skip the segment picker and land the
+  // visitor directly in the right question set, instead of dropping a
+  // parent into the generic/adult flow. Runs once, only on the segment
+  // step, only for a valid value.
+  const autoSegmentAppliedRef = useRef(false)
+  useEffect(() => {
+    if (!isClient || autoSegmentAppliedRef.current || step !== 'segment') return
+    const requested = searchParams?.get('segment')
+    if (requested === 'adult' || requested === 'teen' || requested === 'child') {
+      autoSegmentAppliedRef.current = true
+      handleSegmentSelect(requested)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isClient, step, searchParams])
+
+  if (!isClient) {
+    return <main className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="w-8 h-8 text-teal-500 animate-spin" /></main>
+  }
+
+  const questions = segment ? QUESTION_SETS[segment] : []
+  const totalQ = questions.length
+  const progress = result ? 100 : segment ? ((currentQuestion + 1) / totalQ) * 100 : 0
 
   const handleAnswer = (questionId: string, value: string, score: number, tags?: string[]) => {
     const timeSpent = Date.now() - questionStartTime.current
@@ -666,7 +576,11 @@ export function MasterQuiz() {
           })
         }
 
+        // The canonical result lives only at /results/[leadId]. Create
+        // the answer-only lead now and hand off automatically instead of
+        // rendering a second result screen inside the quiz.
         setStep('result')
+        void handleSubmit(res, newAnswers)
       }
       setIsTransitioning(false)
     }, 200)
@@ -686,29 +600,28 @@ export function MasterQuiz() {
     }
   }
 
-  const handleSubmit = async () => {
-    // Phase B (June 2026): the MasterQuiz no longer collects name / phone /
-    // email here. We POST an ANSWER-ONLY lead and let the
-    // `ResultUnlockGate` on /results/[leadId] collect contact details.
-    // This prevents asking the patient for contacts twice and keeps
-    // Manual Recommendation Mode intact (post-unlock redirect goes to
-    // /quiz/success?leadId=...).
-    if (!formData.city) { setError('Моля, изберете град.'); return }
+  const handleSubmit = async (
+    resultOverride = result,
+    answersOverride = answers,
+  ) => {
+    // This POST is answers-only. The canonical result page then asks for
+    // the delivery email and city in one concise form; the city lets the
+    // following recommendation prompt stay a simple yes/no choice.
     setIsSubmitting(true); setError('')
 
     try {
       const answersObj: Record<string, string> = {}
-      answers.forEach(a => { answersObj[a.questionId] = a.value })
+      answersOverride.forEach(a => { answersObj[a.questionId] = a.value })
       const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
       const bandMap: Record<ResultBand, string> = { low: 'GREEN', moderate: 'YELLOW', high: 'RED' }
+
       const leadData = {
-        city_slug: formData.city, treatment_type: 'diagnostic_quiz',
-        answers: { ...answersObj, quiz_score: result?.totalScore || 0, quiz_band: result?.band || '', quiz_flags: result?.flags || [], segment, form_version: formVersion, session_id: sessionId.current, source: 'diagnostic_quiz_v1' },
-        score_total: result?.totalScore || 0,
-        band: bandMap[result?.band || 'low'],
-        // No name/phone/email/consent here — backend creates a locked
-        // lead (contact_details_submitted=false). Contact is gathered on
-        // /results/[leadId] via ResultUnlockGate → POST /unlock-result.
+        treatment_type: 'diagnostic_quiz',
+        answers: { ...answersObj, quiz_score: resultOverride?.totalScore || 0, quiz_band: resultOverride?.band || '', quiz_flags: resultOverride?.flags || [], segment, form_version: formVersion, session_id: sessionId.current, source: 'diagnostic_quiz_v1' },
+        score_total: resultOverride?.totalScore || 0,
+        band: bandMap[resultOverride?.band || 'low'],
+        // No city/contact fields here — they arrive through unlock-result
+        // after the full result is already visible.
         source: 'diagnostic_quiz_v1', form_version: formVersion,
         // ─── Attribution data — never throws (returns {} if storage blocked) ───
         ...(typeof window !== 'undefined'
@@ -737,21 +650,18 @@ export function MasterQuiz() {
         if (created && typeof created.id === 'string') createdLeadId = created.id
       } catch { /* parsing failure handled below */ }
 
-      trackEvent('locked_lead_created', { form_version: formVersion, city: formData.city, segment })
-      trackLeadSubmit(formData.city, formVersion)
+      trackEvent('locked_lead_created', { form_version: formVersion, segment })
+      // This answer-only record is not yet an acquisition conversion.
+      // Lead events fire after a patient unlocks the result with contact data.
 
       if (!createdLeadId) {
         // Backend accepted the lead but we couldn't read the id — fall
         // back to the legacy success page so the patient still lands
         // somewhere coherent.
-        const successParams = new URLSearchParams({ stage: result?.band || 'low', city: formData.city, segment: segment || 'adult' })
+        const successParams = new URLSearchParams({ stage: resultOverride?.band || 'low', segment: segment || 'adult' })
         router.push(`/quiz/success?${successParams.toString()}`)
         return
       }
-      // Phase B redirect: send the patient to the unlock gate. The
-      // ResultUnlockGate POSTs to /unlock-result and then this app
-      // redirects again to /quiz/success?leadId=... (see
-      // /app/frontend/app/results/[leadId]/page.tsx).
       router.push(`/results/${createdLeadId}`)
     } catch (e) {
       const msg = e instanceof Error && e.message && e.message !== 'Failed'
@@ -763,25 +673,17 @@ export function MasterQuiz() {
 
   // ─── Header ────────────────────────────────────────────
   const Header = ({ showCount }: { showCount?: boolean }) => (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-[#FCFAF8]/80 backdrop-blur-xl border-b border-white/40">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6">
-        <div className="flex items-center justify-between h-14 gap-3">
-          <Link href="/" className="font-serif text-xl font-semibold tracking-tight text-slate-900 shrink-0">Zubite<span className="text-teal-600">.bg</span></Link>
-          <span
-            className="hidden sm:inline-flex items-center gap-1 rounded-full bg-teal-50 ring-1 ring-teal-100 text-teal-700 text-[10px] uppercase tracking-[0.16em] font-semibold px-2.5 py-1"
-            data-testid="quiz-safety-chip"
-            title="Ориентир, не диагноза"
-          >
-            <ShieldCheck className="w-3 h-3" /> Ориентир, не диагноза
-          </span>
-          {showCount && (
-            <span className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.16em] text-slate-500 shrink-0">
-              <span className="font-medium text-slate-700">{currentQuestion + 1}</span>
-              <span className="text-slate-400">/</span>
-              <span>{totalQ}</span>
-            </span>
-          )}
-        </div>
+    <header className="taste-quiz-header">
+      <div className="taste-quiz-header-inner">
+        <Link href="/" className="taste-quiz-back" aria-label="Назад към началната страница">
+          <ArrowLeft aria-hidden /> <span>Назад</span>
+        </Link>
+        <Link href="/" className="taste-quiz-logo" aria-label="Zubite.bg — начало">Zubite<span>.bg</span></Link>
+        {showCount ? (
+          <span className="taste-quiz-count"><strong>{currentQuestion + 1}</strong> / {totalQ}</span>
+        ) : (
+          <span className="taste-quiz-safety"><ShieldCheck aria-hidden /> Ориентир, не диагноза</span>
+        )}
       </div>
     </header>
   )
@@ -789,49 +691,55 @@ export function MasterQuiz() {
   // ─── SEGMENT SELECT ────────────────────────────────────
   if (step === 'segment') {
     return (
-      <main className="min-h-screen bg-[#FCFAF8]">
+      <main className="taste-site taste-quiz-page taste-quiz-viewport">
         <Header />
-        <div className="pt-14 min-h-screen flex items-center justify-center px-4 py-12">
-          <div className={`w-full max-w-lg transition-all duration-200 ${isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
-            <div className="text-center mb-8">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/70 ring-1 ring-teal-100 text-teal-700 text-[10px] font-semibold px-3 py-1 uppercase tracking-[0.18em]" data-testid="quiz-intro-eyebrow">
-                Първоначален онлайн анализ на зъбите
-              </span>
-              <p className="mt-4 text-slate-500 text-sm leading-relaxed max-w-sm mx-auto" data-testid="quiz-intro-subhead">
-                Отговори спокойно. Това не е диагноза — целта е да получиш
-                ориентир дали има нещо, което си струва да провериш със
-                специалист.
-              </p>
-              <h1 className="mt-6 font-serif text-2xl sm:text-3xl font-semibold text-slate-900 mb-3" data-testid="segment-heading">
-                За кого попълваш този тест?
-              </h1>
-              <p className="text-slate-500 text-sm">Въпросите ще бъдат адаптирани</p>
+        <section className={`taste-quiz-intro ${isTransitioning ? 'is-leaving' : ''}`}>
+          <div className="taste-quiz-intro-copy">
+            <span className="taste-quiz-kicker" data-testid="quiz-intro-eyebrow"><i /> Кратък здравен ориентир</span>
+            <h1 data-testid="segment-heading">Нека започнем от <em>правилното място.</em></h1>
+            <p data-testid="quiz-intro-subhead">
+              Отговори спокойно. За няколко минути ще подредим това, което
+              забелязваш, и ще ти покажем коя следваща стъпка има смисъл.
+            </p>
+            <div className="taste-quiz-intro-notes" aria-label="Информация за теста">
+              <span><strong>2–3 мин</strong> средно време</span>
+              <span><strong>Безплатно</strong> без ангажимент</span>
+              <span><strong>Поверително</strong> и недиагностично</span>
             </div>
-            <div className="space-y-3">
+          </div>
+
+          <div className="taste-quiz-segment-panel">
+            <div className="taste-quiz-panel-heading">
+              <span>01 / 03</span>
+              <div>
+                <p>Първо уточнение</p>
+                <h2>За кого попълваш теста?</h2>
+              </div>
+            </div>
+            <div className="taste-quiz-segment-list">
               {([
-                { seg: 'adult' as Segment, icon: <User className="w-6 h-6" />, label: 'За мен', sub: 'възрастен' },
-                { seg: 'teen' as Segment, icon: <Users className="w-6 h-6" />, label: 'За тийнейджър', sub: '12–17 години' },
-                { seg: 'child' as Segment, icon: <Baby className="w-6 h-6" />, label: 'За дете', sub: 'под 12 години' },
+                { seg: 'adult' as Segment, icon: <User />, label: 'За мен', sub: 'Възрастен' },
+                { seg: 'teen' as Segment, icon: <Users />, label: 'За тийнейджър', sub: '12–17 години' },
+                { seg: 'child' as Segment, icon: <Baby />, label: 'За дете', sub: 'Под 12 години' },
               ]).map(({ seg, icon, label, sub }) => (
                 <button
                   key={seg}
                   onClick={() => handleSegmentSelect(seg)}
-                  className="w-full flex items-center gap-4 p-5 sm:p-6 bg-white/70 backdrop-blur-xl rounded-2xl ring-1 ring-white/80 hover:ring-teal-300/60 hover:bg-white/90 hover:-translate-y-0.5 transition-all duration-200 group text-left shadow-[0_8px_30px_-20px_rgba(15,23,42,0.18)] hover:shadow-[0_16px_44px_-22px_rgba(13,148,136,0.30)]"
+                  className="taste-quiz-segment-option"
                   data-testid={`segment-${seg}`}
                 >
-                  <div className="w-12 h-12 rounded-xl bg-teal-50/80 ring-1 ring-teal-100 group-hover:bg-teal-100 flex items-center justify-center text-teal-700 transition-colors shrink-0">
-                    {icon}
-                  </div>
+                  <span className="taste-quiz-segment-icon">{icon}</span>
                   <div>
-                    <p className="text-base sm:text-lg font-medium text-slate-800">{label}</p>
-                    <p className="text-sm text-slate-400">{sub}</p>
+                    <strong>{label}</strong>
+                    <small>{sub}</small>
                   </div>
-                  <ArrowRight className="w-5 h-5 text-slate-300 group-hover:text-teal-400 ml-auto transition-colors" />
+                  <ArrowRight aria-hidden />
                 </button>
               ))}
             </div>
+            <p className="taste-quiz-panel-note"><ShieldCheck aria-hidden /> Въпросите се адаптират към избрания възрастов профил.</p>
           </div>
-        </div>
+        </section>
       </main>
     )
   }
@@ -839,21 +747,20 @@ export function MasterQuiz() {
   // ─── INSIGHT SCREEN ────────────────────────────────────
   if (step === 'insight') {
     return (
-      <main className="min-h-screen bg-[#FCFAF8]">
+      <main className="taste-site taste-quiz-page taste-quiz-viewport">
         <Header />
-        <div className="pt-14 min-h-screen flex items-center justify-center px-4 py-12">
-          <div className="w-full max-w-lg animate-fade-in-up">
-            <div className="bg-slate-800 rounded-2xl p-8 sm:p-10 text-center shadow-xl">
-              <p className="text-white/90 text-lg sm:text-xl leading-relaxed mb-8 font-light">
-                „{currentInsight}"
-              </p>
-              <button onClick={handleInsightContinue} className="inline-flex items-center gap-2 px-8 py-4 bg-white text-slate-900 font-medium rounded-full hover:bg-slate-100 transition-all duration-300 group" data-testid="insight-continue-btn">
-                <span>Продължи</span>
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+        <section className="taste-quiz-centered">
+          <div className="taste-quiz-insight-card animate-fade-in-up">
+            <span className="taste-quiz-insight-index">Добре е да знаеш</span>
+            <p>„{currentInsight}&quot;</p>
+            <div>
+              <span>Луми подрежда отговорите ти постепенно.</span>
+              <button onClick={handleInsightContinue} className="taste-quiz-primary" data-testid="insight-continue-btn">
+                Продължи <ArrowRight aria-hidden />
               </button>
             </div>
           </div>
-        </div>
+        </section>
       </main>
     )
   }
@@ -864,249 +771,106 @@ export function MasterQuiz() {
     const isVisual = q.type === 'visual'
 
     return (
-      <main className="min-h-screen bg-[#FCFAF8]">
+      <main className="taste-site taste-quiz-page taste-quiz-viewport">
         <Header showCount />
-        <div className="pt-14 min-h-screen flex flex-col">
-          {/* Progress */}
-          <div className="sticky top-14 z-40 bg-[#FCFAF8]/80 backdrop-blur-xl">
-            <div className="relative h-1.5 bg-slate-200/50 overflow-hidden">
-              <div
-                className="absolute inset-y-0 left-0 transition-all duration-500 ease-out rounded-r-full"
-                style={{
-                  width: `${progress}%`,
-                  backgroundImage: 'linear-gradient(90deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)',
-                  boxShadow: '0 0 12px rgba(20,184,166,0.5)',
-                }}
-              />
-              {/* Glossy shine line on top of progress */}
-              <div aria-hidden className="absolute inset-x-0 top-0 h-px bg-white/40" />
+        <section className="taste-quiz-question-wrap">
+          <div className="taste-quiz-progress-row">
+            <span>Твоят ориентир</span>
+            <div className="taste-quiz-progress-track" aria-label={`${Math.round(progress)}% завършено`}>
+              <i style={{ width: `${progress}%` }} />
             </div>
-            <p className="text-center text-[10.5px] uppercase tracking-[0.18em] text-slate-400 py-2">Проверяваме ситуацията…</p>
+            <strong>{Math.round(progress)}%</strong>
           </div>
 
-          <div className="flex-1 flex items-center justify-center px-4 py-8 sm:py-12">
-            <div className="w-full max-w-xl">
-              <div className={`transition-all duration-200 ${isTransitioning ? 'opacity-0 translate-x-4' : 'opacity-100 translate-x-0'}`}>
-                <div className="relative bg-white/75 backdrop-blur-2xl rounded-2xl ring-1 ring-white/80 shadow-[0_18px_50px_-20px_rgba(15,23,42,0.18),inset_0_1px_0_rgba(255,255,255,0.85)] p-6 sm:p-8">
-                  {/* Inner top gloss */}
-                  <div aria-hidden className="absolute inset-x-6 top-0.5 h-1/3 rounded-full bg-gradient-to-b from-white/55 to-transparent pointer-events-none opacity-70" />
-                  <h1 className="relative font-serif text-xl sm:text-2xl font-semibold text-slate-900 mb-6 sm:mb-8 leading-relaxed" data-testid="question-text">
-                    {q.question}
-                  </h1>
+          <div className={`taste-quiz-question-card ${isTransitioning ? 'is-leaving' : ''}`}>
+            <aside className="taste-quiz-question-rail" aria-hidden>
+              <span className="taste-quiz-question-number">{String(currentQuestion + 1).padStart(2, '0')}</span>
+              <div>
+                <Bot />
+                <p><strong>Луми</strong> подрежда отговорите ти, за да изведе ясен следващ ход.</p>
+              </div>
+              <span className="taste-quiz-question-note">Няма грешен отговор</span>
+            </aside>
 
-                  {isVisual ? (
-                    /* Visual grid */
-                    <div className="relative grid grid-cols-3 gap-3 sm:gap-4">
-                      {q.options.map((opt) => (
-                        <button
-                          key={opt.value}
-                          onClick={() => handleAnswer(q.id, opt.value, opt.score, opt.tags)}
-                          className="flex flex-col items-center gap-2 p-3 sm:p-4 rounded-xl bg-white/70 backdrop-blur-xl ring-1 ring-white/80 hover:ring-teal-300/70 hover:bg-white/90 hover:-translate-y-0.5 transition-all duration-200 group shadow-[0_6px_24px_-16px_rgba(15,23,42,0.18)]"
-                          data-testid={`option-${opt.value}`}
-                        >
-                          <div className="w-full aspect-square flex items-center justify-center">
-                            {opt.visual}
-                          </div>
-                          <span className="text-xs sm:text-sm font-medium text-slate-700 text-center group-hover:text-teal-700 transition-colors">{opt.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    /* Text options */
-                    <div className="relative space-y-3">
-                      {q.options.map((opt, idx) => (
-                        <button
-                          key={opt.value}
-                          onClick={() => handleAnswer(q.id, opt.value, opt.score, opt.tags)}
-                          className="w-full text-left p-4 sm:p-5 rounded-xl bg-white/70 backdrop-blur-xl ring-1 ring-white/80 text-slate-800 hover:ring-teal-300/70 hover:bg-white/95 hover:-translate-y-0.5 transition-all duration-200 group shadow-[0_6px_24px_-16px_rgba(15,23,42,0.18)] hover:shadow-[0_14px_36px_-18px_rgba(13,148,136,0.30)]"
-                          data-testid={`option-${opt.value}`}
-                        >
-                          <span className="flex items-center gap-3">
-                            <span className="w-8 h-8 rounded-full bg-teal-50 ring-1 ring-teal-200 flex items-center justify-center text-sm font-semibold text-teal-700 group-hover:bg-teal-100 group-hover:ring-teal-300 transition-colors shrink-0">
-                              {String.fromCharCode(65 + idx)}
-                            </span>
-                            <span className="text-base sm:text-lg">{opt.label}</span>
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
+            <div className="taste-quiz-question-content">
+              <span className="taste-quiz-mobile-step">Въпрос {currentQuestion + 1} от {totalQ}</span>
+              <h1 data-testid="question-text">{q.question}</h1>
+              <p>Избери отговора, който най-точно описва ситуацията в момента.</p>
 
-                  {currentQuestion > 0 && (
-                    <button onClick={handleBack} className="mt-6 flex items-center gap-2 text-slate-400 hover:text-slate-600 transition-colors text-sm" data-testid="quiz-back-btn">
-                      <ArrowLeft className="w-4 h-4" /> Назад
+              {isVisual ? (
+                <div className="taste-quiz-visual-options">
+                  {q.options.map((opt, idx) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => handleAnswer(q.id, opt.value, opt.score, opt.tags)}
+                      className="taste-quiz-visual-option"
+                      data-testid={`option-${opt.value}`}
+                    >
+                      <span className="taste-quiz-option-letter">{String.fromCharCode(65 + idx)}</span>
+                      <span className="taste-quiz-visual-art">{opt.visual}</span>
+                      <strong>{opt.label}</strong>
                     </button>
-                  )}
+                  ))}
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
-    )
-  }
-
-  // ─── RESULT SCREEN ─────────────────────────────────────
-  if (step === 'result' && result && segment) {
-    const content = RESULT_CONTENT[segment][result.band]
-    const styles = getBandStyles(result.band)
-
-    return (
-      <main className="min-h-screen bg-[#FCFAF8]">
-        <Header />
-        <div className="pt-14 min-h-screen px-4 py-8 sm:py-12">
-          <div className="w-full max-w-2xl mx-auto">
-            <div className={`bg-gradient-to-br ${styles.bgGradient} rounded-2xl border-2 ${styles.borderColor} p-6 sm:p-8 mb-6 animate-fade-in-up`} data-testid="result-card">
-              <div className="flex items-center gap-2 mb-6">
-                <span className={`w-2.5 h-2.5 rounded-full ${styles.dotColor}`} />
-                <span className={`text-sm font-semibold ${styles.labelText} ${styles.labelBg} px-3 py-1 rounded-full`}>{content.bandLabel}</span>
-                <span className="text-xs text-slate-400 ml-auto">Сегмент: {SEGMENT_LABELS[segment]}</span>
-              </div>
-              <h1 className={`font-serif text-2xl sm:text-3xl font-semibold ${styles.textColor} mb-6 leading-tight`}>{content.headline}</h1>
-              <p className="text-slate-700 text-base sm:text-lg leading-relaxed mb-6">{content.explanation}</p>
-              <div className={`${styles.accentBg} rounded-xl p-4 mb-6`}>
-                <p className={`${styles.textColor} font-medium`}>{content.urgency}</p>
-              </div>
-
-              {/* Flags */}
-              {result.flags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-6">
-                  {result.flags.map(f => (
-                    <span key={f} className="text-xs px-2.5 py-1 rounded-full bg-white/60 text-slate-600 border border-slate-200">
-                      {{ crowding: 'Струпване', bite_issue: 'Захапка', airway: 'Дишане', tension: 'Напрежение', wear: 'Износване', development: 'Развитие' }[f] || f}
-                    </span>
+              ) : (
+                <div className="taste-quiz-text-options">
+                  {q.options.map((opt, idx) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => handleAnswer(q.id, opt.value, opt.score, opt.tags)}
+                      className="taste-quiz-text-option"
+                      data-testid={`option-${opt.value}`}
+                    >
+                      <span>{String.fromCharCode(65 + idx)}</span>
+                      <strong>{opt.label}</strong>
+                      <ArrowRight aria-hidden />
+                    </button>
                   ))}
                 </div>
               )}
 
-              <p className="text-slate-600 text-sm leading-relaxed border-t border-slate-200/50 pt-6">{content.education}</p>
-            </div>
-
-            <div className="text-center animate-fade-in-up" style={{ animationDelay: '150ms' }}>
-              <button
-                onClick={() => {
-                  // Bypass the redundant "Искаш ли да видиш опциите?" soft-commit
-                  // screen — the patient already clicked to see options on the
-                  // result screen. We log the same `result_to_soft_commit`
-                  // analytics event (for funnel continuity), but jump straight
-                  // to the form (city + lead creation). The `soft_commit` step
-                  // remains in the state machine for backward compatibility
-                  // and is no longer reachable in normal flow (Feb 2026 brief).
-                  trackEvent('result_to_soft_commit', { band: result.band, segment, skip_soft_commit: true })
-                  trackSoftCommit(true)
-                  setStep('form')
-                }}
-                className="inline-flex items-center gap-2 px-8 py-4 bg-teal-500 text-white font-medium rounded-full hover:bg-teal-600 hover:shadow-lg hover:shadow-teal-500/25 transition-all duration-300 group"
-                data-testid="result-continue-btn"
-              >
-                <span>Продължи към опциите</span>
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </button>
+              {currentQuestion > 0 && (
+                <button onClick={handleBack} className="taste-quiz-question-back" data-testid="quiz-back-btn">
+                  <ArrowLeft aria-hidden /> Предишен въпрос
+                </button>
+              )}
             </div>
           </div>
-        </div>
+        </section>
       </main>
     )
   }
 
-  // ─── SOFT COMMIT ───────────────────────────────────────
-  if (step === 'soft_commit') {
+  // ─── RESULT HANDOFF ────────────────────────────────────
+  if (step === 'result' && result && segment) {
     return (
-      <main className="min-h-screen bg-[#FCFAF8]">
+      <main className="taste-site taste-quiz-page taste-quiz-viewport">
         <Header />
-        <div className="pt-14 min-h-screen flex items-center justify-center px-4 py-12">
-          <div className="w-full max-w-lg animate-fade-in-up">
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-lg p-8 sm:p-10 text-center">
-              <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-slate-900 mb-4">
-                {segment === 'adult' ? 'Искаш ли да видиш какви са опциите ти?' : 'Искате ли да видите подходящите опции?'}
-              </h1>
-              <p className="text-slate-600 text-base sm:text-lg leading-relaxed mb-10">
-                {MANUAL_RECOMMENDATION_COPY.shortIntro}
-              </p>
-              <div className="space-y-4">
-                <button onClick={() => { trackEvent('soft_commit', { choice: 'yes' }); trackSoftCommit(true); setStep('form') }} className="w-full px-8 py-4 bg-teal-500 text-white font-medium rounded-full hover:bg-teal-600 hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 group" data-testid="soft-commit-yes">
-                  <span>Да, покажете ми опциите</span>
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+        <section className="taste-quiz-centered">
+          <div className="taste-quiz-insight-card animate-fade-in-up" data-testid="result-handoff">
+            <span className="taste-quiz-insight-index">Въпросникът е завършен</span>
+            <p>{error ? 'Не успяхме да отворим резултата ти.' : 'Подготвяме пълния ти резултат…'}</p>
+            <div>
+              <span>
+                {error
+                  ? 'Отговорите ти са запазени в този екран. Опитай отново.'
+                  : 'Ще те прехвърлим автоматично — не е нужно да натискаш нищо.'}
+              </span>
+              {error ? (
+                <button
+                  onClick={() => handleSubmit()}
+                  disabled={isSubmitting}
+                  className="taste-quiz-primary"
+                  data-testid="result-retry-btn"
+                >
+                  {isSubmitting ? <><Loader2 className="animate-spin" />Зареждаме…</> : <>Опитай отново<ArrowRight aria-hidden /></>}
                 </button>
-                <button onClick={() => { trackEvent('soft_commit', { choice: 'no' }); trackSoftCommit(false); setStep('exit') }} className="w-full px-8 py-4 text-slate-500 font-medium rounded-full hover:text-slate-700 hover:bg-slate-100 transition-all duration-300" data-testid="soft-commit-no">
-                  Не сега
-                </button>
-              </div>
+              ) : (
+                <Loader2 className="h-6 w-6 animate-spin text-teal-600" aria-label="Зареждане" />
+              )}
             </div>
           </div>
-        </div>
-      </main>
-    )
-  }
-
-  // ─── EXIT ──────────────────────────────────────────────
-  if (step === 'exit') {
-    return (
-      <main className="min-h-screen bg-[#FCFAF8]">
-        <Header />
-        <div className="pt-14 min-h-screen flex items-center justify-center px-4 py-12">
-          <div className="w-full max-w-lg animate-fade-in-up">
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 sm:p-10 text-center">
-              <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-6">
-                <X className="w-7 h-7 text-slate-400" />
-              </div>
-              <p className="text-slate-600 text-lg leading-relaxed mb-8">
-                {segment === 'adult' ? 'Можеш да провериш отново по всяко време.' : 'Можете да проверите отново по всяко време.'}
-              </p>
-              <Link href="/" className="inline-flex items-center gap-2 px-8 py-4 bg-slate-100 text-slate-700 font-medium rounded-full hover:bg-slate-200 transition-all duration-300" data-testid="exit-home-btn">
-                Обратно към началото
-              </Link>
-            </div>
-          </div>
-        </div>
-      </main>
-    )
-  }
-
-  // ─── FORM (city-only, Phase B) ─────────────────────────
-  // Contact details are intentionally NOT collected here anymore — they
-  // are gathered by the ResultUnlockGate on /results/[leadId] after the
-  // patient sees that their result is ready. This avoids asking for
-  // name/phone/email twice and keeps Manual Recommendation Mode intact.
-  if (step === 'form') {
-    return (
-      <main className="min-h-screen bg-[#FCFAF8]">
-        <Header />
-        <div className="pt-14 min-h-screen px-4 py-8 sm:py-12">
-          <div className="w-full max-w-lg mx-auto">
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 animate-fade-in-up">
-              <div className="text-center mb-8 pb-6 border-b border-slate-100">
-                <h2 className="font-serif text-xl sm:text-2xl font-semibold text-slate-900 mb-3">
-                  Къде търсиш консултация?
-                </h2>
-                <p className="text-slate-600 text-sm sm:text-base">
-                  Използваме града, за да покажем първо релевантни клиники близо до теб.
-                </p>
-              </div>
-              <div className="space-y-5">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Град <span className="text-red-500">*</span></label>
-                  <div className="grid grid-cols-2 gap-3">
-                    {CITIES.map(c => (
-                      <button key={c.value} type="button" onClick={() => setFormData(p => ({ ...p, city: c.value }))}
-                        className={`p-4 rounded-xl border-2 transition-all duration-200 flex items-center justify-center gap-2 font-medium ${formData.city === c.value ? 'bg-teal-50 border-teal-500 text-teal-700' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'}`}
-                        data-testid={`city-${c.value}`}>
-                        <MapPin className="w-4 h-4" />{c.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                {error && <p className="text-red-600 text-sm bg-red-50 border border-red-200 p-3 rounded-xl">{error}</p>}
-                <button onClick={handleSubmit} disabled={isSubmitting}
-                  className="w-full mt-4 px-8 py-4 bg-teal-500 text-white font-semibold rounded-full hover:bg-teal-600 hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50"
-                  data-testid="submit-btn">
-                  {isSubmitting ? <><Loader2 className="w-5 h-5 animate-spin" />Изпращане...</> : <>Продължи<ArrowRight className="w-5 h-5" /></>}
-                </button>
-                <p className="text-center text-xs text-slate-500 mt-6 leading-relaxed">{MANUAL_RECOMMENDATION_COPY.safetyNote}</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        </section>
       </main>
     )
   }

@@ -8,6 +8,7 @@ import { RequestCard } from '@/components/clinic/RequestCard'
 import {
   ConsultationRequest, statusBadge, formatDate, TREATMENT_LABELS, timeSince,
 } from '@/lib/consultationLabels'
+import { SourceBadge } from '@/components/PatientContextSection'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -76,7 +77,7 @@ export default function ClinicRequestsPage() {
               Заявки за консултация
             </h1>
             <p className="text-slate-500 text-sm mt-1">
-              Пациентите, които са насочени към клиниката ви през Zubite.bg.
+              Всички запитвания към клиниката ви — от Zubite.bg и рекламните ви канали.
             </p>
           </div>
           {state === 'ready' && requests.length > 0 && (
@@ -154,6 +155,7 @@ export default function ClinicRequestsPage() {
                     <th className="px-4 py-3 text-left">Пациент</th>
                     <th className="px-4 py-3 text-left">Лечение</th>
                     <th className="px-4 py-3 text-left hidden lg:table-cell">Град</th>
+                    <th className="px-4 py-3 text-left hidden lg:table-cell">Източник</th>
                     <th className="px-4 py-3 text-left">Статус</th>
                     <th className="px-4 py-3 text-left">Назначена</th>
                     <th className="px-4 py-3 text-left hidden lg:table-cell">Първо действие</th>
@@ -173,6 +175,9 @@ export default function ClinicRequestsPage() {
                           {TREATMENT_LABELS[r.treatment_interest] || r.treatment_interest}
                         </td>
                         <td className="px-4 py-3 hidden lg:table-cell text-slate-700">{r.patient_city || '—'}</td>
+                        <td className="px-4 py-3 hidden lg:table-cell">
+                          {r.source_badge && <SourceBadge source={r.source_badge} />}
+                        </td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${sb.cls}`}>
                             {sb.label}
@@ -277,7 +282,7 @@ function RequestsEmptyState({ filterActive, totalLoaded }: { filterActive: boole
         <>
           <div className="text-base font-medium text-slate-700">Все още няма заявки</div>
           <p className="mt-1 text-sm text-slate-500">
-            Когато Zubite.bg насочи пациент към вашата клиника, заявката ще се появи тук в реално време.
+            Когато пациент изпрати запитване през Zubite.bg, Facebook, Google или друг свързан канал, заявката ще се появи тук.
           </p>
         </>
       )}

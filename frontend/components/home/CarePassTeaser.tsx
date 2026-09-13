@@ -130,10 +130,10 @@ export function CarePassTeaser() {
                   <Image
                     src={ASSET_E_CARE_PASS_CARD}
                     alt="Zubite Care Pass — карта с отстъпки за продукти за орална хигиена"
-                    width={900}
-                    height={900}
+                    width={1280}
+                    height={960}
+                    sizes="(max-width: 1024px) 90vw, 520px"
                     className="relative w-full h-auto rounded-[1.5rem] drop-shadow-[0_30px_60px_rgba(0,0,0,0.45)]"
-                    unoptimized
                     priority={false}
                   />
                 </div>

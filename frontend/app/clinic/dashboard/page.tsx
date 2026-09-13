@@ -243,6 +243,13 @@ export default function ClinicOverviewPage() {
                   .
                 </li>
                 <li>Маркирайте посещенията след срещата за точна статистика.</li>
+                <li>
+                  Проверете за нови заявки за час в{' '}
+                  <Link href="/clinic/dashboard/bookings" className="text-teal-700 underline">
+                    Заявки за час
+                  </Link>
+                  .
+                </li>
               </ol>
             </div>
           </>

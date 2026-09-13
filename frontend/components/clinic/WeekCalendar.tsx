@@ -2,16 +2,21 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { Globe, Building2 } from 'lucide-react'
 import {
-  Appointment, APPOINTMENT_TYPE_LABELS, apptStatusLabel,
+  Appointment, APPOINTMENT_TYPE_LABELS, APPT_STATUS_TONES, apptStatusLabel,
   WEEKDAY_NAMES_SHORT_BG, addDays, isSameLocalDay,
 } from '@/lib/consultationLabels'
 
-const HOUR_START = 8       // 08:00
-const HOUR_END = 20        // 20:00
-const ROW_HEIGHT = 56      // px per hour
-const TOTAL_HEIGHT = (HOUR_END - HOUR_START) * ROW_HEIGHT
+// Exported so DoctorLaneCalendar's per-doctor grid lines up with this
+// week grid's hour axis exactly.
+export const HOUR_START = 8       // 08:00
+export const HOUR_END = 20        // 20:00
+export const ROW_HEIGHT = 56      // px per hour
+export const TOTAL_HEIGHT = (HOUR_END - HOUR_START) * ROW_HEIGHT
 
+// Block (week-grid cell) tones share the same statuses as APPT_STATUS_TONES
+// but need a border + background pairing rather than a flat badge fill.
 const STATUS_BLOCK_CLS: Record<string, string> = {
   booked: 'bg-teal-50 border-teal-300 text-teal-900',
   confirmed: 'bg-emerald-50 border-emerald-300 text-emerald-900',
@@ -20,19 +25,12 @@ const STATUS_BLOCK_CLS: Record<string, string> = {
   no_show: 'bg-rose-50 border-rose-300 text-rose-900',
   cancelled: 'bg-slate-50 border-slate-300 text-slate-500 line-through opacity-70',
   completed: 'bg-emerald-50 border-emerald-400 text-emerald-900',
+  pending_clinic_confirmation: 'bg-amber-50 border-amber-300 text-amber-900',
+  confirmed_by_clinic: 'bg-emerald-50 border-emerald-300 text-emerald-900',
+  scheduled: 'bg-emerald-50 border-emerald-300 text-emerald-900',
 }
 
-const STATUS_BADGE_CLS: Record<string, string> = {
-  booked: 'bg-teal-100 text-teal-700',
-  confirmed: 'bg-emerald-100 text-emerald-700',
-  rescheduled: 'bg-amber-100 text-amber-800',
-  attended: 'bg-emerald-100 text-emerald-700',
-  no_show: 'bg-rose-100 text-rose-700',
-  cancelled: 'bg-slate-200 text-slate-500',
-  completed: 'bg-emerald-100 text-emerald-700',
-}
-
-function fmtHHMM(d: Date): string {
+export function fmtHHMM(d: Date): string {
   return d.toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' })
 }
 
@@ -179,7 +177,15 @@ export function WeekCalendar({ appointments, weekStart }: Props) {
   )
 }
 
-function AppointmentBlock({ a }: { a: Appointment }) {
+// TODO(analytics): fire `clinic_calendar_booking_viewed` here (or on the
+// wrapping Link's onClick below) once a clinic-side event tracker exists —
+// no such tracker exists yet in this repo (only lib/patientAnalytics.ts,
+// patient-flow only).
+//
+// Exported so DoctorLaneCalendar can reuse the exact same block rendering
+// (status colors, online/physical badge, link routing) inside its
+// per-doctor columns instead of the day columns here.
+export function AppointmentBlock({ a, accentDot }: { a: Appointment; accentDot?: string }) {
   const start = new Date(a.start_time)
   const end = new Date(a.end_time)
   const startHr = start.getHours() + start.getMinutes() / 60
@@ -198,19 +204,30 @@ function AppointmentBlock({ a }: { a: Appointment }) {
   const blockCls =
     STATUS_BLOCK_CLS[a.status] || 'bg-slate-50 border-slate-300 text-slate-800'
   const badgeCls =
-    STATUS_BADGE_CLS[a.status] || 'bg-slate-100 text-slate-600'
+    APPT_STATUS_TONES[a.status] || 'bg-slate-100 text-slate-600'
   const typeLabel = APPOINTMENT_TYPE_LABELS[a.appointment_type] || a.appointment_type
+  // Derived, not stored — `online_orientation_booking_id` is only ever set
+  // on rows adapted from the online-orientation flow (see
+  // `_orientation_booking_to_appointment` in consultations.py).
+  const isOnline = !!a.online_orientation_booking_id
+  const modeLabel = isOnline ? 'Онлайн' : 'На място'
 
   const inner = (
     <div
       className={`absolute left-1 right-1 rounded-md border ${blockCls} px-1.5 py-1 text-[11px] leading-tight overflow-hidden shadow-sm hover:shadow transition-shadow`}
       style={{ top, height }}
       data-testid={`week-appt-${a.id}`}
-      title={`${a.patient_name} · ${typeLabel} · ${fmtHHMM(start)}–${fmtHHMM(end)} · ${apptStatusLabel(a.status)}`}
+      title={`${a.patient_name} · ${typeLabel} · ${modeLabel} · ${fmtHHMM(start)}–${fmtHHMM(end)} · ${apptStatusLabel(a.status)}`}
     >
       <div className="flex items-center justify-between gap-1">
-        <span className="font-mono text-[10px] text-slate-600 flex-shrink-0">
-          {fmtHHMM(start)}
+        <span className="inline-flex items-center gap-1 flex-shrink-0">
+          {accentDot && <span className={`w-1.5 h-1.5 rounded-full ${accentDot}`} />}
+          <span className="font-mono text-[10px] text-slate-600">{fmtHHMM(start)}</span>
+          {isOnline ? (
+            <Globe className="w-2.5 h-2.5 text-slate-500" aria-label="Онлайн" />
+          ) : (
+            <Building2 className="w-2.5 h-2.5 text-slate-500" aria-label="На място" />
+          )}
         </span>
         <span className={`text-[9px] px-1 rounded ${badgeCls} flex-shrink-0`}>
           {apptStatusLabel(a.status)}
@@ -229,6 +246,13 @@ function AppointmentBlock({ a }: { a: Appointment }) {
         href={`/clinic/dashboard/requests/${a.consultation_request_id}`}
         className="block"
       >
+        {inner}
+      </Link>
+    )
+  }
+  if (a.online_orientation_booking_id) {
+    return (
+      <Link href="/clinic/dashboard/online-orientation" className="block">
         {inner}
       </Link>
     )

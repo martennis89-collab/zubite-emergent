@@ -1,5 +1,5 @@
 /**
- * JSON-LD helpers for the public `/kliniki` directory.
+ * JSON-LD helpers for the public `/clinics` directory.
  *
  * Strict guardrails (per Feb 2026 product brief):
  *   - NEVER emit `aggregateRating` unless BOTH `reviewRating` and
@@ -135,7 +135,7 @@ export function buildClinicListingJsonLd(opts: {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Breadcrumbs — works for any depth of the /kliniki tree
+   Breadcrumbs — works for any depth of the /clinics tree
    ───────────────────────────────────────────────────────────── */
 export function buildClinicBreadcrumbJsonLd(opts: {
   city?: string | null
@@ -143,23 +143,23 @@ export function buildClinicBreadcrumbJsonLd(opts: {
   clinic?: PublicClinic | null
 }): Record<string, unknown> {
   const items: { name: string; href: string }[] = [
-    { name: 'Клиники', href: '/kliniki' },
+    { name: 'Клиники', href: '/clinics' },
   ]
   if (opts.city) {
-    items.push({ name: cityDisplay(opts.city), href: `/kliniki/${opts.city}` })
+    items.push({ name: cityDisplay(opts.city), href: `/clinics/${opts.city}` })
   }
   if (opts.city && opts.specialty) {
     // Breadcrumb is intentionally terse — "Invisalign", not "Invisalign клиники",
     // so it reads naturally inside `Клиники > София > Invisalign`.
     items.push({
       name: treatmentLabel(opts.specialty),
-      href: `/kliniki/${opts.city}/${opts.specialty}`,
+      href: `/clinics/${opts.city}/${opts.specialty}`,
     })
   }
   if (opts.clinic && opts.city && opts.specialty) {
     items.push({
       name: opts.clinic.name,
-      href: `/kliniki/${opts.city}/${opts.specialty}/${opts.clinic.slug || opts.clinic.id}`,
+      href: `/clinics/${opts.city}/${opts.specialty}/${opts.clinic.slug || opts.clinic.id}`,
     })
   }
   return {

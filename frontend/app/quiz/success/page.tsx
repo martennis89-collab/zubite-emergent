@@ -2,14 +2,11 @@
 
 import { useEffect, useRef, useState, Suspense } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 import { CheckCircle, ArrowRight, MapPin, Mail, Shield, ShieldCheck, Sparkles } from 'lucide-react'
-import { trackPageView } from '@/components/MetaPixel'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
 import { SaveCarePassModal } from '@/components/patient/SaveCarePassModal'
 import { FreeOnlineOrientationSection } from '@/components/patient/FreeOnlineOrientationSection'
-import { CarePassLiveStatus } from '@/components/patient/CarePassLiveStatus'
 
 type ResultBand = 'low' | 'moderate' | 'high'
 type Segment = 'adult' | 'teen' | 'child'
@@ -76,7 +73,7 @@ function SuccessContent() {
   const summaryCfg = segMap[band] || segMap.low
   const isParent = segment === 'teen' || segment === 'child'
 
-  useEffect(() => { setMounted(true); trackPageView() }, [])
+  useEffect(() => { setMounted(true) }, [])
 
   // Read stored email (from quiz submit) to prefill the modal.
   useEffect(() => {
@@ -198,57 +195,6 @@ function SuccessContent() {
           твоя случай.
         </p>
 
-        {/* Care Pass — compact chip strip matching the homepage premium panel.
-            One short headline; details (oral hygiene · post-consultation ·
-            not treatment discount) communicated through chips, not paragraphs. */}
-        <div
-          className="relative mt-6 rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-[0_18px_50px_-22px_rgba(15,23,42,0.35)]"
-          style={{
-            background:
-              'radial-gradient(ellipse 60% 60% at 100% 0%, rgba(20,184,166,0.30) 0%, transparent 60%),' +
-              'linear-gradient(135deg, #0E1A24 0%, #112832 100%)',
-          }}
-          data-testid="success-care-pass-note"
-        >
-          <div aria-hidden className="absolute inset-x-4 top-1 h-1/3 rounded-full bg-white/10 blur-2xl pointer-events-none" />
-          <div className="relative p-5 sm:p-6">
-            <div className="flex items-center gap-3">
-              <div className="relative w-16 h-12 flex-shrink-0 rounded-lg bg-white/10 ring-1 ring-white/20 overflow-hidden">
-                <Image
-                  src="/care-pass.png"
-                  alt="Zubite Care Pass"
-                  fill
-                  sizes="64px"
-                  className="object-contain"
-                />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-teal-300/80 font-semibold">Zubite Care Pass</p>
-                <p className="mt-0.5 font-serif text-sm sm:text-base text-white leading-snug">
-                  След консултацията клиниката ти дава Care Pass.
-                </p>
-              </div>
-            </div>
-            <ul className="mt-3.5 flex flex-wrap gap-1.5">
-              {[
-                'Отстъпки за орална хигиена',
-                'От клиниката',
-                'След консултация',
-                'Не е отстъпка от лечение',
-              ].map((c) => (
-                <li
-                  key={c}
-                  className="inline-flex items-center gap-1 rounded-full bg-white/8 ring-1 ring-white/15 text-[10.5px] text-slate-200 font-medium px-2.5 py-1"
-                >
-                  <span className="w-1 h-1 rounded-full bg-teal-300" aria-hidden="true" />
-                  {c}
-                </li>
-              ))}
-            </ul>
-            {leadId && <CarePassLiveStatus leadId={leadId} />}
-          </div>
-        </div>
-
         {/* Save-by-email CTA — patient-initiated, requires consent. */}
         {leadId && (
           <div className="mt-3" data-testid="success-save-care-pass-block">
@@ -263,7 +209,7 @@ function SuccessContent() {
               <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
             </button>
             <p className="mt-1.5 text-[11px] text-slate-400 text-center leading-relaxed">
-              Изпращаме ти кратко резюме + информация за Care Pass. Без спам.
+              Изпращаме ти кратко резюме на резултата. Без спам.
             </p>
           </div>
         )}
@@ -290,7 +236,7 @@ function SuccessContent() {
         </Link>
       </div>
 
-      {/* Save Care Pass by email modal */}
+      {/* Save result by email modal. */}
       {leadId && (
         <SaveCarePassModal
           open={saveModalOpen}

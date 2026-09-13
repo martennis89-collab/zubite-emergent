@@ -121,6 +121,23 @@ async def _count_monthly_bookings(db, clinic_id: str, ref_now: datetime) -> int:
     })
 
 
+def _setting_int(settings: Dict[str, Any], key: str, default: int) -> int:
+    """Read an int setting, treating only a missing/invalid value as absent.
+
+    `settings.get(key) or default` turns a deliberate 0 into the default,
+    and 0 is a legal, meaningful value for three of these settings (the
+    schema allows `ge=0`): `monthly_free_slot_limit=0` means give away no
+    free slots, `max_bookings_per_day=0` means take none that day, and
+    `booking_buffer_minutes=0` means leave no gap. Under `or`, an admin
+    switching the free allowance off silently handed out 10 a month.
+    """
+    v = settings.get(key)
+    # bool is an int subclass — a stray True must not read as 1.
+    if isinstance(v, bool) or not isinstance(v, (int, float)):
+        return default
+    return int(v)
+
+
 async def generate_slots_for_clinic(
     db,
     clinic_id: str,
@@ -137,10 +154,10 @@ async def generate_slots_for_clinic(
     The shape is intentionally minimal — no clinic copy / pricing /
     treatment-category fan-out happens here.
     """
-    duration = int(settings.get("slot_duration_minutes") or 20)
-    buffer = int(settings.get("booking_buffer_minutes") or 15)
-    max_per_day = int(settings.get("max_bookings_per_day") or 2)
-    monthly_limit = int(settings.get("monthly_free_slot_limit") or 10)
+    duration = _setting_int(settings, "slot_duration_minutes", 20)
+    buffer = _setting_int(settings, "booking_buffer_minutes", 15)
+    max_per_day = _setting_int(settings, "max_bookings_per_day", 2)
+    monthly_limit = _setting_int(settings, "monthly_free_slot_limit", 10)
 
     if duration <= 0 or not availability_rows:
         return []

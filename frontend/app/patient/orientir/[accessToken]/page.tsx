@@ -12,10 +12,11 @@ export const metadata: Metadata = {
 // Next.js 14 typed route params — accessToken is captured opaquely
 // and forwarded straight to the lookup endpoint. The page itself
 // never reads or stores a lead_id.
-export default function PatientOrientirPage({
+export default async function PatientOrientirPage({
   params,
 }: {
-  params: { accessToken: string }
+  params: Promise<{ accessToken: string }>
 }) {
-  return <OrientirContent accessToken={params.accessToken} />
+  const { accessToken } = await params
+  return <OrientirContent accessToken={accessToken} />
 }

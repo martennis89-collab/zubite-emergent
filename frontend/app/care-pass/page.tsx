@@ -32,8 +32,7 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 }
 
-const ASSET_E_CARE_PASS_CARD =
-  'https://customer-assets.emergentagent.com/job_25b55d94-1ed6-49c7-af05-4dd6f19863cf/artifacts/kyba9eaq_ChatGPT%20Image%20May%2017%2C%202026%2C%2010_21_45%20AM.png'
+const ASSET_E_CARE_PASS_CARD = '/images/stitch/care-pass.webp'
 
 const STEPS = [
   { n: '01', t: 'Провери своя случай',  s: 'Отговори на кратък въпросник и получи разбираем ориентир за твоята ситуация.',                    icon: <ClipboardCheck className="w-5 h-5" /> },
@@ -132,10 +131,10 @@ export default function CarePassPage() {
             <Image
               src={ASSET_E_CARE_PASS_CARD}
               alt="Zubite Care Pass — карта с отстъпки за продукти за орална хигиена"
-              width={900}
-              height={900}
+              width={1280}
+              height={960}
+              sizes="(max-width: 1024px) 90vw, 448px"
               className="relative w-full h-auto drop-shadow-[0_30px_60px_rgba(0,0,0,0.35)]"
-              unoptimized
               priority
             />
           </div>
@@ -321,7 +320,7 @@ export default function CarePassPage() {
                   Surfaces partner clinics that show Care Pass on their
                   profiles. Care Pass guardrail copy below remains primary. */}
               <Link
-                href="/kliniki"
+                href="/clinics"
                 className="inline-flex items-center gap-1.5 rounded-full bg-white/65 backdrop-blur-md ring-1 ring-white/80 text-slate-700 text-sm font-medium px-4 py-2.5 hover:bg-white transition-all"
                 data-testid="care-pass-catalog-link"
               >

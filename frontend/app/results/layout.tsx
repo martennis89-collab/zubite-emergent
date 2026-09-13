@@ -13,6 +13,7 @@ import type { ReactNode } from 'react'
  * name, no phone). The robots meta tag is the only surface we touch.
  */
 export const metadata: Metadata = {
+  title: 'Твоят дентален ориентир | Zubite.bg',
   robots: {
     index: false,
     follow: false,

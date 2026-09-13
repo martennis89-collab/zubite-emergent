@@ -2,10 +2,10 @@
 
 import { useState } from 'react'
 import {
-  X, Scale, Phone, ShieldCheck, Video, Heart, Check,
+  X, Scale, Phone, ShieldCheck, Video, Check,
 } from 'lucide-react'
 import {
-  type PublicClinic, treatmentLabel,
+  cityDisplay, type PublicClinic, treatmentLabel,
 } from '@/lib/publicClinics'
 
 interface Props {
@@ -48,7 +48,7 @@ export default function CompareTray({
             type="button"
             onClick={() => setOpen(true)}
             disabled={clinics.length < 2}
-            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-slate-900 text-white text-[12px] font-medium hover:bg-slate-800 transition-colors disabled:opacity-50"
+            className="inline-flex min-h-11 items-center gap-1 px-3 py-2 rounded-full bg-slate-900 text-white text-[12px] font-medium hover:bg-slate-800 transition-colors disabled:opacity-50"
             data-testid="compare-open"
           >
             Сравни
@@ -56,7 +56,7 @@ export default function CompareTray({
           <button
             type="button"
             onClick={onClear}
-            className="text-[11px] text-slate-500 hover:text-slate-800 transition-colors"
+            className="inline-flex min-h-11 items-center px-2 text-[11px] text-slate-500 hover:text-slate-800 transition-colors"
             data-testid="compare-clear"
           >
             Изчисти
@@ -84,7 +84,7 @@ export default function CompareTray({
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 transition-colors"
+                className="grid h-11 w-11 place-items-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
                 data-testid="compare-modal-close"
                 aria-label="Затвори"
               >
@@ -116,8 +116,8 @@ export default function CompareTray({
                 }}
                 data-testid="compare-contact-all"
               >
-                <Phone className="w-4 h-4" />
-                Заяви контакт от избраните
+                <Phone className="w-4 h-4 shrink-0" aria-hidden="true" />
+                <span className="text-left"><strong className="block">Заяви контакт от избраните</strong><small className="block text-[11px] font-normal text-black/65">Всяка клиника ще получи заявката ти.</small></span>
               </button>
               <button
                 type="button"
@@ -154,14 +154,14 @@ function ClinicCompareColumn({
           type="button"
           onClick={onRemove}
           aria-label="Премахни"
-          className="p-1 text-slate-400 hover:text-rose-600 transition-colors"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
           data-testid={`compare-remove-${c.id}`}
         >
           <X className="w-4 h-4" />
         </button>
       </div>
       <p className="text-xs text-slate-500 mb-3">
-        {c.city_name || c.city_slug || '—'}
+        {c.city_name || cityDisplay(c.city_slug)}
         {c.area && ` · ${c.area}`}
       </p>
 
@@ -183,12 +183,6 @@ function ClinicCompareColumn({
         {c.online_consultation
           ? c.online_consultation_label || 'Налична'
           : 'Не е отбелязана'}
-      </CompareRow>
-      <CompareRow
-        label="Care Pass"
-        icon={c.care_pass_partner ? <Heart className="w-3 h-3 text-rose-500" /> : null}
-      >
-        {c.care_pass_partner ? 'Партньор' : '—'}
       </CompareRow>
       <CompareRow
         label="Профил прегледан"

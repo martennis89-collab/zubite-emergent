@@ -188,7 +188,7 @@ export default function SymptomsPage() {
           <p className="mt-6 text-[13px] text-teal-100/95 leading-relaxed max-w-md mx-auto">
             Ако симптомът продължава или се повтаря, можеш да{' '}
             <Link
-              href="/kliniki"
+              href="/clinics"
               className="underline underline-offset-4 hover:text-white font-medium"
               data-testid="symptoms-catalog-link"
             >

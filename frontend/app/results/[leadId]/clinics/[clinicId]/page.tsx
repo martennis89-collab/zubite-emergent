@@ -5,7 +5,7 @@
  *
  * Feb 2026 — Pass B unification: this page now REUSES the same
  * `ClinicProfileView` component that powers the public profile route
- * (`/kliniki/[city]/[specialty]/[clinicSlug]`). Patients in the post-quiz
+ * (`/clinics/[city]/[specialty]/[clinicSlug]`). Patients in the post-quiz
  * funnel get the identical premium clinic profile experience, wrapped with
  * lead-context chrome only:
  *   • `ResultsHeader` (logo + „Ориентир, не диагноза" pill — no public nav)
@@ -36,7 +36,7 @@ import Link from 'next/link'
 import axios from 'axios'
 import {
   ArrowLeft, AlertCircle, Compass, Loader2, CheckCircle2, ShieldCheck,
-  Gift, MapPin,
+  MapPin,
 } from 'lucide-react'
 import { ResultsHeader } from '@/components/ResultsHeader'
 import { Footer } from '@/components/Footer'
@@ -114,7 +114,7 @@ export default function ClinicProfilePage() {
         getRecommendedClinics(leadId, 3),
         getSelectionState(leadId).catch(() => null),
       ])
-      const match = r.clinics.find((c) => c.id === clinicId)
+      const match = r.clinics.find((c) => c.id === clinicId || c.slug === clinicId)
       if (!match) {
         setErr('clinic_not_in_list')
         setRecommended(null)
@@ -162,7 +162,7 @@ export default function ClinicProfilePage() {
   if (!gateChecked) {
     return (
       <main
-        className="min-h-screen bg-[#FCFAF8] flex items-center justify-center"
+        className="taste-results-state min-h-screen bg-[#FCFAF8] flex items-center justify-center"
         data-testid="lead-profile-gate-loading"
       >
         <Loader2 className="w-8 h-8 text-teal-600 animate-spin" />
@@ -171,7 +171,7 @@ export default function ClinicProfilePage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#FCFAF8] relative" data-testid="lead-clinic-profile-page">
+    <main className="taste-recommendation-detail-page min-h-screen bg-[#FCFAF8] relative" data-testid="lead-clinic-profile-page">
       <ResultsHeader />
 
       {/* Lead-context wrapper — sits ABOVE the public ClinicProfileView so
@@ -181,7 +181,7 @@ export default function ClinicProfilePage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Back link */}
           <Link
-            href={`/results/${leadId}/clinics`}
+            href={`/clinics?leadId=${encodeURIComponent(leadId)}`}
             className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-teal-700 transition-colors mb-4"
             data-testid="profile-back-link"
           >
@@ -206,8 +206,11 @@ export default function ClinicProfilePage() {
             <RecommendationReasonBanner
               clinic={recommended}
               alreadyRequested={
-                selection?.has_selected_clinic === true &&
-                selection?.selected_clinic_id === clinicId
+                selection?.requested_clinic_ids?.includes(recommended.id) ??
+                (
+                  selection?.has_selected_clinic === true &&
+                  selection?.selected_clinic_id === recommended.id
+                )
               }
             />
           )}
@@ -216,9 +219,9 @@ export default function ClinicProfilePage() {
 
       {/* ─── Public profile body ─────────────────────────────────
           The exact same `<ClinicProfileView />` powering
-          `/kliniki/[city]/[specialty]/[clinicSlug]`. Public CTAs intact. */}
+          `/clinics/[city]/[specialty]/[clinicSlug]`. Public CTAs intact. */}
       {publicProfile && !err && (
-        <ClinicProfileView clinic={publicProfile} />
+        <ClinicProfileView clinic={publicProfile} chatContext={{ leadId }} />
       )}
 
       {/* When the public profile is unavailable but the lead-context
@@ -244,9 +247,10 @@ function RecommendationReasonBanner({
   // Build the small reason chips — same set as on the recommendation
   // grid card so the journey feels continuous.
   const chips: { icon: typeof ShieldCheck; label: string; testid: string }[] = []
-  if (clinic.same_city) chips.push({ icon: MapPin, label: 'В твоя град', testid: 'reason-chip-same-city' })
-  if (clinic.care_pass_partner) chips.push({ icon: Gift, label: 'Care Pass участваща', testid: 'reason-chip-care-pass' })
+  if (clinic.same_district) chips.push({ icon: MapPin, label: 'В твоя квартал', testid: 'reason-chip-same-district' })
+  else if (clinic.same_city) chips.push({ icon: MapPin, label: 'В твоя град', testid: 'reason-chip-same-city' })
   if (clinic.placement_label) chips.push({ icon: ShieldCheck, label: clinic.placement_label, testid: 'reason-chip-placement' })
+  if ((clinic.assessment_approach_matches || []).length > 0) chips.push({ icon: Compass, label: 'Подход, свързан с отговорите ти', testid: 'reason-chip-assessment-approach' })
 
   return (
     <article
@@ -283,6 +287,11 @@ function RecommendationReasonBanner({
                 </li>
               ))}
             </ul>
+          )}
+          {(clinic.assessment_approach_match_labels || []).length > 0 && (
+            <p className="mt-3 text-xs leading-relaxed text-slate-500" data-testid="reason-assessment-approaches">
+              Профилът описва: {(clinic.assessment_approach_match_labels || []).join(' · ')}. Това е критерий за релевантност, не оценка за качество.
+            </p>
           )}
 
           {alreadyRequested && (
@@ -328,7 +337,7 @@ function ProfileUnavailableShell({
             Подробният профил на тази клиника все още не е публикуван. Може да заявиш контакт през препоръчания списък — клиниката ще се свърже с теб.
           </p>
           <Link
-            href={`/results/${leadId}/clinics`}
+            href={`/clinics?leadId=${encodeURIComponent(leadId)}`}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/65 backdrop-blur-xl ring-1 ring-white/80 text-slate-700 text-sm font-medium hover:bg-white transition-all"
             data-testid="profile-unavailable-back"
           >
@@ -394,7 +403,7 @@ function LeadProfileError({
           Опитай отново
         </button>
         <Link
-          href={`/results/${leadId}/clinics`}
+          href={`/clinics?leadId=${encodeURIComponent(leadId)}`}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-white text-sm font-medium shadow-[0_10px_28px_-10px_rgba(13,148,136,0.55)] hover:-translate-y-0.5 transition-all"
           style={{ backgroundImage: 'linear-gradient(135deg,#5eead4 0%,#2dd4bf 60%,#14b8a6 100%)' }}
           data-testid="lead-profile-back-to-clinics"

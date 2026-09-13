@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, HTTPException
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 import os
@@ -12,12 +12,7 @@ from database import db, client
 from storage import init_storage
 from emails import send_verification_email
 
-from routers import public, admin, blog, analytics, clinics, verification, seo, consultations, audit_logs, orientation_settings, orientation_bookings, content_automation, public_clinics, clinic_addons, bookings
-# ─── ElevenLabs / call integration soft-disabled (Feb 2026) ──────────
-# `routers.calls` and `services.elevenlabs_service` are intentionally
-# NOT imported. Files remain on disk so the integration can be re-enabled
-# by uncommenting the import + the `include_router(calls.router)` line
-# below and restoring the ELEVENLABS_* / TWILIO_* env vars.
+from routers import public, admin, blog, analytics, clinics, verification, seo, consultations, audit_logs, orientation_settings, orientation_bookings, content_automation, public_clinics, clinic_addons, bookings, consultation_chat, patient_auth, community, doctors, clinic_patients, recognition
 
 # Root-level health endpoint
 app = FastAPI(title="Zubite.bg API")
@@ -25,7 +20,13 @@ app = FastAPI(title="Zubite.bg API")
 
 @app.get("/health")
 async def health_check():
-    return {"status": "ok"}
+    """Render readiness probe: the process is ready only when MongoDB is."""
+    try:
+        await db.command("ping")
+    except Exception as exc:
+        logger.error("Health check failed: MongoDB is unavailable (%s)", type(exc).__name__)
+        raise HTTPException(status_code=503, detail="database unavailable") from exc
+    return {"status": "ok", "database": "connected"}
 
 
 # Build the /api router and include all sub-routers
@@ -35,7 +36,6 @@ api_router.include_router(admin.router)
 api_router.include_router(blog.router)
 api_router.include_router(analytics.router)
 api_router.include_router(clinics.router)
-# api_router.include_router(calls.router)  # soft-disabled — see top-of-file comment
 api_router.include_router(verification.router)
 api_router.include_router(seo.router)
 api_router.include_router(consultations.router)
@@ -43,11 +43,17 @@ from routers import reviews as _reviews  # noqa: E402
 api_router.include_router(_reviews.router)
 api_router.include_router(audit_logs.router)
 api_router.include_router(orientation_settings.router)
+api_router.include_router(consultation_chat.router)
 api_router.include_router(orientation_bookings.router)
 api_router.include_router(content_automation.router)
 api_router.include_router(public_clinics.router)
 api_router.include_router(clinic_addons.router)
 api_router.include_router(bookings.router)
+api_router.include_router(patient_auth.router)
+api_router.include_router(community.router)
+api_router.include_router(doctors.router)
+api_router.include_router(clinic_patients.router)
+api_router.include_router(recognition.router)
 
 app.include_router(api_router)
 
@@ -86,14 +92,53 @@ async def startup():
     await db.leads.create_index("band")
     await db.leads.create_index("status")
     await db.leads.create_index("form_version")
-    await db.leads.create_index("call_status")
-    await db.leads.create_index("last_conversation_id")
     await db.leads.create_index("assigned_clinic_id")
     await db.leads.create_index("clinic_lead_status")
     await db.leads.create_index("verification_status")
     # Phase 2C: soft-duplicate detection lookups
     await db.leads.create_index([("phone", 1), ("created_at", -1)])
     await db.leads.create_index([("email", 1), ("created_at", -1)])
+    await db.leads.create_index("patient_id")
+    # Clear Advance sweep: one clinic's leads, oldest first. Not a partial index
+    # on the unreported ones, tempting as that is -- Mongo rejects
+    # `$exists: false` in partialFilterExpression, so the filter has to be
+    # applied at query time and this index only narrows the scan to the clinic.
+    await db.leads.create_index([("assigned_clinic_id", 1), ("created_at", 1)])
+    try:
+        await db.clinic_integrations.create_index(
+            [("clinic_id", 1), ("provider", 1)], unique=True)
+    except Exception as exc:  # pre-existing duplicates must not block startup
+        print(f"[clear_advance] clinic_integrations index skipped: {exc}")
+    try:
+        await db.clear_advance_outbox.create_index("event_id", unique=True)
+        await db.clear_advance_outbox.create_index([
+            ("status", 1), ("next_attempt_at", 1), ("created_at", 1),
+        ])
+        await db.clear_advance_outbox.create_index([("clinic_id", 1), ("created_at", -1)])
+    except Exception as exc:
+        print(f"[clear_advance] outbox indexes skipped: {exc}")
+    # Clinic "Пациенти" section — global numeric patient ID. Every lead doc
+    # carries `patient_number` explicitly as `null` until assigned (Pydantic
+    # model_dump() writes all fields), so a plain `sparse` index does NOT
+    # work here — Mongo's sparse indexes still include explicit nulls, only
+    # skipping documents where the field is fully absent. A partial index
+    # excludes null (and missing) values, but the filter must be a
+    # sargable comparison (`$gt`) — a `$type` filter on the SAME field
+    # being indexed prevents Mongo from computing tight bounds for an
+    # equality lookup (verified via explain(): `$type` → index bounds
+    # [MinKey, MaxKey], scanning the whole partial index; `$gt` → bounds
+    # [n, n], a real single-key seek). `patient_number` is only ever
+    # assigned via the $inc counter in clinic_patients.py, which starts
+    # at 1 and only increases, so `$gt: 0` is equivalent to "is a number"
+    # here without the bound-pushdown penalty.
+    try:
+        await db.leads.drop_index("patient_number_1")
+    except Exception:
+        pass
+    await db.leads.create_index(
+        "patient_number", unique=True,
+        partialFilterExpression={"patient_number": {"$gt": 0}},
+    )
     await db.clinics.create_index("id", unique=True)
     await db.clinics.create_index("city_slug")
     await db.clinics.create_index("email")
@@ -113,15 +158,51 @@ async def startup():
     await db.uploaded_files.create_index("is_deleted")
     await db.blog_views.create_index([("post_slug", 1), ("visitor_id", 1), ("date", 1)])
     await db.blog_views.create_index("date")
-    await db.lead_call_logs.create_index("id", unique=True)
-    await db.lead_call_logs.create_index("lead_id")
-    await db.lead_call_logs.create_index("conversation_id")
-    await db.lead_call_logs.create_index("initiated_at")
     await db.clinic_applications.create_index("id", unique=True)
     await db.clinic_applications.create_index("status")
     await db.lead_verifications.create_index("token", unique=True)
     await db.lead_verifications.create_index("lead_id")
     await db.lead_verifications.create_index("clinic_id")
+    # Patient accounts (Общност Phase 1 — OTP-only)
+    await db.patients.create_index("id", unique=True)
+    await db.patients.create_index("email", unique=True)
+    await db.patient_otps.create_index("email")
+    # TTL: Mongo auto-deletes OTP rows once expires_at passes.
+    await db.patient_otps.create_index("expires_at", expireAfterSeconds=0)
+    # Общност (Q&A) — questions / answers / reports
+    await db.qa_questions.create_index("id", unique=True)
+    await db.qa_questions.create_index("slug", unique=True)
+    await db.qa_questions.create_index([("status", 1), ("topic", 1), ("published_at", -1)])
+    await db.qa_questions.create_index("patient_id")
+    await db.qa_answers.create_index("id", unique=True)
+    await db.qa_answers.create_index([("question_id", 1), ("status", 1)])
+    await db.qa_answers.create_index([("author_type", 1), ("author_id", 1)])
+    await db.qa_reports.create_index([("target_type", 1), ("target_id", 1)])
+    await db.qa_answer_votes.create_index([("answer_id", 1), ("patient_id", 1)], unique=True)
+    await db.qa_question_votes.create_index([("question_id", 1), ("patient_id", 1)], unique=True)
+    await db.qa_notifications.create_index([("patient_id", 1), ("created_at", -1)])
+    await db.qa_notifications.create_index([("patient_id", 1), ("read", 1)])
+    await db.qa_question_photos.create_index("id", unique=True)
+    await db.qa_question_photos.create_index([("question_id", 1), ("display_order", 1)])
+    await db.qa_question_photos.create_index("patient_id")
+    # Clinic review collection (R1/R2) — see reviews.py.
+    await db.clinic_reviews.create_index("id", unique=True)
+    await db.clinic_reviews.create_index("clinic_id")
+    await db.clinic_reviews.create_index([("status", 1), ("submitted_at", -1)])
+    # Thread-follow notifications — see community.py's _subscribe/_notify_followers.
+    await db.qa_subscriptions.create_index([("question_id", 1), ("patient_id", 1)], unique=True)
+    await db.qa_subscriptions.create_index("patient_id")
+    # Web push (VAPID) — see push.py.
+    await db.push_subscriptions.create_index("endpoint", unique=True)
+    await db.push_subscriptions.create_index("patient_id")
+    # Wall of Recognition — gratitude stories are separate from reviews.
+    await db.recognition_entries.create_index("id", unique=True)
+    await db.recognition_entries.create_index([("status", 1), ("published_at", -1)])
+    await db.recognition_entries.create_index("patient_id")
+    # Supports the per-clinic public feed (public_list_clinic_recognition).
+    await db.recognition_entries.create_index("clinic_id")
+    await db.recognition_photos.create_index("id", unique=True)
+    await db.recognition_photos.create_index([("entry_id", 1), ("kind", 1)], unique=True)
 
     # Consultation workflow indexes (Feb 2026)
     await db.consultation_requests.create_index("id", unique=True)
@@ -182,6 +263,10 @@ async def startup():
 
     init_storage()
     asyncio.create_task(auto_verification_loop())
+    asyncio.create_task(clear_advance_loop())
+
+    from auth import auth_session_cleanup_loop
+    asyncio.create_task(auth_session_cleanup_loop())
 
     # Booking engine (Feb 2026) — indexes + 24h reminder loop.
     from routers.bookings import reminder_loop
@@ -202,9 +287,46 @@ async def startup():
     except Exception as exc:  # index may already exist under an older name
         print(f"[bookings] uniq_active_slot index skipped: {exc}")
     await db.clinic_bookings.create_index("reminder_email_scheduled_for")
+    await db.clinic_bookings.create_index("patient_id")
     await db.clinic_availability_rules.create_index([("clinic_id", 1), ("day_of_week", 1)])
     await db.clinic_booking_exceptions.create_index([("clinic_id", 1), ("date", 1)])
     asyncio.create_task(reminder_loop())
+
+    # Multi-doctor booking system (Phase 1 — doctor roster).
+    await db.doctors.create_index("id", unique=True)
+    await db.doctors.create_index([("clinic_id", 1), ("active", 1)])
+    # Phase 3 — staff-internal doctor assignment + conflict lookups.
+    await db.clinic_appointments.create_index([("clinic_id", 1), ("doctor_id", 1)])
+    await db.online_orientation_bookings.create_index([("clinic_id", 1), ("doctor_id", 1)])
+    await db.online_orientation_bookings.create_index("patient_id")
+
+
+async def clear_advance_loop():
+    """Background: synchronize lead facts in both directions.
+
+    A lead can be assigned long after it arrives, by any of a dozen code paths,
+    so this sweeps for the end state rather than hooking each writer -- the same
+    reasoning as `_backfill_patient_numbers`. Every ten minutes rather than
+    hourly only because a clinic that has just connected should see its first
+    lead appear while it is still looking; nothing here is time-critical, since
+    Meta's attribution window is seven days wide.
+    """
+    from clear_advance import process_pending_outcomes, report_pending_leads
+    while True:
+        try:
+            await asyncio.sleep(600)
+            from clear_advance import import_pending_leads
+            reported = await report_pending_leads(db)
+            imported = await import_pending_leads(db)
+            outcomes = await process_pending_outcomes(db)
+            if reported or imported or outcomes["processed"]:
+                logger.info(
+                    "Clear Advance sync: reported=%s imported=%s outcomes=%s",
+                    reported, imported, outcomes,
+                )
+        except Exception as e:
+            # A reporting problem must never take the API down with it.
+            logger.error(f"Clear Advance sweep error: {e}")
 
 
 async def auto_verification_loop():

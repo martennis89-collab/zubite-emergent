@@ -1,0 +1,13 @@
+file 'C:/Users/marte/Documents/Zubite.bg/Clone/frontend/public/social-kit/batches/2026-08-whole-body/posts/08-bruxism-stress-headache/reel-frames/frame-01.png'
+duration 3.5
+file 'C:/Users/marte/Documents/Zubite.bg/Clone/frontend/public/social-kit/batches/2026-08-whole-body/posts/08-bruxism-stress-headache/reel-frames/frame-02.png'
+duration 4.5
+file 'C:/Users/marte/Documents/Zubite.bg/Clone/frontend/public/social-kit/batches/2026-08-whole-body/posts/08-bruxism-stress-headache/reel-frames/frame-03.png'
+duration 5
+file 'C:/Users/marte/Documents/Zubite.bg/Clone/frontend/public/social-kit/batches/2026-08-whole-body/posts/08-bruxism-stress-headache/reel-frames/frame-04.png'
+duration 5
+file 'C:/Users/marte/Documents/Zubite.bg/Clone/frontend/public/social-kit/batches/2026-08-whole-body/posts/08-bruxism-stress-headache/reel-frames/frame-05.png'
+duration 5
+file 'C:/Users/marte/Documents/Zubite.bg/Clone/frontend/public/social-kit/batches/2026-08-whole-body/posts/08-bruxism-stress-headache/reel-frames/frame-06.png'
+duration 5
+file 'C:/Users/marte/Documents/Zubite.bg/Clone/frontend/public/social-kit/batches/2026-08-whole-body/posts/08-bruxism-stress-headache/reel-frames/frame-06.png'

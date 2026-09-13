@@ -21,6 +21,8 @@ interface Props {
   //   3. nothing pinned → original "Искам обаждане"
   selectedClinicId?: string | null
   hasAssistedChoice?: boolean
+  // The personalized showcase can keep several clinic requests active at once.
+  requestedClinicIds?: string[]
   onSubmitted?: (selectedClinicId: string, clinicName: string) => void
 }
 
@@ -64,15 +66,17 @@ export function ClinicRecommendationCard({
   leadId,
   selectedClinicId,
   hasAssistedChoice,
+  requestedClinicIds,
   onSubmitted,
 }: Props) {
   const [modalOpen, setModalOpen] = useState(false)
 
-  const hasAnySelection = !!selectedClinicId
-  const isSelected = selectedClinicId === clinic.id
+  const requestedIds = requestedClinicIds ?? (selectedClinicId ? [selectedClinicId] : [])
+  const hasAnySelection = requestedIds.length > 0
+  const isSelected = requestedIds.includes(clinic.id)
   // When the lead has asked for Zubite help, every clinic CTA is locked
   // with a different label ("Вече поискахте помощ от Zubite").
-  const lockedByAssisted = !!hasAssistedChoice && !hasAnySelection
+  const lockedByAssisted = !requestedClinicIds && !!hasAssistedChoice && !hasAnySelection
 
   // BG label fallback: prefer the centralized treatment label map, else raw.
   // Prefer canonical `treatments_supported` (Feb 2026 cleanup); fall back to

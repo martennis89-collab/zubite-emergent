@@ -1,0 +1,69 @@
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      MONGO_URL: mongodb://mongo:27017
+    command: uvicorn server:app --host 0.0.0.0 --port 8001 --reload
+    ports:
+      - "8010:8001"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    env_file:
+      - ./frontend/.env
+    environment:
+      # Windows host -> Docker bind-mount file events are unreliable for
+      # webpack's native watcher; force polling so edits are always picked up.
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
+      # Empty on purpose: browser calls become same-origin `/api/...` and
+      # ride the `/api/:path*` rewrite in next.config.js through to
+      # BACKEND_INTERNAL_URL. Pointing this at http://localhost:8010
+      # instead makes every client-side call cross-origin, which the app's
+      # own CSP blocks locally — `connect-src` allows `'self'` and `https:`,
+      # and a plain-http backend on another port is neither (worse,
+      # `upgrade-insecure-requests` rewrites it to https://localhost:8010,
+      # where nothing listens). Production is unaffected: the real API is
+      # https, so it matches `https:`.
+      NEXT_PUBLIC_API_URL: ""
+      BACKEND_INTERNAL_URL: http://backend:8001
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+      # Dev-server build cache. Do NOT run `next build` inside this
+      # container: it writes a production build into the same directory
+      # and the running `next dev` then dies with MODULE_NOT_FOUND out of
+      # webpack-runtime.js. If that happens, `rm -rf /app/.next/*` and
+      # restart the service.
+      - frontend_next_cache:/app/.next
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:
+  frontend_node_modules:
+  frontend_next_cache:

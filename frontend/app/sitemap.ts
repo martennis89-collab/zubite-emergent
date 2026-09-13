@@ -16,8 +16,19 @@ interface PublicClinicEntry {
 
 async function fetchJson<T>(path: string): Promise<T | null> {
   try {
+    // Sitemap generation runs server-side inside the frontend container, so
+    // a host-published URL like `REACT_APP_BACKEND_URL=http://localhost:8010`
+    // doesn't resolve there — `localhost` inside that container is the
+    // container itself, not the host. INTERNAL_API_URL / BACKEND_INTERNAL_URL
+    // are the container-network addresses meant for exactly this (same fix
+    // already applied in lib/publicClinics.ts's resolveApiUrl); prefer them
+    // and fall back to the public vars only if neither is set.
     const API_URL =
-      process.env.NEXT_PUBLIC_API_URL || process.env.REACT_APP_BACKEND_URL || ''
+      process.env.INTERNAL_API_URL ||
+      process.env.BACKEND_INTERNAL_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      process.env.REACT_APP_BACKEND_URL ||
+      ''
     if (!API_URL) return null
     const res = await fetch(`${API_URL}${path}`, { next: { revalidate: 300 } })
     if (!res.ok) return null
@@ -30,6 +41,25 @@ async function fetchJson<T>(path: string): Promise<T | null> {
 const fetchPublishedBlogPosts = (): Promise<BlogSitemapEntry[]> =>
   fetchJson<{ posts?: BlogSitemapEntry[] }>('/api/blog/posts?limit=500').then(
     (d) => d?.posts || [],
+  )
+
+interface CommunityQuestionSitemapEntry {
+  slug: string
+  published_at?: string | null
+  created_at?: string | null
+}
+interface CommunityTopicSitemapEntry { slug: string }
+
+const fetchPublishedCommunityQuestions = (): Promise<CommunityQuestionSitemapEntry[]> =>
+  // /api/community/questions caps `limit` at 500 (raised specifically for
+  // this call, mirroring the blog endpoint above) — see backend/routers/community.py.
+  fetchJson<{ items?: CommunityQuestionSitemapEntry[] }>(
+    '/api/community/questions?limit=500&sort=new',
+  ).then((d) => d?.items || [])
+
+const fetchCommunityTopics = (): Promise<CommunityTopicSitemapEntry[]> =>
+  fetchJson<{ topics?: CommunityTopicSitemapEntry[] }>('/api/community/topics').then(
+    (d) => d?.topics || [],
   )
 
 const fetchPublicClinics = (): Promise<PublicClinicEntry[]> =>
@@ -46,7 +76,7 @@ const fetchPublicClinics = (): Promise<PublicClinicEntry[]> =>
 // `app/symptoms/[symptomSlug]/page.tsx` import graph at build time.
 const SYMPTOM_SLUGS = ['bleeding-gums'] as const
 
-// Bulgarian-friendly specialty slugs surfaced on /kliniki/[city]/[specialty].
+// Bulgarian-friendly specialty slugs surfaced on /clinics/[city]/[specialty].
 // Mirrors the canonical URL forms our public listing route accepts (see
 // `SPECIALTY_URL_MAP` in lib/publicClinics.ts).
 const SPECIALTY_URL_SLUGS = [
@@ -70,10 +100,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/contact`,                 lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${baseUrl}/symptoms`,                lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${baseUrl}/treatments`,              lastModified: now, changeFrequency: 'weekly',  priority: 0.85 },
-    { url: `${baseUrl}/breketi`,                 lastModified: now, changeFrequency: 'weekly',  priority: 0.85 },
+    { url: `${baseUrl}/braces`,                 lastModified: now, changeFrequency: 'weekly',  priority: 0.85 },
     { url: `${baseUrl}/care-pass`,               lastModified: now, changeFrequency: 'monthly', priority: 0.75 },
-    { url: `${baseUrl}/za-kliniki`,              lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
-    { url: `${baseUrl}/standart-za-kliniki`,     lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${baseUrl}/community`,               lastModified: now, changeFrequency: 'daily',   priority: 0.75 },
+    { url: `${baseUrl}/for-clinics`,              lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${baseUrl}/clinic-standard`,     lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${baseUrl}/privacy`,                 lastModified: now, changeFrequency: 'yearly',  priority: 0.3 },
     { url: `${baseUrl}/terms`,                   lastModified: now, changeFrequency: 'yearly',  priority: 0.3 },
   ]
@@ -120,10 +151,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   }
 
-  // ── Public clinic catalog: /kliniki, /kliniki/[city], /kliniki/[city]/[specialty] ──
+  // ── Public clinic catalog: /clinics, /clinics/[city], /clinics/[city]/[specialty] ──
   const klinikiRoot: MetadataRoute.Sitemap = [
     {
-      url: `${baseUrl}/kliniki`,
+      url: `${baseUrl}/clinics`,
       lastModified: now,
       changeFrequency: 'daily' as const,
       priority: 0.9,
@@ -131,7 +162,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ]
   const klinikiCityPages: MetadataRoute.Sitemap = Object.keys(CITIES).map(
     (city) => ({
-      url: `${baseUrl}/kliniki/${city}`,
+      url: `${baseUrl}/clinics/${city}`,
       lastModified: now,
       changeFrequency: 'weekly' as const,
       priority: 0.75,
@@ -141,7 +172,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   for (const city of Object.keys(CITIES)) {
     for (const specialty of SPECIALTY_URL_SLUGS) {
       klinikiCitySpecialtyPages.push({
-        url: `${baseUrl}/kliniki/${city}/${specialty}`,
+        url: `${baseUrl}/clinics/${city}/${specialty}`,
         lastModified: now,
         changeFrequency: 'weekly' as const,
         priority: 0.7,
@@ -184,7 +215,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         : 'klinika'
 
     clinicProfilePages.push({
-      url: `${baseUrl}/kliniki/${city}/${specialtySlug}/${slug}`,
+      url: `${baseUrl}/clinics/${city}/${specialtySlug}/${slug}`,
       lastModified: now,
       changeFrequency: 'weekly' as const,
       priority: 0.6,
@@ -215,6 +246,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     }))
 
+  // ── Общност (Q&A) ────────────────────────────────────────────
+  const [communityTopics, communityQuestions] = await Promise.all([
+    fetchCommunityTopics(),
+    fetchPublishedCommunityQuestions(),
+  ])
+  const communityTopicPages: MetadataRoute.Sitemap = communityTopics
+    .filter((t) => t.slug)
+    .map((t) => ({
+      url: `${baseUrl}/community/${t.slug}`,
+      lastModified: now,
+      changeFrequency: 'daily' as const,
+      priority: 0.6,
+    }))
+  const communityQuestionPages: MetadataRoute.Sitemap = communityQuestions
+    .filter((q) => q.slug)
+    .map((q) => ({
+      url: `${baseUrl}/community/v/${q.slug}`,
+      lastModified: new Date(q.published_at || q.created_at || Date.now()),
+      changeFrequency: 'weekly' as const,
+      priority: 0.65,
+    }))
+
   return [
     ...staticPages,
     ...symptomDetailPages,
@@ -227,5 +280,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...clinicProfilePages,
     ...blogIndex,
     ...blogPages,
+    ...communityTopicPages,
+    ...communityQuestionPages,
   ]
 }

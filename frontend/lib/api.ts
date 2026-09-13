@@ -11,7 +11,9 @@ export const api = axios.create({
 
 export interface Lead {
   id?: string;
-  city_slug: string;
+  // Optional: the quiz funnel creates leads before city is known — it
+  // arrives later via clinic-recommendation-preference.
+  city_slug?: string | null;
   treatment_type: string;
   answers: Record<string, string | number>;
   score_total?: number;
@@ -30,7 +32,9 @@ export const createLead = async (leadData: Lead) => {
   try {
     if (typeof window !== 'undefined') attribution = attachAttributionToLead() as Record<string, unknown>;
   } catch { /* never block lead submission */ }
-  const response = await api.post('/leads', { ...leadData, ...attribution });
+  // withCredentials so an already-logged-in patient's session cookie rides
+  // along — the backend auto-links the new lead to their account when present.
+  const response = await api.post('/leads', { ...leadData, ...attribution }, { withCredentials: true });
   return response.data;
 };
 
@@ -44,7 +48,48 @@ export const getLead = async (leadId: string) => {
   // prefix when NEXT_PUBLIC_API_URL is set to a full domain in preview.
   // Same pattern as getRecommendedClinics below.
   const base = process.env.NEXT_PUBLIC_API_URL || ''
-  const response = await axios.get(`${base}/api/leads/${leadId}`);
+  const response = await axios.get(`${base}/api/leads/${leadId}`, { withCredentials: true });
+  return response.data;
+};
+
+// ── Persistent patient access to leads ────────────────────────
+export const claimLead = async (leadId: string) => {
+  const base = process.env.NEXT_PUBLIC_API_URL || ''
+  const response = await axios.post(`${base}/api/leads/${leadId}/claim`, {}, { withCredentials: true });
+  return response.data;
+};
+
+export interface MyLead {
+  id: string;
+  city_slug?: string | null;
+  treatment_type: string;
+  band: string;
+  score_total: number;
+  full_result_unlocked: boolean;
+  created_at: string | null;
+}
+
+export const getMyLeads = async (): Promise<{ items: MyLead[] }> => {
+  const base = process.env.NEXT_PUBLIC_API_URL || ''
+  const response = await axios.get(`${base}/api/patient/leads/mine`, { withCredentials: true });
+  return response.data;
+};
+
+export interface MyBooking {
+  id: string;
+  type: 'clinic_booking' | 'online_orientation';
+  clinic_id: string | null;
+  clinic_name: string | null;
+  status: string;
+  appointment_at: string | null;
+  appointment_display: string | null;
+  treatment_category: string | null;
+  created_at: string | null;
+}
+
+export const getMyBookings = async (): Promise<{ items: MyBooking[] }> => {
+  const base = process.env.NEXT_PUBLIC_API_URL || ''
+  const response = await axios.get(`${base}/api/patient/bookings/mine`, { withCredentials: true });
   return response.data;
 };
 
@@ -61,6 +106,10 @@ export interface RecommendedClinic {
   // consumers should prefer this over `treatments` (which is kept as a
   // legacy alias for backwards compatibility).
   treatments_supported?: string[];
+  /** Assessment scope, not a quality/ranking signal. */
+  assessment_approaches?: Array<import('@/lib/publicClinics').AssessmentApproach>;
+  assessment_approach_matches?: Array<import('@/lib/publicClinics').AssessmentApproach>;
+  assessment_approach_match_labels?: string[];
   reason: string;
   response_expectation: string;
   partner_since_year: number | null;
@@ -77,6 +126,10 @@ export interface RecommendedClinic {
   // card can render the "В твоя град" chip without re-deriving on client.
    */
   same_city?: boolean;
+  // "В твоя квартал" — true only when the lead has a district set AND it
+  // matches this clinic's (Sofia-only in practice). More specific than
+  // same_city; the UI shows this chip instead of same_city when true.
+  same_district?: boolean;
   /** Public profile slug — exposed so a future profile unification refactor
    *  can deep-link the lead-context route to /api/public/clinics/{slug}.
    *  Not used for routing yet; lead-context links still go through
@@ -119,6 +172,7 @@ export interface RecommendedClinic {
     profile_status: 'published'
     short_description?: string | null
     patient_intro?: string | null
+    assessment_approaches?: Array<import('@/lib/publicClinics').AssessmentApproach>
     treatment_focus?: string[] | null
     hero_image_url?: string | null
     clinic_video_url?: string | null
@@ -155,7 +209,7 @@ export interface RecommendedClinicsResponse {
   assisted_help_available: boolean;
   selection_rule: {
     can_view_clinics: number;
-    can_request_call_from_clinics: number;
+    can_request_call_from_clinics: number | null;
     assisted_choice_available: boolean;
   };
   clinics: RecommendedClinic[];
@@ -180,9 +234,9 @@ export const getRecommendedClinics = async (
 
 // ── Patient layer P4 ─────────────────────────────────────────
 // POST /api/leads/{leadId}/request-call
-// Patient selects ONE recommended clinic and consents to share their
-// request. The endpoint is single-clinic-only and idempotent on retry
-// of the SAME clinic; choosing a different clinic returns 409.
+// Patient selects a recommended clinic and consents to share their request.
+// Idempotency is scoped to each clinic; the same lead can contact multiple
+// recommended clinics.
 
 export interface RequestCallBody {
   clinic_id: string;
@@ -202,14 +256,16 @@ export interface RequestCallSuccess {
 export interface SelectionState {
   lead_id: string;
   has_request: boolean;
+  request_count?: number;
+  requested_clinic_ids?: string[];
+  requested_clinics?: Array<{ id: string; name: string; city_name: string }>;
   selected_clinic_id: string | null;
   selected_clinic_request_id: string | null;
   clinic_selection_source: 'matching_card' | 'clinic_profile' | null;
   request_call_status: 'requested' | null;
   selected_clinic_requested_at: string | null;
   clinic?: { id: string; name: string; city_name: string };
-  // P5 — assisted-choice fields. `has_selected_clinic` mirrors
-  // `has_request` for clarity; new UI should prefer the explicit pair.
+  // Legacy latest-clinic fields are retained for older clients.
   has_selected_clinic?: boolean;
   selected_clinic?: { id: string; name: string; city_name: string } | null;
   has_requested_zubite_help?: boolean;
@@ -235,6 +291,39 @@ export const getSelectionState = async (leadId: string): Promise<SelectionState>
   const base = process.env.NEXT_PUBLIC_API_URL || '';
   const response = await axios.get<SelectionState>(
     `${base}/api/leads/${leadId}/selection-state`,
+  );
+  return response.data;
+};
+
+// ── Quiz funnel step 3: clinic-recommendation preference ─────────
+// POST /api/leads/{leadId}/clinic-recommendation-preference
+// Asked only after contact details are unlocked. `wantsRecommendations
+// =false` ends the flow with no city ever collected; `=true` requires
+// citySlug and (re)runs clinic auto-matching now that city is known.
+
+export interface ClinicRecommendationPreferenceBody {
+  wants_recommendations: boolean;
+  city_slug?: string;
+  district_slug?: string;
+  importance?: string;
+  has_files?: string[];
+  preferred_channel?: string;
+  can_travel?: string;
+}
+
+export interface ClinicRecommendationPreferenceSuccess {
+  success: true;
+  wants_recommendations: boolean;
+}
+
+export const submitClinicRecommendationPreference = async (
+  leadId: string,
+  body: ClinicRecommendationPreferenceBody,
+): Promise<ClinicRecommendationPreferenceSuccess> => {
+  const base = process.env.NEXT_PUBLIC_API_URL || '';
+  const response = await axios.post<ClinicRecommendationPreferenceSuccess>(
+    `${base}/api/leads/${leadId}/clinic-recommendation-preference`,
+    body,
   );
   return response.data;
 };

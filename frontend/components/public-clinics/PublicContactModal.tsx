@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import {
   X, Loader2, ShieldCheck, CheckCircle2, AlertCircle, Phone,
 } from 'lucide-react'
-import type { PublicClinic } from '@/lib/publicClinics'
+import { treatmentLabel, type PublicClinic } from '@/lib/publicClinics'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -14,6 +14,12 @@ interface Props {
   consultationType: 'general' | 'online'
   prefillCity?: string | null
   prefillTreatment?: string | null
+  // True only when the patient arrived via the diagnostic quiz (a real
+  // leadId/chatContext exists) — the quiz already asked what they want to
+  // consult about, so the reason dropdown below would be redundant. Every
+  // other entry point (browsing clinics cold, a clinic's own profile page)
+  // defaults to false and gets asked.
+  hasQuizContext?: boolean
   onClose: () => void
   onSuccess?: () => void
 }
@@ -33,22 +39,87 @@ export default function PublicContactModal({
   consultationType,
   prefillCity,
   prefillTreatment,
+  hasQuizContext = false,
   onClose,
   onSuccess,
 }: Props) {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
+  const [consultationReason, setConsultationReason] = useState('')
   const [consent, setConsent] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const [done, setDone] = useState(false)
+  const titleId = useId()
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const firstFieldRef = useRef<HTMLInputElement>(null)
+  const previousFocusRef = useRef<HTMLElement | null>(null)
+
+  const askForReason = !hasQuizContext
+  const reasonOptions = useMemo(() => {
+    const seen = new Set<string>()
+    const opts: Array<{ value: string; label: string }> = []
+    for (const c of clinics) {
+      for (const t of c.treatments || []) {
+        if (seen.has(t)) continue
+        seen.add(t)
+        opts.push({ value: t, label: treatmentLabel(t) })
+      }
+    }
+    return opts
+  }, [clinics])
+
+  useEffect(() => {
+    previousFocusRef.current = document.activeElement as HTMLElement | null
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const focusTimer = window.setTimeout(() => firstFieldRef.current?.focus(), 0)
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        onClose()
+        return
+      }
+      if (event.key !== 'Tab') return
+
+      const focusable = Array.from(
+        dialogRef.current?.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ) || [],
+      ).filter((element) => element.offsetParent !== null)
+      if (focusable.length === 0) return
+
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.clearTimeout(focusTimer)
+      document.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = previousOverflow
+      previousFocusRef.current?.focus()
+    }
+  }, [onClose])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErr(null)
     if (!name.trim() || !phone.trim()) {
       setErr('Моля попълни име и телефон.')
+      return
+    }
+    if (askForReason && reasonOptions.length > 0 && !consultationReason) {
+      setErr('Моля избери за какво искаш консултация.')
       return
     }
     if (!consent) {
@@ -69,12 +140,16 @@ export default function PublicContactModal({
               city_slug:
                 prefillCity || c.city_slug || 'sofia',
               treatment_type:
-                prefillTreatment || c.treatments[0] || 'general',
+                consultationReason || prefillTreatment || c.treatments[0] || 'general',
               answers: {
                 public_clinic_id: c.id,
                 public_clinic_name: c.name,
                 public_clinic_slug: c.slug,
                 consultation_type: consultationType,
+                // Kept as plain text alongside treatment_type (which also
+                // drives lead scoring) so anyone reading the raw lead sees
+                // the patient's stated reason without decoding a score.
+                consultation_reason: consultationReason || null,
               },
               name: name.trim(),
               phone: phone.trim(),
@@ -91,13 +166,13 @@ export default function PublicContactModal({
       if (failed) {
         const body = await failed.json().catch(() => ({}))
         throw new Error(
-          body?.detail?.message || body?.detail || 'Грешка при изпращане.'
+          body?.detail?.message || body?.detail || 'Не успяхме да изпратим заявката. Опитай отново.'
         )
       }
       setDone(true)
       onSuccess?.()
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Неочаквана грешка.')
+      setErr(e instanceof Error ? e.message : 'Не успяхме да изпратим заявката. Провери връзката си и опитай отново.')
     } finally {
       setSubmitting(false)
     }
@@ -105,9 +180,11 @@ export default function PublicContactModal({
 
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
       role="dialog"
       aria-modal="true"
+      aria-labelledby={titleId}
       onClick={onClose}
       data-testid="public-contact-modal"
     >
@@ -116,20 +193,20 @@ export default function PublicContactModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-white px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h2 className="font-serif text-lg font-semibold text-slate-900">
+          <h2 id={titleId} className="font-serif text-lg font-semibold text-slate-900">
             {done
               ? 'Заявката е изпратена'
               : consultationType === 'online'
               ? 'Заяви онлайн консултация'
               : clinics.length > 1
               ? `Заяви контакт от ${clinics.length} клиники`
-              : 'Заяви контакт от клиниката'}
+              : 'Заяви контакт'}
           </h2>
           <button
             type="button"
             onClick={onClose}
             data-testid="public-contact-close"
-            className="p-1.5 text-slate-400 hover:text-slate-700 transition-colors"
+            className="grid h-11 w-11 place-items-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
             aria-label="Затвори"
           >
             <X className="w-5 h-5" />
@@ -160,6 +237,11 @@ export default function PublicContactModal({
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-5 space-y-4">
+            <p className="text-sm leading-6 text-slate-700">
+              {consultationType === 'online'
+                ? 'Изпрати заявка. Клиниката ще ти предложи възможни часове за онлайн разговор.'
+                : 'Изпрати заявка. Клиниката ще се свърже с теб по телефон или имейл.'}
+            </p>
             {/* Selected clinics summary */}
             <div className="rounded-lg bg-slate-50 ring-1 ring-slate-100 p-3">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
@@ -181,6 +263,35 @@ export default function PublicContactModal({
               </ul>
             </div>
 
+            {askForReason && reasonOptions.length > 0 && (
+              <div>
+                <label
+                  htmlFor="pcm-reason"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
+                  За какво искаш консултация? <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  id="pcm-reason"
+                  value={consultationReason}
+                  onChange={(e) => setConsultationReason(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 rounded-md ring-1 ring-slate-300 focus:ring-2 focus:ring-teal-500 outline-none bg-white"
+                  data-testid="public-contact-reason"
+                >
+                  <option value="" disabled>
+                    Избери…
+                  </option>
+                  {reasonOptions.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                  <option value="not_sure">Не съм сигурен/а</option>
+                </select>
+              </div>
+            )}
+
             {consultationType === 'online' && (
               <p
                 className="text-xs text-slate-600 bg-teal-50/60 ring-1 ring-teal-100 px-3 py-2 rounded-md"
@@ -200,6 +311,7 @@ export default function PublicContactModal({
                 Име <span className="text-rose-500">*</span>
               </label>
               <input
+                ref={firstFieldRef}
                 id="pcm-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -274,6 +386,8 @@ export default function PublicContactModal({
               <div
                 className="flex items-start gap-2 px-3 py-2 rounded-md bg-rose-50 ring-1 ring-rose-200 text-xs text-rose-800"
                 data-testid="public-contact-error"
+                role="alert"
+                aria-live="assertive"
               >
                 <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <span>{err}</span>

@@ -564,7 +564,7 @@ export default function OrthodonticsPage() {
           <p className="mt-6 text-[13px] text-slate-500 leading-relaxed max-w-lg mx-auto">
             Ако вече търсиш консултация, можеш да{' '}
             <Link
-              href="/kliniki/sofia/ortodontia"
+              href="/clinics/sofia/ortodontia"
               className="text-teal-700 hover:text-teal-800 font-medium underline-offset-4 hover:underline"
               data-testid="orthodontics-catalog-link"
             >
