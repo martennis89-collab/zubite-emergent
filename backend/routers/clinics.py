@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Request, Response, UploadFile, File
 from datetime import datetime, timezone, timedelta
+import asyncio
 import os
 import uuid
 import secrets
@@ -572,6 +573,16 @@ async def update_clinic_application(app_id: str, body: dict, request: Request, u
             }
             await db.clinics.insert_one(clinic_doc)
             created_clinic_id = clinic_doc["id"]
+            # An approved application is a new clinic, so it is enrolled in
+            # Clear Advance exactly like one created by an admin. Never allowed
+            # to fail the approval.
+            try:
+                from clear_advance import enrol_clinic, queue_clinic_enrolment
+                if await queue_clinic_enrolment(db, clinic_doc):
+                    asyncio.create_task(enrol_clinic(db, clinic_doc["id"]))
+            except Exception as exc:
+                logging.warning(
+                    f"Clear Advance enrolment could not be queued for {clinic_doc['id']}: {exc}")
             response["clinic_account_created"] = True
             response["clinic_credentials"] = {"email": application["email"], "temporary_password": temp_password}
 

@@ -57,6 +57,11 @@ services:
         sync: false
       - key: CLEAR_ADVANCE_KEY_SECRET
         sync: false
+      # Creates organisations in Clear Advance for new clinics. The most
+      # sensitive value on this service: it makes tenants, not just leads.
+      # Unset means new clinics wait, their enrolment marked not_configured.
+      - key: CLEAR_ADVANCE_PARTNER_KEY
+        sync: false
       - key: SENDER_EMAIL
         value: hello@zubite.bg
       - key: ZUBITE_ADMIN_NOTIFICATION_EMAIL

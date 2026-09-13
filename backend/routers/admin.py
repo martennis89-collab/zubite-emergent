@@ -292,10 +292,14 @@ async def admin_clear_advance_status(clinic_id: str,
         {"clinic_id": clinic_id, "status": {"$in": ["pending", "failed"]}}) if outbox else 0
     succeeded = await outbox.count_documents(
         {"clinic_id": clinic_id, "status": "succeeded"}) if outbox else 0
+    enrolment = await db.clear_advance_enrolments.find_one(
+        {"clinic_id": clinic_id},
+        {"_id": 0, "status": 1, "attempts": 1, "last_error": 1, "org_slug": 1, "created_at": 1})
     return {"connected": bool(record), "pending_outbox": pending,
             "succeeded_outbox": succeeded,
             "status_mappings": {**DEFAULT_STATUS_MAPPINGS,
                                  **((record or {}).get("status_mappings") or {})},
+            "enrolment": enrolment,
             **(record or {})}
 
 
