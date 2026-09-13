@@ -99,7 +99,9 @@ export const EVENT_LABELS: Record<string, string> = {
   marked_attended: 'Посетила консултацията',
   marked_no_show: 'Не се яви',
   cancelled: 'Отменена',
-  admin_note_added: 'Бележка от админ',
+  admin_note_added: 'Добавена бележка',
+  lead_details_updated: 'Обновени данни на пациента',
+  revenue_recorded: 'Записан приход',
   admin_status_change: 'Промяна на статус (админ)',
 }
 
@@ -522,6 +524,8 @@ export interface ConsultationRequest {
   no_show_at?: string | null
   cancelled_at?: string | null
   notes?: string | null
+  owner?: string | null
+  follow_up_at?: string | null
   created_at: string
   updated_at?: string
   lead_id?: string | null

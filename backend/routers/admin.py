@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Request, Response
 from fastapi.responses import StreamingResponse
 from typing import Optional, List
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import asyncio
 import csv
 import os
@@ -13,7 +13,7 @@ from schemas import (
     AdminLogin, AdminUser, TokenResponse, LeadStatusUpdate, LeadUpdate,
     ConfirmationBody, CleanupLeadsBody, ClinicIntegration, LeadRevenue,
     RESET_ANALYTICS_TOKEN, RESET_BLOG_VIEWS_TOKEN, CLEANUP_LEADS_TOKEN,
-    ClearAdvanceStatusMappings,
+    ClearAdvanceStatusMappings, ClearAdvanceReconcileRequest,
 )
 from auth import (
     verify_password, create_token, get_current_user,
@@ -374,6 +374,33 @@ async def clinic_run_clear_advance_sync(
     return {"reported": reported, "imported": imported,
             "outcomes": outcomes,
             "sync": await _clinic_clear_advance_status(clinic)}
+
+
+@router.post("/clinic/clear-advance/reconcile")
+async def clinic_reconcile_clear_advance(
+    data: ClearAdvanceReconcileRequest,
+    request: Request,
+    clinic=Depends(get_current_clinic),
+):
+    """Replay a bounded historical window without moving the live cursor."""
+    if not await db.clinic_integrations.find_one(
+        {"clinic_id": clinic["id"], "provider": "clear_advance"}, {"_id": 1}
+    ):
+        raise HTTPException(status_code=409, detail="Clear Advance is not connected")
+    now = datetime.now(timezone.utc)
+    since = data.since if data.since.tzinfo else data.since.replace(tzinfo=timezone.utc)
+    if since > now or since < now - timedelta(days=730):
+        raise HTTPException(status_code=400, detail="since must be within the last 730 days")
+    imported = await import_pending_leads(
+        db, limit=data.limit, clinic_id=clinic["id"], since=since.isoformat())
+    await audit_log(
+        "clinic.clear_advance_reconciled", actor_type="clinic",
+        target_type="clinic", target_id=clinic["id"],
+        metadata={"since": since.isoformat(), "limit": data.limit, "imported": imported},
+        severity="info", request=request,
+    )
+    return {"ok": True, "imported": imported, "since": since.isoformat(),
+            "limit": data.limit, "sync": await _clinic_clear_advance_status(clinic)}
 
 
 @router.post("/admin/leads/{lead_id}/revenue")

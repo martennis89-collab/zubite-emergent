@@ -1243,6 +1243,17 @@ class ConsultationActionRequest(BaseModel):
     appointment: Optional[AppointmentDetails] = None
 
 
+class ClinicLeadOperationsPatch(BaseModel):
+    """Clinic-owned operational fields for an assigned lead/request pair."""
+    model_config = ConfigDict(extra="forbid")
+    name: Optional[str] = Field(default=None, min_length=1, max_length=200)
+    phone: Optional[str] = Field(default=None, min_length=4, max_length=50)
+    email: Optional[EmailStr] = None
+    city: Optional[str] = Field(default=None, max_length=100)
+    owner: Optional[str] = Field(default=None, max_length=120)
+    follow_up_at: Optional[str] = Field(default=None, max_length=40)
+
+
 class ClinicAppointmentCreate(BaseModel):
     """Direct calendar entry (clinic creates an appointment without a request).
     Rare — usually appointments are created via the action endpoint."""
@@ -1909,6 +1920,12 @@ class ClearAdvanceStatusMappings(BaseModel):
                     raise ValueError(f"mapping outcome must be one of {sorted(allowed)} or null")
             normalized[key] = outcome
         return normalized
+
+
+class ClearAdvanceReconcileRequest(BaseModel):
+    """Bounded historical replay requested explicitly by the clinic."""
+    since: datetime
+    limit: int = Field(default=100, ge=1, le=500)
 
 
 class LeadRevenue(BaseModel):

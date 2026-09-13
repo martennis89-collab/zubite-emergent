@@ -162,6 +162,7 @@ function ClearAdvanceSyncCard() {
   const [state, setState] = useState<SyncState>('loading')
   const [message, setMessage] = useState('')
   const [mappings, setMappings] = useState<Record<string, string | null>>({})
+  const [reconcileSince, setReconcileSince] = useState('')
 
   const load = useCallback(async () => {
     setMessage('')
@@ -222,6 +223,24 @@ function ClearAdvanceSyncCard() {
     }
   }
 
+  const runReconcile = async () => {
+    if (!reconcileSince) return
+    setState('syncing'); setMessage('')
+    try {
+      const r = await fetch(`${API_URL}/api/clinic/clear-advance/reconcile`, {
+        method: 'POST', credentials: 'include' as RequestCredentials,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ since: new Date(`${reconcileSince}T00:00:00`).toISOString(), limit: 500 }),
+      })
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      const data = await r.json()
+      setSummary(data.sync); setState('ready')
+      setMessage(`Проверката приключи: ${data.imported || 0} липсващи заявки са добавени.`)
+    } catch {
+      setState('error'); setMessage('Историческата проверка не завърши.')
+    }
+  }
+
   if (state === 'loading') return <section className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 animate-pulse" data-testid="clear-advance-sync-loading"><div className="h-5 w-48 bg-slate-200 rounded" /><div className="mt-3 h-3 w-72 bg-slate-100 rounded" /></section>
   if (state === 'error' && !summary) return <section className="bg-white border border-rose-200 rounded-2xl p-4 sm:p-6" data-testid="clear-advance-sync-error"><p className="text-sm text-rose-700">{message}</p></section>
   if (!summary?.connected) return (
@@ -274,6 +293,14 @@ function ClearAdvanceSyncCard() {
       <button type="button" onClick={runSync} disabled={syncing} className="inline-flex items-center gap-2 text-sm font-medium text-teal-700 hover:text-teal-800 disabled:opacity-60">
         <RefreshCw className={`w-4 h-4 ${state === 'syncing' ? 'animate-spin' : ''}`} /> {state === 'syncing' ? 'Синхронизиране…' : 'Синхронизирай сега'}
       </button>
+      <details className="border-t border-slate-100 pt-4">
+        <summary className="cursor-pointer text-sm font-medium text-slate-700">Провери исторически заявки</summary>
+        <p className="mt-2 max-w-2xl text-xs leading-relaxed text-slate-500">Използвайте при липсващи стари заявки. Проверката е ограничена, не създава дубликати и не променя текущата позиция на автоматичната синхронизация.</p>
+        <div className="mt-3 flex flex-wrap items-end gap-2">
+          <label className="text-xs text-slate-500">От дата<input type="date" value={reconcileSince} onChange={(e) => setReconcileSince(e.target.value)} max={new Date().toISOString().slice(0, 10)} className="mt-1 block rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800" /></label>
+          <button type="button" onClick={runReconcile} disabled={syncing || !reconcileSince} className="h-10 rounded-full border border-slate-200 px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">Провери периода</button>
+        </div>
+      </details>
     </section>
   )
 }

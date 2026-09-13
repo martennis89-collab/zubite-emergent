@@ -25,6 +25,8 @@ means log and return. A reporting problem must never stop a clinic taking a lead
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import json
 import logging
 import os
 import uuid
@@ -157,6 +159,26 @@ async def _post(path: str, key: str, payload: Dict[str, Any]) -> Optional[Dict[s
         return None
 
 
+async def _patch(path: str, key: str, payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    base = _base_url()
+    if not base:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT_SECONDS) as client:
+            response = await client.patch(
+                f"{base}{path}", json=payload,
+                headers={"Authorization": f"Bearer {key}"},
+            )
+        if response.status_code >= 400:
+            logger.error("Clear Advance rejected %s: HTTP %s %s",
+                         path, response.status_code, response.text[:300])
+            return None
+        return response.json()
+    except Exception as exc:
+        logger.error("Clear Advance request to %s failed: %s", path, exc)
+        return None
+
+
 async def _get(path: str, key: str, params: Dict[str, str]) -> Optional[Dict[str, Any]]:
     """Read a tenant-scoped Clear Advance feed page."""
     base = _base_url()
@@ -184,6 +206,16 @@ async def _post_with_retry(path: str, key: str, payload: Dict[str, Any]) -> Opti
         if attempt:
             await asyncio.sleep(delay)
         result = await _post(path, key, payload)
+        if result is not None:
+            return result
+    return None
+
+
+async def _patch_with_retry(path: str, key: str, payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    for attempt, delay in enumerate((0, *OUTCOME_RETRY_DELAYS)):
+        if attempt:
+            await asyncio.sleep(delay)
+        result = await _patch(path, key, payload)
         if result is not None:
             return result
     return None
@@ -263,7 +295,9 @@ def _lead_touch(lead: Dict[str, Any], prefix: str) -> Dict[str, str]:
 
 
 async def _enqueue_outcome(db, lead: Dict[str, Any], outcome: str,
-                           payload: Dict[str, Any], *, event_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+                           payload: Dict[str, Any], *, event_id: Optional[str] = None,
+                           endpoint: str = "/api/v1/outcomes",
+                           method: str = "POST") -> Optional[Dict[str, Any]]:
     """Persist an outbound conversion before attempting delivery.
 
     Older test doubles do not expose the collection; production always does.
@@ -281,6 +315,8 @@ async def _enqueue_outcome(db, lead: Dict[str, Any], outcome: str,
         "clinic_id": lead.get("assigned_clinic_id"),
         "lead_id": lead.get("id"),
         "outcome": outcome,
+        "endpoint": endpoint,
+        "method": method,
         "payload": payload,
         "status": "pending",
         "attempts": 0,
@@ -298,7 +334,9 @@ async def _deliver_outcome(db, lead: Dict[str, Any], event: Dict[str, Any],
                            key: str) -> bool:
     """Deliver one outbox row and update its durable state."""
     outbox = getattr(db, "clear_advance_outbox", None)
-    result = await _post_with_retry("/api/v1/outcomes", key, event["payload"])
+    endpoint = event.get("endpoint") or "/api/v1/outcomes"
+    sender = _patch_with_retry if event.get("method") == "PATCH" else _post_with_retry
+    result = await sender(endpoint, key, event["payload"])
     ok = bool(result)
     if outbox is not None:
         now = datetime.now(timezone.utc)
@@ -495,6 +533,30 @@ async def report_status(db, lead: Dict[str, Any], status: str,
     """Report a lead status that means something to an ad platform."""
     outcome = await _status_outcome(db, lead, status)
     return await report_outcome(db, lead, outcome, deliver=deliver) if outcome else False
+
+
+async def queue_lead_update(db, lead: Dict[str, Any]) -> bool:
+    """Durably mirror clinic-edited contact fields to an already linked lead."""
+    remote_id = lead.get("clear_advance_lead_id")
+    if not remote_id:
+        # An unlinked native lead will be created later with its current values.
+        return False
+    payload = {
+        "name": lead.get("name") or "",
+        "phone": lead.get("phone") or "",
+        "email": lead.get("email"),
+    }
+    digest = hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()[:20]
+    event = await _enqueue_outcome(
+        db, lead, "lead_update", payload,
+        event_id=f"{lead.get('assigned_clinic_id')}:lead_update:{lead.get('id')}:{digest}",
+        endpoint=f"/api/v1/leads/{remote_id}", method="PATCH",
+    )
+    if not event:
+        return False
+    return True
 
 
 async def report_consultation_action(db, lead_id: str, action_type: str,
@@ -772,6 +834,27 @@ async def import_clear_advance_lead(db, remote: Dict[str, Any], clinic_id: str) 
         if not local:
             return False
         created = True
+    elif local.get("origin_system") == "clear_advance":
+        refreshed = _imported_lead_doc(remote, clinic_id, local["id"])
+        mutable_keys = {
+            "name", "phone", "email", "consent", "consent_privacy",
+            "consent_marketing", "clear_advance_status", "source", "answers",
+            *{key for key in refreshed if key.startswith(("first_", "latest_"))},
+        }
+        await db.leads.update_one(
+            {"id": local["id"], "assigned_clinic_id": clinic_id},
+            {"$set": {key: refreshed.get(key) for key in mutable_keys}},
+        )
+        await db.consultation_requests.update_one(
+            {"lead_id": local["id"], "assigned_clinic_id": clinic_id},
+            {"$set": {
+                "patient_name": refreshed.get("name") or "",
+                "patient_phone": refreshed.get("phone") or "",
+                "patient_email": refreshed.get("email"),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }},
+        )
+        local = {**local, **{key: refreshed.get(key) for key in mutable_keys}}
 
     from routers.consultations import _ensure_consultation_for_lead
     await _ensure_consultation_for_lead(local, clinic_id)
@@ -779,7 +862,8 @@ async def import_clear_advance_lead(db, remote: Dict[str, Any], clinic_id: str) 
 
 
 async def import_pending_leads(db, limit: int = 100,
-                               clinic_id: Optional[str] = None) -> int:
+                               clinic_id: Optional[str] = None,
+                               since: Optional[str] = None) -> int:
     """Pull new Clear Advance leads into each connected clinic workspace."""
     if not _base_url():
         return 0
@@ -801,24 +885,35 @@ async def import_pending_leads(db, limit: int = 100,
         key = _clear_advance_key(record, clinic_id or "")
         if not key or not clinic_id:
             continue
-        cursor = record.get("clear_advance_import_cursor")
-        params = {"limit": str(min(50, limit - imported))}
-        if cursor:
-            params["cursor"] = str(cursor)
-        elif record.get("connected_at"):
-            params["since"] = str(record["connected_at"])
-        page = await _get("/api/v1/leads", key, params)
-        if not page or not isinstance(page.get("leads"), list):
-            await _record_clinic_sync_health(db, clinic_id, ok=False, kind="import")
-            continue
-        for remote in page["leads"]:
-            if isinstance(remote, dict) and await import_clear_advance_lead(db, remote, clinic_id):
-                imported += 1
-        next_cursor = page.get("next_cursor")
-        if next_cursor:
-            await db.clinic_integrations.update_one(
-                {"clinic_id": clinic_id, "provider": "clear_advance"},
-                {"$set": {"clear_advance_import_cursor": next_cursor}},
-            )
-        await _record_clinic_sync_health(db, clinic_id, ok=True, kind="import")
+        page_cursor = None if since else record.get("clear_advance_import_cursor")
+        scanned = 0
+        while scanned < limit and imported < limit:
+            params = {"limit": str(min(50, limit - scanned))}
+            if page_cursor:
+                params["cursor"] = str(page_cursor)
+            elif since:
+                params["since"] = since
+            elif record.get("connected_at"):
+                params["since"] = str(record["connected_at"])
+            page = await _get("/api/v1/leads", key, params)
+            if not page or not isinstance(page.get("leads"), list):
+                await _record_clinic_sync_health(db, clinic_id, ok=False, kind="import")
+                break
+            rows = page["leads"]
+            scanned += len(rows)
+            for remote in rows:
+                if isinstance(remote, dict) and await import_clear_advance_lead(db, remote, clinic_id):
+                    imported += 1
+            next_cursor = page.get("next_cursor")
+            # Historical reconciliation has its own in-memory cursor and never
+            # moves the automatic feed's durable cursor.
+            if next_cursor and not since:
+                await db.clinic_integrations.update_one(
+                    {"clinic_id": clinic_id, "provider": "clear_advance"},
+                    {"$set": {"clear_advance_import_cursor": next_cursor}},
+                )
+            await _record_clinic_sync_health(db, clinic_id, ok=True, kind="import")
+            if not page.get("has_more") or not next_cursor or not rows:
+                break
+            page_cursor = next_cursor
     return imported

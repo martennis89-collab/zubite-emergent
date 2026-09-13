@@ -6,6 +6,7 @@ import Link from 'next/link'
 import {
   ArrowLeft, Phone, Mail, MapPin, User, Tag, Calendar as CalIcon,
   CheckCircle2, X, Loader2, ChevronDown, ChevronUp,
+  Pencil, Clock3, StickyNote, WalletCards,
 } from 'lucide-react'
 import { ClinicShell } from '@/components/ClinicShell'
 import { RequestProgressStrip } from '@/components/clinic/RequestProgressStrip'
@@ -179,6 +180,11 @@ export default function ClinicRequestDetailPage() {
 
               {/* UTM / source data intentionally hidden from clinic view (admin-only metadata). */}
             </div>
+
+            <LeadOperationsPanel
+              request={req}
+              onReload={load}
+            />
 
             {/* Patient context section — operational, not diagnostic. */}
             {data?.patient_context && (
@@ -467,6 +473,144 @@ function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: strin
       </div>
     </div>
   )
+}
+
+function LeadOperationsPanel({
+  request, onReload,
+}: {
+  request: ConsultationRequest
+  onReload: () => Promise<void>
+}) {
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState('')
+  const [name, setName] = useState(request.patient_name || '')
+  const [phone, setPhone] = useState(request.patient_phone || '')
+  const [email, setEmail] = useState(request.patient_email || '')
+  const [city, setCity] = useState(request.patient_city || '')
+  const [owner, setOwner] = useState(request.owner || '')
+  const [followUp, setFollowUp] = useState(
+    request.follow_up_at ? new Date(request.follow_up_at).toISOString().slice(0, 16) : '',
+  )
+  const [note, setNote] = useState('')
+  const [amount, setAmount] = useState('')
+  const [reference, setReference] = useState('')
+
+  useEffect(() => {
+    setName(request.patient_name || ''); setPhone(request.patient_phone || '')
+    setEmail(request.patient_email || ''); setCity(request.patient_city || '')
+    setOwner(request.owner || '')
+    setFollowUp(request.follow_up_at ? new Date(request.follow_up_at).toISOString().slice(0, 16) : '')
+  }, [request])
+
+  const save = async () => {
+    setSaving(true); setMessage('')
+    try {
+      const r = await fetch(`${API_URL}/api/clinic/consultation-requests/${request.id}/lead`, {
+        method: 'PATCH', credentials: 'include' as RequestCredentials,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name, phone, email: email || null, city: city || null,
+          owner: owner || null,
+          follow_up_at: followUp ? new Date(followUp).toISOString() : null,
+        }),
+      })
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || 'Промените не бяха запазени.')
+      await onReload(); setEditing(false); setMessage('Данните са обновени.')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Промените не бяха запазени.')
+    } finally { setSaving(false) }
+  }
+
+  const addNote = async () => {
+    if (!note.trim()) return
+    setSaving(true); setMessage('')
+    try {
+      const r = await fetch(`${API_URL}/api/clinic/consultation-requests/${request.id}/action`, {
+        method: 'POST', credentials: 'include' as RequestCredentials,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action_type: 'admin_note', note: note.trim() }),
+      })
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || 'Бележката не беше добавена.')
+      setNote(''); await onReload(); setMessage('Бележката е добавена.')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Бележката не беше добавена.')
+    } finally { setSaving(false) }
+  }
+
+  const addRevenue = async () => {
+    if (!amount || !reference.trim()) return
+    setSaving(true); setMessage('')
+    try {
+      const r = await fetch(`${API_URL}/api/clinic/consultation-requests/${request.id}/revenue`, {
+        method: 'POST', credentials: 'include' as RequestCredentials,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: Number(amount.replace(',', '.')), currency: 'EUR', reference: reference.trim() }),
+      })
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || 'Приходът не беше записан.')
+      setAmount(''); setReference(''); await onReload(); setMessage('Приходът е записан и изпратен за синхронизация.')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Приходът не беше записан.')
+    } finally { setSaving(false) }
+  }
+
+  return (
+    <section className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4" data-testid="lead-operations-panel">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="font-medium text-slate-900">Работа по заявката</h2>
+          <p className="mt-0.5 text-xs text-slate-500">Контакт, отговорник, следваща стъпка и стойност на пациента.</p>
+        </div>
+        <button type="button" onClick={() => setEditing((value) => !value)} className="inline-flex h-9 items-center gap-1.5 rounded-full border border-slate-200 px-3 text-sm text-slate-700 hover:bg-slate-50">
+          <Pencil className="h-3.5 w-3.5" /> {editing ? 'Затвори' : 'Редактирай'}
+        </button>
+      </div>
+
+      {editing && (
+        <div className="grid grid-cols-1 gap-3 border-t border-slate-100 pt-4 sm:grid-cols-2">
+          <OperationField label="Име" value={name} onChange={setName} />
+          <OperationField label="Телефон" value={phone} onChange={setPhone} />
+          <OperationField label="Имейл" value={email} onChange={setEmail} type="email" />
+          <OperationField label="Град" value={city} onChange={setCity} />
+          <OperationField label="Отговорник" value={owner} onChange={setOwner} placeholder="Име на служител" />
+          <OperationField label="Проследяване" value={followUp} onChange={setFollowUp} type="datetime-local" min={new Date().toISOString().slice(0, 16)} />
+          <div className="sm:col-span-2 flex justify-end">
+            <button type="button" disabled={saving || !name.trim() || !phone.trim()} onClick={save} className="h-10 rounded-full bg-teal-500 px-5 text-sm font-medium text-white hover:bg-teal-600 disabled:opacity-50">
+              {saving ? 'Запазва се…' : 'Запази промените'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!editing && (request.owner || request.follow_up_at) && (
+        <dl className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
+          {request.owner && <div><dt className="text-xs text-slate-500">Отговорник</dt><dd className="text-slate-800">{request.owner}</dd></div>}
+          {request.follow_up_at && <div><dt className="text-xs text-slate-500">Следващо проследяване</dt><dd className="inline-flex items-center gap-1 text-slate-800"><Clock3 className="h-3.5 w-3.5 text-amber-500" />{formatDate(request.follow_up_at)}</dd></div>}
+        </dl>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 border-t border-slate-100 pt-4 lg:grid-cols-2">
+        <div>
+          <label className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-slate-700"><StickyNote className="h-4 w-4" /> Нова бележка</label>
+          <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} maxLength={2000} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="Какво трябва да знае екипът?" />
+          <button type="button" disabled={saving || !note.trim()} onClick={addNote} className="mt-2 h-9 rounded-full border border-slate-200 px-3 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50">Добави бележка</button>
+        </div>
+        <div>
+          <div className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-slate-700"><WalletCards className="h-4 w-4" /> Приход</div>
+          <div className="flex flex-wrap gap-2">
+            <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" className="min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="Стойност в EUR" />
+            <input value={reference} onChange={(e) => setReference(e.target.value)} className="min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="Фактура / референция" />
+          </div>
+          <button type="button" disabled={saving || !amount || !reference.trim()} onClick={addRevenue} className="mt-2 h-9 rounded-full bg-slate-900 px-3 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50">Запиши приход</button>
+        </div>
+      </div>
+      {message && <p className="text-sm text-slate-600" role="status">{message}</p>}
+    </section>
+  )
+}
+
+function OperationField({ label, value, onChange, type = 'text', placeholder, min }: { label: string; value: string; onChange: (value: string) => void; type?: string; placeholder?: string; min?: string }) {
+  return <label className="text-sm text-slate-700"><span className="mb-1 block text-xs text-slate-500">{label}</span><input type={type} value={value} min={min} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-200" /></label>
 }
 
 interface Doctor {

@@ -285,6 +285,35 @@ def test_revenue_outbox_identity_is_scoped_by_clinic(monkeypatch):
     }
 
 
+def test_contact_update_is_durable_and_delivered_with_patch(monkeypatch):
+    sent = []
+
+    async def fake_patch(path, key, payload):
+        sent.append((path, key, payload))
+        return {"ok": True}
+
+    monkeypatch.setattr(clear_advance, "_patch", fake_patch)
+    db = OutboxDB([LEAD])
+    edited = {**LEAD, "name": "Maria", "phone": "+359888123456",
+              "email": "maria@example.com"}
+    assert asyncio.run(clear_advance.queue_lead_update(db, edited))
+    event = db.clear_advance_outbox.docs[0]
+    assert event["method"] == "PATCH"
+    assert event["endpoint"] == "/api/v1/leads/remote-1"
+    result = asyncio.run(clear_advance.process_pending_outcomes(db))
+    assert result == {"processed": 1, "succeeded": 1, "failed": 0}
+    assert sent == [("/api/v1/leads/remote-1", "ca_sk_key", {
+        "name": "Maria", "phone": "+359888123456", "email": "maria@example.com",
+    })]
+
+
+def test_contact_update_queues_even_while_integration_key_is_unavailable():
+    db = OutboxDB([LEAD])
+    db.clinic_integrations.docs.clear()
+    assert asyncio.run(clear_advance.queue_lead_update(db, LEAD))
+    assert db.clear_advance_outbox.docs[0]["status"] == "pending"
+
+
 def test_clinic_status_mapping_overrides_default(monkeypatch):
     sent = []
 

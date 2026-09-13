@@ -39,6 +39,22 @@ export interface PatientContextSource {
   utm_campaign: string | null
   utm_ad: string | null
   content_path_summary: string | null
+  first_touch?: AttributionTouch
+  last_touch?: AttributionTouch
+}
+
+export interface AttributionTouch {
+  source?: string | null
+  medium?: string | null
+  campaign?: string | null
+  content?: string | null
+  term?: string | null
+  campaign_id?: string | null
+  adset_id?: string | null
+  ad_id?: string | null
+  landing_page?: string | null
+  referrer?: string | null
+  seen_at?: string | null
 }
 
 export interface PatientContext {
@@ -132,7 +148,11 @@ export function PatientContextSection({ ctx }: { ctx: PatientContext }) {
   const hasFlags = (ctx.signal_flags?.length ?? 0) > 0
   const article = articleFallbackLabel(ctx.source_context)
   const campaignLabel = utmCampaignLabel(ctx.source_context)
-  const hasSource = !!(article || campaignLabel || ctx.source_context.content_path_summary)
+  const touches = [
+    { label: 'Първи контакт', value: ctx.source_context.first_touch },
+    { label: 'Последен контакт', value: ctx.source_context.last_touch },
+  ].filter((item) => item.value && Object.values(item.value).some(Boolean))
+  const hasSource = !!(article || campaignLabel || ctx.source_context.content_path_summary || touches.length)
 
   return (
     <section
@@ -293,6 +313,21 @@ export function PatientContextSection({ ctx }: { ctx: PatientContext }) {
               <p className="text-xs text-slate-500 leading-relaxed">
                 {ctx.source_context.content_path_summary}
               </p>
+            )}
+            {touches.length > 0 && (
+              <div className="mt-3 divide-y divide-slate-100 border-t border-slate-100">
+                {touches.map(({ label, value }) => (
+                  <dl key={label} className="grid grid-cols-[8rem_1fr] gap-x-3 gap-y-1 py-3 text-xs">
+                    <dt className="font-medium text-slate-700 col-span-2 mb-1">{label}</dt>
+                    {value?.source && <><dt className="text-slate-500">Канал</dt><dd>{[value.source, value.medium].filter(Boolean).join(' / ')}</dd></>}
+                    {value?.campaign && <><dt className="text-slate-500">Кампания</dt><dd className="break-words">{value.campaign}</dd></>}
+                    {value?.content && <><dt className="text-slate-500">Реклама</dt><dd className="break-words">{value.content}</dd></>}
+                    {value?.term && <><dt className="text-slate-500">Ключова дума</dt><dd className="break-words">{value.term}</dd></>}
+                    {value?.landing_page && <><dt className="text-slate-500">Страница</dt><dd className="break-all">{value.landing_page}</dd></>}
+                    {value?.seen_at && <><dt className="text-slate-500">Засечено</dt><dd>{new Date(value.seen_at).toLocaleString('bg-BG')}</dd></>}
+                  </dl>
+                ))}
+              </div>
             )}
           </div>
         ) : (

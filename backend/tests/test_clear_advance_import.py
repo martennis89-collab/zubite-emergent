@@ -128,3 +128,28 @@ def test_manual_import_sync_is_scoped_to_the_current_clinic(monkeypatch):
     monkeypatch.setattr(clear_advance, "_get", fake_get)
     assert asyncio.run(clear_advance.import_pending_leads(db, clinic_id="clinic-a")) == 0
     assert db.clinic_integrations.find_queries[0]["clinic_id"] == "clinic-a"
+
+
+def test_historical_reconciliation_pages_without_moving_live_cursor(monkeypatch):
+    db = DB([integration()])
+    calls = []
+
+    async def fake_get(_path, _key, params):
+        calls.append(dict(params))
+        if len(calls) == 1:
+            return {"leads": [{"id": "remote-1"}], "next_cursor": "history-2", "has_more": True}
+        return {"leads": [{"id": "remote-2"}], "next_cursor": "history-3", "has_more": False}
+
+    async def fake_import(_db, _remote, _clinic_id):
+        return True
+
+    monkeypatch.setattr(clear_advance, "_get", fake_get)
+    monkeypatch.setattr(clear_advance, "import_clear_advance_lead", fake_import)
+    assert asyncio.run(clear_advance.import_pending_leads(
+        db, clinic_id="clinic-a", since="2026-01-01T00:00:00+00:00")) == 2
+    assert calls == [
+        {"limit": "50", "since": "2026-01-01T00:00:00+00:00"},
+        {"limit": "50", "cursor": "history-2"},
+    ]
+    assert not any("clear_advance_import_cursor" in update.get("$set", {})
+                   for _, update in db.clinic_integrations.updates)

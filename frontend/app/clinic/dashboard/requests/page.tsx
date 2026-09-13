@@ -15,6 +15,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 const FILTERS: Array<{ key: string; label: string }> = [
   { key: 'all', label: 'Всички' },
   { key: 'open', label: 'Активни' },
+  { key: 'follow_up', label: 'За проследяване' },
   { key: 'booked', label: 'Резервирани' },
   { key: 'attended', label: 'Посетили' },
   { key: 'no_show', label: 'Не се явили' },
@@ -54,6 +55,9 @@ export default function ClinicRequestsPage() {
     let list = requests
     if (filter === 'open') {
       list = list.filter((r) => !['attended', 'no_show', 'cancelled', 'patient_declined', 'not_suitable', 'expired'].includes(r.status))
+    } else if (filter === 'follow_up') {
+      list = list.filter((r) => !!r.follow_up_at)
+        .sort((a, b) => String(a.follow_up_at).localeCompare(String(b.follow_up_at)))
     } else if (filter !== 'all') {
       list = list.filter((r) => r.status === filter)
     }
@@ -170,6 +174,13 @@ export default function ClinicRequestsPage() {
                         <td className="px-4 py-3">
                           <div className="font-medium text-slate-900">{r.patient_name}</div>
                           <div className="text-xs text-slate-500">{r.patient_phone}</div>
+                          {(r.owner || r.follow_up_at) && (
+                            <div className="mt-1 text-[11px] text-slate-500">
+                              {r.owner ? `Отговорник: ${r.owner}` : ''}
+                              {r.owner && r.follow_up_at ? ' · ' : ''}
+                              {r.follow_up_at ? `Проследяване: ${formatDate(r.follow_up_at)}` : ''}
+                            </div>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-slate-700">
                           {TREATMENT_LABELS[r.treatment_interest] || r.treatment_interest}
