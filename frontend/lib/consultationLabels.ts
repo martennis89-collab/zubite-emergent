@@ -1,5 +1,7 @@
 // Shared labels and helpers for the consultation workflow UI.
 
+import type { PatientContextSource } from '@/components/PatientContextSection'
+
 export const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
   new:                  { label: 'Нова',                  cls: 'bg-slate-100 text-slate-700' },
   assigned:             { label: 'Назначена',             cls: 'bg-teal-100 text-teal-700' },
@@ -501,6 +503,11 @@ export interface ConsultationRequest {
   utm_campaign?: string | null
   utm_adset?: string | null
   utm_ad?: string | null
+  // Compact attribution for the list view -- same computation as
+  // `patient_context.source_context` on the detail page, gated by
+  // ATTRIBUTION_LIST_VISIBLE_SINCE on the backend. Absent on responses
+  // from before this field existed, hence optional.
+  source_badge?: PatientContextSource
   status: string
   assigned_clinic_id?: string | null
   assigned_clinic_name?: string | null

@@ -10,6 +10,12 @@
 // request detail page (app/admin/consultation-requests/[id]/page.tsx)
 // so the two surfaces never carry two copies of the same rendering
 // logic.
+//
+// `sourceBadgeLabel` / `SourceBadge` below extend that same principle to
+// the LIST views (Заявки, Пациенти) — a compact one-line version of the
+// same source_context, so a clinic sees one consistent answer to "where
+// did this patient come from" everywhere it appears, not slightly
+// different wording on the list versus the detail page.
 
 import { TREATMENT_LABELS, readinessLabel, urgencyLabel } from '@/lib/consultationLabels'
 
@@ -19,7 +25,13 @@ export interface PatientContextQuizRow {
 }
 
 export interface PatientContextSource {
-  source_type: 'quiz' | 'article' | 'campaign' | 'direct' | 'unknown'
+  // `not_tracked` is distinct from `unknown`: `unknown` means the
+  // classifier looked at a real lead and could not place it; `not_tracked`
+  // means this row predates ATTRIBUTION_LIST_VISIBLE_SINCE on the backend
+  // and the real answer -- knowable, and shown on the lead's own detail
+  // page -- is deliberately withheld here. Only ever set by the list
+  // endpoints, never by `_safe_source_context` itself.
+  source_type: 'quiz' | 'article' | 'campaign' | 'direct' | 'unknown' | 'not_tracked'
   article_title: string | null
   article_slug: string | null
   utm_source: string | null
@@ -47,11 +59,12 @@ export interface PatientContext {
 }
 
 const SOURCE_TYPE_LABELS: Record<PatientContextSource['source_type'], string> = {
-  quiz:     'Въпросник',
-  article:  'Статия в блога',
-  campaign: 'Кампания',
-  direct:   'Директно посещение',
-  unknown:  'Източникът не е известен',
+  quiz:        'Въпросник',
+  article:     'Статия в блога',
+  campaign:    'Кампания',
+  direct:      'Директно посещение',
+  unknown:     'Източникът не е известен',
+  not_tracked: 'Няма данни отпреди въвеждането',
 }
 
 function utmCampaignLabel(src: PatientContextSource): string {
@@ -73,6 +86,35 @@ function articleFallbackLabel(src: PatientContextSource): string | null {
     return src.article_slug.replace(/[-_]+/g, ' ').trim()
   }
   return null
+}
+
+/** One line + a colour, for a list row. The full block below (with the
+ * journey summary and orientation) belongs on a detail page; a list row
+ * only has room for the answer to "where from", not the whole story. */
+export function sourceBadgeLabel(src: PatientContextSource): { label: string; cls: string } {
+  switch (src.source_type) {
+    case 'campaign':
+      return { label: utmCampaignLabel(src) || SOURCE_TYPE_LABELS.campaign, cls: 'bg-violet-50 text-violet-700' }
+    case 'article':
+      return { label: articleFallbackLabel(src) || SOURCE_TYPE_LABELS.article, cls: 'bg-sky-50 text-sky-700' }
+    case 'quiz':
+      return { label: SOURCE_TYPE_LABELS.quiz, cls: 'bg-teal-50 text-teal-700' }
+    case 'direct':
+      return { label: SOURCE_TYPE_LABELS.direct, cls: 'bg-slate-100 text-slate-600' }
+    case 'not_tracked':
+      return { label: SOURCE_TYPE_LABELS.not_tracked, cls: 'bg-slate-50 text-slate-400 italic' }
+    default:
+      return { label: SOURCE_TYPE_LABELS.unknown, cls: 'bg-slate-100 text-slate-500' }
+  }
+}
+
+export function SourceBadge({ source }: { source: PatientContextSource }) {
+  const { label, cls } = sourceBadgeLabel(source)
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium whitespace-nowrap ${cls}`}>
+      {label}
+    </span>
+  )
 }
 
 export function PatientContextSection({ ctx }: { ctx: PatientContext }) {

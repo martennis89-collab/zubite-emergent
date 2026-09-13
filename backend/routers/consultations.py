@@ -1170,6 +1170,24 @@ async def clinic_list_consultation_requests(clinic=Depends(get_current_clinic)):
     requests = await db.consultation_requests.find(
         {"assigned_clinic_id": cid}, {"_id": 0}
     ).sort("created_at", -1).to_list(1000)
+
+    # Batch-fetch the leads behind these requests so every row gets a
+    # `source_badge` -- the same _safe_source_context the request DETAIL
+    # page already renders -- in one query instead of one per request.
+    lead_ids = [r["lead_id"] for r in requests if r.get("lead_id")]
+    leads_by_id: Dict[str, Dict[str, Any]] = {}
+    if lead_ids:
+        cursor = db.leads.find(
+            {"id": {"$in": lead_ids}},
+            {**SOURCE_CONTEXT_LEAD_FIELDS, "_id": 0, "id": 1},
+        )
+        async for lead in cursor:
+            leads_by_id[lead["id"]] = lead
+
+    for r in requests:
+        r["source_badge"] = _list_source_badge(
+            leads_by_id.get(r.get("lead_id")), r.get("created_at"))
+
     return {"requests": requests}
 
 
@@ -1488,6 +1506,66 @@ def _safe_source_context(lead: Dict[str, Any]) -> Dict[str, Any]:
         "utm_ad": lead.get("first_utm_ad") or lead.get("latest_utm_ad"),
         "content_path_summary": content_path_summary,
     }
+
+
+# The subset of lead fields `_safe_source_context` actually reads. Kept as
+# its own constant so the requests/patients LIST endpoints can batch-fetch
+# exactly these fields without re-deriving the list by hand and drifting
+# from what `_safe_source_context` above expects.
+SOURCE_CONTEXT_LEAD_FIELDS: Dict[str, int] = {
+    "first_article_title": 1, "first_article_slug": 1,
+    "latest_article_title": 1, "latest_article_slug": 1,
+    "first_utm_source": 1, "first_utm_campaign": 1, "first_utm_ad": 1,
+    "latest_utm_source": 1, "latest_utm_campaign": 1, "latest_utm_ad": 1,
+    "first_landing_page_type": 1, "latest_landing_page_type": 1,
+    "first_landing_page": 1, "first_referrer": 1,
+    "pages_viewed_before_conversion": 1,
+    "blog_assisted_conversion": 1,
+}
+
+# The requests/patients LIST screens show attribution starting from this
+# date. This is a deliberate product decision, not a data limitation -- the
+# underlying UTM/referrer fields have been captured on leads for a long
+# time, and `_safe_source_context` above already renders the exact same
+# answer, unconditionally, on the request and patient DETAIL pages. A
+# clinic that scans its list every day should not see attribution appear
+# retroactively on a patient it already looked at without it; the detail
+# pages are deliberately left as they were.
+ATTRIBUTION_LIST_VISIBLE_SINCE = datetime(2026, 9, 13, tzinfo=timezone.utc)
+
+
+def _parse_dt(value: Any) -> Optional[datetime]:
+    if isinstance(value, datetime):
+        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    if isinstance(value, str):
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+        return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+    return None
+
+
+def _list_source_badge(lead: Optional[Dict[str, Any]], created_at: Any) -> Dict[str, Any]:
+    """Compact attribution for one row of a LIST endpoint.
+
+    `source_type: "not_tracked"` is deliberately distinct from "unknown":
+    "unknown" means `_safe_source_context` looked at a real lead and
+    genuinely could not classify it; "not_tracked" means this row predates
+    ATTRIBUTION_LIST_VISIBLE_SINCE, and the real answer -- knowable, and
+    still shown on that lead's own detail page -- is withheld here on
+    purpose. Conflating the two would make an old, untracked lead look
+    exactly like a real classification failure on a new one.
+    """
+    created = _parse_dt(created_at)
+    if not created or created < ATTRIBUTION_LIST_VISIBLE_SINCE:
+        return {
+            "source_type": "not_tracked",
+            "article_title": None, "article_slug": None,
+            "utm_source": None, "utm_campaign": None, "utm_ad": None,
+            "content_path_summary": None,
+        }
+    return _safe_source_context(lead or {})
 
 
 async def _build_patient_context(req: Dict[str, Any]) -> Dict[str, Any]:

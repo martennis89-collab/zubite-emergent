@@ -8,6 +8,7 @@ import { RequestCard } from '@/components/clinic/RequestCard'
 import {
   ConsultationRequest, statusBadge, formatDate, TREATMENT_LABELS, timeSince,
 } from '@/lib/consultationLabels'
+import { SourceBadge } from '@/components/PatientContextSection'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -154,6 +155,7 @@ export default function ClinicRequestsPage() {
                     <th className="px-4 py-3 text-left">Пациент</th>
                     <th className="px-4 py-3 text-left">Лечение</th>
                     <th className="px-4 py-3 text-left hidden lg:table-cell">Град</th>
+                    <th className="px-4 py-3 text-left hidden lg:table-cell">Източник</th>
                     <th className="px-4 py-3 text-left">Статус</th>
                     <th className="px-4 py-3 text-left">Назначена</th>
                     <th className="px-4 py-3 text-left hidden lg:table-cell">Първо действие</th>
@@ -173,6 +175,9 @@ export default function ClinicRequestsPage() {
                           {TREATMENT_LABELS[r.treatment_interest] || r.treatment_interest}
                         </td>
                         <td className="px-4 py-3 hidden lg:table-cell text-slate-700">{r.patient_city || '—'}</td>
+                        <td className="px-4 py-3 hidden lg:table-cell">
+                          {r.source_badge && <SourceBadge source={r.source_badge} />}
+                        </td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${sb.cls}`}>
                             {sb.label}
