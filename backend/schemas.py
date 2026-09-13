@@ -1243,6 +1243,17 @@ class ConsultationActionRequest(BaseModel):
     appointment: Optional[AppointmentDetails] = None
 
 
+class ClinicLeadOperationsPatch(BaseModel):
+    """Clinic-owned operational fields for an assigned lead/request pair."""
+    model_config = ConfigDict(extra="forbid")
+    name: Optional[str] = Field(default=None, min_length=1, max_length=200)
+    phone: Optional[str] = Field(default=None, min_length=4, max_length=50)
+    email: Optional[EmailStr] = None
+    city: Optional[str] = Field(default=None, max_length=100)
+    owner: Optional[str] = Field(default=None, max_length=120)
+    follow_up_at: Optional[str] = Field(default=None, max_length=40)
+
+
 class ClinicAppointmentCreate(BaseModel):
     """Direct calendar entry (clinic creates an appointment without a request).
     Rare — usually appointments are created via the action endpoint."""
@@ -1870,3 +1881,65 @@ class DoctorAssignmentBody(BaseModel):
     `doctor_id=None` clears the assignment."""
     model_config = ConfigDict(extra="ignore")
     doctor_id: Optional[str] = None
+
+
+# ─── Clear Advance ────────────────────────────────────────
+
+class ClinicIntegration(BaseModel):
+    """A clinic's own Clear Advance API key.
+
+    Write-only by design: it is encrypted on arrival and no endpoint returns it.
+    """
+    api_key: str = Field(min_length=8, max_length=200, pattern=r"^ca_sk_[A-Za-z0-9_-]+$")
+
+
+class ClearAdvanceStatusMappings(BaseModel):
+    """Clinic-owned mapping from a Zubite lead status to an ad outcome.
+
+    Only outcomes Clear Advance can deduplicate and forward to an ad platform
+    are accepted. A null value explicitly disables a mapping.
+    """
+    mappings: Dict[str, Optional[str]] = Field(default_factory=dict)
+
+    @field_validator("mappings")
+    @classmethod
+    def _validate_mappings(cls, value: Dict[str, Optional[str]]) -> Dict[str, Optional[str]]:
+        allowed = {"appointment_booked", "appointment_attended", "sale"}
+        normalized: Dict[str, Optional[str]] = {}
+        for status, outcome in value.items():
+            if not isinstance(status, str) or not status.strip():
+                raise ValueError("mapping status keys must be non-empty strings")
+            key = status.strip().upper()
+            if key == "COMPLETED" and outcome is not None:
+                raise ValueError(
+                    "COMPLETED cannot be mapped to a conversion; use ATTENDED "
+                    "only after a confirmed visit"
+                )
+            if outcome is not None:
+                if not isinstance(outcome, str) or outcome not in allowed:
+                    raise ValueError(f"mapping outcome must be one of {sorted(allowed)} or null")
+            normalized[key] = outcome
+        return normalized
+
+
+class ClearAdvanceReconcileRequest(BaseModel):
+    """Bounded historical replay requested explicitly by the clinic."""
+    since: datetime
+    limit: int = Field(default=100, ge=1, le=500)
+
+
+class LeadRevenue(BaseModel):
+    """Money a patient has actually agreed or paid.
+
+    `amount` is major units because that is what a receptionist types; it is
+    converted to minor units exactly, via Decimal, before it travels anywhere.
+    Money never touches a float: 1899.99 must not become 1899.9899999 on the way
+    to an ad platform that will bid on it.
+
+    `reference` identifies the payment, not the patient. It is the idempotency
+    key, so it must be stable across retries -- an invoice number, never a
+    timestamp -- and two genuine payments must carry two different references.
+    """
+    amount: float = Field(gt=0, le=10_000_000)
+    currency: str = Field(default="EUR", min_length=3, max_length=3)
+    reference: str = Field(min_length=1, max_length=200)

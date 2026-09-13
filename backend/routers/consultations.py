@@ -14,6 +14,7 @@ consultation workflow that is *linked back* to leads via `lead_id`.
 from fastapi import APIRouter, HTTPException, Depends, Request
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone, timedelta
+import asyncio
 import uuid
 import logging
 
@@ -33,12 +34,14 @@ from schemas import (
     CONSULTATION_STATUS_VALUES, APPOINTMENT_STATUS_VALUES,
     APPOINTMENT_TYPE_VALUES, ACTION_TYPE_VALUES,
     PARTNER_TIER_VALUES, PROFILE_STATUS_VALUES,
+    ClinicLeadOperationsPatch, LeadRevenue,
 )
 from audit import audit_log, diff_fields
 from auth import get_current_user, get_current_clinic, hash_password
 from emails import _send_email  # internal helper; safe wrapper
 from config import RESEND_API_KEY, SENDER_EMAIL, PRODUCTION_URL
 from routers.public import _is_clinic_visible
+from phone_utils import normalize_msisdn_bg
 
 logger = logging.getLogger(__name__)
 
@@ -430,6 +433,17 @@ async def admin_create_clinic(
         after_state=doc,
         severity="info", request=request,
     )
+    # Every clinic created from here on is a Clear Advance client -- Zubite is
+    # itself Clear Advance's customer. Queued first so an outage cannot lose
+    # the intent, attempted at once so the clinic is usually enrolled before
+    # anyone looks, retried by the sweep otherwise. Never allowed to fail the
+    # creation of the clinic itself.
+    try:
+        from clear_advance import enrol_clinic, queue_clinic_enrolment
+        if await queue_clinic_enrolment(db, doc):
+            asyncio.create_task(enrol_clinic(db, doc["id"]))
+    except Exception as exc:
+        logger.warning(f"Clear Advance enrolment could not be queued for {doc['id']}: {exc}")
     return {
         "clinic": _public_clinic_dict(doc),
         "temporary_password": temp_password,
@@ -504,6 +518,23 @@ async def admin_update_clinic(
         derived_slug = resolve_city_slug({"city": update["city"]})
         if derived_slug:
             update["city_slug"] = derived_slug
+    # `email` is the clinic's login identity -- /clinic/login looks it up
+    # lowercased -- so it is normalised and checked for collisions exactly as it
+    # is on creation. Without this, an admin editing a clinic could store
+    # "Info@Clinic.BG" and lock that clinic out of its own portal, or give two
+    # clinics the same address, after which find_one() always returns whichever
+    # was created first and the other can never log in again. Both failures are
+    # silent at the point they are caused.
+    if "email" in update:
+        email = str(update["email"]).strip().lower()
+        clash = await db.clinics.find_one(
+            {"email": email, "id": {"$ne": clinic_id}}, {"_id": 0, "id": 1})
+        if clash:
+            raise HTTPException(status_code=400,
+                                detail="Clinic with this email already exists")
+        update["email"] = email
+    if "notification_email" in update:
+        update["notification_email"] = str(update["notification_email"]).strip().lower()
     if "clinic_status" in update and update["clinic_status"] not in CLINIC_STATUS_VALUES:
         raise HTTPException(status_code=400, detail="Invalid clinic_status")
     if "subscription_status" in update and update["subscription_status"] not in SUBSCRIPTION_STATUS_VALUES:
@@ -1152,6 +1183,24 @@ async def clinic_list_consultation_requests(clinic=Depends(get_current_clinic)):
     requests = await db.consultation_requests.find(
         {"assigned_clinic_id": cid}, {"_id": 0}
     ).sort("created_at", -1).to_list(1000)
+
+    # Batch-fetch the leads behind these requests so every row gets a
+    # `source_badge` -- the same _safe_source_context the request DETAIL
+    # page already renders -- in one query instead of one per request.
+    lead_ids = [r["lead_id"] for r in requests if r.get("lead_id")]
+    leads_by_id: Dict[str, Dict[str, Any]] = {}
+    if lead_ids:
+        cursor = db.leads.find(
+            {"id": {"$in": lead_ids}},
+            {**SOURCE_CONTEXT_LEAD_FIELDS, "_id": 0, "id": 1},
+        )
+        async for lead in cursor:
+            leads_by_id[lead["id"]] = lead
+
+    for r in requests:
+        r["source_badge"] = _list_source_badge(
+            leads_by_id.get(r.get("lead_id")), r.get("created_at"))
+
     return {"requests": requests}
 
 
@@ -1435,6 +1484,7 @@ def _safe_source_context(lead: Dict[str, Any]) -> Dict[str, Any]:
     if not lead:
         return {
             "source_type": "unknown",
+            "origin_system": None,
             "article_title": None,
             "article_slug": None,
             "utm_source": None,
@@ -1461,15 +1511,100 @@ def _safe_source_context(lead: Dict[str, Any]) -> Dict[str, Any]:
                 f"Пациентът е разгледал {pages_viewed} страници преди да "
                 f"попълни заявката."
             )
+    def touch(prefix: str) -> Dict[str, Any]:
+        return {
+            "source": lead.get(f"{prefix}_utm_source"),
+            "medium": lead.get(f"{prefix}_utm_medium"),
+            "campaign": lead.get(f"{prefix}_utm_campaign"),
+            "content": lead.get(f"{prefix}_utm_content") or lead.get(f"{prefix}_utm_ad"),
+            "term": lead.get(f"{prefix}_utm_term"),
+            "campaign_id": lead.get(f"{prefix}_utm_campaign_id"),
+            "adset_id": lead.get(f"{prefix}_utm_adset_id"),
+            "ad_id": lead.get(f"{prefix}_utm_ad_id"),
+            "landing_page": lead.get(f"{prefix}_landing_page"),
+            "referrer": lead.get(f"{prefix}_referrer"),
+            "seen_at": lead.get("first_seen_at" if prefix == "first" else "last_seen_at"),
+        }
     return {
         "source_type": _classify_source_type(lead),
+        "origin_system": lead.get("origin_system"),
         "article_title": article_title,
         "article_slug": article_slug,
         "utm_source": lead.get("first_utm_source") or lead.get("latest_utm_source"),
         "utm_campaign": lead.get("first_utm_campaign") or lead.get("latest_utm_campaign"),
         "utm_ad": lead.get("first_utm_ad") or lead.get("latest_utm_ad"),
         "content_path_summary": content_path_summary,
+        "first_touch": touch("first"),
+        "last_touch": touch("latest"),
     }
+
+
+# The subset of lead fields `_safe_source_context` actually reads. Kept as
+# its own constant so the requests/patients LIST endpoints can batch-fetch
+# exactly these fields without re-deriving the list by hand and drifting
+# from what `_safe_source_context` above expects.
+SOURCE_CONTEXT_LEAD_FIELDS: Dict[str, int] = {
+    "origin_system": 1,
+    "first_article_title": 1, "first_article_slug": 1,
+    "latest_article_title": 1, "latest_article_slug": 1,
+    "first_utm_source": 1, "first_utm_campaign": 1, "first_utm_ad": 1,
+    "latest_utm_source": 1, "latest_utm_campaign": 1, "latest_utm_ad": 1,
+    "first_utm_medium": 1, "first_utm_content": 1, "first_utm_term": 1,
+    "first_utm_campaign_id": 1, "first_utm_adset_id": 1, "first_utm_ad_id": 1,
+    "latest_utm_medium": 1, "latest_utm_content": 1, "latest_utm_term": 1,
+    "latest_utm_campaign_id": 1, "latest_utm_adset_id": 1, "latest_utm_ad_id": 1,
+    "first_landing_page_type": 1, "latest_landing_page_type": 1,
+    "first_landing_page": 1, "latest_landing_page": 1,
+    "first_referrer": 1, "latest_referrer": 1,
+    "first_seen_at": 1, "last_seen_at": 1,
+    "pages_viewed_before_conversion": 1,
+    "blog_assisted_conversion": 1,
+}
+
+# The requests/patients LIST screens show attribution starting from this
+# date. This is a deliberate product decision, not a data limitation -- the
+# underlying UTM/referrer fields have been captured on leads for a long
+# time, and `_safe_source_context` above already renders the exact same
+# answer, unconditionally, on the request and patient DETAIL pages. A
+# clinic that scans its list every day should not see attribution appear
+# retroactively on a patient it already looked at without it; the detail
+# pages are deliberately left as they were.
+ATTRIBUTION_LIST_VISIBLE_SINCE = datetime(2026, 9, 13, tzinfo=timezone.utc)
+
+
+def _parse_dt(value: Any) -> Optional[datetime]:
+    if isinstance(value, datetime):
+        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    if isinstance(value, str):
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+        return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+    return None
+
+
+def _list_source_badge(lead: Optional[Dict[str, Any]], created_at: Any) -> Dict[str, Any]:
+    """Compact attribution for one row of a LIST endpoint.
+
+    `source_type: "not_tracked"` is deliberately distinct from "unknown":
+    "unknown" means `_safe_source_context` looked at a real lead and
+    genuinely could not classify it; "not_tracked" means this row predates
+    ATTRIBUTION_LIST_VISIBLE_SINCE, and the real answer -- knowable, and
+    still shown on that lead's own detail page -- is withheld here on
+    purpose. Conflating the two would make an old, untracked lead look
+    exactly like a real classification failure on a new one.
+    """
+    created = _parse_dt(created_at)
+    if not created or created < ATTRIBUTION_LIST_VISIBLE_SINCE:
+        return {
+            "source_type": "not_tracked",
+            "origin_system": None,
+            "article_title": None, "article_slug": None,
+            "utm_source": None, "utm_campaign": None, "utm_ad": None,
+            "content_path_summary": None,
+        }
+    return _safe_source_context(lead or {})
 
 
 async def _build_patient_context(req: Dict[str, Any]) -> Dict[str, Any]:
@@ -1484,6 +1619,7 @@ async def _build_patient_context(req: Dict[str, Any]) -> Dict[str, Any]:
                 "_id": 0,
                 # Allow-list only — everything else is dropped.
                 "answers": 1,
+                "origin_system": 1,
                 # Orientation stage. MasterQuiz leads carry it in
                 # `answers.quiz_band`; treatment/city-quiz leads only have
                 # the lead-level `band`, so both are needed for the stage
@@ -1493,8 +1629,14 @@ async def _build_patient_context(req: Dict[str, Any]) -> Dict[str, Any]:
                 "latest_article_title": 1, "latest_article_slug": 1,
                 "first_utm_source": 1, "first_utm_campaign": 1, "first_utm_ad": 1,
                 "latest_utm_source": 1, "latest_utm_campaign": 1, "latest_utm_ad": 1,
+                "first_utm_medium": 1, "first_utm_content": 1, "first_utm_term": 1,
+                "first_utm_campaign_id": 1, "first_utm_adset_id": 1, "first_utm_ad_id": 1,
+                "latest_utm_medium": 1, "latest_utm_content": 1, "latest_utm_term": 1,
+                "latest_utm_campaign_id": 1, "latest_utm_adset_id": 1, "latest_utm_ad_id": 1,
                 "first_landing_page_type": 1, "latest_landing_page_type": 1,
-                "first_landing_page": 1, "first_referrer": 1,
+                "first_landing_page": 1, "latest_landing_page": 1,
+                "first_referrer": 1, "latest_referrer": 1,
+                "first_seen_at": 1, "last_seen_at": 1,
                 "pages_viewed_before_conversion": 1,
                 "blog_assisted_conversion": 1,
             },
@@ -1575,6 +1717,142 @@ async def clinic_get_consultation_request(
         "events": events,
         "patient_context": await _build_patient_context(req),
     }
+
+
+@router.patch("/clinic/consultation-requests/{req_id}/lead")
+async def clinic_update_assigned_lead(
+    req_id: str,
+    body: ClinicLeadOperationsPatch,
+    clinic=Depends(get_current_clinic),
+):
+    """Edit the clinic's assigned lead without crossing tenant boundaries."""
+    req = await db.consultation_requests.find_one(
+        {"id": req_id, "assigned_clinic_id": clinic["id"]}, {"_id": 0}
+    )
+    if not req or not req.get("lead_id"):
+        raise HTTPException(status_code=404, detail="Request not found")
+    lead = await db.leads.find_one(
+        {"id": req["lead_id"], "assigned_clinic_id": clinic["id"]}, {"_id": 0}
+    )
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    supplied = body.model_fields_set
+    if not supplied:
+        raise HTTPException(status_code=400, detail="No update data")
+    if body.follow_up_at:
+        try:
+            follow_up = datetime.fromisoformat(body.follow_up_at.replace("Z", "+00:00"))
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid follow_up_at")
+        if follow_up.tzinfo is None:
+            follow_up = follow_up.replace(tzinfo=timezone.utc)
+        if follow_up <= datetime.now(timezone.utc):
+            raise HTTPException(status_code=400, detail="follow_up_at must be in the future")
+
+    now = _now_iso()
+    lead_update: Dict[str, Any] = {"updated_at": now}
+    request_update: Dict[str, Any] = {"updated_at": now}
+    contact_changed = False
+    pairs = {
+        "name": ("name", "patient_name"),
+        "phone": ("phone", "patient_phone"),
+        "email": ("email", "patient_email"),
+        "city": ("city_slug", "patient_city"),
+    }
+    for incoming, (lead_key, request_key) in pairs.items():
+        if incoming in supplied:
+            value = getattr(body, incoming)
+            if incoming == "phone":
+                value = normalize_msisdn_bg(value)
+                if not value:
+                    raise HTTPException(status_code=400, detail="Invalid phone")
+            lead_update[lead_key] = value
+            request_update[request_key] = value
+            contact_changed = True
+    if "owner" in supplied:
+        request_update["owner"] = body.owner
+    if "follow_up_at" in supplied:
+        request_update["follow_up_at"] = body.follow_up_at
+
+    await db.leads.update_one(
+        {"id": lead["id"], "assigned_clinic_id": clinic["id"]},
+        {"$set": lead_update},
+    )
+    await db.consultation_requests.update_one(
+        {"id": req_id, "assigned_clinic_id": clinic["id"]},
+        {"$set": request_update},
+    )
+    if contact_changed:
+        await db.clinic_appointments.update_many(
+            {"consultation_request_id": req_id, "clinic_id": clinic["id"]},
+            {"$set": {
+                "patient_name": request_update.get("patient_name", req.get("patient_name")),
+                "patient_phone": request_update.get("patient_phone", req.get("patient_phone")),
+                "updated_at": now,
+            }},
+        )
+    changed = sorted(supplied)
+    await _log_event(
+        req_id, "lead_details_updated", clinic_id=clinic["id"],
+        note=f"Updated: {', '.join(changed)}",
+    )
+
+    if contact_changed:
+        refreshed_lead = {**lead, **lead_update}
+        from clear_advance import process_pending_outcomes, queue_lead_update
+        queued = await queue_lead_update(db, refreshed_lead)
+        if queued:
+            asyncio.create_task(process_pending_outcomes(db, clinic_id=clinic["id"]))
+
+    refreshed = await db.consultation_requests.find_one(
+        {"id": req_id, "assigned_clinic_id": clinic["id"]}, {"_id": 0}
+    )
+    return {"request": refreshed}
+
+
+@router.post("/clinic/consultation-requests/{req_id}/revenue")
+async def clinic_record_lead_revenue(
+    req_id: str,
+    body: LeadRevenue,
+    clinic=Depends(get_current_clinic),
+):
+    """Record one idempotent revenue fact and queue it for Clear Advance."""
+    from decimal import Decimal, ROUND_HALF_UP
+    req = await db.consultation_requests.find_one(
+        {"id": req_id, "assigned_clinic_id": clinic["id"]}, {"_id": 0}
+    )
+    if not req or not req.get("lead_id"):
+        raise HTTPException(status_code=404, detail="Request not found")
+    lead = await db.leads.find_one(
+        {"id": req["lead_id"], "assigned_clinic_id": clinic["id"]}, {"_id": 0}
+    )
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    exponent = 0 if body.currency.upper() in ("JPY", "ISK") else 2
+    minor = int((Decimal(str(body.amount)) * (10 ** exponent)).quantize(
+        Decimal("1"), rounding=ROUND_HALF_UP))
+    existing = next((row for row in (lead.get("revenue") or [])
+                     if row.get("reference") == body.reference), None)
+    if existing and (existing.get("amount_minor") != minor or
+                     existing.get("currency") != body.currency.upper()):
+        raise HTTPException(status_code=409, detail="Revenue reference already has a different value")
+    if not existing:
+        entry = {"reference": body.reference, "amount_minor": minor,
+                 "currency": body.currency.upper(), "recorded_at": _now_iso()}
+        await db.leads.update_one(
+            {"id": lead["id"], "assigned_clinic_id": clinic["id"]},
+            {"$push": {"revenue": entry}},
+        )
+        await _log_event(req_id, "revenue_recorded", clinic_id=clinic["id"],
+                         note=f"{body.reference} · {minor} {body.currency.upper()} minor units")
+    from clear_advance import process_pending_outcomes, report_revenue
+    queued = await report_revenue(
+        db, lead, minor, body.currency.upper(), body.reference, deliver=False)
+    if queued:
+        asyncio.create_task(process_pending_outcomes(db, clinic_id=clinic["id"]))
+    return {"ok": True, "amount_minor": minor, "currency": body.currency.upper(),
+            "deduplicated": existing is not None}
 
 
 # Action types that count as a "first meaningful action" for time_to_first_action
@@ -1794,6 +2072,17 @@ async def clinic_perform_action(
             )
         except Exception as exc:
             logger.warning(f"care_pass unlock (offline) failed: {exc}")
+
+    # Persist the conversion before returning. Network delivery stays in the
+    # background, so a Clear Advance outage cannot block clinic workflow while
+    # a process restart cannot erase a just-recorded appointment outcome.
+    if refreshed and refreshed.get("lead_id"):
+        from clear_advance import process_pending_outcomes, report_consultation_action
+        queued = await report_consultation_action(
+            db, refreshed["lead_id"], body.action_type, deliver=False)
+        if queued:
+            asyncio.create_task(process_pending_outcomes(
+                db, clinic_id=clinic["id"]))
 
     return {"request": refreshed, "appointment": appointment_doc}
 

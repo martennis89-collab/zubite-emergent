@@ -336,10 +336,71 @@ const CHILD_QUESTIONS: QuizQuestion[] = [
   },
 ]
 
+// ─── Intake questions (Phase 1 Smart Consultation Flow) ────
+// Non-diagnostic — every option scores 0, so they cannot influence
+// `calculateResult`'s totalScore/band. Appended after the diagnostic
+// questions in every segment so existing MICRO_INSIGHTS indices (keyed
+// to the original per-segment question order) stay unaffected. Answers
+// ride the existing generic `answersObj[questionId] = value` path in
+// `handleSubmit` — no submit-flow changes needed.
+const INTAKE_QUESTIONS: QuizQuestion[] = [
+  {
+    id: 'treatment_interest', type: 'text',
+    question: 'Какво лечение обмисляш в момента?',
+    options: [
+      { label: 'Алайнери / Invisalign', value: 'aligners', score: 0 },
+      { label: 'Брекети', value: 'braces', score: 0 },
+      { label: 'И двете', value: 'both', score: 0 },
+      { label: 'Не съм сигурен/сигурна', value: 'unsure', score: 0 },
+      { label: 'Искам лекар да ми каже', value: 'ask_doctor', score: 0 },
+    ]
+  },
+  {
+    id: 'readiness_timeline', type: 'text',
+    question: 'Кога искаш да направиш следваща стъпка?',
+    options: [
+      { label: 'Възможно най-скоро', value: 'asap', score: 0 },
+      { label: 'До 1 месец', value: 'within_1_month', score: 0 },
+      { label: 'След 1–3 месеца', value: 'in_1_3_months', score: 0 },
+      { label: 'Само проучвам', value: 'just_researching', score: 0 },
+    ]
+  },
+  {
+    id: 'budget_mindset', type: 'text',
+    question: 'Как мислиш за бюджета?',
+    options: [
+      { label: 'Търся най-достъпен вариант', value: 'affordable', score: 0 },
+      { label: 'Искам баланс цена/качество', value: 'balanced', score: 0 },
+      { label: 'Готов/а съм за премиум решение, ако има смисъл', value: 'premium_if_justified', score: 0 },
+      { label: 'Не знам какви са реалните цени', value: 'unknown_pricing', score: 0 },
+    ]
+  },
+  {
+    id: 'second_opinion', type: 'text',
+    question: 'Искаш ли да сравниш повече от едно мнение?',
+    options: [
+      { label: 'Да, искам да сравня до 3 опции', value: 'compare_up_to_3', score: 0 },
+      { label: 'Не, искам да избера една клиника', value: 'single_clinic', score: 0 },
+      { label: 'Първо искам Zubite да ми помогне', value: 'zubite_help_first', score: 0 },
+    ]
+  },
+  {
+    id: 'has_files', type: 'text',
+    question: 'Имаш ли снимка, план или оферта от клиника?',
+    options: [
+      { label: 'Да, имам OPG / панорамна снимка', value: 'has_opg', score: 0 },
+      { label: 'Да, имам план или оферта', value: 'has_plan_or_offer', score: 0 },
+      { label: 'Да, имам снимки на усмивката/зъбите', value: 'has_smile_photos', score: 0 },
+      { label: 'Не', value: 'none', score: 0 },
+      { label: 'Не съм сигурен/сигурна', value: 'unsure', score: 0 },
+    ]
+  },
+]
+
 const QUESTION_SETS: Record<Segment, QuizQuestion[]> = {
-  adult: ADULT_QUESTIONS,
-  teen: TEEN_QUESTIONS,
-  child: CHILD_QUESTIONS,
+  adult: [...ADULT_QUESTIONS, ...INTAKE_QUESTIONS],
+  teen: [...TEEN_QUESTIONS, ...INTAKE_QUESTIONS],
+  child: [...CHILD_QUESTIONS, ...INTAKE_QUESTIONS],
 }
 
 // ─── Micro Insights ───────────────────────────────────────

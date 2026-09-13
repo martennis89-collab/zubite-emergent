@@ -10,6 +10,12 @@
 // request detail page (app/admin/consultation-requests/[id]/page.tsx)
 // so the two surfaces never carry two copies of the same rendering
 // logic.
+//
+// `sourceBadgeLabel` / `SourceBadge` below extend that same principle to
+// the LIST views (Заявки, Пациенти) — a compact one-line version of the
+// same source_context, so a clinic sees one consistent answer to "where
+// did this patient come from" everywhere it appears, not slightly
+// different wording on the list versus the detail page.
 
 import { TREATMENT_LABELS, readinessLabel, urgencyLabel } from '@/lib/consultationLabels'
 
@@ -19,13 +25,36 @@ export interface PatientContextQuizRow {
 }
 
 export interface PatientContextSource {
-  source_type: 'quiz' | 'article' | 'campaign' | 'direct' | 'unknown'
+  // `not_tracked` is distinct from `unknown`: `unknown` means the
+  // classifier looked at a real lead and could not place it; `not_tracked`
+  // means this row predates ATTRIBUTION_LIST_VISIBLE_SINCE on the backend
+  // and the real answer -- knowable, and shown on the lead's own detail
+  // page -- is deliberately withheld here. Only ever set by the list
+  // endpoints, never by `_safe_source_context` itself.
+  source_type: 'quiz' | 'article' | 'campaign' | 'direct' | 'unknown' | 'not_tracked'
+  origin_system?: string | null
   article_title: string | null
   article_slug: string | null
   utm_source: string | null
   utm_campaign: string | null
   utm_ad: string | null
   content_path_summary: string | null
+  first_touch?: AttributionTouch
+  last_touch?: AttributionTouch
+}
+
+export interface AttributionTouch {
+  source?: string | null
+  medium?: string | null
+  campaign?: string | null
+  content?: string | null
+  term?: string | null
+  campaign_id?: string | null
+  adset_id?: string | null
+  ad_id?: string | null
+  landing_page?: string | null
+  referrer?: string | null
+  seen_at?: string | null
 }
 
 export interface PatientContext {
@@ -47,11 +76,12 @@ export interface PatientContext {
 }
 
 const SOURCE_TYPE_LABELS: Record<PatientContextSource['source_type'], string> = {
-  quiz:     'Въпросник',
-  article:  'Статия в блога',
-  campaign: 'Кампания',
-  direct:   'Директно посещение',
-  unknown:  'Източникът не е известен',
+  quiz:        'Въпросник',
+  article:     'Статия в блога',
+  campaign:    'Кампания',
+  direct:      'Директно посещение',
+  unknown:     'Източникът не е известен',
+  not_tracked: 'Няма данни отпреди въвеждането',
 }
 
 function utmCampaignLabel(src: PatientContextSource): string {
@@ -75,6 +105,39 @@ function articleFallbackLabel(src: PatientContextSource): string | null {
   return null
 }
 
+/** One line + a colour, for a list row. The full block below (with the
+ * journey summary and orientation) belongs on a detail page; a list row
+ * only has room for the answer to "where from", not the whole story. */
+export function sourceBadgeLabel(src: PatientContextSource): { label: string; cls: string } {
+  switch (src.source_type) {
+    case 'campaign':
+      return { label: utmCampaignLabel(src) || SOURCE_TYPE_LABELS.campaign, cls: 'bg-violet-50 text-violet-700' }
+    case 'article':
+      return { label: articleFallbackLabel(src) || SOURCE_TYPE_LABELS.article, cls: 'bg-sky-50 text-sky-700' }
+    case 'quiz':
+      return { label: SOURCE_TYPE_LABELS.quiz, cls: 'bg-teal-50 text-teal-700' }
+    case 'direct':
+      return src.origin_system === 'clear_advance'
+        ? { label: 'Clear Advance', cls: 'bg-emerald-50 text-emerald-700' }
+        : { label: SOURCE_TYPE_LABELS.direct, cls: 'bg-slate-100 text-slate-600' }
+    case 'not_tracked':
+      return { label: SOURCE_TYPE_LABELS.not_tracked, cls: 'bg-slate-50 text-slate-400 italic' }
+    default:
+      return src.origin_system === 'clear_advance'
+        ? { label: 'Clear Advance', cls: 'bg-emerald-50 text-emerald-700' }
+        : { label: SOURCE_TYPE_LABELS.unknown, cls: 'bg-slate-100 text-slate-500' }
+  }
+}
+
+export function SourceBadge({ source }: { source: PatientContextSource }) {
+  const { label, cls } = sourceBadgeLabel(source)
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium whitespace-nowrap ${cls}`}>
+      {label}
+    </span>
+  )
+}
+
 export function PatientContextSection({ ctx }: { ctx: PatientContext }) {
   const hasMainContext = !!(
     ctx.treatment_interest || ctx.city || ctx.readiness || ctx.urgency
@@ -85,7 +148,11 @@ export function PatientContextSection({ ctx }: { ctx: PatientContext }) {
   const hasFlags = (ctx.signal_flags?.length ?? 0) > 0
   const article = articleFallbackLabel(ctx.source_context)
   const campaignLabel = utmCampaignLabel(ctx.source_context)
-  const hasSource = !!(article || campaignLabel || ctx.source_context.content_path_summary)
+  const touches = [
+    { label: 'Първи контакт', value: ctx.source_context.first_touch },
+    { label: 'Последен контакт', value: ctx.source_context.last_touch },
+  ].filter((item) => item.value && Object.values(item.value).some(Boolean))
+  const hasSource = !!(article || campaignLabel || ctx.source_context.content_path_summary || touches.length)
 
   return (
     <section
@@ -246,6 +313,21 @@ export function PatientContextSection({ ctx }: { ctx: PatientContext }) {
               <p className="text-xs text-slate-500 leading-relaxed">
                 {ctx.source_context.content_path_summary}
               </p>
+            )}
+            {touches.length > 0 && (
+              <div className="mt-3 divide-y divide-slate-100 border-t border-slate-100">
+                {touches.map(({ label, value }) => (
+                  <dl key={label} className="grid grid-cols-[8rem_1fr] gap-x-3 gap-y-1 py-3 text-xs">
+                    <dt className="font-medium text-slate-700 col-span-2 mb-1">{label}</dt>
+                    {value?.source && <><dt className="text-slate-500">Канал</dt><dd>{[value.source, value.medium].filter(Boolean).join(' / ')}</dd></>}
+                    {value?.campaign && <><dt className="text-slate-500">Кампания</dt><dd className="break-words">{value.campaign}</dd></>}
+                    {value?.content && <><dt className="text-slate-500">Реклама</dt><dd className="break-words">{value.content}</dd></>}
+                    {value?.term && <><dt className="text-slate-500">Ключова дума</dt><dd className="break-words">{value.term}</dd></>}
+                    {value?.landing_page && <><dt className="text-slate-500">Страница</dt><dd className="break-all">{value.landing_page}</dd></>}
+                    {value?.seen_at && <><dt className="text-slate-500">Засечено</dt><dd>{new Date(value.seen_at).toLocaleString('bg-BG')}</dd></>}
+                  </dl>
+                ))}
+              </div>
             )}
           </div>
         ) : (

@@ -1,0 +1,20 @@
+{
+  "name": "Zubite Frontend Dev",
+  "dockerComposeFile": "../docker-compose.yml",
+  "service": "zubite-frontend",
+  "workspaceFolder": "/app",
+  "shutdownAction": "stopCompose",
+  "features": {
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  },
+  "postCreateCommand": "npm install"
+}

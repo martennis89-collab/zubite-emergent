@@ -1,5 +1,7 @@
 // Shared labels and helpers for the consultation workflow UI.
 
+import type { PatientContextSource } from '@/components/PatientContextSection'
+
 export const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
   new:                  { label: 'Нова',                  cls: 'bg-slate-100 text-slate-700' },
   assigned:             { label: 'Назначена',             cls: 'bg-teal-100 text-teal-700' },
@@ -97,7 +99,9 @@ export const EVENT_LABELS: Record<string, string> = {
   marked_attended: 'Посетила консултацията',
   marked_no_show: 'Не се яви',
   cancelled: 'Отменена',
-  admin_note_added: 'Бележка от админ',
+  admin_note_added: 'Добавена бележка',
+  lead_details_updated: 'Обновени данни на пациента',
+  revenue_recorded: 'Записан приход',
   admin_status_change: 'Промяна на статус (админ)',
 }
 
@@ -501,6 +505,11 @@ export interface ConsultationRequest {
   utm_campaign?: string | null
   utm_adset?: string | null
   utm_ad?: string | null
+  // Compact attribution for the list view -- same computation as
+  // `patient_context.source_context` on the detail page, gated by
+  // ATTRIBUTION_LIST_VISIBLE_SINCE on the backend. Absent on responses
+  // from before this field existed, hence optional.
+  source_badge?: PatientContextSource
   status: string
   assigned_clinic_id?: string | null
   assigned_clinic_name?: string | null
@@ -515,6 +524,8 @@ export interface ConsultationRequest {
   no_show_at?: string | null
   cancelled_at?: string | null
   notes?: string | null
+  owner?: string | null
+  follow_up_at?: string | null
   created_at: string
   updated_at?: string
   lead_id?: string | null
