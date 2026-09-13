@@ -25,14 +25,14 @@
     <rect x="0" y="96" width="168" height="3" fill="#0A0A0A"/>
 
     <!-- Eyebrow label -->
-    <text class="label" x="0" y="158" font-size="21" fill="#007956">ОБРАТНА ВРЪЗКА ОТ ПАЦИЕНТИ</text>
+    <text class="label" data-slot="eyebrow" x="0" y="158" font-size="21" fill="#007956">ОБРАТНА ВРЪЗКА ОТ ПАЦИЕНТИ</text>
 
     <!-- Hero headline: one Playfair accent word in Signal Orange (§4) -->
     <text class="display" x="0" y="270" font-size="96" fill="#0A0A0A">Споделете <tspan class="accent" font-size="96" fill="#FF6B00" letter-spacing="0">мнение</tspan></text>
     <text class="display" x="0" y="374" font-size="96" fill="#0A0A0A">за вашето посещение</text>
 
     <!-- Clinic name / city line (editable placeholder) -->
-    <text class="body" x="0" y="452" font-size="34" fill="#525252"><tspan font-weight="700" fill="#0A0A0A">[ Име на клиниката ]</tspan><tspan fill="#737373"> · [ Град ]</tspan></text>
+    <text class="body" x="0" y="452" font-size="34" fill="#525252"><tspan data-slot="clinicName" font-weight="700" fill="#0A0A0A">[ Име на клиниката ]</tspan><tspan data-slot="clinicCity" fill="#737373"> · [ Град ]</tspan></text>
 
     <!-- Evidence/action surface (§7, layer 3): white panel, 1px border, one QR next step -->
     <g transform="translate(195 512)" filter="url(#cardShadow)">

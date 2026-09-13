@@ -25,19 +25,21 @@
     <rect x="0" y="96" width="168" height="3" fill="#0A0A0A"/>
 
     <!-- Eyebrow label -->
-    <text class="label" x="0" y="158" font-size="21" fill="#007956">ОБРАТНА ВРЪЗКА ОТ ПАЦИЕНТИ</text>
+    <text class="label" data-slot="eyebrow" x="0" y="158" font-size="21" fill="#007956">ОБРАТНА ВРЪЗКА ОТ ПАЦИЕНТИ</text>
 
     <!-- Hero headline: one Playfair accent word in Signal Orange (§4) -->
     <text class="display" x="0" y="270" font-size="96" fill="#0A0A0A">Споделете <tspan class="accent" font-size="96" fill="#FF6B00" letter-spacing="0">мнение</tspan></text>
-    <text class="display" x="0" y="374" font-size="96" fill="#0A0A0A">за вашето посещение</text>
+    <text class="display" data-slot="headline2" x="0" y="374" font-size="96" fill="#0A0A0A">за вашето посещение</text>
 
-    <!-- Clinic name / city line (editable placeholder) -->
-    <text class="body" x="0" y="452" font-size="34" fill="#525252"><tspan font-weight="700" fill="#0A0A0A">[ Име на клиниката ]</tspan><tspan fill="#737373"> · [ Град ]</tspan></text>
+    <!-- Clinic name / city line. Two tspans on ONE line (not a multi-line
+         block), so each carries its own slot — the generator swaps tspan
+         slots as plain text and never re-flows them. -->
+    <text class="body" x="0" y="452" font-size="34" fill="#525252"><tspan data-slot="clinicName" font-weight="700" fill="#0A0A0A">[ Име на клиниката ]</tspan><tspan data-slot="clinicCity" fill="#737373"> · [ Град ]</tspan></text>
 
     <!-- Evidence/action surface (§7, layer 3): white panel, 1px border, one QR next step -->
     <g transform="translate(195 512)" filter="url(#cardShadow)">
       <rect width="620" height="622" rx="34" fill="#FFFFFF" stroke="#E5E5E5" stroke-width="2"/>
-      <text class="label" x="310" y="86" font-size="20" fill="#CC5400" text-anchor="middle">СКАНИРАЙ · ОСТАВИ ОТЗИВ</text>
+      <text class="label" data-slot="qrLabel" x="310" y="86" font-size="20" fill="#CC5400" text-anchor="middle">СКАНИРАЙ · ОСТАВИ ОТЗИВ</text>
 
       <!-- QR placeholder: paste the clinic's unique review-link QR here.
            Finder-pattern corners signal "QR goes here"; keep it square. -->
@@ -60,11 +62,11 @@
     </g>
 
     <!-- Instruction under the card -->
-    <text class="body" x="505" y="1200" font-size="30" fill="#0A0A0A" text-anchor="middle">Сканирайте QR кода с телефона си и оставете кратка обратна връзка.</text>
+    <text class="body" data-slot="instruction" x="505" y="1200" font-size="30" fill="#0A0A0A" text-anchor="middle">Сканирайте QR кода с телефона си и оставете кратка обратна връзка.</text>
 
     <!-- Footer: sign-off (left) + clinic logo (right) (§1, §5) -->
     <line x1="0" y1="1290" x2="1010" y2="1290" stroke="#E5E5E5" stroke-width="2"/>
-    <text class="body" x="0" y="1336" font-size="26" fill="#0A0A0A"><tspan x="0">Вашето мнение помага на други</tspan><tspan x="0" dy="34">пациенти да направят по-информиран избор.</tspan></text>
+    <text class="body" data-slot="footer" x="0" y="1336" font-size="26" fill="#0A0A0A"><tspan x="0">Вашето мнение помага на други</tspan><tspan x="0" dy="34">пациенти да направят по-информиран избор.</tspan></text>
 
     <!-- Clinic logo placeholder — never an equal lockup with the wordmark (§5) -->
     <g transform="translate(740 1300)">
