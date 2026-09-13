@@ -416,8 +416,11 @@ async def admin_record_revenue(lead_id: str, data: LeadRevenue, request: Request
             request=request,
         )
 
-    asyncio.create_task(
-        report_revenue(db, lead, minor, data.currency.upper(), data.reference))
+    queued = await report_revenue(
+        db, lead, minor, data.currency.upper(), data.reference, deliver=False)
+    if queued and lead.get("assigned_clinic_id"):
+        asyncio.create_task(process_pending_outcomes(
+            db, clinic_id=lead["assigned_clinic_id"]))
 
     return {"ok": True, "amount_minor": minor, "currency": data.currency.upper(),
             "deduplicated": bool(existing)}
@@ -457,10 +460,12 @@ async def admin_update_lead(lead_id: str, data: LeadStatusUpdate, request: Reque
                 severity="info",
                 request=request,
             )
-            # Fire-and-forget: Clear Advance being slow or down must never make
-            # a receptionist's status change fail or hang. A lead with no
-            # assigned clinic is reported to nobody -- see clear_advance.py.
-            asyncio.create_task(report_status(db, lead, update_dict["status"]))
+            # Persist before responding; only network delivery is backgrounded.
+            queued = await report_status(
+                db, lead, update_dict["status"], deliver=False)
+            if queued and lead.get("assigned_clinic_id"):
+                asyncio.create_task(process_pending_outcomes(
+                    db, clinic_id=lead["assigned_clinic_id"]))
         # Audit notes change with length-only metadata; NEVER store note bodies.
         if "notes" in update_dict:
             old_len = len(before.get("notes") or "") if isinstance(before.get("notes"), str) else 0
@@ -603,10 +608,11 @@ async def update_lead(lead_id: str, update: LeadUpdate, request: Request, user: 
                 severity="info",
                 request=request,
             )
-            # Fire-and-forget: Clear Advance being slow or down must never make
-            # a receptionist's status change fail or hang. A lead with no
-            # assigned clinic is reported to nobody -- see clear_advance.py.
-            asyncio.create_task(report_status(db, updated, update_data["status"]))
+            queued = await report_status(
+                db, updated, update_data["status"], deliver=False)
+            if queued and updated.get("assigned_clinic_id"):
+                asyncio.create_task(process_pending_outcomes(
+                    db, clinic_id=updated["assigned_clinic_id"]))
 
     return updated
 

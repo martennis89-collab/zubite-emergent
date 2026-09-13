@@ -1899,6 +1899,11 @@ class ClearAdvanceStatusMappings(BaseModel):
             if not isinstance(status, str) or not status.strip():
                 raise ValueError("mapping status keys must be non-empty strings")
             key = status.strip().upper()
+            if key == "COMPLETED" and outcome is not None:
+                raise ValueError(
+                    "COMPLETED cannot be mapped to a conversion; use ATTENDED "
+                    "only after a confirmed visit"
+                )
             if outcome is not None:
                 if not isinstance(outcome, str) or outcome not in allowed:
                     raise ValueError(f"mapping outcome must be one of {sorted(allowed)} or null")

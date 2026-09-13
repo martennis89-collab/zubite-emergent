@@ -231,6 +231,60 @@ def test_outbox_makes_repeated_hooks_single_delivery(monkeypatch):
     assert db.clear_advance_outbox.docs[0]["event_id"] == "L1:appointment_booked"
 
 
+def test_deferred_delivery_is_durable_before_any_network_call(monkeypatch):
+    async def must_not_post(*_args, **_kwargs):
+        raise AssertionError("delivery must be deferred until after the outbox insert")
+
+    monkeypatch.setattr(clear_advance, "_post", must_not_post)
+    db = OutboxDB([LEAD])
+    assert asyncio.run(clear_advance.report_status(
+        db, LEAD, "SCHEDULED", deliver=False))
+    assert db.clear_advance_outbox.docs[0]["status"] == "pending"
+
+
+def test_undeliverable_outbox_event_is_deferred_instead_of_hot_looping():
+    event = {
+        "event_id": "missing:appointment_booked",
+        "clinic_id": "clinic-a",
+        "lead_id": "missing",
+        "outcome": "appointment_booked",
+        "payload": {},
+        "status": "pending",
+        "attempts": 0,
+    }
+    db = OutboxDB([])
+    db.clear_advance_outbox.docs.append(event)
+    result = asyncio.run(clear_advance.process_pending_outcomes(db))
+    assert result == {"processed": 1, "succeeded": 0, "failed": 1}
+    assert event["status"] == "failed"
+    assert event["attempts"] == 1
+    assert event["last_error"] == "lead_not_found"
+    assert event["next_attempt_at"] > event["last_attempt_at"]
+
+
+def test_revenue_outbox_identity_is_scoped_by_clinic(monkeypatch):
+    sent = []
+
+    async def fake_post(_path, _key, payload):
+        sent.append(payload)
+        return {"ok": True}
+
+    monkeypatch.setattr(clear_advance, "_post", fake_post)
+    second = {**LEAD, "id": "L2", "assigned_clinic_id": "clinic-b",
+              "clear_advance_lead_id": "remote-2"}
+    db = OutboxDB([LEAD, second])
+    db.clinic_integrations.docs.append({
+        "clinic_id": "clinic-b", "provider": "clear_advance",
+        "api_key": Fernet(SECRET.encode()).encrypt(b"ca_sk_other").decode(),
+    })
+    assert asyncio.run(clear_advance.report_revenue(db, LEAD, 1000, "EUR", "INV-1"))
+    assert asyncio.run(clear_advance.report_revenue(db, second, 2000, "EUR", "INV-1"))
+    assert len(db.clear_advance_outbox.docs) == 2
+    assert {d["event_id"] for d in db.clear_advance_outbox.docs} == {
+        "clinic-a:sale:INV-1", "clinic-b:sale:INV-1",
+    }
+
+
 def test_clinic_status_mapping_overrides_default(monkeypatch):
     sent = []
 
@@ -247,8 +301,37 @@ def test_clinic_status_mapping_overrides_default(monkeypatch):
     assert sent[0]["outcome"] == "appointment_booked"
 
 
+def test_confirmed_attendance_uses_the_clinics_mapping(monkeypatch):
+    sent = []
+
+    async def fake_post(_path, _key, payload):
+        sent.append(payload)
+        return {"ok": True}
+
+    monkeypatch.setattr(clear_advance, "_post", fake_post)
+    db = FakeDB([LEAD])
+    db.clinic_integrations.docs[0]["status_mappings"] = {"ATTENDED": None}
+    assert not asyncio.run(clear_advance.report_consultation_action(
+        db, "L1", "mark_attended"))
+    assert sent == []
+
+
+def test_legacy_completed_mapping_cannot_claim_an_attendance(monkeypatch):
+    async def must_not_post(*_args, **_kwargs):
+        raise AssertionError("COMPLETED is not proof that the patient attended")
+
+    monkeypatch.setattr(clear_advance, "_post", must_not_post)
+    db = FakeDB([LEAD])
+    db.clinic_integrations.docs[0]["status_mappings"] = {
+        "COMPLETED": "appointment_attended",
+    }
+    assert not asyncio.run(clear_advance.report_status(db, LEAD, "COMPLETED"))
+
+
 def test_status_mapping_schema_normalizes_and_rejects_unknown_outcomes():
     parsed = ClearAdvanceStatusMappings(mappings={" scheduled ": "appointment_booked", "COMPLETED": None})
     assert parsed.mappings == {"SCHEDULED": "appointment_booked", "COMPLETED": None}
     with pytest.raises(ValueError):
         ClearAdvanceStatusMappings(mappings={"NEW": "not_a_clear_advance_outcome"})
+    with pytest.raises(ValueError):
+        ClearAdvanceStatusMappings(mappings={"COMPLETED": "appointment_attended"})

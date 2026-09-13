@@ -42,7 +42,10 @@ OUTBOX_RETRY_DELAYS_SECONDS = (60, 300, 900, 3600)
 SUPPORTED_OUTCOMES = frozenset({
     "appointment_booked", "appointment_attended", "sale",
 })
-DEFAULT_STATUS_MAPPINGS = {"SCHEDULED": "appointment_booked"}
+DEFAULT_STATUS_MAPPINGS = {
+    "SCHEDULED": "appointment_booked",
+    "ATTENDED": "appointment_attended",
+}
 
 # A lead Clear Advance keeps rejecting -- an unusable phone number, a consent
 # flag it will not accept -- will be rejected identically forever. The sweep
@@ -70,6 +73,11 @@ STATUS_OUTCOMES = {
 CONSULTATION_OUTCOMES = {
     "book_consultation": "appointment_booked",
     "mark_attended": "appointment_attended",
+}
+
+CONSULTATION_STATUS_KEYS = {
+    "book_consultation": "SCHEDULED",
+    "mark_attended": "ATTENDED",
 }
 
 
@@ -211,6 +219,49 @@ def _event_id(lead: Dict[str, Any], outcome: str) -> str:
     return f"{lead.get('id')}:{outcome}"
 
 
+def _revenue_outbox_id(lead: Dict[str, Any], source_event_id: str) -> str:
+    """Tenant-safe local identity for one payment event.
+
+    Invoice/reference values are only unique inside a clinic. Clear Advance
+    scopes them by organisation; the Zubite outbox must do the same.
+    """
+    return f"{lead.get('assigned_clinic_id')}:sale:{source_event_id}"
+
+
+def _lead_touch(lead: Dict[str, Any], prefix: str) -> Dict[str, str]:
+    """Build Clear Advance's safe first/latest-touch payload from a Zubite lead."""
+    aliases = {
+        "utm_source": "utm_source",
+        "utm_medium": "utm_medium",
+        "utm_campaign": "utm_campaign",
+        "utm_content": "utm_content",
+        "utm_term": "utm_term",
+        "utm_campaign_id": "campaign_id",
+        "utm_adset_id": "adset_id",
+        "utm_ad_id": "ad_id",
+        "fbclid": "fbclid",
+        "gclid": "gclid",
+        "msclkid": "msclkid",
+        "ttclid": "ttclid",
+        "landing_page": "landing_page",
+        "referrer": "referrer",
+        "seen_at": "seen_at",
+    }
+    touch: Dict[str, str] = {}
+    for local_suffix, remote_key in aliases.items():
+        value = lead.get(f"{prefix}_{local_suffix}")
+        if isinstance(value, str) and value.strip():
+            touch[remote_key] = value.strip()
+    if prefix == "latest":
+        if "utm_source" not in touch and isinstance(lead.get("utm_source"), str):
+            touch["utm_source"] = lead["utm_source"]
+        if "utm_campaign" not in touch and isinstance(lead.get("utm_campaign"), str):
+            touch["utm_campaign"] = lead["utm_campaign"]
+        if "utm_content" not in touch and isinstance(lead.get("utm_ad"), str):
+            touch["utm_content"] = lead["utm_ad"]
+    return touch
+
+
 async def _enqueue_outcome(db, lead: Dict[str, Any], outcome: str,
                            payload: Dict[str, Any], *, event_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """Persist an outbound conversion before attempting delivery.
@@ -271,9 +322,35 @@ async def _deliver_outcome(db, lead: Dict[str, Any], event: Dict[str, Any],
     return ok
 
 
+async def _defer_outbox_event(outbox, event: Dict[str, Any], error: str) -> None:
+    """Record an undeliverable event and keep it off the hot retry path."""
+    now = datetime.now(timezone.utc)
+    attempt_number = int(event.get("attempts") or 0)
+    retry_after = OUTBOX_RETRY_DELAYS_SECONDS[
+        min(attempt_number, len(OUTBOX_RETRY_DELAYS_SECONDS) - 1)
+    ]
+    await outbox.update_one(
+        {"event_id": event.get("event_id")},
+        {
+            "$set": {
+                "status": "failed",
+                "updated_at": now,
+                "last_attempt_at": now,
+                "last_error": error,
+                "next_attempt_at": now + timedelta(seconds=retry_after),
+            },
+            "$inc": {"attempts": 1},
+        },
+    )
+
+
 async def _status_outcome(db, lead: Dict[str, Any], status: str) -> Optional[str]:
     """Resolve a clinic-specific status mapping, falling back to defaults."""
     normalized = (status or "").upper()
+    # COMPLETED is an administrative workflow state, not evidence that the
+    # patient attended. Ignore any mapping saved by an older settings screen.
+    if normalized == "COMPLETED":
+        return None
     record = await db.clinic_integrations.find_one(
         {"clinic_id": lead.get("assigned_clinic_id"), "provider": "clear_advance"},
         {"_id": 0, "status_mappings": 1},
@@ -313,7 +390,10 @@ async def report_lead(db, lead: Dict[str, Any]) -> Optional[str]:
 
     # Imported leads preserve Clear Advance's separate consent flags. Native
     # Zubite leads only have `consent`, so retain that fallback.
-    consent = bool(lead.get("consent_marketing", lead.get("consent")))
+    privacy_consent = bool(lead.get("consent_privacy", lead.get("consent")))
+    marketing_consent = bool(lead.get("consent_marketing", lead.get("consent")))
+    first_touch = _lead_touch(lead, "first")
+    last_touch = _lead_touch(lead, "latest")
     result = await _post("/api/v1/leads", key, {
         "name": lead.get("name") or "",
         "phone": lead.get("phone") or "",
@@ -324,12 +404,15 @@ async def report_lead(db, lead: Dict[str, Any]) -> Optional[str]:
         # Mapping one onto both is only correct while the form's wording
         # actually covers advertising measurement -- verify that before trusting
         # the attribution this produces.
-        "consent_privacy": consent,
-        "consent_marketing": consent,
+        "consent_privacy": privacy_consent,
+        "consent_marketing": marketing_consent,
+        "event_id": lead_id,
         "source_system": "zubite",
         "source_lead_id": lead_id,
-        "utm_source": lead.get("utm_source"),
-        "utm_campaign": lead.get("utm_campaign"),
+        "landing_page": lead.get("first_landing_page") or lead.get("page_path"),
+        "referrer": lead.get("first_referrer"),
+        "first_touch": first_touch,
+        "last_touch": last_touch,
     })
 
     remote_id = (result or {}).get("lead_id")
@@ -352,7 +435,8 @@ async def _linked_id(db, lead: Dict[str, Any]) -> Optional[str]:
     return lead.get("clear_advance_lead_id") or await report_lead(db, lead)
 
 
-async def report_outcome(db, lead: Dict[str, Any], outcome: str) -> bool:
+async def report_outcome(db, lead: Dict[str, Any], outcome: str,
+                         *, deliver: bool = True) -> bool:
     """Report one outcome for one lead.
 
     The source event id is the lead plus the outcome, deliberately not the
@@ -374,49 +458,55 @@ async def report_outcome(db, lead: Dict[str, Any], outcome: str) -> bool:
     if not key:
         return False
 
-    remote_id = await _linked_id(db, lead)
-    if not remote_id:
-        return False
-
     payload = {
         "source_system": "zubite",
         "source_event_id": _event_id(lead, outcome),
         "outcome": outcome,
-        "lead_reference": remote_id,
         "occurred_at": datetime.now(timezone.utc).isoformat(),
     }
+    remote_id = lead.get("clear_advance_lead_id")
+    if remote_id:
+        payload["lead_reference"] = remote_id
+    else:
+        payload["source_lead_id"] = str(lead.get("id") or "")
     event = await _enqueue_outcome(db, lead, outcome, payload)
     # A durable success is already delivered. This makes duplicate hooks and
     # manual retries read-only after the first successful handoff.
     if event and event.get("status") == "succeeded":
         return True
     if event:
+        if not deliver:
+            return True
         return await _deliver_outcome(db, lead, {
             "event_id": event["event_id"], "outcome": outcome,
             "payload": event.get("payload") or payload,
         }, key)
 
+    if not deliver:
+        return False
     result = await _post_with_retry("/api/v1/outcomes", key, payload)
     ok = bool(result)
     await _record_sync_health(db, lead, ok=ok, kind=outcome)
     return ok
 
 
-async def report_status(db, lead: Dict[str, Any], status: str) -> bool:
+async def report_status(db, lead: Dict[str, Any], status: str,
+                        *, deliver: bool = True) -> bool:
     """Report a lead status that means something to an ad platform."""
     outcome = await _status_outcome(db, lead, status)
-    return await report_outcome(db, lead, outcome) if outcome else False
+    return await report_outcome(db, lead, outcome, deliver=deliver) if outcome else False
 
 
-async def report_consultation_action(db, lead_id: str, action_type: str) -> bool:
+async def report_consultation_action(db, lead_id: str, action_type: str,
+                                     *, deliver: bool = True) -> bool:
     """Report what the clinic recorded against a consultation.
 
     Takes the lead id rather than the lead because the caller has a
     consultation request, and the routing, the consent and the Clear Advance
     reference all live on the lead it came from.
     """
-    outcome = CONSULTATION_OUTCOMES.get(action_type)
-    if not outcome or not lead_id:
+    status_key = CONSULTATION_STATUS_KEYS.get(action_type)
+    if not status_key or not lead_id:
         return False
 
     lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
@@ -424,11 +514,13 @@ async def report_consultation_action(db, lead_id: str, action_type: str) -> bool
         logger.warning("Clear Advance: consultation points at missing lead %s", lead_id)
         return False
 
-    return await report_outcome(db, lead, outcome)
+    outcome = await _status_outcome(db, lead, status_key)
+    return await report_outcome(db, lead, outcome, deliver=deliver) if outcome else False
 
 
 async def report_revenue(db, lead: Dict[str, Any], amount_minor: int,
-                         currency: str, source_event_id: str) -> bool:
+                         currency: str, source_event_id: str,
+                         *, deliver: bool = True) -> bool:
     """Report money actually agreed or taken, in minor units.
 
     `source_event_id` must identify the *operation*, not the lead: a patient can
@@ -445,27 +537,34 @@ async def report_revenue(db, lead: Dict[str, Any], amount_minor: int,
     if not key:
         return False
 
-    remote_id = await _linked_id(db, lead)
-    if not remote_id:
-        return False
-
     payload = {
         "source_system": "zubite",
         "source_event_id": source_event_id,
         "outcome": "sale",
-        "lead_reference": remote_id,
         "occurred_at": datetime.now(timezone.utc).isoformat(),
         "amount_minor": amount_minor,
         "currency": currency.upper(),
     }
-    event = await _enqueue_outcome(db, lead, "sale", payload, event_id=source_event_id)
+    remote_id = lead.get("clear_advance_lead_id")
+    if remote_id:
+        payload["lead_reference"] = remote_id
+    else:
+        payload["source_lead_id"] = str(lead.get("id") or "")
+    event = await _enqueue_outcome(
+        db, lead, "sale", payload,
+        event_id=_revenue_outbox_id(lead, source_event_id),
+    )
     if event and event.get("status") == "succeeded":
         return True
     if event:
+        if not deliver:
+            return True
         return await _deliver_outcome(db, lead, {
             "event_id": event["event_id"], "outcome": "sale",
             "payload": event.get("payload") or payload,
         }, key)
+    if not deliver:
+        return False
     result = await _post_with_retry("/api/v1/outcomes", key, payload)
     ok = bool(result)
     await _record_sync_health(db, lead, ok=ok, kind="sale")
@@ -554,6 +653,7 @@ async def process_pending_outcomes(db, limit: int = 50,
         clinic_id = event.get("clinic_id")
         lead_id = event.get("lead_id")
         if not clinic_id or not lead_id:
+            await _defer_outbox_event(outbox, event, "missing_clinic_or_lead_id")
             failed += 1
             continue
         lead = await db.leads.find_one({"id": lead_id}, {"_id": 0})
@@ -562,7 +662,12 @@ async def process_pending_outcomes(db, limit: int = 50,
             {"_id": 0, "api_key": 1},
         )
         key = _clear_advance_key(record or {}, clinic_id)
-        if not lead or not key:
+        if not lead:
+            await _defer_outbox_event(outbox, event, "lead_not_found")
+            failed += 1
+            continue
+        if not key:
+            await _defer_outbox_event(outbox, event, "integration_key_unavailable")
             failed += 1
             continue
         ok = await _deliver_outcome(db, lead, event, key)
@@ -591,7 +696,7 @@ def _imported_lead_doc(remote: Dict[str, Any], clinic_id: str, local_id: str) ->
         "consent_privacy": bool(remote.get("consent_privacy")),
         "consent_marketing": bool(remote.get("consent_marketing")),
         "assigned_clinic_id": clinic_id,
-        "clinic_lead_status": "new",
+        "clinic_lead_status": "new" if remote_status == "new" else "contacted",
         "status": local_status,
         "clear_advance_status": remote_status,
         "source": remote.get("source") or "clear_advance",
@@ -600,13 +705,29 @@ def _imported_lead_doc(remote: Dict[str, Any], clinic_id: str, local_id: str) ->
         "clear_advance_imported_at": datetime.now(timezone.utc),
         "created_at": remote.get("created_at") or datetime.now(timezone.utc).isoformat(),
         "first_utm_source": first.get("utm_source") or remote.get("utm_source"),
+        "first_utm_medium": first.get("utm_medium") or remote.get("utm_medium"),
         "first_utm_campaign": first.get("utm_campaign") or remote.get("utm_campaign"),
         "first_utm_ad": first.get("utm_content") or remote.get("utm_content"),
+        "first_utm_content": first.get("utm_content") or remote.get("utm_content"),
+        "first_utm_term": first.get("utm_term") or remote.get("utm_term"),
+        "first_utm_campaign_id": first.get("campaign_id") or remote.get("campaign_id"),
+        "first_utm_adset_id": first.get("adset_id") or remote.get("adset_id"),
+        "first_utm_ad_id": first.get("ad_id") or remote.get("ad_id"),
         "latest_utm_source": last.get("utm_source") or remote.get("utm_source"),
+        "latest_utm_medium": last.get("utm_medium") or remote.get("utm_medium"),
         "latest_utm_campaign": last.get("utm_campaign") or remote.get("utm_campaign"),
         "latest_utm_ad": last.get("utm_content") or remote.get("utm_content"),
-        "first_landing_page": remote.get("landing_page"),
-        "first_referrer": remote.get("referrer"),
+        "latest_utm_content": last.get("utm_content") or remote.get("utm_content"),
+        "latest_utm_term": last.get("utm_term") or remote.get("utm_term"),
+        "latest_utm_campaign_id": last.get("campaign_id") or remote.get("campaign_id"),
+        "latest_utm_adset_id": last.get("adset_id") or remote.get("adset_id"),
+        "latest_utm_ad_id": last.get("ad_id") or remote.get("ad_id"),
+        "first_landing_page": first.get("landing_page") or remote.get("landing_page"),
+        "latest_landing_page": last.get("landing_page") or remote.get("landing_page"),
+        "first_referrer": first.get("referrer") or remote.get("referrer"),
+        "latest_referrer": last.get("referrer") or remote.get("referrer"),
+        "first_seen_at": first.get("seen_at"),
+        "last_seen_at": last.get("seen_at"),
         # Qualification answers remain clinic context and are never forwarded
         # back to advertising destinations.
         "answers": qualification if isinstance(qualification, dict) else {},
@@ -657,13 +778,19 @@ async def import_clear_advance_lead(db, remote: Dict[str, Any], clinic_id: str) 
     return created
 
 
-async def import_pending_leads(db, limit: int = 100) -> int:
+async def import_pending_leads(db, limit: int = 100,
+                               clinic_id: Optional[str] = None) -> int:
     """Pull new Clear Advance leads into each connected clinic workspace."""
     if not _base_url():
         return 0
     imported = 0
+    integration_query: Dict[str, Any] = {
+        "provider": "clear_advance", "connected_at": {"$exists": True},
+    }
+    if clinic_id:
+        integration_query["clinic_id"] = clinic_id
     integrations = await db.clinic_integrations.find(
-        {"provider": "clear_advance", "connected_at": {"$exists": True}},
+        integration_query,
         {"_id": 0, "clinic_id": 1, "api_key": 1, "connected_at": 1,
          "clear_advance_import_cursor": 1},
     ).to_list(None)

@@ -1896,15 +1896,16 @@ async def clinic_perform_action(
         except Exception as exc:
             logger.warning(f"care_pass unlock (offline) failed: {exc}")
 
-    # Clear Advance: the clinic has just recorded what actually happened, which
-    # is the only place in Zubite that distinguishes an attended appointment
-    # from a no-show. Backgrounded, and never allowed to fail the action --
-    # a reporting problem must not stop a clinic marking a patient attended.
+    # Persist the conversion before returning. Network delivery stays in the
+    # background, so a Clear Advance outage cannot block clinic workflow while
+    # a process restart cannot erase a just-recorded appointment outcome.
     if refreshed and refreshed.get("lead_id"):
-        from clear_advance import report_consultation_action
-        asyncio.create_task(
-            report_consultation_action(db, refreshed["lead_id"], body.action_type)
-        )
+        from clear_advance import process_pending_outcomes, report_consultation_action
+        queued = await report_consultation_action(
+            db, refreshed["lead_id"], body.action_type, deliver=False)
+        if queued:
+            asyncio.create_task(process_pending_outcomes(
+                db, clinic_id=clinic["id"]))
 
     return {"request": refreshed, "appointment": appointment_doc}
 

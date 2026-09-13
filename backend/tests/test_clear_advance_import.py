@@ -25,8 +25,10 @@ class Collection:
     def __init__(self, docs):
         self.docs = docs
         self.updates = []
+        self.find_queries = []
 
-    def find(self, _query, _projection=None):
+    def find(self, query, _projection=None):
+        self.find_queries.append(query)
         return Cursor(self.docs)
 
     async def update_one(self, query, update, **_kwargs):
@@ -62,7 +64,12 @@ def test_imported_document_preserves_attribution_and_separates_origin():
         "consent_privacy": True,
         "source": "landing_page",
         "first_touch": {"utm_source": "facebook", "utm_campaign": "spring"},
-        "last_touch": {"utm_source": "google", "utm_campaign": "brand"},
+        "last_touch": {
+            "utm_source": "google", "utm_medium": "cpc",
+            "utm_campaign": "brand", "utm_term": "aligners",
+            "campaign_id": "cmp-1", "adset_id": "set-1", "ad_id": "ad-1",
+            "landing_page": "/aligners", "referrer": "https://google.com",
+        },
         "qualification": {"timing": "soon"},
     }, "clinic-a", "local-1")
     assert doc["origin_system"] == "clear_advance"
@@ -71,6 +78,13 @@ def test_imported_document_preserves_attribution_and_separates_origin():
     assert doc["consent_marketing"] is False
     assert doc["first_utm_source"] == "facebook"
     assert doc["latest_utm_campaign"] == "brand"
+    assert doc["latest_utm_medium"] == "cpc"
+    assert doc["latest_utm_term"] == "aligners"
+    assert doc["latest_utm_campaign_id"] == "cmp-1"
+    assert doc["latest_utm_adset_id"] == "set-1"
+    assert doc["latest_utm_ad_id"] == "ad-1"
+    assert doc["latest_landing_page"] == "/aligners"
+    assert doc["latest_referrer"] == "https://google.com"
     assert doc["answers"] == {"timing": "soon"}
 
 
@@ -103,3 +117,14 @@ def test_import_sweep_stores_cursor_only_after_a_successful_page(monkeypatch):
                       if "clear_advance_last_sync_kind" in u[1].get("$set", {})]
     assert health_updates[-1][1]["$set"]["clear_advance_last_sync_kind"] == "import"
     assert health_updates[-1][1]["$set"]["clear_advance_last_sync_ok"] is True
+
+
+def test_manual_import_sync_is_scoped_to_the_current_clinic(monkeypatch):
+    db = DB([integration()])
+
+    async def fake_get(_path, _key, _params):
+        return {"leads": [], "next_cursor": None}
+
+    monkeypatch.setattr(clear_advance, "_get", fake_get)
+    assert asyncio.run(clear_advance.import_pending_leads(db, clinic_id="clinic-a")) == 0
+    assert db.clinic_integrations.find_queries[0]["clinic_id"] == "clinic-a"
