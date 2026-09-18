@@ -122,5 +122,13 @@ specific clinic:
    audit event (`clinic_intake_invite.created` / `.emailed` / `.revoked` /
    `.submitted`).
 
-Emailing requires `RESEND_API_KEY` and `SENDER_EMAIL`. Without them the send is
-skipped and reported as failed; link creation is unaffected.
+Emailing requires `RESEND_API_KEY`. Without it the send is skipped and reported
+as failed; link creation is unaffected.
+
+The invitation is sent from `CLINIC_ONBOARDING_SENDER_EMAIL`
+(`onboarding@zubite.bg`), which covers exactly two emails — this invitation and
+the approval email carrying a new clinic's first credentials. Everything else,
+including clinic password resets, chat and booking notifications and all
+patient-facing mail, stays on `SENDER_EMAIL` (`hello@zubite.bg`). Unset, the
+onboarding sender falls back to `SENDER_EMAIL`. Both addresses are on the same
+Resend-verified domain, so changing either needs no new verification.

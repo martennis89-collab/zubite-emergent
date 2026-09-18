@@ -261,8 +261,8 @@ async def test_invite_email_body_carries_the_link_and_makes_no_promises(monkeypa
 
     captured = {}
 
-    async def _capture(to, subject, html, **_kwargs):
-        captured.update(to=to, subject=subject, html=html)
+    async def _capture(to, subject, html, **kwargs):
+        captured.update(to=to, subject=subject, html=html, sender=kwargs.get("sender"))
         return True
 
     monkeypatch.setattr(emails, "RESEND_API_KEY", "test-key")
@@ -277,6 +277,8 @@ async def test_invite_email_body_carries_the_link_and_makes_no_promises(monkeypa
 
     assert ok is True
     assert captured["to"] == "clinic@example.com"
+    # Onboarding sender, not the platform-wide one.
+    assert captured["sender"] == emails.CLINIC_ONBOARDING_SENDER_EMAIL
     assert "Дентална клиника Тест" in captured["subject"]
     assert "https://zubite.bg/clinic-intake/tok123" in captured["html"]
     assert "18.10.2026" in captured["html"]
@@ -313,6 +315,14 @@ async def test_invite_email_escapes_the_clinic_label(monkeypatch):
 
     assert "<script>" not in captured["html"]
     assert "&lt;script&gt;" in captured["html"]
+
+
+def test_onboarding_sender_falls_back_to_the_platform_sender():
+    """Unset in an environment, onboarding mail must still leave the building
+    from a verified address rather than from nothing."""
+    import config
+
+    assert config.CLINIC_ONBOARDING_SENDER_EMAIL
 
 
 @pytest.mark.asyncio

@@ -46,6 +46,15 @@ if IS_PRODUCTION and not RESEND_API_KEY:
         "transactional email depend on it."
     )
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
+# Sender for the two emails that bring a NEW clinic onto the platform: the
+# private intake invitation, and the approval email carrying its first
+# credentials. Deliberately narrow — everything else a clinic receives later
+# (password resets, chat and booking notifications) stays on SENDER_EMAIL,
+# and so does every patient-facing email. Same Resend-verified domain, so no
+# extra verification is needed to change it.
+CLINIC_ONBOARDING_SENDER_EMAIL = (
+    os.environ.get('CLINIC_ONBOARDING_SENDER_EMAIL') or SENDER_EMAIL
+)
 # Zubite admin notification mailbox — single source of truth for any
 # "new lead / new booking / Care Pass unlocked" alert sent to the
 # Zubite team. Priority order:

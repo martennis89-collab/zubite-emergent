@@ -21,6 +21,7 @@ from auth import (
 )
 from config import (
     RESEND_API_KEY, SENDER_EMAIL, ADMIN_EMAIL, APP_NAME, PRODUCTION_URL,
+    CLINIC_ONBOARDING_SENDER_EMAIL,
     AUTH_COOKIE_NAME_CLINIC, AUTH_COOKIE_SECURE, AUTH_COOKIE_SAMESITE,
     AUTH_COOKIE_MAX_AGE_SECONDS,
 )
@@ -728,7 +729,10 @@ async def update_clinic_application(app_id: str, body: dict, request: Request, u
             if RESEND_API_KEY:
                 try:
                     resend.Emails.send({
-                        "from": SENDER_EMAIL, "to": application["email"],
+                        # Onboarding sender: this and the intake invite are the
+                        # two emails that bring a clinic onto the platform.
+                        "from": CLINIC_ONBOARDING_SENDER_EMAIL,
+                        "to": application["email"],
                         "subject": "Добре дошли в Zubite.bg — Вашият акаунт е одобрен",
                         "html": f"""
                         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 0;">

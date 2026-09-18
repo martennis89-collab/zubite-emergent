@@ -3,7 +3,7 @@ import logging
 import resend
 from config import (
     RESEND_API_KEY, SENDER_EMAIL, ADMIN_EMAIL, CITIES, TREATMENT_NAMES, BAND_NAMES,
-    FRONTEND_URL, PRODUCTION_URL,
+    FRONTEND_URL, PRODUCTION_URL, CLINIC_ONBOARDING_SENDER_EMAIL,
 )
 
 
@@ -530,6 +530,11 @@ async def send_clinic_intake_invite_email(
       • The link is personal and single-use; the expiry date is shown so the
         clinic knows the window without having to ask.
 
+    Sent from CLINIC_ONBOARDING_SENDER_EMAIL rather than the platform sender:
+    this is the first thing a clinic ever receives from Zubite, and it belongs
+    to the onboarding conversation, not to the transactional stream a clinic
+    lives in afterwards.
+
     Best-effort like every other sender here: returns False when Resend is
     unconfigured or the call fails, and never raises."""
     if not RESEND_API_KEY:
@@ -603,7 +608,9 @@ async def send_clinic_intake_invite_email(
     """
 
     try:
-        return await _send_email(to_email, subject, html)
+        return await _send_email(
+            to_email, subject, html, sender=CLINIC_ONBOARDING_SENDER_EMAIL
+        )
     except Exception as e:
         logging.error(f"send_clinic_intake_invite_email failed to {to_email}: {e}")
         return False

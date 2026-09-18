@@ -64,5 +64,12 @@ services:
         sync: false
       - key: SENDER_EMAIL
         value: hello@zubite.bg
+      # Only the two emails that bring a new clinic onto the platform: the
+      # private intake invitation and the approval email with its first
+      # credentials. Everything else — patient mail, clinic password resets,
+      # chat and booking notifications — stays on SENDER_EMAIL. Unset falls
+      # back to SENDER_EMAIL.
+      - key: CLINIC_ONBOARDING_SENDER_EMAIL
+        value: onboarding@zubite.bg
       - key: ZUBITE_ADMIN_NOTIFICATION_EMAIL
         value: info@zubite.bg
