@@ -675,6 +675,23 @@ class ClinicIntakeInviteCreate(BaseModel):
     clinic_label: str = Field(min_length=2, max_length=200)
     contact_email: Optional[EmailStr] = None
     expires_in_days: int = Field(default=30, ge=1, le=90)
+    # When true the link is emailed to contact_email straight away. The raw
+    # token only exists during this request, so this is the one moment it can
+    # be delivered without the admin handling it manually.
+    send_email: bool = False
+
+
+class ClinicIntakeInviteSend(BaseModel):
+    """Resend an already-created intake link.
+
+    The token is not recoverable from the database (only its hash is stored),
+    so the admin UI passes back the token it still holds from creation. The
+    server verifies that token against the invite before sending anywhere.
+    """
+    model_config = ConfigDict(extra="ignore")
+
+    token: str = Field(min_length=32, max_length=100)
+    contact_email: Optional[EmailStr] = None
 
 
 # ─── Blog Models ───────────────────────────────────────────
