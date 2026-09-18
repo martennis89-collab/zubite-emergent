@@ -282,6 +282,10 @@ async def test_invite_email_body_carries_the_link_and_makes_no_promises(monkeypa
     assert "Дентална клиника Тест" in captured["subject"]
     assert "https://zubite.bg/clinic-intake/tok123" in captured["html"]
     assert "18.10.2026" in captured["html"]
+    # The onboarding address receives as well as sends, so the invitation says
+    # a reply reaches a human. If that ever stops being true, this line has to
+    # go with it — a promised reply that bounces is worse than no line at all.
+    assert "отговорете директно на този имейл" in captured["html"]
 
     lowered = captured["html"].lower()
     for forbidden in (

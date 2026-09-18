@@ -593,6 +593,9 @@ async def send_clinic_intake_invite_email(
                 се свързва с вас за следващите стъпки. Подаването на форма не е
                 обвързващо и не означава автоматично публикуване на профил.
             </p>
+            <p style="color:#475569;font-size:14px;line-height:1.6;margin:10px 0 0;">
+                Ако имате въпроси, отговорете директно на този имейл — ще ви отговорим.
+            </p>
         </div>
 
         <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin:0 0 6px;">
