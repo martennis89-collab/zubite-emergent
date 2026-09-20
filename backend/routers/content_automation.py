@@ -41,6 +41,29 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+IMPORT_CALLBACK_PATH = "/api/admin/content-automation/import-from-make"
+
+
+def _callback_url() -> str:
+    """Public URL Make POSTs the finished article back to.
+
+    `CONTENT_AUTOMATION_CALLBACK_URL` wins when set (a full URL, for the rare
+    case the callback should not sit at the default path). Otherwise it is
+    built from `BACKEND_PUBLIC_URL` -- the backend's own public origin, e.g.
+    the https://<service>.onrender.com URL -- and finally from
+    `PRODUCTION_URL`, which reaches the same route through the frontend's
+    /api proxy. Deployment-specific, so never hardcoded.
+    """
+    explicit = (os.environ.get("CONTENT_AUTOMATION_CALLBACK_URL") or "").strip()
+    if explicit:
+        return explicit.rstrip("/")
+    base = (
+        (os.environ.get("BACKEND_PUBLIC_URL") or "").strip()
+        or (os.environ.get("PRODUCTION_URL") or "").strip()
+    )
+    return f"{base.rstrip('/')}{IMPORT_CALLBACK_PATH}" if base else ""
+
+
 class StartNextBody(BaseModel):
     model_config = ConfigDict(extra="ignore")
     topic_hint: Optional[str] = Field(default=None, max_length=300)
@@ -107,6 +130,11 @@ async def start_next(
         "topicHint": body.topic_hint,
         "source": "zubite_admin",
         "jobId": job_id,
+        # Where Make must POST the finished Markdown back to. Sent on every
+        # run so the scenario maps `{{...callbackUrl}}` instead of storing a
+        # hostname of its own -- moving the backend (Emergent -> Render) then
+        # needs one env var here, not an edit inside Make.
+        "callbackUrl": _callback_url(),
     }
     try:
         # Optional `x-make-apikey` header (read from env; never logged).
