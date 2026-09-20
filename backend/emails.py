@@ -3,7 +3,7 @@ import logging
 import resend
 from config import (
     RESEND_API_KEY, SENDER_EMAIL, ADMIN_EMAIL, CITIES, TREATMENT_NAMES, BAND_NAMES,
-    FRONTEND_URL, PRODUCTION_URL,
+    FRONTEND_URL, PRODUCTION_URL, CLINIC_ONBOARDING_SENDER_EMAIL,
 )
 
 
@@ -498,6 +498,124 @@ async def send_clinic_chat_notification(
         return True
     except Exception as e:
         logging.error(f"Failed to send clinic chat notification: {str(e)}")
+        return False
+
+
+def _format_bg_date(raw: str | None) -> str:
+    """Render an ISO timestamp as DD.MM.YYYY for a Bulgarian-facing email."""
+    if not raw:
+        return ""
+    try:
+        from datetime import datetime as _dt
+        parsed = _dt.fromisoformat(str(raw).replace("Z", "+00:00"))
+    except ValueError:
+        return ""
+    return parsed.strftime("%d.%m.%Y")
+
+
+async def send_clinic_intake_invite_email(
+    *,
+    to_email: str,
+    clinic_label: str,
+    intake_url: str,
+    expires_at: str | None = None,
+) -> bool:
+    """Send a clinic its private intake link (admin-initiated, кандидатури tab).
+
+    Copy rules — the link is an invitation to describe the practice, not a
+    sales promise:
+      • No claim about lead volume, ranking, or clinical superiority.
+      • No implication that participation buys visibility or trust.
+      • States plainly that the Zubite team reviews the submission.
+      • The link is personal and single-use; the expiry date is shown so the
+        clinic knows the window without having to ask.
+
+    Sent from CLINIC_ONBOARDING_SENDER_EMAIL rather than the platform sender:
+    this is the first thing a clinic ever receives from Zubite, and it belongs
+    to the onboarding conversation, not to the transactional stream a clinic
+    lives in afterwards.
+
+    Best-effort like every other sender here: returns False when Resend is
+    unconfigured or the call fails, and never raises."""
+    if not RESEND_API_KEY:
+        logging.warning(
+            "send_clinic_intake_invite_email skipped — RESEND_API_KEY missing"
+        )
+        return False
+
+    label = _h(clinic_label)
+    url = _h(intake_url)
+    expiry = _format_bg_date(expires_at)
+    expiry_line = (
+        f"Линкът е личен и може да се попълни веднъж. Валиден е до {_h(expiry)} г."
+        if expiry
+        else "Линкът е личен и може да се попълни веднъж."
+    )
+
+    subject = f"Линк за профил в Zubite.bg — {clinic_label}"
+    html = f"""
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;background:#FCFAF8;color:#1B1C1B;">
+        <p style="margin:0 0 12px;color:#006A61;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">Zubite.bg</p>
+        <h1 style="font-size:22px;color:#0f172a;margin:0 0 12px;font-weight:600;">Покана за профил в Zubite.bg</h1>
+        <p style="color:#475569;font-size:15px;line-height:1.65;margin:0 0 18px;">
+            Здравейте, изпращаме ви личен линк към формата за профил на
+            <strong>{label}</strong> в Zubite.bg.
+        </p>
+
+        <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin:0 0 20px;">
+            <p style="color:#0f172a;font-size:14px;font-weight:600;margin:0 0 10px;">Какво представлява формата</p>
+            <p style="color:#475569;font-size:14px;line-height:1.6;margin:0 0 10px;">
+                Попълвате данни за практиката си — лечения, екип, подход към пациента,
+                технологии и начин на комуникация. От тях изграждаме структуриран
+                профил, който помага на пациентите да се ориентират, преди да изберат
+                при кого да отидат.
+            </p>
+            <p style="color:#475569;font-size:14px;line-height:1.6;margin:0;">
+                Попълването отнема около 10–15 минути и може да стане на части,
+                стига да е от същия линк.
+            </p>
+        </div>
+
+        <div style="text-align:center;margin:0 0 20px;">
+            <a href="{url}" style="display:inline-block;background:#0d9488;background-image:linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%);color:#ffffff;text-decoration:none;padding:13px 26px;border-radius:999px;font-weight:600;font-size:15px;">
+                Отвори формата
+            </a>
+            <p style="color:#94a3b8;font-size:12px;line-height:1.55;margin:14px 0 0;word-break:break-all;">
+                Ако бутонът не работи, отворете този адрес:<br>
+                <a href="{url}" style="color:#0d9488;text-decoration:none;">{url}</a>
+            </p>
+        </div>
+
+        <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:18px 20px;margin:0 0 20px;">
+            <p style="color:#0f172a;font-size:14px;font-weight:600;margin:0 0 8px;">Какво следва</p>
+            <p style="color:#475569;font-size:14px;line-height:1.6;margin:0;">
+                След като изпратите формата, екипът на Zubite.bg преглежда данните и
+                се свързва с вас за следващите стъпки. Подаването на форма не е
+                обвързващо и не означава автоматично публикуване на профил.
+            </p>
+            <p style="color:#475569;font-size:14px;line-height:1.6;margin:10px 0 0;">
+                Ако имате въпроси, отговорете директно на този имейл — ще ви отговорим.
+            </p>
+        </div>
+
+        <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin:0 0 6px;">
+            {expiry_line} Моля, не го препращайте публично.
+        </p>
+        <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin:0 0 6px;">
+            Ако не очаквате това съобщение, просто го игнорирайте — линкът изтича сам.
+        </p>
+        <p style="color:#94a3b8;font-size:12px;margin:12px 0 0;">
+            — Екипът на <a href="{_h(_admin_url('/'))}" style="color:#0d9488;text-decoration:none;">Zubite.bg</a>
+        </p>
+    </div>
+    """
+
+    try:
+        return await _send_email(
+            to_email, subject, html, sender=CLINIC_ONBOARDING_SENDER_EMAIL
+        )
+    except Exception as e:
+        logging.error(f"send_clinic_intake_invite_email failed to {to_email}: {e}")
         return False
 
 

@@ -78,6 +78,7 @@ ACTION_KEYS: frozenset[str] = frozenset({
     "clinic_application.rejected",
     "clinic_application.notes_updated",
     "clinic_intake_invite.created",
+    "clinic_intake_invite.emailed",
     "clinic_intake_invite.revoked",
     "clinic_intake_invite.submitted",
     # Consultation workflow
