@@ -15,7 +15,7 @@ import os
 import uuid
 import logging
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from pydantic import BaseModel, Field, ConfigDict
@@ -42,6 +42,35 @@ def _now() -> str:
 
 
 IMPORT_CALLBACK_PATH = "/api/admin/content-automation/import-from-make"
+
+# A run started from the admin sits at `running` until Make calls back. Make
+# does not echo the job id, so the callback adopts the newest open admin job
+# instead of opening a second row for the same run. A run whose callback never
+# arrives would otherwise spin forever, so the jobs list ages one out after
+# this many minutes. The chain is five scenarios of LLM calls, so the default
+# is generous -- a real run finishing later is only ever mislabelled, never lost.
+OPEN_JOB_STATUSES = ("queued", "running")
+JOB_TIMEOUT_MINUTES = int(
+    os.environ.get("CONTENT_AUTOMATION_JOB_TIMEOUT_MINUTES") or "45"
+)
+
+
+async def _adopt_open_start_job(fields: Dict[str, Any]) -> bool:
+    """Close the newest admin-started job still waiting on Make, writing
+    `fields` onto it. Returns False when there is none -- a Make run started
+    on its own schedule, which opens its own row as before.
+    """
+    open_job = await db.get_collection(JOBS_COL).find_one(
+        {"source": "zubite_admin", "status": {"$in": list(OPEN_JOB_STATUSES)}},
+        {"_id": 0, "id": 1},
+        sort=[("created_at", -1)],
+    )
+    if not open_job:
+        return False
+    await db.get_collection(JOBS_COL).update_one(
+        {"id": open_job["id"]}, {"$set": {**fields, "updated_at": _now()}},
+    )
+    return True
 
 
 def _callback_url() -> str:
@@ -217,7 +246,11 @@ async def import_from_make(body: ImportFromMakeBody, request: Request):
             "created_article_id": None,
             "created_at": _now(), "updated_at": _now(),
         }
-        await db.get_collection(JOBS_COL).insert_one({**job})
+        adopted = await _adopt_open_start_job(
+            {k: v for k, v in job.items() if k not in ("id", "source", "created_at")}
+        )
+        if not adopted:
+            await db.get_collection(JOBS_COL).insert_one({**job})
         raise HTTPException(status_code=400, detail={"code": exc.code, "message": str(exc)})
 
     # ── Create draft article (reuses existing blog_posts collection) ──
@@ -299,7 +332,11 @@ async def import_from_make(body: ImportFromMakeBody, request: Request):
         "created_article_id": article_id,
         "created_at": now, "updated_at": now,
     }
-    await db.get_collection(JOBS_COL).insert_one({**job})
+    adopted = await _adopt_open_start_job(
+        {k: v for k, v in job.items() if k not in ("id", "source", "created_at")}
+    )
+    if not adopted:
+        await db.get_collection(JOBS_COL).insert_one({**job})
 
     return {
         "success": True,
@@ -315,6 +352,17 @@ async def import_from_make(body: ImportFromMakeBody, request: Request):
 
 @router.get("/admin/content-automation/jobs")
 async def list_jobs(user: AdminUser = Depends(get_current_user)):
+    # Age out runs whose callback never arrived, so the admin's spinner stops
+    # instead of polling forever. `created_at` is an ISO-8601 UTC string, so a
+    # lexicographic comparison is a chronological one.
+    cutoff = (
+        datetime.now(timezone.utc) - timedelta(minutes=JOB_TIMEOUT_MINUTES)
+    ).isoformat()
+    await db.get_collection(JOBS_COL).update_many(
+        {"status": {"$in": list(OPEN_JOB_STATUSES)}, "created_at": {"$lt": cutoff}},
+        {"$set": {"status": "timed_out", "updated_at": _now()},
+         "$push": {"errors": f"No callback from Make within {JOB_TIMEOUT_MINUTES} minutes."}},
+    )
     rows = await db.get_collection(JOBS_COL).find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
     return {"jobs": rows}
 

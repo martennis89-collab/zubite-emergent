@@ -136,16 +136,69 @@ def _list_of_dicts(text: str) -> List[Dict[str, str]]:
     return [it for it in items if it]
 
 
-def _parse_jsonld(text: Optional[str]) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+def _escape_control_chars_in_strings(raw: str) -> str:
+    """Escape literal newlines, carriage returns and tabs that sit *inside*
+    a JSON string. A model writing JSON-LD routinely wraps a long description
+    across lines, which strict JSON rejects as an unterminated string. Text
+    outside strings is untouched, so indentation and layout survive.
+    """
+    out: List[str] = []
+    in_string = False
+    escaped = False
+    for ch in raw:
+        if escaped:
+            out.append(ch)
+            escaped = False
+            continue
+        if ch == "\\":
+            out.append(ch)
+            escaped = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            out.append(ch)
+            continue
+        if in_string and ch in "\n\r\t":
+            out.append({"\n": "\\n", "\r": "\\r", "\t": "\\t"}[ch])
+            continue
+        out.append(ch)
+    return "".join(out)
+
+
+def _repair_llm_json(raw: str) -> str:
+    """Best-effort repair of the JSON defects a language model actually makes.
+    Only ever called after strict parsing has already failed, and the result is
+    re-parsed before use -- an unsuccessful repair changes nothing.
+    """
+    repaired = _escape_control_chars_in_strings(raw)
+    # Trailing comma before a closing brace or bracket.
+    repaired = re.sub(r",(\s*[}\]])", r"\1", repaired)
+    return repaired
+
+
+def _parse_jsonld(
+    text: Optional[str],
+) -> Tuple[Optional[Dict[str, Any]], Optional[str], bool]:
+    """Returns `(value, error, repaired)`. `repaired` is True when the block
+    only parsed after a repair pass, so the caller can warn that the upstream
+    output was malformed even though the article was saved.
+    """
     if not text:
-        return None, None
+        return None, None, False
     # Strip ```json fences if present.
     cleaned = re.sub(r"^```(?:json)?\s*", "", text.strip())
     cleaned = re.sub(r"\s*```$", "", cleaned)
     try:
-        return json.loads(cleaned), None
+        return json.loads(cleaned), None, False
     except Exception as exc:
-        return None, str(exc)
+        first_error = str(exc)
+    repaired = _repair_llm_json(cleaned)
+    if repaired != cleaned:
+        try:
+            return json.loads(repaired), None, True
+        except Exception:
+            pass
+    return None, first_error, False
 
 
 def parse_zubite_article_package(markdown: str) -> Tuple[Dict[str, Any], List[str], List[str]]:
@@ -235,12 +288,18 @@ def parse_zubite_article_package(markdown: str) -> Tuple[Dict[str, Any], List[st
     decision_fw = _extract_section(markdown, "DECISION_FRAMEWORK")
 
     # ── JSON-LD ──
-    faq_ld, faq_err = _parse_jsonld(_extract_section(markdown, "FAQ_SCHEMA_JSON_LD"))
-    art_ld, art_err = _parse_jsonld(_extract_section(markdown, "ARTICLE_SCHEMA_JSON_LD"))
+    faq_ld, faq_err, faq_fixed = _parse_jsonld(
+        _extract_section(markdown, "FAQ_SCHEMA_JSON_LD"))
+    art_ld, art_err, art_fixed = _parse_jsonld(
+        _extract_section(markdown, "ARTICLE_SCHEMA_JSON_LD"))
     if faq_err:
         errors.append(f"Invalid JSON-LD in FAQ_SCHEMA_JSON_LD: {faq_err}")
     if art_err:
         errors.append(f"Invalid JSON-LD in ARTICLE_SCHEMA_JSON_LD: {art_err}")
+    if faq_fixed:
+        warnings.append("FAQ_SCHEMA_JSON_LD was malformed and repaired on import.")
+    if art_fixed:
+        warnings.append("ARTICLE_SCHEMA_JSON_LD was malformed and repaired on import.")
 
     # ── Image-asset / placeholder consistency warnings ──
     asset_placeholders = {a.get("Placeholder", "").strip() for a in image_assets if a.get("Placeholder")}
