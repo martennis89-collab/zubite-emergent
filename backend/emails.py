@@ -387,10 +387,7 @@ async def send_verification_flagged_alert(
     html = f"""
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 540px; margin: 0 auto; padding: 24px 0;">
         <h1 style="font-size: 18px; color: #b91c1c; margin: 0 0 12px;">Flagged lead — clinic did not contact</h1>
-        <p style="color: #475569; font-size: 14px; line-height: 1.5; margin: 0 0 16px;">
-            A patient responded <strong>"no"</strong> to the 24h verification email.
-            Please follow up with the clinic.
-        </p>
+        <p style="color: #475569; font-size: 14px; line-height: 1.5; margin: 0 0 16px;">A patient responded <strong>"no"</strong> to the 24h verification email. Please follow up with the clinic.</p>
         <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
             <tr><td style="padding: 6px 0; color: #64748b; width: 140px;">Lead ID:</td>
                 <td style="padding: 6px 0; color: #0f172a;"><code>{lead_id}</code></td></tr>
@@ -472,16 +469,9 @@ async def send_clinic_chat_notification(
         </div>
         <div style="padding: 24px; background: #f8fafc;">
             <div style="background: white; border-radius: 12px; padding: 20px; border: 1px solid #e2e8f0;">
-                <p style="color: #0f172a; margin: 0 0 12px 0; font-size: 15px;">
-                    Пациент започна онлайн разговор с вас в Zubite.
-                </p>
-                <p style="color: #64748b; margin: 0 0 20px 0; font-size: 14px; line-height: 1.6;">
-                    Съобщението и приложените файлове са достъпни само във вашето табло —
-                    не ги изпращаме по имейл.
-                </p>
-                <a href="{url}" style="display: inline-block; background: #14b8a6; color: white; text-decoration: none; padding: 12px 20px; border-radius: 999px; font-weight: 500; font-size: 14px;">
-                    Отвори разговора
-                </a>
+                <p style="color: #0f172a; margin: 0 0 12px 0; font-size: 15px;">Пациент започна онлайн разговор с вас в Zubite.</p>
+                <p style="color: #64748b; margin: 0 0 20px 0; font-size: 14px; line-height: 1.6;">Съобщението и приложените файлове са достъпни само във вашето табло — не ги изпращаме по имейл.</p>
+                <a href="{url}" style="display: inline-block; background: #14b8a6; color: white; text-decoration: none; padding: 12px 20px; border-radius: 999px; font-weight: 500; font-size: 14px;">Отвори разговора</a>
             </div>
         </div>
     </div>
@@ -708,10 +698,7 @@ async def send_admin_assisted_choice_request_alert(
     html = f"""
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px 0;">
         <h1 style="font-size: 18px; color: #0f172a; margin: 0 0 8px;">Нова заявка за помощ при избор</h1>
-        <p style="color: #475569; font-size: 14px; line-height: 1.55; margin: 0 0 16px;">
-            Пациентът поиска помощ от Zubite, за да избере подходяща клиника.
-            Изисква преглед от екипа.
-        </p>
+        <p style="color: #475569; font-size: 14px; line-height: 1.55; margin: 0 0 16px;">Пациентът поиска помощ от Zubite, за да избере подходяща клиника. Изисква преглед от екипа.</p>
         <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
             <tr><td style="padding: 6px 0; color: #64748b; width: 200px;">Тип заявка:</td>
                 <td style="padding: 6px 0; color: #0f172a;">Пациентът поиска помощ от Zubite</td></tr>
@@ -850,27 +837,16 @@ async def send_care_pass_summary_email(
         magic_link_block = f"""
         <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:22px;margin:0 0 20px;text-align:center;">
             <p style="color:#0f172a;font-size:14px;font-weight:600;margin:0 0 8px;">Запазен достъп до твоя ориентир</p>
-            <p style="color:#475569;font-size:13px;line-height:1.55;margin:0 0 16px;">
-                Можеш да се върнеш към своя ориентир и обяснението за Zubite Care Pass от този линк.
-                Това не е диагноза, а помощ да разбереш каква следваща стъпка има смисъл за твоя случай.
-            </p>
-            <a href="{_h(magic_url)}" style="display:inline-block;background:#0d9488;background-image:linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%);color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:999px;font-weight:600;font-size:14px;">
-                Отвори своя ориентир
-            </a>
-            <p style="color:#94a3b8;font-size:11px;line-height:1.5;margin:14px 0 0;">
-                Линкът е личен — не го споделяй публично. Активен е до 90 дни.
-            </p>
+            <p style="color:#475569;font-size:13px;line-height:1.55;margin:0 0 16px;">Можеш да се върнеш към своя ориентир и обяснението за Zubite Care Pass от този линк. Това не е диагноза, а помощ да разбереш каква следваща стъпка има смисъл за твоя случай.</p>
+            <a href="{_h(magic_url)}" style="display:inline-block;background:#0d9488;background-image:linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%);color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:999px;font-weight:600;font-size:14px;">Отвори своя ориентир</a>
+            <p style="color:#94a3b8;font-size:11px;line-height:1.5;margin:14px 0 0;">Линкът е личен — не го споделяй публично. Активен е до 90 дни.</p>
         </div>
         """
 
     html = f"""
     <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;background:#FCFAF8;">
         <h1 style="font-size:22px;color:#0f172a;margin:0 0 8px;font-weight:600;">{_h(greeting)},</h1>
-        <p style="color:#475569;font-size:15px;line-height:1.6;margin:0 0 20px;">
-            Запазваме твоя резултат от ориентира на Zubite.bg, заедно с
-            информация за Care Pass. Това е <strong>ориентир, не диагноза</strong>
-            и не замества преглед при специалист.
-        </p>
+        <p style="color:#475569;font-size:15px;line-height:1.6;margin:0 0 20px;">Запазваме твоя резултат от ориентира на Zubite.bg, заедно с информация за Care Pass. Това е <strong>ориентир, не диагноза</strong> и не замества преглед при специалист.</p>
 
         <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin:0 0 20px;">
             <p style="color:#0f766e;font-size:11px;text-transform:uppercase;letter-spacing:0.12em;margin:0 0 8px;font-weight:600;">Твоят ориентир</p>
@@ -884,32 +860,17 @@ async def send_care_pass_summary_email(
         <div style="background:#0E1A24;background-image:linear-gradient(135deg,#0E1A24 0%,#112832 100%);border-radius:12px;padding:22px;margin:0 0 20px;color:#e2e8f0;">
             <p style="color:#5eead4;font-size:11px;text-transform:uppercase;letter-spacing:0.14em;margin:0 0 6px;font-weight:600;">Zubite Care Pass</p>
             <h2 style="color:#ffffff;font-size:18px;margin:0 0 12px;font-weight:600;">След консултацията клиниката ти дава Care Pass.</h2>
-            <p style="color:#cbd5e1;font-size:14px;line-height:1.55;margin:0 0 14px;">
-                Ако посетиш консултация в партньорска клиника чрез Zubite.bg,
-                клиниката ще ти предостави Zubite Care Pass —
-                <strong>отстъпки за продукти за орална хигиена</strong>.
-            </p>
-            <p style="color:#94a3b8;font-size:12px;line-height:1.5;margin:0;">
-                Care Pass не е отстъпка от лечение, не е застраховка и не е абонамент.
-            </p>
+            <p style="color:#cbd5e1;font-size:14px;line-height:1.55;margin:0 0 14px;">Ако посетиш консултация в партньорска клиника чрез Zubite.bg, клиниката ще ти предостави Zubite Care Pass — <strong>отстъпки за продукти за орална хигиена</strong>.</p>
+            <p style="color:#94a3b8;font-size:12px;line-height:1.5;margin:0;">Care Pass не е отстъпка от лечение, не е застраховка и не е абонамент.</p>
         </div>
 
         <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin:0 0 20px;">
             <p style="color:#0f172a;font-size:14px;font-weight:600;margin:0 0 10px;">Какво следва?</p>
-            <p style="color:#475569;font-size:14px;line-height:1.55;margin:0;">
-                В момента изграждаме подбрана партньорска мрежа от клиники, затова
-                екипът на Zubite.bg преглежда заявките ръчно и се свързва с теб
-                с подходящи насоки.
-            </p>
+            <p style="color:#475569;font-size:14px;line-height:1.55;margin:0;">В момента изграждаме подбрана партньорска мрежа от клиники, затова екипът на Zubite.bg преглежда заявките ръчно и се свързва с теб с подходящи насоки.</p>
         </div>
 
-        <p style="color:#94a3b8;font-size:12px;line-height:1.55;margin:14px 0 0;">
-            Получаваш този имейл, защото поиска да го запазиш на страницата с резултата си в Zubite.bg.
-            Информацията е ориентировъчна — Zubite не поставя диагноза и не замества преглед при лекар.
-        </p>
-        <p style="color:#94a3b8;font-size:12px;margin:8px 0 0;">
-            — Екипът на <a href="{_h(_admin_url('/'))}" style="color:#0d9488;text-decoration:none;">Zubite.bg</a>
-        </p>
+        <p style="color:#94a3b8;font-size:12px;line-height:1.55;margin:14px 0 0;">Получаваш този имейл, защото поиска да го запазиш на страницата с резултата си в Zubite.bg. Информацията е ориентировъчна — Zubite не поставя диагноза и не замества преглед при лекар.</p>
+        <p style="color:#94a3b8;font-size:12px;margin:8px 0 0;">— Екипът на <a href="{_h(_admin_url('/'))}" style="color:#0d9488;text-decoration:none;">Zubite.bg</a></p>
     </div>
     """
 
