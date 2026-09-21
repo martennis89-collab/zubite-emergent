@@ -535,6 +535,13 @@ async def send_clinic_intake_invite_email(
     to the onboarding conversation, not to the transactional stream a clinic
     lives in afterwards.
 
+    Every run of text is kept on ONE source line. HTML collapses a newline to
+    a space, but parts of the mail path strip newlines instead of collapsing
+    them, which glues the surrounding words together ("профил наДентална").
+    Wrapping a sentence across source lines for readability is what caused
+    that, so the markup here is deliberately wide rather than pretty, and
+    test_invite_email_reads_the_same_if_newlines_are_stripped holds the line.
+
     Best-effort like every other sender here: returns False when Resend is
     unconfigured or the call fails, and never raises."""
     if not RESEND_API_KEY:
@@ -557,56 +564,28 @@ async def send_clinic_intake_invite_email(
     <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;background:#FCFAF8;color:#1B1C1B;">
         <p style="margin:0 0 12px;color:#006A61;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">Zubite.bg</p>
         <h1 style="font-size:22px;color:#0f172a;margin:0 0 12px;font-weight:600;">Покана за профил в Zubite.bg</h1>
-        <p style="color:#475569;font-size:15px;line-height:1.65;margin:0 0 18px;">
-            Здравейте, изпращаме ви личен линк към формата за профил на
-            <strong>{label}</strong> в Zubite.bg.
-        </p>
+        <p style="color:#475569;font-size:15px;line-height:1.65;margin:0 0 18px;">Здравейте, изпращаме ви личен линк към формата за профил на <strong>{label}</strong> в Zubite.bg.</p>
 
         <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin:0 0 20px;">
             <p style="color:#0f172a;font-size:14px;font-weight:600;margin:0 0 10px;">Какво представлява формата</p>
-            <p style="color:#475569;font-size:14px;line-height:1.6;margin:0 0 10px;">
-                Попълвате данни за практиката си — лечения, екип, подход към пациента,
-                технологии и начин на комуникация. От тях изграждаме структуриран
-                профил, който помага на пациентите да се ориентират, преди да изберат
-                при кого да отидат.
-            </p>
-            <p style="color:#475569;font-size:14px;line-height:1.6;margin:0;">
-                Попълването отнема около 10–15 минути и може да стане на части,
-                стига да е от същия линк.
-            </p>
+            <p style="color:#475569;font-size:14px;line-height:1.6;margin:0 0 10px;">Попълвате данни за практиката си — лечения, екип, подход към пациента, технологии и начин на комуникация. От тях изграждаме структуриран профил, който помага на пациентите да се ориентират, преди да изберат при кого да отидат.</p>
+            <p style="color:#475569;font-size:14px;line-height:1.6;margin:0;">Попълването отнема около 10–15 минути и може да стане на части, стига да е от същия линк.</p>
         </div>
 
         <div style="text-align:center;margin:0 0 20px;">
-            <a href="{url}" style="display:inline-block;background:#0d9488;background-image:linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%);color:#ffffff;text-decoration:none;padding:13px 26px;border-radius:999px;font-weight:600;font-size:15px;">
-                Отвори формата
-            </a>
-            <p style="color:#94a3b8;font-size:12px;line-height:1.55;margin:14px 0 0;word-break:break-all;">
-                Ако бутонът не работи, отворете този адрес:<br>
-                <a href="{url}" style="color:#0d9488;text-decoration:none;">{url}</a>
-            </p>
+            <a href="{url}" style="display:inline-block;background:#0d9488;background-image:linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%);color:#ffffff;text-decoration:none;padding:13px 26px;border-radius:999px;font-weight:600;font-size:15px;">Отвори формата</a>
+            <p style="color:#94a3b8;font-size:12px;line-height:1.55;margin:14px 0 0;word-break:break-all;">Ако бутонът не работи, отворете този адрес:<br><a href="{url}" style="color:#0d9488;text-decoration:none;">{url}</a></p>
         </div>
 
         <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:18px 20px;margin:0 0 20px;">
             <p style="color:#0f172a;font-size:14px;font-weight:600;margin:0 0 8px;">Какво следва</p>
-            <p style="color:#475569;font-size:14px;line-height:1.6;margin:0;">
-                След като изпратите формата, екипът на Zubite.bg преглежда данните и
-                се свързва с вас за следващите стъпки. Подаването на форма не е
-                обвързващо и не означава автоматично публикуване на профил.
-            </p>
-            <p style="color:#475569;font-size:14px;line-height:1.6;margin:10px 0 0;">
-                Ако имате въпроси, отговорете директно на този имейл — ще ви отговорим.
-            </p>
+            <p style="color:#475569;font-size:14px;line-height:1.6;margin:0;">След като изпратите формата, екипът на Zubite.bg преглежда данните и се свързва с вас за следващите стъпки. Подаването на форма не е обвързващо и не означава автоматично публикуване на профил.</p>
+            <p style="color:#475569;font-size:14px;line-height:1.6;margin:10px 0 0;">Ако имате въпроси, отговорете директно на този имейл — ще ви отговорим.</p>
         </div>
 
-        <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin:0 0 6px;">
-            {expiry_line} Моля, не го препращайте публично.
-        </p>
-        <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin:0 0 6px;">
-            Ако не очаквате това съобщение, просто го игнорирайте — линкът изтича сам.
-        </p>
-        <p style="color:#94a3b8;font-size:12px;margin:12px 0 0;">
-            — Екипът на <a href="{_h(_admin_url('/'))}" style="color:#0d9488;text-decoration:none;">Zubite.bg</a>
-        </p>
+        <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin:0 0 6px;">{expiry_line} Моля, не го препращайте публично.</p>
+        <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin:0 0 6px;">Ако не очаквате това съобщение, просто го игнорирайте — линкът изтича сам.</p>
+        <p style="color:#94a3b8;font-size:12px;margin:12px 0 0;">— Екипът на <a href="{_h(_admin_url('/'))}" style="color:#0d9488;text-decoration:none;">Zubite.bg</a></p>
     </div>
     """
 
