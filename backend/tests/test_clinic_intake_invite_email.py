@@ -299,6 +299,49 @@ async def test_invite_email_body_carries_the_link_and_makes_no_promises(monkeypa
 
 
 @pytest.mark.asyncio
+async def test_invite_email_reads_the_same_if_newlines_are_stripped(monkeypatch):
+    """Word spacing must not depend on HTML collapsing source newlines.
+
+    HTML turns a newline into a space, so a sentence wrapped across source
+    lines normally reads fine. Parts of the mail path strip newlines instead
+    of collapsing them, and then the words on either side are glued together —
+    "профил на" + "Дентална клиника" arrives as "профил наДентална клиника".
+    The email is only safe if its text reads identically either way.
+    """
+    import re
+
+    import emails
+
+    captured = {}
+
+    async def _capture(to, subject, html, **_kwargs):
+        captured["html"] = html
+        return True
+
+    monkeypatch.setattr(emails, "RESEND_API_KEY", "test-key")
+    monkeypatch.setattr(emails, "_send_email", _capture)
+
+    await emails.send_clinic_intake_invite_email(
+        to_email="clinic@example.com",
+        clinic_label="Дентална клиника Тест",
+        intake_url="https://zubite.bg/clinic-intake/tok123",
+        expires_at="2026-10-18T09:00:00+00:00",
+    )
+    html = captured["html"]
+
+    def _text(source: str) -> str:
+        return " ".join(re.sub(r"<[^>]+>", " ", source).split())
+
+    collapsed = _text(re.sub(r"\n\s*", " ", html))  # newline -> space
+    stripped = _text(re.sub(r"\n\s*", "", html))  # newline removed
+
+    assert collapsed == stripped, (
+        "a sentence is wrapped across source lines, so stripping newlines "
+        "glues words together — keep each run of text on one line"
+    )
+
+
+@pytest.mark.asyncio
 async def test_invite_email_escapes_the_clinic_label(monkeypatch):
     import emails
 
