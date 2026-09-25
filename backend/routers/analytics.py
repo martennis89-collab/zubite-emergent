@@ -174,6 +174,37 @@ async def get_analytics(
         "form_submitted": form_submits
     }
 
+    # Post-submit funnel, counted as unique sessions (session_id persists in
+    # localStorage, so it follows the patient across pages):
+    #   contact submitted → shortlist (/results/:id/clinics) loaded →
+    #   /clinics directory visited after that first shortlist load.
+    submitted_sessions = set()
+    first_shortlist_at: Dict[str, str] = {}
+    directory_views: Dict[str, List[str]] = {}
+    for e in events:
+        sid = e.get('session_id')
+        if not sid:
+            continue
+        et = e.get('event_type')
+        at = e.get('created_at') or e.get('timestamp') or ''
+        if et == 'post_quiz_lead_submitted':
+            submitted_sessions.add(sid)
+        elif et == 'clinic_recommendations_viewed':
+            if sid not in first_shortlist_at or at < first_shortlist_at[sid]:
+                first_shortlist_at[sid] = at
+        elif et == 'clinic_directory_viewed':
+            directory_views.setdefault(sid, []).append(at)
+    directory_after_shortlist = sum(
+        1 for sid, first in first_shortlist_at.items()
+        if any(at >= first for at in directory_views.get(sid, []))
+    )
+    post_submit_funnel = {
+        "contact_submitted": len(submitted_sessions),
+        "shortlist_viewed": len(first_shortlist_at),
+        "directory_after_shortlist": directory_after_shortlist,
+        "directory_viewed_total": len(directory_views),
+    }
+
     # Starts per day (for the time-series chart)
     starts_by_date: Dict[str, int] = {}
     for s in sessions.values():
@@ -232,6 +263,7 @@ async def get_analytics(
         "question_stats": question_stats,
         "result_distribution": result_dist,
         "funnel": funnel,
+        "post_submit_funnel": post_submit_funnel,
         "starts_per_day": starts_per_day,
         "leads_per_day": leads_per_day,
         "leads_by_city": leads_by_city,

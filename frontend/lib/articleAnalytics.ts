@@ -33,7 +33,6 @@ export function trackArticleEvent(
   // First-party logger — fire-and-forget so it never blocks UI.
   try {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
-    if (!API_URL) return
     let sessionId = ''
     try {
       sessionId = localStorage.getItem('zubite_session_id') || ''
