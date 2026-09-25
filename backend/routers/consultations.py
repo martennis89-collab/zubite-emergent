@@ -245,6 +245,14 @@ async def admin_list_clinics(
     clinics = await db.clinics.find(query, {"_id": 0, "password_hash": 0}).to_list(500)
     # Bulk-load add-on counts so we don't N+1 the listing.
     ids = [c.get("id") for c in clinics if c.get("id")]
+    # A clinic can exist in this list before it has a portal account at all
+    # (e.g. a directory-only listing created before onboarding). The reset
+    # endpoint 404s for those, so the admin UI needs to know in advance
+    # rather than offering a button that always fails for some rows.
+    accounts_with_password: set = set()
+    if ids:
+        accounts_with_password = set(await db.clinics.distinct(
+            "id", {"id": {"$in": ids}, "password_hash": {"$exists": True}}))
     addon_counts: Dict[str, int] = {}
     if ids:
         pipeline = [
@@ -286,6 +294,7 @@ async def admin_list_clinics(
         ents = compute_entitlements(c, addons=[])
         c["patient_journey_eligible"] = bool(ents.get("patient_journey_eligibility"))
         c["partner_access"] = bool(ents.get("partner_access"))
+        c["has_account"] = cid in accounts_with_password
     return {"clinics": clinics}
 
 
@@ -486,6 +495,8 @@ async def admin_get_clinic(
     clinic = await db.clinics.find_one({"id": clinic_id}, {"_id": 0, "password_hash": 0})
     if not clinic:
         raise HTTPException(status_code=404, detail="Clinic not found")
+    has_account = await db.clinics.count_documents(
+        {"id": clinic_id, "password_hash": {"$exists": True}}) > 0
     # Performance metrics
     cid = clinic_id
     assigned = await db.consultation_requests.count_documents({"assigned_clinic_id": cid})
@@ -502,6 +513,7 @@ async def admin_get_clinic(
     clinic_out["base_package"] = resolve_base_package(clinic)
     clinic_out["founding_status"] = resolve_founding_status(clinic)
     clinic_out["public_partner_label"] = public_partner_label(clinic)
+    clinic_out["has_account"] = has_account
     entitlements = compute_entitlements(clinic, addons=addons)
     return {
         "clinic": clinic_out,

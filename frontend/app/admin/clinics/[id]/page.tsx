@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { Save, Plus, Trash2, CheckCircle2, AlertCircle, Eye, EyeOff } from 'lucide-react'
+import { Save, Plus, Trash2, CheckCircle2, AlertCircle, Eye, EyeOff, KeyRound } from 'lucide-react'
 import { AdminHeader } from '@/components/admin/AdminHeader'
 import { CaseLibraryEditor, type CaseRow as EditorCaseRow } from '@/components/admin/CaseLibraryEditor'
 import { ClinicPackageSection } from '@/components/admin/ClinicPackageSection'
@@ -323,6 +323,8 @@ export default function AdminClinicEditPage() {
   // Care Pass-specific downgrade warning. Boolean — no admin editing.
   const [carePassPartner, setCarePassPartner] = useState(false)
   const [clinicName, setClinicName] = useState('')
+  const [hasAccount, setHasAccount] = useState(false)
+  const [resettingPassword, setResettingPassword] = useState(false)
   // Editable contact details, kept separate from `clinicName` so the page
   // heading keeps showing the saved name while the field is being typed in.
   const [contact, setContact] = useState<ContactDetails>(EMPTY_CONTACT)
@@ -358,6 +360,7 @@ export default function AdminClinicEditPage() {
       const j = await r.json()
       const c = j.clinic || {}
       setClinicName(c.clinic_name || c.name || '—')
+      setHasAccount(Boolean(c.has_account))
       const loadedContact: ContactDetails = {
         clinic_name: c.clinic_name || c.name || '',
         city: c.city || c.city_name || '',
@@ -452,6 +455,35 @@ export default function AdminClinicEditPage() {
   }, [clinicId, router])
 
   useEffect(() => { if (clinicId) load() }, [clinicId, load])
+
+  const resetPassword = async () => {
+    if (!confirm(
+      `Ще генерираме нова парола за ${clinicName} и ще я изпратим по имейл. `
+      + `Старата парола престава да работи веднага. Продължи?`
+    )) return
+    setResettingPassword(true); setMessage(null)
+    try {
+      const r = await fetch(`${API_URL}/api/admin/clinic-accounts/${clinicId}/reset-password`, {
+        method: 'POST',
+        credentials: 'include' as RequestCredentials,
+      })
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok) {
+        setMessage({ type: 'err', text: typeof j.detail === 'string' ? j.detail : 'Грешка при изпращане на паролата.' })
+        return
+      }
+      // The generated password is shown once here and never stored -- if the
+      // email fails, this line (or the audit log's email_success flag) is the
+      // only place it can still be recovered from.
+      const emailNote = j.email_sent
+        ? ''
+        : ` Имейлът НЕ беше изпратен автоматично -- паролата е: ${j.credentials.password}`
+      setMessage({
+        type: 'ok',
+        text: `Новата парола е изпратена на ${j.credentials.email}.${emailNote}`,
+      })
+    } finally { setResettingPassword(false) }
+  }
 
   const save = async () => {
     // Checked here rather than left to the backend, which treats an empty
@@ -570,6 +602,18 @@ export default function AdminClinicEditPage() {
         backLabel="Към списъка"
       />
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-end gap-3">
+        {hasAccount && (
+          <button
+            type="button"
+            onClick={resetPassword}
+            disabled={resettingPassword}
+            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-sm font-medium disabled:opacity-50"
+            data-testid="admin-clinic-reset-password"
+          >
+            <KeyRound className="w-4 h-4" />
+            {resettingPassword ? 'Изпращане…' : 'Нова парола'}
+          </button>
+        )}
         <Link
           href={`/admin/clinics/${clinicId}/orientation`}
           className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-sm font-medium"
