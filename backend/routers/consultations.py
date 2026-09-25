@@ -307,10 +307,17 @@ async def admin_archive_clinic(
     if before.get("archived") is True:
         return {"ok": True, "already_archived": True}
     now = _now_iso()
-    await db.clinics.update_one(
-        {"id": clinic_id},
-        {"$set": {"archived": True, "archived_at": now, "updated_at": now}},
-    )
+    archive_update: Dict[str, Any] = {
+        "$set": {"archived": True, "archived_at": now, "updated_at": now},
+    }
+    # An archived clinic gives its email back. The email is the clinic's login
+    # and every duplicate check keys on it, so while an archived clinic held it
+    # the address could never be used for a new clinic -- and the archived one
+    # could still log in with it. Kept in `archived_email` for unarchiving.
+    if before.get("email"):
+        archive_update["$set"]["archived_email"] = before["email"]
+        archive_update["$unset"] = {"email": ""}
+    await db.clinics.update_one({"id": clinic_id}, archive_update)
     await audit_log(
         "clinic.archived",
         actor=user, actor_type="admin",
@@ -338,10 +345,29 @@ async def admin_unarchive_clinic(
     if not before.get("archived"):
         return {"ok": True, "already_active": True}
     now = _now_iso()
-    await db.clinics.update_one(
-        {"id": clinic_id},
-        {"$set": {"archived": False, "unarchived_at": now, "updated_at": now}},
-    )
+    unarchive_update: Dict[str, Any] = {
+        "$set": {"archived": False, "unarchived_at": now, "updated_at": now},
+    }
+    restored_email = before.get("archived_email")
+    if restored_email:
+        # The address may have gone to a new clinic while this one was
+        # archived. Two clinics sharing one email is a login that silently picks
+        # whichever was created first, so refuse rather than restore it.
+        clash = await db.clinics.find_one(
+            {"email": restored_email, "id": {"$ne": clinic_id}},
+            {"_id": 0, "id": 1, "clinic_name": 1, "name": 1})
+        if clash:
+            holder = clash.get("clinic_name") or clash.get("name") or clash["id"]
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"Имейлът {restored_email} вече се използва от клиника „{holder}“. "
+                    "Сменете имейла на архивираната клиника, преди да я възстановите."
+                ),
+            )
+        unarchive_update["$set"]["email"] = restored_email
+        unarchive_update["$unset"] = {"archived_email": ""}
+    await db.clinics.update_one({"id": clinic_id}, unarchive_update)
     await audit_log(
         "clinic.unarchived",
         actor=user, actor_type="admin",
@@ -532,7 +558,14 @@ async def admin_update_clinic(
         if clash:
             raise HTTPException(status_code=400,
                                 detail="Clinic with this email already exists")
-        update["email"] = email
+        target = await db.clinics.find_one({"id": clinic_id}, {"_id": 0, "archived": 1})
+        if (target or {}).get("archived") is True:
+            # An archived clinic keeps its address out of the login slot. Editing
+            # it changes what unarchiving will restore, not who can log in now.
+            del update["email"]
+            update["archived_email"] = email
+        else:
+            update["email"] = email
     if "notification_email" in update:
         update["notification_email"] = str(update["notification_email"]).strip().lower()
     if "clinic_status" in update and update["clinic_status"] not in CLINIC_STATUS_VALUES:

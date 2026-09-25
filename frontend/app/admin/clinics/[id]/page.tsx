@@ -363,7 +363,7 @@ export default function AdminClinicEditPage() {
         city: c.city || c.city_name || '',
         address: c.address || '',
         phone: c.phone || '',
-        email: c.email || '',
+        email: c.email || c.archived_email || '',
         website: c.website || '',
         contact_person: c.contact_person || '',
         notification_email: c.notification_email || '',

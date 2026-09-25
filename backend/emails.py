@@ -387,10 +387,7 @@ async def send_verification_flagged_alert(
     html = f"""
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 540px; margin: 0 auto; padding: 24px 0;">
         <h1 style="font-size: 18px; color: #b91c1c; margin: 0 0 12px;">Flagged lead — clinic did not contact</h1>
-        <p style="color: #475569; font-size: 14px; line-height: 1.5; margin: 0 0 16px;">
-            A patient responded <strong>"no"</strong> to the 24h verification email.
-            Please follow up with the clinic.
-        </p>
+        <p style="color: #475569; font-size: 14px; line-height: 1.5; margin: 0 0 16px;">A patient responded <strong>"no"</strong> to the 24h verification email. Please follow up with the clinic.</p>
         <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
             <tr><td style="padding: 6px 0; color: #64748b; width: 140px;">Lead ID:</td>
                 <td style="padding: 6px 0; color: #0f172a;"><code>{lead_id}</code></td></tr>
@@ -472,16 +469,9 @@ async def send_clinic_chat_notification(
         </div>
         <div style="padding: 24px; background: #f8fafc;">
             <div style="background: white; border-radius: 12px; padding: 20px; border: 1px solid #e2e8f0;">
-                <p style="color: #0f172a; margin: 0 0 12px 0; font-size: 15px;">
-                    Пациент започна онлайн разговор с вас в Zubite.
-                </p>
-                <p style="color: #64748b; margin: 0 0 20px 0; font-size: 14px; line-height: 1.6;">
-                    Съобщението и приложените файлове са достъпни само във вашето табло —
-                    не ги изпращаме по имейл.
-                </p>
-                <a href="{url}" style="display: inline-block; background: #14b8a6; color: white; text-decoration: none; padding: 12px 20px; border-radius: 999px; font-weight: 500; font-size: 14px;">
-                    Отвори разговора
-                </a>
+                <p style="color: #0f172a; margin: 0 0 12px 0; font-size: 15px;">Пациент започна онлайн разговор с вас в Zubite.</p>
+                <p style="color: #64748b; margin: 0 0 20px 0; font-size: 14px; line-height: 1.6;">Съобщението и приложените файлове са достъпни само във вашето табло — не ги изпращаме по имейл.</p>
+                <a href="{url}" style="display: inline-block; background: #14b8a6; color: white; text-decoration: none; padding: 12px 20px; border-radius: 999px; font-weight: 500; font-size: 14px;">Отвори разговора</a>
             </div>
         </div>
     </div>
@@ -535,6 +525,13 @@ async def send_clinic_intake_invite_email(
     to the onboarding conversation, not to the transactional stream a clinic
     lives in afterwards.
 
+    Every run of text is kept on ONE source line. HTML collapses a newline to
+    a space, but parts of the mail path strip newlines instead of collapsing
+    them, which glues the surrounding words together ("профил наДентална").
+    Wrapping a sentence across source lines for readability is what caused
+    that, so the markup here is deliberately wide rather than pretty, and
+    test_invite_email_reads_the_same_if_newlines_are_stripped holds the line.
+
     Best-effort like every other sender here: returns False when Resend is
     unconfigured or the call fails, and never raises."""
     if not RESEND_API_KEY:
@@ -557,56 +554,28 @@ async def send_clinic_intake_invite_email(
     <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;background:#FCFAF8;color:#1B1C1B;">
         <p style="margin:0 0 12px;color:#006A61;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">Zubite.bg</p>
         <h1 style="font-size:22px;color:#0f172a;margin:0 0 12px;font-weight:600;">Покана за профил в Zubite.bg</h1>
-        <p style="color:#475569;font-size:15px;line-height:1.65;margin:0 0 18px;">
-            Здравейте, изпращаме ви личен линк към формата за профил на
-            <strong>{label}</strong> в Zubite.bg.
-        </p>
+        <p style="color:#475569;font-size:15px;line-height:1.65;margin:0 0 18px;">Здравейте, изпращаме ви личен линк към формата за профил на <strong>{label}</strong> в Zubite.bg.</p>
 
         <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin:0 0 20px;">
             <p style="color:#0f172a;font-size:14px;font-weight:600;margin:0 0 10px;">Какво представлява формата</p>
-            <p style="color:#475569;font-size:14px;line-height:1.6;margin:0 0 10px;">
-                Попълвате данни за практиката си — лечения, екип, подход към пациента,
-                технологии и начин на комуникация. От тях изграждаме структуриран
-                профил, който помага на пациентите да се ориентират, преди да изберат
-                при кого да отидат.
-            </p>
-            <p style="color:#475569;font-size:14px;line-height:1.6;margin:0;">
-                Попълването отнема около 10–15 минути и може да стане на части,
-                стига да е от същия линк.
-            </p>
+            <p style="color:#475569;font-size:14px;line-height:1.6;margin:0 0 10px;">Попълвате данни за практиката си — лечения, екип, подход към пациента, технологии и начин на комуникация. От тях изграждаме структуриран профил, който помага на пациентите да се ориентират, преди да изберат при кого да отидат.</p>
+            <p style="color:#475569;font-size:14px;line-height:1.6;margin:0;">Попълването отнема около 10–15 минути и може да стане на части, стига да е от същия линк.</p>
         </div>
 
         <div style="text-align:center;margin:0 0 20px;">
-            <a href="{url}" style="display:inline-block;background:#0d9488;background-image:linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%);color:#ffffff;text-decoration:none;padding:13px 26px;border-radius:999px;font-weight:600;font-size:15px;">
-                Отвори формата
-            </a>
-            <p style="color:#94a3b8;font-size:12px;line-height:1.55;margin:14px 0 0;word-break:break-all;">
-                Ако бутонът не работи, отворете този адрес:<br>
-                <a href="{url}" style="color:#0d9488;text-decoration:none;">{url}</a>
-            </p>
+            <a href="{url}" style="display:inline-block;background:#0d9488;background-image:linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%);color:#ffffff;text-decoration:none;padding:13px 26px;border-radius:999px;font-weight:600;font-size:15px;">Отвори формата</a>
+            <p style="color:#94a3b8;font-size:12px;line-height:1.55;margin:14px 0 0;word-break:break-all;">Ако бутонът не работи, отворете този адрес:<br><a href="{url}" style="color:#0d9488;text-decoration:none;">{url}</a></p>
         </div>
 
         <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:18px 20px;margin:0 0 20px;">
             <p style="color:#0f172a;font-size:14px;font-weight:600;margin:0 0 8px;">Какво следва</p>
-            <p style="color:#475569;font-size:14px;line-height:1.6;margin:0;">
-                След като изпратите формата, екипът на Zubite.bg преглежда данните и
-                се свързва с вас за следващите стъпки. Подаването на форма не е
-                обвързващо и не означава автоматично публикуване на профил.
-            </p>
-            <p style="color:#475569;font-size:14px;line-height:1.6;margin:10px 0 0;">
-                Ако имате въпроси, отговорете директно на този имейл — ще ви отговорим.
-            </p>
+            <p style="color:#475569;font-size:14px;line-height:1.6;margin:0;">След като изпратите формата, екипът на Zubite.bg преглежда данните и се свързва с вас за следващите стъпки. Подаването на форма не е обвързващо и не означава автоматично публикуване на профил.</p>
+            <p style="color:#475569;font-size:14px;line-height:1.6;margin:10px 0 0;">Ако имате въпроси, отговорете директно на този имейл — ще ви отговорим.</p>
         </div>
 
-        <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin:0 0 6px;">
-            {expiry_line} Моля, не го препращайте публично.
-        </p>
-        <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin:0 0 6px;">
-            Ако не очаквате това съобщение, просто го игнорирайте — линкът изтича сам.
-        </p>
-        <p style="color:#94a3b8;font-size:12px;margin:12px 0 0;">
-            — Екипът на <a href="{_h(_admin_url('/'))}" style="color:#0d9488;text-decoration:none;">Zubite.bg</a>
-        </p>
+        <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin:0 0 6px;">{expiry_line} Моля, не го препращайте публично.</p>
+        <p style="color:#94a3b8;font-size:12px;line-height:1.6;margin:0 0 6px;">Ако не очаквате това съобщение, просто го игнорирайте — линкът изтича сам.</p>
+        <p style="color:#94a3b8;font-size:12px;margin:12px 0 0;">— Екипът на <a href="{_h(_admin_url('/'))}" style="color:#0d9488;text-decoration:none;">Zubite.bg</a></p>
     </div>
     """
 
@@ -729,10 +698,7 @@ async def send_admin_assisted_choice_request_alert(
     html = f"""
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px 0;">
         <h1 style="font-size: 18px; color: #0f172a; margin: 0 0 8px;">Нова заявка за помощ при избор</h1>
-        <p style="color: #475569; font-size: 14px; line-height: 1.55; margin: 0 0 16px;">
-            Пациентът поиска помощ от Zubite, за да избере подходяща клиника.
-            Изисква преглед от екипа.
-        </p>
+        <p style="color: #475569; font-size: 14px; line-height: 1.55; margin: 0 0 16px;">Пациентът поиска помощ от Zubite, за да избере подходяща клиника. Изисква преглед от екипа.</p>
         <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
             <tr><td style="padding: 6px 0; color: #64748b; width: 200px;">Тип заявка:</td>
                 <td style="padding: 6px 0; color: #0f172a;">Пациентът поиска помощ от Zubite</td></tr>
@@ -871,27 +837,16 @@ async def send_care_pass_summary_email(
         magic_link_block = f"""
         <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:22px;margin:0 0 20px;text-align:center;">
             <p style="color:#0f172a;font-size:14px;font-weight:600;margin:0 0 8px;">Запазен достъп до твоя ориентир</p>
-            <p style="color:#475569;font-size:13px;line-height:1.55;margin:0 0 16px;">
-                Можеш да се върнеш към своя ориентир и обяснението за Zubite Care Pass от този линк.
-                Това не е диагноза, а помощ да разбереш каква следваща стъпка има смисъл за твоя случай.
-            </p>
-            <a href="{_h(magic_url)}" style="display:inline-block;background:#0d9488;background-image:linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%);color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:999px;font-weight:600;font-size:14px;">
-                Отвори своя ориентир
-            </a>
-            <p style="color:#94a3b8;font-size:11px;line-height:1.5;margin:14px 0 0;">
-                Линкът е личен — не го споделяй публично. Активен е до 90 дни.
-            </p>
+            <p style="color:#475569;font-size:13px;line-height:1.55;margin:0 0 16px;">Можеш да се върнеш към своя ориентир и обяснението за Zubite Care Pass от този линк. Това не е диагноза, а помощ да разбереш каква следваща стъпка има смисъл за твоя случай.</p>
+            <a href="{_h(magic_url)}" style="display:inline-block;background:#0d9488;background-image:linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%);color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:999px;font-weight:600;font-size:14px;">Отвори своя ориентир</a>
+            <p style="color:#94a3b8;font-size:11px;line-height:1.5;margin:14px 0 0;">Линкът е личен — не го споделяй публично. Активен е до 90 дни.</p>
         </div>
         """
 
     html = f"""
     <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;background:#FCFAF8;">
         <h1 style="font-size:22px;color:#0f172a;margin:0 0 8px;font-weight:600;">{_h(greeting)},</h1>
-        <p style="color:#475569;font-size:15px;line-height:1.6;margin:0 0 20px;">
-            Запазваме твоя резултат от ориентира на Zubite.bg, заедно с
-            информация за Care Pass. Това е <strong>ориентир, не диагноза</strong>
-            и не замества преглед при специалист.
-        </p>
+        <p style="color:#475569;font-size:15px;line-height:1.6;margin:0 0 20px;">Запазваме твоя резултат от ориентира на Zubite.bg, заедно с информация за Care Pass. Това е <strong>ориентир, не диагноза</strong> и не замества преглед при специалист.</p>
 
         <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin:0 0 20px;">
             <p style="color:#0f766e;font-size:11px;text-transform:uppercase;letter-spacing:0.12em;margin:0 0 8px;font-weight:600;">Твоят ориентир</p>
@@ -905,32 +860,17 @@ async def send_care_pass_summary_email(
         <div style="background:#0E1A24;background-image:linear-gradient(135deg,#0E1A24 0%,#112832 100%);border-radius:12px;padding:22px;margin:0 0 20px;color:#e2e8f0;">
             <p style="color:#5eead4;font-size:11px;text-transform:uppercase;letter-spacing:0.14em;margin:0 0 6px;font-weight:600;">Zubite Care Pass</p>
             <h2 style="color:#ffffff;font-size:18px;margin:0 0 12px;font-weight:600;">След консултацията клиниката ти дава Care Pass.</h2>
-            <p style="color:#cbd5e1;font-size:14px;line-height:1.55;margin:0 0 14px;">
-                Ако посетиш консултация в партньорска клиника чрез Zubite.bg,
-                клиниката ще ти предостави Zubite Care Pass —
-                <strong>отстъпки за продукти за орална хигиена</strong>.
-            </p>
-            <p style="color:#94a3b8;font-size:12px;line-height:1.5;margin:0;">
-                Care Pass не е отстъпка от лечение, не е застраховка и не е абонамент.
-            </p>
+            <p style="color:#cbd5e1;font-size:14px;line-height:1.55;margin:0 0 14px;">Ако посетиш консултация в партньорска клиника чрез Zubite.bg, клиниката ще ти предостави Zubite Care Pass — <strong>отстъпки за продукти за орална хигиена</strong>.</p>
+            <p style="color:#94a3b8;font-size:12px;line-height:1.5;margin:0;">Care Pass не е отстъпка от лечение, не е застраховка и не е абонамент.</p>
         </div>
 
         <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin:0 0 20px;">
             <p style="color:#0f172a;font-size:14px;font-weight:600;margin:0 0 10px;">Какво следва?</p>
-            <p style="color:#475569;font-size:14px;line-height:1.55;margin:0;">
-                В момента изграждаме подбрана партньорска мрежа от клиники, затова
-                екипът на Zubite.bg преглежда заявките ръчно и се свързва с теб
-                с подходящи насоки.
-            </p>
+            <p style="color:#475569;font-size:14px;line-height:1.55;margin:0;">В момента изграждаме подбрана партньорска мрежа от клиники, затова екипът на Zubite.bg преглежда заявките ръчно и се свързва с теб с подходящи насоки.</p>
         </div>
 
-        <p style="color:#94a3b8;font-size:12px;line-height:1.55;margin:14px 0 0;">
-            Получаваш този имейл, защото поиска да го запазиш на страницата с резултата си в Zubite.bg.
-            Информацията е ориентировъчна — Zubite не поставя диагноза и не замества преглед при лекар.
-        </p>
-        <p style="color:#94a3b8;font-size:12px;margin:8px 0 0;">
-            — Екипът на <a href="{_h(_admin_url('/'))}" style="color:#0d9488;text-decoration:none;">Zubite.bg</a>
-        </p>
+        <p style="color:#94a3b8;font-size:12px;line-height:1.55;margin:14px 0 0;">Получаваш този имейл, защото поиска да го запазиш на страницата с резултата си в Zubite.bg. Информацията е ориентировъчна — Zubite не поставя диагноза и не замества преглед при лекар.</p>
+        <p style="color:#94a3b8;font-size:12px;margin:8px 0 0;">— Екипът на <a href="{_h(_admin_url('/'))}" style="color:#0d9488;text-decoration:none;">Zubite.bg</a></p>
     </div>
     """
 

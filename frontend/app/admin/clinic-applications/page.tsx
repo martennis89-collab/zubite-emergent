@@ -1242,6 +1242,11 @@ export default function ClinicApplicationsPage() {
         }
         return result
       }
+      // A refused change -- approving an application whose email already
+      // belongs to a clinic, for one -- used to fall through here with no
+      // message at all, so the click looked like it had simply done nothing.
+      const body = await res.json().catch(() => ({}))
+      setMessage({ type: 'error', text: typeof body.detail === 'string' ? body.detail : 'Грешка при обновяване' })
     } catch {
       setMessage({ type: 'error', text: 'Грешка при обновяване' })
     }

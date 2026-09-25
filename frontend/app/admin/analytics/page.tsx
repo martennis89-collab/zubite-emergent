@@ -21,6 +21,12 @@ interface Analytics {
   question_stats: Record<string, Record<string, number>>
   result_distribution: Record<string, number>
   funnel: Record<string, number>
+  post_submit_funnel?: {
+    contact_submitted: number
+    shortlist_viewed: number
+    directory_after_shortlist: number
+    directory_viewed_total: number
+  }
   starts_per_day: Array<{ date: string; count: number }>
   leads_per_day: Array<{ date: string; count: number }>
   leads_by_city: Record<string, number>
@@ -453,6 +459,50 @@ export default function AdminAnalyticsPage() {
                 </div>
               </div>
             </div>
+
+            {/* Post-submit funnel — unique sessions */}
+            {analytics.post_submit_funnel && (
+              <div className="bg-white rounded-xl border border-slate-200 p-6 mb-8" data-testid="analytics-post-submit-funnel">
+                <h2 className="font-semibold text-slate-900 mb-1 flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-slate-400" />
+                  След изпращане на контактите
+                </h2>
+                <p className="text-xs text-slate-500 mb-6">Уникални сесии за избрания период.</p>
+                <div className="space-y-4">
+                  {(() => {
+                    const f = analytics.post_submit_funnel
+                    const steps = [
+                      { label: 'Изпратили контакти', value: f.contact_submitted, color: 'bg-teal-500' },
+                      { label: 'Заредили страницата с клиники за тях', value: f.shortlist_viewed, color: 'bg-teal-400' },
+                      { label: 'Посетили всички клиники след това', value: f.directory_after_shortlist, color: 'bg-emerald-600' },
+                    ]
+                    const max = Math.max(...steps.map((s) => s.value), 1)
+                    return steps.map((step, index) => {
+                      const prev = index > 0 ? steps[index - 1].value : 0
+                      const rate = index > 0 && prev > 0 ? Math.round((step.value / prev) * 100) : null
+                      return (
+                        <div key={step.label}>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-slate-700">{step.label}</span>
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm font-bold text-slate-900">{step.value}</span>
+                              {rate !== null && <span className="text-xs text-slate-500">{rate}% от предишната</span>}
+                            </div>
+                          </div>
+                          <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+                            <div className={`h-full ${step.color} transition-all duration-500`} style={{ width: `${Math.round((step.value / max) * 100)}%` }} />
+                          </div>
+                        </div>
+                      )
+                    })
+                  })()}
+                  <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-sm">
+                    <span className="text-slate-500">Всички посещения на каталога с клиники (всякакъв източник)</span>
+                    <span className="font-medium text-slate-700">{analytics.post_submit_funnel.directory_viewed_total}</span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
               {/* Result Distribution */}

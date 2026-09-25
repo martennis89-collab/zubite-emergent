@@ -649,13 +649,31 @@ async def update_clinic_application(app_id: str, body: dict, request: Request, u
     if not application:
         raise HTTPException(status_code=404, detail="Application not found")
 
+    # Checked before anything is written. The old order approved the application
+    # first and then quietly skipped creating the clinic when the email was taken,
+    # leaving an "approved" application with no clinic behind it and nothing on
+    # screen to say so.
+    if update_data.get("status") == "approved" and application.get("status") != "approved":
+        taken = await db.clinics.find_one(
+            {"email": str(application.get("email") or "").strip().lower()},
+            {"_id": 0, "id": 1, "clinic_name": 1, "name": 1})
+        if taken:
+            holder = taken.get("clinic_name") or taken.get("name") or taken["id"]
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"Имейлът {application.get('email')} вече се използва от клиника „{holder}“. "
+                    "Архивирайте я или сменете нейния имейл, преди да одобрите кандидатурата."
+                ),
+            )
+
     await db.clinic_applications.update_one({"id": app_id}, {"$set": update_data})
     response = {"status": "ok"}
 
     new_status = update_data.get("status")
     created_clinic_id: str | None = None
     if new_status == "approved" and application.get("status") != "approved":
-        existing = await db.clinics.find_one({"email": application["email"]})
+        existing = await db.clinics.find_one({"email": str(application["email"]).strip().lower()})
         if not existing:
             temp_password = secrets.token_urlsafe(10)
             # `application` was fetched before update_one() above wrote this
@@ -675,7 +693,7 @@ async def update_clinic_application(app_id: str, body: dict, request: Request, u
                 "clinic_name": application["clinic_name"],
                 "city": application["city"],
                 "district_slug": approved_data.get("district_slug"),
-                "email": application["email"],
+                "email": str(application["email"]).strip().lower(),
                 "phone": application["phone"],
                 "password_hash": hash_password(temp_password),
                 "status": "active",
@@ -831,6 +849,8 @@ async def regenerate_clinic_password_by_app(app_id: str, request: Request, user:
     clinic = await db.clinics.find_one({"application_id": app_id}, {"_id": 0})
     if not clinic:
         raise HTTPException(status_code=404, detail="Няма създаден акаунт за тази кандидатура")
+    if clinic.get("archived") is True:
+        raise HTTPException(status_code=409, detail="Клиниката е архивирана. Възстановете я, преди да сменяте паролата.")
     new_password = secrets.token_urlsafe(10)
     await db.clinics.update_one({"id": clinic["id"]}, {"$set": {"password_hash": hash_password(new_password)}})
     email_sent = _send_password_email(clinic, new_password, _get_portal_url(request))
@@ -865,6 +885,8 @@ async def admin_reset_clinic_password(clinic_id: str, request: Request, user: Ad
     clinic = await db.clinics.find_one({"id": clinic_id, "password_hash": {"$exists": True}}, {"_id": 0})
     if not clinic:
         raise HTTPException(status_code=404, detail="Clinic account not found")
+    if clinic.get("archived") is True:
+        raise HTTPException(status_code=409, detail="Клиниката е архивирана. Възстановете я, преди да сменяте паролата.")
     new_password = secrets.token_urlsafe(10)
     await db.clinics.update_one({"id": clinic_id}, {"$set": {"password_hash": hash_password(new_password)}})
     email_sent = _send_password_email(clinic, new_password, _get_portal_url(request))
@@ -988,6 +1010,8 @@ async def clinic_login(data: ClinicLogin, request: Request, response: Response):
         raise HTTPException(status_code=401, detail="Невалидни данни за вход")
     if clinic.get("status") == "paused":
         raise HTTPException(status_code=403, detail="Акаунтът е спрян")
+    if clinic.get("archived") is True:
+        raise HTTPException(status_code=403, detail="Акаунтът е архивиран")
     token, _jti = await create_clinic_token(clinic["id"], clinic["email"])
     # Always set httpOnly clinic session cookie.
     response.set_cookie(

@@ -12,6 +12,7 @@ import PublicClinicCard from './PublicClinicCard'
 import PublicClinicFiltersBar from './PublicClinicFilters'
 import CompareTray from './CompareTray'
 import PersonalizedClinicShowcase from './PersonalizedClinicShowcase'
+import { trackPatientEvent } from '@/lib/patientAnalytics'
 
 const PublicContactModal = dynamic(() => import('./PublicContactModal'), { ssr: false })
 
@@ -45,6 +46,13 @@ export default function ClinicListingPage({ initialCity, initialSpecialty, initi
     source: 'clinic_card' | 'clinic_compare'
     consultationType: 'general' | 'online'
   } | null>(null)
+
+  // One directory-view event per page load. The admin post-submit funnel
+  // joins it to the shortlist view via the persistent session id.
+  useEffect(() => {
+    trackPatientEvent('clinic_directory_viewed', { lead_id: leadId, city: initialCity })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     setFilters({
