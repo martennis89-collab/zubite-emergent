@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ResultsHeader } from '@/components/ResultsHeader'
@@ -11,7 +11,7 @@ import { getLead } from '@/lib/api'
 import { getStoredLeadContact } from '@/lib/leadContact'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
 import {
-  Loader2, Home, ShieldCheck, ArrowRight, Gift, Sparkles, Compass, MessageCircle, CheckCircle2,
+  Loader2, Home, ShieldCheck, ArrowRight, Gift, Compass, CheckCircle2,
 } from 'lucide-react'
 
 // Safe, non-diagnostic orientation note — band-agnostic, shown alongside
@@ -28,7 +28,7 @@ const GLOBAL_DISCLAIMER =
 
 interface Lead {
   id: string
-  city_slug: string
+  city_slug: string | null
   treatment_type: string
   band: string
   score_total: number
@@ -64,6 +64,12 @@ const EXPLANATION_BY_BAND: Record<Band, string> = {
     'Комбинацията от отговорите показва няколко сигнала наведнъж. Това не е диагноза, но е ясен ориентир да обсъдиш ситуацията със специалист скоро.',
 }
 
+const BAND_LABEL: Record<Band, string> = {
+  GREEN: 'Малко сигнали',
+  YELLOW: 'Няколко сигнала',
+  RED: 'Повече сигнали',
+}
+
 // Flag-aware bullets — only added when the corresponding quiz flag fired.
 // Wording follows the rule: насочват / може да има смисъл — не „имаш…".
 const FLAG_FINDINGS: Record<string, string> = {
@@ -92,11 +98,40 @@ const GENERIC_BY_SEGMENT: Record<Segment, string> = {
     'При деца ранната оценка помага да се проследи развитието. Целта не е лечение веднага, а навременно наблюдение.',
 }
 
-const BAND_TO_STAGE: Record<string, string> = {
-  RED: 'high',
-  YELLOW: 'moderate',
-  GREEN: 'low',
+// Intake answers (non-scoring quiz questions) → short profile chips, so
+// the patient sees their own preferences reflected back before the gate.
+const PROFILE_LABELS: Record<string, Record<string, string>> = {
+  treatment_interest: {
+    aligners: 'Интерес: алайнери',
+    braces: 'Интерес: брекети',
+    both: 'Интерес: алайнери или брекети',
+    unsure: 'Отворен/а към различни подходи',
+    ask_doctor: 'Искаш лекарят да препоръча подход',
+  },
+  readiness_timeline: {
+    asap: 'Следваща стъпка: възможно най-скоро',
+    within_1_month: 'Следваща стъпка: до 1 месец',
+    in_1_3_months: 'Следваща стъпка: след 1–3 месеца',
+    just_researching: 'Етап: проучване',
+  },
+  budget_mindset: {
+    affordable: 'Търсиш достъпен вариант',
+    balanced: 'Баланс цена / качество',
+    premium_if_justified: 'Премиум, ако е обосновано',
+    unknown_pricing: 'Искаш яснота за цените',
+  },
+  has_files: {
+    has_opg: 'Имаш OPG / панорамна снимка',
+    has_plan_or_offer: 'Имаш план или оферта',
+    has_smile_photos: 'Имаш снимки на усмивката',
+  },
 }
+
+const NEXT_STEPS = [
+  { t: 'Виждаш до 3 клиники', d: 'Подбрани според града и отговорите ти.' },
+  { t: 'Избираш сам/а', d: 'Разглеждаш профилите и решаваш дали и с коя да продължиш.' },
+  { t: 'Клиниката се свързва с теб', d: 'Само ако поискаш — за удобен час за консултация.' },
+]
 
 function deriveSegment(answers?: Record<string, unknown>): Segment {
   const raw = (answers || {})['segment']
@@ -104,10 +139,28 @@ function deriveSegment(answers?: Record<string, unknown>): Segment {
   return 'adult'
 }
 
+// The diagnostic quiz computes its own band client-side (`quiz_band`) but the
+// backend lead-scoring has no branch for `diagnostic_quiz`, so `lead.band`
+// is always RED for those leads. Prefer the quiz's own band when present.
+function deriveBand(lead: Lead): Band {
+  const quizBand = (lead.answers || {})['quiz_band']
+  if (quizBand === 'low') return 'GREEN'
+  if (quizBand === 'moderate') return 'YELLOW'
+  if (quizBand === 'high') return 'RED'
+  return lead.band === 'YELLOW' || lead.band === 'RED' ? lead.band : 'GREEN'
+}
+
 function deriveFlags(answers?: Record<string, unknown>): string[] {
   const raw = (answers || {})['quiz_flags']
   if (!Array.isArray(raw)) return []
   return raw.filter((f): f is string => typeof f === 'string' && f in FLAG_FINDINGS)
+}
+
+function deriveProfile(answers?: Record<string, unknown>): string[] {
+  const a = answers || {}
+  return Object.keys(PROFILE_LABELS)
+    .map((k) => PROFILE_LABELS[k][String(a[k] ?? '')])
+    .filter((v): v is string => !!v)
 }
 
 function buildKeyFindings(segment: Segment, flags: string[]): string[] {
@@ -121,6 +174,9 @@ function buildKeyFindings(segment: Segment, flags: string[]): string[] {
   return bullets
 }
 
+const CARD = 'rounded-2xl bg-white border border-[#E5E5E5]'
+const EYEBROW = 'text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6B6B6B]'
+
 export default function ResultsPage() {
   const params = useParams()
   const router = useRouter()
@@ -131,6 +187,8 @@ export default function ResultsPage() {
   const [error, setError] = useState('')
   const [assistedModalOpen, setAssistedModalOpen] = useState(false)
   const [assistedRequested, setAssistedRequested] = useState(false)
+  const gateRef = useRef<HTMLDivElement>(null)
+  const [gateInView, setGateInView] = useState(true)
 
   useEffect(() => {
     const fetchLead = async () => {
@@ -146,31 +204,38 @@ export default function ResultsPage() {
     fetchLead()
   }, [leadId])
 
-  // After successful unlock → redirect DIRECTLY to the personalised
-  // clinic shortlist. This matches the simplified post-quiz flow:
+  // Mobile sticky CTA shows only while the form is off-screen.
+  const isUnlocked = lead?.full_result_unlocked === true
+  useEffect(() => {
+    const el = gateRef.current
+    if (!el || typeof IntersectionObserver === 'undefined') return
+    const io = new IntersectionObserver(([entry]) => setGateInView(entry.isIntersecting), { threshold: 0.15 })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [lead, isUnlocked])
+
+  // After successful unlock → straight to the personalised clinic shortlist:
   //   Quiz → /results/[leadId] (partial + capture) → /results/[leadId]/clinics
-  // (Phase B redirect to /quiz/success is preserved as a code path
-  // only for explicit fallback — production users now land on /clinics.)
   const handleUnlocked = () => {
     router.push(`/results/${leadId}/clinics`)
   }
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#FCFAF8] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-teal-600 animate-spin" />
+      <main className="min-h-screen bg-[#F5F4F2] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-[#007956] animate-spin" />
       </main>
     )
   }
 
   if (error || !lead) {
     return (
-      <main className="min-h-screen bg-[#FCFAF8]">
+      <main className="min-h-screen bg-[#F5F4F2]">
         <ResultsHeader />
         <section className="pt-32 pb-16">
           <div className="max-w-2xl mx-auto px-4 text-center">
             <p className="text-rose-700">{error || 'Резултатите не бяха намерени.'}</p>
-            <Link href="/" className="mt-4 inline-flex items-center gap-2 text-teal-700 hover:text-teal-800 font-medium">
+            <Link href="/" className="mt-4 inline-flex items-center gap-2 text-[#007956] font-medium">
               <Home className="w-4 h-4" />
               Към началото
             </Link>
@@ -183,235 +248,214 @@ export default function ResultsPage() {
 
   const segment = deriveSegment(lead.answers)
   const flags = deriveFlags(lead.answers)
-  const band = (lead.band || 'GREEN') as Band
+  const band = deriveBand(lead)
   const headline = HEADLINE_BY_SEGMENT[segment]
-  const explanation = EXPLANATION_BY_BAND[band] || EXPLANATION_BY_BAND.GREEN
+  const explanation = EXPLANATION_BY_BAND[band]
   const findings = buildKeyFindings(segment, flags)
-  const isUnlocked = lead.full_result_unlocked === true
+  const profile = deriveProfile(lead.answers)
 
-  // Redirect-from-unlocked message — surfaced when the user lands here
-  // from the /clinics page locked-redirect (?notice=locked).
+  // Surfaced when the user lands here from the /clinics locked-redirect.
   const noticeFromQuery =
     typeof window !== 'undefined'
       ? new URLSearchParams(window.location.search).get('notice')
       : null
   const showLockedNotice = noticeFromQuery === 'locked' && !isUnlocked
 
-  return (
-    <main className="min-h-screen bg-[#FCFAF8] relative overflow-hidden" data-testid="results-page">
-      {/* Soft warm gradient backdrop */}
-      <div
-        aria-hidden
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(94,234,212,0.25) 0%, rgba(94,234,212,0) 60%),' +
-            'radial-gradient(ellipse 60% 50% at 80% 60%, rgba(165,243,252,0.30) 0%, rgba(165,243,252,0) 60%)',
-        }}
-      />
-      <div aria-hidden className="absolute -top-32 -left-32 w-[36rem] h-[36rem] rounded-full bg-teal-200/30 blur-3xl pointer-events-none" />
-      <div aria-hidden className="absolute -bottom-40 right-0 w-[40rem] h-[40rem] rounded-full bg-cyan-100/40 blur-3xl pointer-events-none" />
+  const resultCard = (
+    <article
+      className={`${CARD} p-6 sm:p-8`}
+      data-testid={isUnlocked ? 'full-partial-result' : 'partial-result-teaser'}
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#D0FAE5] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#007956]">
+          <ShieldCheck className="w-3 h-3" /> Твоят резултат
+        </span>
+        <span className="rounded-full border border-[#E5E5E5] px-3 py-1 text-[11px] font-semibold text-[#525252]" data-testid="result-band-label">
+          {BAND_LABEL[band]}
+        </span>
+      </div>
 
+      <h1
+        className="mt-4 text-[28px] sm:text-[34px] font-semibold leading-[1.1] text-[#0A0A0A]"
+        data-testid={isUnlocked ? 'result-headline' : 'partial-headline'}
+      >
+        {headline}
+      </h1>
+      <p
+        className="mt-3 text-[15px] sm:text-base leading-relaxed text-[#525252]"
+        data-testid={isUnlocked ? 'result-explanation' : 'partial-explanation'}
+      >
+        {explanation}
+      </p>
+
+      <div className="mt-6">
+        <p className={EYEBROW}>Какво показват отговорите ти</p>
+        <ul className="mt-3 space-y-2.5" data-testid="result-findings">
+          {findings.map((b, i) => (
+            <li key={i} className="flex items-start gap-2.5 text-[14.5px] leading-relaxed text-[#171717]" data-testid={`result-finding-${i}`}>
+              <Compass className="w-4 h-4 mt-0.5 flex-shrink-0 text-[#007956]" />
+              <span>{b}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {profile.length > 0 && (
+        <div className="mt-6">
+          <p className={EYEBROW}>Твоят профил</p>
+          <ul className="mt-3 flex flex-wrap gap-2" data-testid="result-profile">
+            {profile.map((p) => (
+              <li key={p} className="rounded-full bg-[#F5F4F2] px-3 py-1.5 text-[12.5px] font-medium text-[#171717]">
+                {p}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {isUnlocked && (
+        <p className="mt-6 text-[13.5px] leading-relaxed text-[#525252]" data-testid="result-safe-orientation-note">
+          {SAFE_ORIENTATION_NOTE}
+        </p>
+      )}
+      <p className="mt-6 border-t border-[#E5E5E5] pt-4 text-[12px] leading-relaxed text-[#6B6B6B]" data-testid="result-trust-note">
+        {GLOBAL_DISCLAIMER}
+      </p>
+    </article>
+  )
+
+  const nextSteps = (
+    <div className={`${CARD} p-6 sm:p-7`} data-testid="result-next-steps">
+      <p className={EYEBROW}>Какво следва</p>
+      <ol className="mt-4 space-y-4">
+        {NEXT_STEPS.map((s, i) => (
+          <li key={s.t} className="flex items-start gap-3">
+            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#0A0A0A] text-[13px] font-bold text-[#F5F4F2]">
+              {i + 1}
+            </span>
+            <div>
+              <p className="text-[15px] font-semibold text-[#0A0A0A]">{s.t}</p>
+              <p className="text-[13.5px] leading-relaxed text-[#525252]">{s.d}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </div>
+  )
+
+  return (
+    <main className="min-h-screen bg-[#F5F4F2] relative" data-testid="results-page">
       <ResultsHeader />
 
-      <section className="relative pt-28 pb-12 md:pt-36 md:pb-20">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 space-y-6">
-          {/* Locked-redirect notice — only shown when /clinics bounced back */}
+      <section className="relative pt-20 pb-28 md:pt-28 lg:pb-24">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
           {showLockedNotice && (
             <div
-              className="rounded-2xl bg-amber-50/85 ring-1 ring-amber-200 backdrop-blur-md p-4 text-sm text-amber-900 leading-relaxed"
+              className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-900"
               data-testid="locked-redirect-notice"
             >
-              Остави контакт, за да видиш персонализираните препоръки.
+              Избери град и остави контакт, за да видиш персонализираните препоръки.
             </div>
           )}
 
-          {/* ─── PRE-UNLOCK ─ partial result teaser + contact gate ─── */}
-          {!isUnlocked && (
-            <>
-              {/* Compact partial result teaser — orientation visible BEFORE
-                  contact, but no clinic list. */}
-              <article
-                className="relative rounded-[1.75rem] bg-white/75 backdrop-blur-2xl ring-1 ring-white/80 shadow-[0_24px_60px_-22px_rgba(15,23,42,0.22),inset_0_1px_0_rgba(255,255,255,0.95)] p-7 sm:p-8"
-                data-testid="partial-result-teaser"
-              >
-                <div aria-hidden className="absolute inset-x-8 top-0.5 h-1/3 rounded-full bg-gradient-to-b from-white/55 to-transparent pointer-events-none opacity-70" />
-                <div className="relative">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-teal-700 mb-3" data-testid="partial-eyebrow">
-                    Твоят ориентир
+          {/* Mobile order: result → form → next steps. Desktop: result and
+              next steps on the left, form sticky on the right (above the fold). */}
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-8 lg:items-start">
+            <div className="lg:col-start-1 lg:row-start-1">{resultCard}</div>
+
+            {!isUnlocked ? (
+              <div className="lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-24">
+                <ResultUnlockGate
+                  ref={gateRef}
+                  leadId={lead.id}
+                  defaultName={lead.name}
+                  citySlug={lead.city_slug}
+                  onUnlocked={() => handleUnlocked()}
+                />
+              </div>
+            ) : (
+              <div className="lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-24 space-y-5">
+                {/* Next-step card — primary CTA to the clinic shortlist +
+                    secondary assisted-choice CTA (AssistedChoiceModal). */}
+                <article className={`${CARD} p-6 sm:p-7`} data-testid="next-step-card">
+                  <p className={EYEBROW}>Следваща стъпка</p>
+                  <h2 className="mt-2 text-2xl font-semibold leading-snug text-[#0A0A0A]">
+                    Виж подходящите клиники за теб
+                  </h2>
+                  <p className="mt-2 mb-5 text-[15px] leading-relaxed text-[#525252]">
+                    Подбрахме ограничен брой клиники, които са релевантни спрямо локацията и избраната категория. Това не е каталог — а кратък списък за по-смислен първи разговор.
                   </p>
-                  <h1 className="font-serif text-xl sm:text-2xl font-semibold text-slate-900 leading-tight" data-testid="partial-headline">
-                    {headline}
-                  </h1>
-                  <p className="mt-3 text-slate-600 text-[15px] leading-relaxed" data-testid="partial-explanation">
-                    {explanation}
-                  </p>
-                  <p className="mt-4 text-[12px] text-slate-500 leading-relaxed" data-testid="partial-locked-teaser">
-                    Намерени са клиники, които може да са релевантни за твоя случай. Care Pass е включен във всяка партньорска клиника — повече детайли в /care-pass.
-                  </p>
-                </div>
-              </article>
-
-              <ResultUnlockGate
-                leadId={lead.id}
-                defaultName={lead.name}
-                citySlug={lead.city_slug}
-                onUnlocked={() => handleUnlocked()}
-              />
-            </>
-          )}
-
-          {/* ─── POST-UNLOCK ─ full partial result + next-step CTA ─── */}
-          {isUnlocked && (
-            <>
-              {/* Main result panel */}
-              <article
-                className="relative rounded-[1.75rem] bg-white/75 backdrop-blur-2xl ring-1 ring-white/80 shadow-[0_24px_60px_-22px_rgba(15,23,42,0.22),inset_0_1px_0_rgba(255,255,255,0.95)] p-8 sm:p-10"
-                data-testid="full-partial-result"
-              >
-                <div aria-hidden className="absolute inset-x-8 top-0.5 h-1/3 rounded-full bg-gradient-to-b from-white/55 to-transparent pointer-events-none opacity-70" />
-
-                <div className="relative inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.2em] text-teal-700 bg-teal-50 ring-1 ring-teal-100 rounded-full px-3 py-1 mb-5">
-                  <ShieldCheck className="w-3 h-3" /> Твоят резултат
-                </div>
-
-                <h1
-                  className="relative font-serif text-2xl sm:text-3xl font-semibold text-slate-900 leading-tight"
-                  data-testid="result-headline"
-                >
-                  {headline}
-                </h1>
-
-                <p
-                  className="relative mt-4 text-slate-700 text-[15px] sm:text-base leading-relaxed"
-                  data-testid="result-explanation"
-                >
-                  {explanation}
-                </p>
-
-                {/* Key findings */}
-                <div className="relative mt-6 rounded-2xl bg-slate-50/80 ring-1 ring-slate-200/60 p-5">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 mb-3">
-                    Какво показват отговорите ти
-                  </p>
-                  <ul className="space-y-2.5" data-testid="result-findings">
-                    {findings.map((b, i) => (
-                      <li key={i} className="flex items-start gap-2.5 text-[14.5px] text-slate-700 leading-relaxed" data-testid={`result-finding-${i}`}>
-                        <Compass className="w-4 h-4 text-teal-600 mt-0.5 flex-shrink-0" />
-                        <span>{b}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Safe orientation note — band-agnostic, always the same
-                    non-diagnostic wording regardless of GREEN/YELLOW/RED. */}
-                <p className="relative mt-4 text-slate-600 text-[13.5px] leading-relaxed" data-testid="result-safe-orientation-note">
-                  {SAFE_ORIENTATION_NOTE}
-                </p>
-
-                {/* Trust note — global disclaimer, must stay visible */}
-                <p className="relative mt-5 text-[12px] text-slate-500 leading-relaxed" data-testid="result-trust-note">
-                  {GLOBAL_DISCLAIMER}
-                </p>
-              </article>
-
-              {/* Next-step card — primary CTA to clinic shortlist + secondary
-                  assisted-choice CTA (reuses the existing P5 AssistedChoiceModal /
-                  postRequestZubiteHelp flow — no new request model). */}
-              <article
-                className="relative rounded-2xl bg-white/80 backdrop-blur-xl ring-1 ring-white/80 shadow-[0_18px_50px_-22px_rgba(15,23,42,0.20)] p-6 sm:p-7"
-                data-testid="next-step-card"
-              >
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-teal-700 mb-2">
-                  Следваща стъпка
-                </p>
-                <h2 className="font-serif text-xl sm:text-2xl font-semibold text-slate-900 leading-snug mb-2">
-                  Виж подходящите клиники за теб
-                </h2>
-                <p className="text-slate-600 text-sm sm:text-[15px] leading-relaxed mb-5">
-                  Подбрахме ограничен брой клиники, които са релевантни спрямо локацията и избраната категория. Това не е каталог — а кратък списък за по-смислен първи разговор.
-                </p>
-                <Link
-                  href={`/results/${leadId}/clinics`}
-                  className="relative inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full text-white text-sm font-semibold shadow-[0_14px_30px_-12px_rgba(13,148,136,0.55)] hover:-translate-y-0.5 transition-transform overflow-hidden"
-                  style={{ backgroundImage: 'linear-gradient(135deg,#5eead4 0%,#2dd4bf 60%,#14b8a6 100%)' }}
-                  data-testid="see-clinics-cta"
-                >
-                  <span aria-hidden className="absolute inset-x-3 top-0.5 h-1/3 rounded-full bg-white/30 blur-sm pointer-events-none" />
-                  <span className="relative inline-flex items-center gap-2">
-                    Виж 3 подходящи опции
+                  <Link
+                    href={`/results/${leadId}/clinics`}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#FF6B00] px-6 py-4 text-[15px] font-bold text-[#0A0A0A] hover:bg-[#CC5400] transition-colors"
+                    data-testid="see-clinics-cta"
+                  >
+                    Виж до 3 подходящи клиники
                     <ArrowRight className="w-4 h-4" />
-                  </span>
-                </Link>
+                  </Link>
 
-                {assistedRequested ? (
-                  <div
-                    className="mt-3 w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-emerald-50/85 ring-1 ring-emerald-100 text-emerald-800 text-sm font-medium rounded-full"
-                    data-testid="results-assisted-choice-submitted"
-                  >
-                    <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
-                    Заявката е изпратена
+                  {assistedRequested ? (
+                    <div
+                      className="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#D0FAE5] px-5 py-3 text-sm font-medium text-[#007956]"
+                      data-testid="results-assisted-choice-submitted"
+                    >
+                      <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
+                      Заявката е изпратена
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        trackPatientEvent('assisted_choice_modal_opened', {
+                          lead_id: leadId,
+                          source: 'matching_page',
+                        })
+                        setAssistedModalOpen(true)
+                      }}
+                      className="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-full border border-[#E5E5E5] bg-white px-5 py-3 text-sm font-medium text-[#0A0A0A] hover:border-[#A3A3A3] transition-colors"
+                      data-testid="results-assisted-choice-cta"
+                    >
+                      Искам Zubite да ми помогне първо
+                    </button>
+                  )}
+                </article>
+
+                <aside className="rounded-2xl bg-[#0A0A0A] p-6 flex items-start gap-4" data-testid="care-pass-reminder">
+                  <div className="shrink-0 grid h-10 w-10 place-items-center rounded-xl bg-white/10">
+                    <Gift className="w-5 h-5 text-[#00D294]" />
                   </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      trackPatientEvent('assisted_choice_modal_opened', {
-                        lead_id: leadId,
-                        source: 'matching_page',
-                      })
-                      setAssistedModalOpen(true)
-                    }}
-                    className="mt-3 w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-white/70 backdrop-blur-xl ring-1 ring-white/80 text-slate-900 text-sm font-medium rounded-full hover:bg-white hover:-translate-y-0.5 transition-all shadow-[0_8px_24px_-12px_rgba(15,23,42,0.18)]"
-                    data-testid="results-assisted-choice-cta"
-                  >
-                    Искам Zubite да ми помогне първо
-                  </button>
-                )}
-              </article>
-            </>
-          )}
-
-          {/* ─── Care Pass mini-card (dark, compact) — both states ───── */}
-          <aside
-            className="relative rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-[0_24px_60px_-22px_rgba(15,23,42,0.40)]"
-            style={{
-              background:
-                'radial-gradient(ellipse 60% 60% at 100% 0%, rgba(20,184,166,0.30) 0%, transparent 60%),' +
-                'linear-gradient(135deg, #0B1620 0%, #0E1A24 50%, #112832 100%)',
-            }}
-            data-testid="care-pass-reminder"
-          >
-            <div aria-hidden className="absolute inset-x-4 top-1 h-1/3 rounded-full bg-white/10 blur-2xl pointer-events-none" />
-            <div className="relative p-6 sm:p-7 flex items-start gap-4">
-              <div className="shrink-0 w-11 h-11 rounded-xl bg-white/[0.06] backdrop-blur-2xl ring-1 ring-white/15 flex items-center justify-center">
-                <Gift className="w-5 h-5 text-teal-200" />
+                  <div className="min-w-0">
+                    <p className="text-[15px] font-semibold leading-snug text-[#F5F4F2]" data-testid="care-pass-reminder-headline">
+                      Zubite Care Pass е включен за всеки наш пациент при посещение в партньорска клиника.
+                    </p>
+                    <p className="mt-1.5 text-[12.5px] leading-relaxed text-[#A3A3A3]">
+                      Не е застраховка и не е автоматична отстъпка от лечение.{' '}
+                      <Link href="/care-pass" className="underline underline-offset-2 text-[#F5F4F2]">Научи повече</Link>
+                    </p>
+                  </div>
+                </aside>
               </div>
-              <div className="min-w-0">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-teal-300 font-semibold">
-                  Care Pass
-                </p>
-                <p className="mt-1.5 font-serif text-base sm:text-lg text-white leading-snug" data-testid="care-pass-reminder-headline">
-                  Zubite Care Pass е включен за всеки наш пациент при посещение в партньорска клиника.
-                </p>
-                <p className="mt-2 text-[12px] text-slate-300/90 leading-relaxed">
-                  Допълнителни ползи за грижа за зъбите. Не е застраховка и не е автоматична отстъпка от лечение.
-                </p>
-              </div>
-            </div>
-          </aside>
+            )}
 
-          {/* Next steps strip */}
-          <div className="flex flex-wrap items-center justify-center gap-2 text-[11px] text-slate-500">
-            <span className="inline-flex items-center gap-1"><Sparkles className="w-3 h-3 text-teal-500" /> Без задължение</span>
-            <span aria-hidden>·</span>
-            <span>Личен ориентир според отговорите ти</span>
-            <span aria-hidden>·</span>
-            <span>Не заменя професионален преглед</span>
+            <div className="lg:col-start-1 lg:row-start-2">{nextSteps}</div>
           </div>
         </div>
       </section>
+
+      {/* Mobile sticky CTA — scrolls to the form while it's off-screen. */}
+      {!isUnlocked && !gateInView && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#E5E5E5] bg-white/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:hidden">
+          <button
+            type="button"
+            onClick={() => gateRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#FF6B00] px-5 py-3.5 text-[15px] font-bold text-[#0A0A0A]"
+            data-testid="results-sticky-cta"
+          >
+            Виж клиниките за теб
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {assistedModalOpen && (
         <AssistedChoiceModal
@@ -424,12 +468,6 @@ export default function ResultsPage() {
       )}
 
       <Footer />
-
-      {/* Suppressing unused-var warnings for fields kept on the Lead
-          interface for forward compatibility but not displayed here. */}
-      <span hidden aria-hidden>
-        {String(lead.city_slug)}{String(lead.treatment_type)}{String(BAND_TO_STAGE[band] || '')}{String(MessageCircle)}
-      </span>
     </main>
   )
 }

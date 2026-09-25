@@ -3,69 +3,88 @@
 /**
  * ResultUnlockGate
  *
- * MVP Phase B — lead capture gate shown BEFORE the full result on
- * /results/[leadId] when `full_result_unlocked === false`.
+ * Lead capture gate on /results/[leadId] when `full_result_unlocked === false`.
+ * Submitting unlocks the personalised clinic shortlist.
  *
  * Hard rules (per product spec):
- *   • Title: "Резултатът ти е готов" — never "free guarantee" wording.
- *   • Value stack lists what unlocks AFTER submission.
- *   • Explicit Care Pass wording: unlocks ONLY after clinic-confirmed
- *     consultation through Zubite.bg — never just from contact submit.
- *   • Consent checkbox is mandatory before submit (gate is disabled).
- *   • Disclaimer that online orientation does NOT replace examination.
- *   • Does not promise free orientation for every user — copy uses
- *     "когато има свободни часове" / "при избрани партньорски клиники".
+ *   • City is REQUIRED. `/recommended-clinics` returns an honest empty list
+ *     for a lead without a city, and the diagnostic quiz never asks for one —
+ *     so this form is the only place the city gets set for those leads.
+ *   • Never "free guarantee" wording; never promise free orientation.
+ *   • Care Pass: one calm line — not insurance, not an automatic discount.
+ *   • Consent checkbox is mandatory before submit.
+ *   • Disclaimer that Zubite does not diagnose online.
  *
- * Calls POST /api/leads/{leadId}/unlock-result.
+ * Calls POST /api/leads/{leadId}/unlock-result (email required, name/phone/
+ * city_slug optional server-side; the city is enforced here).
  */
 
-import { useState } from 'react'
-import { Lock, ShieldCheck, Sparkles, ArrowRight, Loader2, AlertTriangle, CheckCircle2, MapPin } from 'lucide-react'
+import { forwardRef, useState } from 'react'
+import Link from 'next/link'
+import { Lock, ShieldCheck, ArrowRight, Loader2, AlertTriangle, MapPin } from 'lucide-react'
+import { CITIES } from '@/lib/cityData'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
 import { trackOutbrainLead } from '@/components/OutbrainPixel'
 
-// City slug → display name map. Mirrors the labels used elsewhere across
-// the app (homepage, quiz form). Defensive default = capitalised slug.
-const CITY_LABEL: Record<string, string> = {
-  sofia: 'София', plovdiv: 'Пловдив', varna: 'Варна', burgas: 'Бургас',
-  ruse: 'Русе', stara_zagora: 'Стара Загора', pleven: 'Плевен', haskovo: 'Хасково',
-}
+// Largest cities get one-tap pills; the rest live in the "Друг град" select.
+const PRIMARY_CITY_SLUGS = ['sofia', 'plovdiv', 'varna', 'burgas']
+const PRIMARY_CITIES = CITIES.filter((c) => PRIMARY_CITY_SLUGS.includes(c.value))
+const OTHER_CITIES = CITIES.filter((c) => !PRIMARY_CITY_SLUGS.includes(c.value))
 
 interface ResultUnlockGateProps {
   leadId: string
   defaultName?: string
-  /** City already known from the quiz — preselected as a compact pill. */
-  citySlug?: string
+  /** City already known from the quiz — preselected, still changeable. */
+  citySlug?: string | null
   onUnlocked: (data: { name: string; phone: string; email: string }) => void
 }
 
-export function ResultUnlockGate({ leadId, defaultName, citySlug, onUnlocked }: ResultUnlockGateProps) {
+type Field = 'city' | 'name' | 'phone' | 'email' | 'consent'
+
+const inputCls =
+  'mt-1.5 w-full rounded-[10px] bg-white border px-3.5 py-3 text-[15px] text-[#0A0A0A] placeholder:text-[#9A9A9A] focus:outline-none focus:border-[#0A0A0A] transition-colors'
+
+export const ResultUnlockGate = forwardRef<HTMLDivElement, ResultUnlockGateProps>(function ResultUnlockGate(
+  { leadId, defaultName, citySlug, onUnlocked },
+  ref,
+) {
+  const knownCity = CITIES.some((c) => c.value === citySlug) ? (citySlug as string) : ''
+  const [city, setCity] = useState(knownCity)
   const [name, setName] = useState(defaultName || '')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [consent, setConsent] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [showErrors, setShowErrors] = useState(false)
   const [error, setError] = useState('')
 
-  // Track viewed event once on mount (best-effort, never blocks render).
-  // We do it here instead of an effect to keep the component lean — the
-  // tracking fn is a no-op if GA is not yet initialised.
+  // Track viewed event once per page load (best-effort, never blocks render).
   if (typeof window !== 'undefined' && !(window as unknown as { __zubLeadGateSeen?: boolean }).__zubLeadGateSeen) {
     ;(window as unknown as { __zubLeadGateSeen?: boolean }).__zubLeadGateSeen = true
     try { trackPatientEvent('post_quiz_lead_capture_viewed', { lead_id_present: true }) } catch { /* ignore */ }
   }
 
-  const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
-  const canSubmit =
-    name.trim().length >= 1 &&
-    phone.trim().length >= 4 &&
-    isValidEmail &&
-    consent &&
-    !submitting
+  const cityLabel = CITIES.find((c) => c.value === city)?.label
+  const invalid: Record<Field, boolean> = {
+    city: !city,
+    name: name.trim().length < 1,
+    phone: phone.replace(/\D/g, '').length < 6,
+    email: !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()),
+    consent: !consent,
+  }
+  const firstInvalid = (Object.keys(invalid) as Field[]).find((f) => invalid[f])
+  const err = (f: Field) => showErrors && invalid[f]
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!canSubmit) return
+    if (submitting) return
+    // The button stays active so a tap always gets feedback — we point at
+    // what's missing instead of silently disabling the CTA.
+    if (firstInvalid) {
+      setShowErrors(true)
+      document.getElementById(`unlock-${firstInvalid}`)?.focus()
+      return
+    }
     setSubmitting(true)
     setError('')
     try {
@@ -77,6 +96,7 @@ export function ResultUnlockGate({ leadId, defaultName, citySlug, onUnlocked }: 
           name: name.trim(),
           phone: phone.trim(),
           email: email.trim(),
+          city_slug: city,
           consent: true,
         }),
       })
@@ -95,184 +115,193 @@ export function ResultUnlockGate({ leadId, defaultName, citySlug, onUnlocked }: 
       onUnlocked({ name: name.trim(), phone: phone.trim(), email: email.trim() })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Възникна грешка. Опитай отново.')
-    } finally {
       setSubmitting(false)
     }
   }
 
   return (
     <div
-      className="relative rounded-[1.75rem] bg-white/80 backdrop-blur-2xl ring-1 ring-white/80 shadow-[0_24px_60px_-22px_rgba(15,23,42,0.22),inset_0_1px_0_rgba(255,255,255,0.95)] p-7 sm:p-9"
+      ref={ref}
+      id="unlock-form"
+      className="relative scroll-mt-24 rounded-2xl bg-white border border-[#E5E5E5] p-6 sm:p-8"
       data-testid="result-unlock-gate"
     >
-      <div aria-hidden className="absolute inset-x-8 top-0.5 h-1/3 rounded-full bg-gradient-to-b from-white/55 to-transparent pointer-events-none opacity-70" />
+      <h2 className="text-2xl font-semibold leading-tight text-[#0A0A0A]" data-testid="result-unlock-title">
+        Виж клиниките за твоя случай
+      </h2>
+      <p className="mt-2 text-[15px] leading-relaxed text-[#525252]">
+        Избери град и остави контакт. Ще ти покажем до 3 партньорски клиники
+        и ще ти изпратим резултата по имейл.
+      </p>
 
-      <div className="relative">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-50 ring-1 ring-teal-100 text-[11px] uppercase tracking-[0.16em] text-teal-700 font-semibold px-3 py-1">
-          <Lock className="w-3 h-3" />
-          Резултатът е готов
-        </span>
-        <h1 className="mt-4 font-serif text-2xl sm:text-3xl font-semibold text-slate-900 leading-tight">
-          Резултатът ти е готов
-        </h1>
-        <p className="mt-3 text-slate-600 text-[15px] leading-relaxed">
-          Остави данни, за да видиш персоналния си резултат и подходящи
-          партньорски клиники за твоя случай.
-        </p>
-
-        {/* Value stack — what unlocks. Wording rewritten Feb 2026 to remove
-            Care Pass auto-unlock promises and "free slots" framing. */}
-        <ul className="mt-5 space-y-2.5" data-testid="result-unlock-value-stack">
-          {[
-            'Персонален резултат според отговорите ти',
-            'Подходящи партньорски клиники близо до теб',
-            'Възможност за онлайн ориентация, когато клиниката предлага свободни часове',
-            'Zubite Care Pass — включен за всеки наш пациент при посещение в партньорска клиника',
-          ].map((item, i) => (
-            <li key={i} className="flex items-start gap-2.5" data-testid={`result-unlock-value-${i}`}>
-              <CheckCircle2 className="w-4 h-4 text-teal-600 mt-0.5 flex-shrink-0" />
-              <span className="text-[14px] text-slate-700 leading-relaxed">{item}</span>
-            </li>
+      {/* Locked shortlist preview — generic shapes only, no invented
+          clinic names, ratings or counts. */}
+      <div aria-hidden className="relative mt-4 rounded-xl bg-[#F5F4F2] p-2 overflow-hidden">
+        <div className="space-y-1.5 blur-[2.5px] select-none">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="flex items-center gap-2.5 rounded-lg bg-white px-2.5 py-1.5">
+              <div className="h-6 w-6 rounded-md bg-[#E5E5E5]" />
+              <div className="h-2.5 rounded bg-[#D4D4D4]" style={{ width: `${52 - i * 8}%` }} />
+              <div className="ml-auto h-4 w-12 rounded-full bg-[#D0FAE5]" />
+            </div>
           ))}
-        </ul>
-
-        {/* Care Pass note — calm, single-paragraph framing. Replaces the
-            old "ще отключиш" promise that implied online consultation
-            unlocked benefits (Feb 2026 brief). */}
-        <div className="mt-5 rounded-2xl bg-teal-50/70 ring-1 ring-teal-100 p-4">
-          <div className="flex items-start gap-3">
-            <Sparkles className="w-4 h-4 text-teal-700 mt-0.5 flex-shrink-0" />
-            <div className="text-[13px] text-slate-700 leading-relaxed">
-              <strong>Care Pass</strong> е включен в партньорската ни мрежа.
-              Всеки Zubite пациент получава Care Pass при посещение в
-              партньорска клиника. Не е застраховка и не е автоматична отстъпка
-              от лечение.
-            </div>
-          </div>
         </div>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0A0A0A] px-3.5 py-1.5 text-[12px] font-semibold text-[#F5F4F2]">
+            <Lock className="w-3.5 h-3.5" />
+            До 3 клиники, подбрани за теб
+          </span>
+        </div>
+      </div>
 
-        <p className="mt-3 text-[11px] text-slate-400 leading-relaxed">
-          Онлайн ориентация е налична при избрани партньорски клиники
-          и според свободните им часове.
-        </p>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="mt-6 space-y-3" data-testid="result-unlock-form">
-          {/* Compact city display — preselected from the quiz/lead so the
-              patient never goes through a second "second-quiz" city step.
-              Read-only pill (Feb 2026 brief: move city into the contact
-              area; preselect if already known). */}
-          {citySlug && CITY_LABEL[citySlug] && (
-            <div
-              className="flex items-center justify-between gap-3 rounded-xl bg-teal-50/70 ring-1 ring-teal-100 px-3.5 py-2.5"
-              data-testid="result-unlock-city-pill"
+      <form onSubmit={handleSubmit} noValidate className="mt-5 space-y-4" data-testid="result-unlock-form">
+        {/* City — required; drives clinic matching. */}
+        <fieldset>
+          <legend className="text-[13px] font-semibold text-[#171717]">Къде търсиш клиника?</legend>
+          <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2" data-testid="result-unlock-city">
+            {PRIMARY_CITIES.map((c, i) => {
+              const active = city === c.value
+              return (
+                <button
+                  key={c.value}
+                  id={i === 0 ? 'unlock-city' : undefined}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setCity(c.value)}
+                  className={`inline-flex items-center justify-center gap-1.5 rounded-[10px] border px-3 py-2.5 text-[14px] font-medium transition-colors ${
+                    active
+                      ? 'border-[#0A0A0A] bg-[#0A0A0A] text-[#F5F4F2]'
+                      : err('city')
+                        ? 'border-[#E11D48] bg-white text-[#171717]'
+                        : 'border-[#E5E5E5] bg-white text-[#171717] hover:border-[#A3A3A3]'
+                  }`}
+                  data-testid={`result-unlock-city-${c.value}`}
+                >
+                  {active && <MapPin className="w-3.5 h-3.5" />}
+                  {c.label}
+                </button>
+              )
+            })}
+            <select
+              value={OTHER_CITIES.some((c) => c.value === city) ? city : ''}
+              onChange={(e) => setCity(e.target.value)}
+              aria-label="Друг град"
+              className={`col-span-2 sm:col-span-2 rounded-[10px] border px-3 py-2.5 text-[14px] font-medium focus:outline-none ${
+                OTHER_CITIES.some((c) => c.value === city)
+                  ? 'border-[#0A0A0A] bg-[#0A0A0A] text-[#F5F4F2]'
+                  : err('city')
+                    ? 'border-[#E11D48] bg-white text-[#171717]'
+                    : 'border-[#E5E5E5] bg-white text-[#171717]'
+              }`}
+              data-testid="result-unlock-city-other"
             >
-              <div className="min-w-0">
-                <p className="text-[10px] uppercase tracking-[0.16em] text-teal-700 font-semibold">
-                  Къде търсиш консултация
-                </p>
-                <p className="text-[14px] text-slate-900 font-medium leading-tight mt-0.5 flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-teal-600" />
-                  {CITY_LABEL[citySlug]}
-                </p>
-              </div>
-              <p className="text-[10.5px] text-slate-500 leading-snug text-right max-w-[10rem]">
-                Използваме града, за да покажем релевантни клиники близо до теб.
-              </p>
-            </div>
-          )}
+              <option value="">Друг град…</option>
+              {OTHER_CITIES.map((c) => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
+            </select>
+          </div>
+          {err('city') && <p className="mt-1.5 text-[12.5px] text-[#BE123C]">Избери град, за да подберем клиники близо до теб.</p>}
+        </fieldset>
+
+        <div className="grid gap-4 sm:grid-cols-2">
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-slate-500 font-semibold">Име</span>
+            <span className="text-[13px] font-semibold text-[#171717]">Име</span>
             <input
+              id="unlock-name"
               type="text"
-              required
+              autoComplete="given-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Името ти"
-              className="mt-1.5 w-full rounded-xl bg-white ring-1 ring-slate-200 focus:ring-2 focus:ring-teal-500 focus:outline-none px-3.5 py-2.5 text-[15px] text-slate-900 placeholder:text-slate-400"
+              aria-invalid={err('name')}
+              className={`${inputCls} ${err('name') ? 'border-[#E11D48]' : 'border-[#E5E5E5]'}`}
               data-testid="result-unlock-name"
             />
           </label>
-
           <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-slate-500 font-semibold">Телефон</span>
+            <span className="text-[13px] font-semibold text-[#171717]">Телефон</span>
             <input
+              id="unlock-phone"
               type="tel"
-              required
+              inputMode="tel"
+              autoComplete="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="+359 ..."
-              className="mt-1.5 w-full rounded-xl bg-white ring-1 ring-slate-200 focus:ring-2 focus:ring-teal-500 focus:outline-none px-3.5 py-2.5 text-[15px] text-slate-900 placeholder:text-slate-400"
+              placeholder="08X XXX XXXX"
+              aria-invalid={err('phone')}
+              className={`${inputCls} ${err('phone') ? 'border-[#E11D48]' : 'border-[#E5E5E5]'}`}
               data-testid="result-unlock-phone"
             />
+            {err('phone') && <span className="mt-1 block text-[12.5px] text-[#BE123C]">Въведи валиден телефон.</span>}
           </label>
+        </div>
 
-          <label className="block">
-            <span className="text-[11px] uppercase tracking-wide text-slate-500 font-semibold">Имейл</span>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="ime@primer.bg"
-              className="mt-1.5 w-full rounded-xl bg-white ring-1 ring-slate-200 focus:ring-2 focus:ring-teal-500 focus:outline-none px-3.5 py-2.5 text-[15px] text-slate-900 placeholder:text-slate-400"
-              data-testid="result-unlock-email"
-            />
-          </label>
+        <label className="block">
+          <span className="text-[13px] font-semibold text-[#171717]">Имейл <span className="font-normal text-[#6B6B6B]">— там ще получиш резултата</span></span>
+          <input
+            id="unlock-email"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="ime@primer.bg"
+            aria-invalid={err('email')}
+            className={`${inputCls} ${err('email') ? 'border-[#E11D48]' : 'border-[#E5E5E5]'}`}
+            data-testid="result-unlock-email"
+          />
+          {err('email') && <span className="mt-1 block text-[12.5px] text-[#BE123C]">Въведи валиден имейл.</span>}
+        </label>
 
-          <label className="flex items-start gap-2.5 cursor-pointer select-none pt-1">
-            <input
-              type="checkbox"
-              checked={consent}
-              onChange={(e) => setConsent(e.target.checked)}
-              className="mt-0.5 w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 flex-shrink-0"
-              data-testid="result-unlock-consent"
-            />
-            <span className="text-[12px] text-slate-600 leading-relaxed">
-              Съгласявам се Zubite.bg да обработи данните ми във връзка със заявката
-              и Zubite.bg и избраната партньорска клиника да се свържат с мен.
-            </span>
-          </label>
+        <label className="flex items-start gap-2.5 cursor-pointer select-none">
+          <input
+            id="unlock-consent"
+            type="checkbox"
+            checked={consent}
+            onChange={(e) => setConsent(e.target.checked)}
+            className="mt-0.5 w-4 h-4 rounded border-[#A3A3A3] accent-[#0A0A0A] flex-shrink-0"
+            data-testid="result-unlock-consent"
+          />
+          <span className={`text-[12.5px] leading-relaxed ${err('consent') ? 'text-[#BE123C]' : 'text-[#525252]'}`}>
+            Съгласявам се Zubite.bg да обработи данните ми във връзка със заявката
+            и Zubite.bg и избраната партньорска клиника да се свържат с мен.
+          </span>
+        </label>
 
-          {/* Care Pass clarification — placed near the consent area so the
-              expectation is set BEFORE submit. Wording is calm, not a legal
-              wall, and explicitly reverses common patient assumptions. */}
-          <p
-            className="text-[11.5px] text-slate-500 leading-relaxed bg-slate-50/80 ring-1 ring-slate-200/60 rounded-lg px-3 py-2.5"
-            data-testid="care-pass-contact-clarification"
-          >
-            Care Pass е включен в партньорската ни мрежа. Всеки Zubite пациент получава Care Pass при посещение в партньорска клиника. Не е застраховка и не е автоматична отстъпка от лечение.
-          </p>
+        {error && (
+          <div role="alert" className="flex items-start gap-2 rounded-lg bg-[#FFF1F2] border border-[#FECDD3] px-3 py-2 text-[13px] text-[#BE123C]" data-testid="result-unlock-error">
+            <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
 
-          {error && (
-            <div role="alert" className="flex items-start gap-2 rounded-lg bg-rose-50 ring-1 ring-rose-200 px-3 py-2 text-[13px] text-rose-700" data-testid="result-unlock-error">
-              <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
+        <button
+          type="submit"
+          disabled={submitting}
+          className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#FF6B00] px-5 py-4 text-[15px] font-bold text-[#0A0A0A] hover:bg-[#CC5400] transition-colors disabled:opacity-70 disabled:cursor-wait"
+          data-testid="result-unlock-submit"
+        >
+          {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+          {submitting ? 'Подбираме клиники…' : cityLabel ? `Покажи клиниките в ${cityLabel}` : 'Покажи подходящите клиники'}
+          {!submitting && <ArrowRight className="w-4 h-4" />}
+        </button>
 
-          <button
-            type="submit"
-            disabled={!canSubmit}
-            className="relative w-full inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-full text-white font-semibold shadow-[0_14px_30px_-12px_rgba(13,148,136,0.55)] hover:-translate-y-0.5 transition-transform disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 overflow-hidden"
-            style={{ backgroundImage: 'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)' }}
-            data-testid="result-unlock-submit"
-          >
-            <span aria-hidden className="absolute inset-x-3 top-0.5 h-1/3 rounded-full bg-white/20 blur-sm pointer-events-none" />
-            <span className="relative inline-flex items-center gap-2">
-              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-              {submitting ? 'Изпращаме…' : 'Покажи ми подходящи клиники'}
-              {!submitting && <ArrowRight className="w-4 h-4" />}
-            </span>
-          </button>
-
-          <p className="text-center text-[11px] text-slate-500 leading-relaxed pt-1">
-            <ShieldCheck className="w-3 h-3 inline -mt-0.5 mr-1 text-teal-600" />
-            Няма да получаваш диагноза онлайн. Zubite.bg ти помага да се
-            ориентираш към подходяща следваща стъпка.
-          </p>
-        </form>
-      </div>
+        <p className="text-center text-[12px] leading-relaxed text-[#6B6B6B]">
+          <ShieldCheck className="w-3.5 h-3.5 inline -mt-0.5 mr-1 text-[#007956]" />
+          Без задължение. Ти избираш дали и с коя клиника да се свържеш.
+        </p>
+        <p
+          className="text-center text-[11.5px] leading-relaxed text-[#6B6B6B]"
+          data-testid="care-pass-contact-clarification"
+        >
+          Zubite Care Pass е включен при посещение в партньорска клиника — не е
+          застраховка или автоматична отстъпка.{' '}
+          <Link href="/care-pass" className="underline underline-offset-2 hover:text-[#0A0A0A]">
+            Какво е Care Pass
+          </Link>
+        </p>
+      </form>
     </div>
   )
-}
+})
