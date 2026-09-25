@@ -34,6 +34,7 @@ export type PatientAnalyticsEvent =
   | 'quiz_success_viewed'
   | 'recommended_clinics_cta_clicked'
   | 'clinic_recommendations_viewed'
+  | 'clinic_directory_viewed'   // any /clinics listing load; lead_id when arriving with ?leadId
   | 'clinic_profile_clicked'
   | 'clinic_profile_viewed'
   | 'request_call_modal_opened'
@@ -43,6 +44,9 @@ export type PatientAnalyticsEvent =
   | 'assisted_choice_submitted'
   | 'assisted_choice_failed'
   | 'matching_choice_blocked'
+  // ─── Phase 1 Smart Consultation Flow — booking CTA on clinic card ──
+  | 'consultation_booking_started'
+  | 'consultation_booking_completed'
   // ─── MVP unlock-mechanic events (Phase B/C, June 2026) ─────────
   | 'post_quiz_lead_capture_viewed'
   | 'post_quiz_lead_submitted'
@@ -70,6 +74,7 @@ export interface PatientAnalyticsPayload {
   source?: string | null
   rank_position?: number | null
   treatment_type?: string | null
+  consultation_type?: string | null
   city?: string | null
   band?: string | null
   segment?: string | null
@@ -141,7 +146,7 @@ export function trackPatientEvent(
   // Channel 2: First-party logger — fire-and-forget so it never blocks UI.
   try {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
-    if (!API_URL || typeof window === 'undefined') return
+    if (typeof window === 'undefined') return  // '' = same-origin /api proxy (prod)
     fetch(`${API_URL}/api/analytics/events`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

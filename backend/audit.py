@@ -54,6 +54,9 @@ ACTION_KEYS: frozenset[str] = frozenset({
     "lead.reassigned_to_clinic",
     "lead.contact_updated_late",
     "lead.exported_csv",
+    "clinic.clear_advance_connected",
+    "clinic.clear_advance_mappings_updated",
+    "clinic.clear_advance_sync_triggered",
     # Cleanup / reset (Batch B endpoints)
     "cleanup_leads.attempted",
     "cleanup_leads.blocked_majority",
@@ -75,6 +78,7 @@ ACTION_KEYS: frozenset[str] = frozenset({
     "clinic_application.rejected",
     "clinic_application.notes_updated",
     "clinic_intake_invite.created",
+    "clinic_intake_invite.emailed",
     "clinic_intake_invite.revoked",
     "clinic_intake_invite.submitted",
     # Consultation workflow

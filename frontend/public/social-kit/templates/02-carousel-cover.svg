@@ -16,22 +16,22 @@
 
   <g transform="translate(72 72)">
     <text class="brand" x="0" y="34" font-size="38" fill="#FFFFFF">Zubite<tspan fill="#00D294">.bg</tspan></text>
-    <text class="label" x="0" y="126" font-size="18" fill="#9FF0D2">ПОДГОТВИ СЕ · КАРУСЕЛ 01/06</text>
+    <text class="label" data-slot="eyebrow" x="0" y="126" font-size="18" fill="#9FF0D2">ПОДГОТВИ СЕ · КАРУСЕЛ 01/06</text>
 
-    <text class="display" x="0" y="316" font-size="106" fill="#FFFFFF">
+    <text class="display" data-slot="headline" x="0" y="316" font-size="106" fill="#FFFFFF">
       <tspan x="0">5 въпроса</tspan>
       <tspan x="0" dy="104">преди първата</tspan>
       <tspan class="accent" x="0" dy="110" fill="#FF6B00" letter-spacing="-2">консултация.</tspan>
     </text>
-    <text class="body" x="0" y="690" font-size="32" fill="#D4D4D4">
+    <text class="body" data-slot="body" x="0" y="690" font-size="32" fill="#D4D4D4">
       <tspan x="0">За да излезеш от кабинета с яснота,</tspan>
       <tspan x="0" dy="48">а не с още въпроси.</tspan>
     </text>
 
     <g transform="translate(520 790) rotate(-4)" filter="url(#shadow)">
       <rect width="416" height="328" rx="34" fill="#FFFFFF"/>
-      <text class="label" x="34" y="56" font-size="17" fill="#CC5400">ВЪПРОС 01</text>
-      <text class="display" x="34" y="134" font-size="52" fill="#0A0A0A" letter-spacing="-2.8">
+      <text class="label" data-slot="card.label" x="34" y="56" font-size="17" fill="#CC5400">ВЪПРОС 01</text>
+      <text class="display" data-slot="card.headline" x="34" y="134" font-size="52" fill="#0A0A0A" letter-spacing="-2.8">
         <tspan x="34">Какви са</tspan>
         <tspan x="34" dy="60">реалните</tspan>
         <tspan x="34" dy="60">варианти?</tspan>
@@ -41,9 +41,9 @@
     </g>
 
     <g transform="translate(0 1193)">
-      <text class="body" x="0" y="24" font-size="21" font-weight="700" fill="#FFFFFF">Плъзни за въпросите</text>
+      <text class="body" data-slot="cta" x="0" y="24" font-size="21" font-weight="700" fill="#FFFFFF">Плъзни за въпросите</text>
       <g transform="translate(245 11)" fill="#FFFFFF"><circle cx="0" cy="0" r="5"/><circle cx="24" cy="0" r="5" opacity=".28"/><circle cx="48" cy="0" r="5" opacity=".28"/><circle cx="72" cy="0" r="5" opacity=".28"/><circle cx="96" cy="0" r="5" opacity=".28"/><circle cx="120" cy="0" r="5" opacity=".28"/></g>
-      <text class="body" x="936" y="24" font-size="19" fill="#BDBDBD" text-anchor="end">Ориентир, не диагноза.</text>
+      <text class="body" data-slot="disclaimer" x="936" y="24" font-size="19" fill="#BDBDBD" text-anchor="end">Ориентир, не диагноза.</text>
     </g>
   </g>
 </svg>

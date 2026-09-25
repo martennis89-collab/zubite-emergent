@@ -675,6 +675,23 @@ class ClinicIntakeInviteCreate(BaseModel):
     clinic_label: str = Field(min_length=2, max_length=200)
     contact_email: Optional[EmailStr] = None
     expires_in_days: int = Field(default=30, ge=1, le=90)
+    # When true the link is emailed to contact_email straight away. The raw
+    # token only exists during this request, so this is the one moment it can
+    # be delivered without the admin handling it manually.
+    send_email: bool = False
+
+
+class ClinicIntakeInviteSend(BaseModel):
+    """Resend an already-created intake link.
+
+    The token is not recoverable from the database (only its hash is stored),
+    so the admin UI passes back the token it still holds from creation. The
+    server verifies that token against the invite before sending anywhere.
+    """
+    model_config = ConfigDict(extra="ignore")
+
+    token: str = Field(min_length=32, max_length=100)
+    contact_email: Optional[EmailStr] = None
 
 
 # ─── Blog Models ───────────────────────────────────────────
@@ -1241,6 +1258,17 @@ class ConsultationActionRequest(BaseModel):
     action_type: str
     note: Optional[str] = Field(default=None, max_length=2000)
     appointment: Optional[AppointmentDetails] = None
+
+
+class ClinicLeadOperationsPatch(BaseModel):
+    """Clinic-owned operational fields for an assigned lead/request pair."""
+    model_config = ConfigDict(extra="forbid")
+    name: Optional[str] = Field(default=None, min_length=1, max_length=200)
+    phone: Optional[str] = Field(default=None, min_length=4, max_length=50)
+    email: Optional[EmailStr] = None
+    city: Optional[str] = Field(default=None, max_length=100)
+    owner: Optional[str] = Field(default=None, max_length=120)
+    follow_up_at: Optional[str] = Field(default=None, max_length=40)
 
 
 class ClinicAppointmentCreate(BaseModel):
@@ -1880,6 +1908,41 @@ class ClinicIntegration(BaseModel):
     Write-only by design: it is encrypted on arrival and no endpoint returns it.
     """
     api_key: str = Field(min_length=8, max_length=200, pattern=r"^ca_sk_[A-Za-z0-9_-]+$")
+
+
+class ClearAdvanceStatusMappings(BaseModel):
+    """Clinic-owned mapping from a Zubite lead status to an ad outcome.
+
+    Only outcomes Clear Advance can deduplicate and forward to an ad platform
+    are accepted. A null value explicitly disables a mapping.
+    """
+    mappings: Dict[str, Optional[str]] = Field(default_factory=dict)
+
+    @field_validator("mappings")
+    @classmethod
+    def _validate_mappings(cls, value: Dict[str, Optional[str]]) -> Dict[str, Optional[str]]:
+        allowed = {"appointment_booked", "appointment_attended", "sale"}
+        normalized: Dict[str, Optional[str]] = {}
+        for status, outcome in value.items():
+            if not isinstance(status, str) or not status.strip():
+                raise ValueError("mapping status keys must be non-empty strings")
+            key = status.strip().upper()
+            if key == "COMPLETED" and outcome is not None:
+                raise ValueError(
+                    "COMPLETED cannot be mapped to a conversion; use ATTENDED "
+                    "only after a confirmed visit"
+                )
+            if outcome is not None:
+                if not isinstance(outcome, str) or outcome not in allowed:
+                    raise ValueError(f"mapping outcome must be one of {sorted(allowed)} or null")
+            normalized[key] = outcome
+        return normalized
+
+
+class ClearAdvanceReconcileRequest(BaseModel):
+    """Bounded historical replay requested explicitly by the clinic."""
+    since: datetime
+    limit: int = Field(default=100, ge=1, le=500)
 
 
 class LeadRevenue(BaseModel):

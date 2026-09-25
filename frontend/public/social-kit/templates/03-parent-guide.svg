@@ -14,7 +14,7 @@
 
   <g transform="translate(72 72)">
     <text class="brand" x="0" y="34" font-size="38" fill="#0A0A0A">Zubite<tspan fill="#007956">.bg</tspan></text>
-    <g transform="translate(660 0)"><rect width="276" height="46" rx="23" fill="#007956"/><text class="label" x="138" y="29" font-size="17" fill="#FFFFFF" text-anchor="middle">ЗА РОДИТЕЛИ</text></g>
+    <g transform="translate(660 0)"><rect width="276" height="46" rx="23" fill="#007956"/><text class="label" data-slot="eyebrow" x="138" y="29" font-size="17" fill="#FFFFFF" text-anchor="middle">ЗА РОДИТЕЛИ</text></g>
 
     <g transform="translate(696 150)" fill="none" stroke="#007956" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="70" cy="70" r="42"/><path d="M8 190c12-52 34-76 62-76s50 24 62 76"/>
@@ -22,44 +22,44 @@
       <path d="M108 157c22-18 42-24 59-18" stroke="#FF6B00"/>
     </g>
 
-    <text class="display" x="0" y="236" font-size="80" fill="#0A0A0A">
+    <text class="display" data-slot="headline" x="0" y="236" font-size="80" fill="#0A0A0A">
       <tspan x="0">Кога детето</tspan>
       <tspan x="0" dy="82">има нужда от</tspan>
       <tspan class="accent" x="0" dy="88" fill="#007956" letter-spacing="-1.8">ортодонт?</tspan>
     </text>
 
-    <text class="body" x="0" y="574" font-size="30" fill="#525252">
+    <text class="body" data-slot="body" x="0" y="574" font-size="30" fill="#525252">
       <tspan x="0">Не чакай непременно да се появи болка.</tspan>
       <tspan x="0" dy="46">Започни от това, което наблюдаваш.</tspan>
     </text>
 
     <g transform="translate(0 690)" filter="url(#shadow)">
       <rect width="936" height="456" rx="34" fill="#FFFFFF" stroke="#B9DDCF" stroke-width="2"/>
-      <text class="label" x="38" y="54" font-size="17" fill="#007956">3 СИГНАЛА ЗА РАЗГОВОР</text>
+      <text class="label" data-slot="listLabel" x="38" y="54" font-size="17" fill="#007956">3 СИГНАЛА ЗА РАЗГОВОР</text>
 
       <g transform="translate(38 94)">
         <circle cx="30" cy="30" r="30" fill="#D0FAE5"/><path d="M18 31h24M30 19v24" stroke="#007956" stroke-width="4" stroke-linecap="round"/>
-        <text class="body" x="84" y="25" font-size="25" font-weight="700" fill="#0A0A0A">Диша често през устата</text>
-        <text class="body" x="84" y="58" font-size="21" fill="#737373">Особено през нощта или по време на сън.</text>
+        <text class="body" data-slot="signal1.title" x="84" y="25" font-size="25" font-weight="700" fill="#0A0A0A">Диша често през устата</text>
+        <text class="body" data-slot="signal1.desc" x="84" y="58" font-size="21" fill="#737373">Особено през нощта или по време на сън.</text>
       </g>
       <line x1="38" y1="190" x2="898" y2="190" stroke="#E5E5E5" stroke-width="2"/>
       <g transform="translate(38 218)">
         <circle cx="30" cy="30" r="30" fill="#D0FAE5"/><path d="M17 36c8-17 18-25 30-24M18 44c10 7 20 8 30 2" fill="none" stroke="#007956" stroke-width="4" stroke-linecap="round"/>
-        <text class="body" x="84" y="25" font-size="25" font-weight="700" fill="#0A0A0A">Зъбите нямат достатъчно място</text>
-        <text class="body" x="84" y="58" font-size="21" fill="#737373">Струпване, завъртане или видима асиметрия.</text>
+        <text class="body" data-slot="signal2.title" x="84" y="25" font-size="25" font-weight="700" fill="#0A0A0A">Зъбите нямат достатъчно място</text>
+        <text class="body" data-slot="signal2.desc" x="84" y="58" font-size="21" fill="#737373">Струпване, завъртане или видима асиметрия.</text>
       </g>
       <line x1="38" y1="314" x2="898" y2="314" stroke="#E5E5E5" stroke-width="2"/>
       <g transform="translate(38 342)">
         <circle cx="30" cy="30" r="30" fill="#0A0A0A"/><path d="M18 27h24M18 37h24" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
-        <text class="body" x="84" y="25" font-size="25" font-weight="700" fill="#0A0A0A">Захапката изглежда неравномерна</text>
-        <text class="body" x="84" y="58" font-size="21" fill="#737373">Дъвче само от едната страна или избягва храни.</text>
+        <text class="body" data-slot="signal3.title" x="84" y="25" font-size="25" font-weight="700" fill="#0A0A0A">Захапката изглежда неравномерна</text>
+        <text class="body" data-slot="signal3.desc" x="84" y="58" font-size="21" fill="#737373">Дъвче само от едната страна или избягва храни.</text>
       </g>
     </g>
 
     <g transform="translate(0 1198)">
-      <text class="body" x="0" y="26" font-size="21" font-weight="700" fill="#007956">Спокоен ориентир за родители.</text>
+      <text class="body" data-slot="disclaimer" x="0" y="26" font-size="21" font-weight="700" fill="#007956">Спокоен ориентир за родители.</text>
       <rect x="604" width="332" height="58" rx="29" fill="#FF6B00"/>
-      <text class="body" x="770" y="37" font-size="20" font-weight="700" fill="#FFFFFF" text-anchor="middle">Провери сигналите →</text>
+      <text class="body" data-slot="cta" x="770" y="37" font-size="20" font-weight="700" fill="#FFFFFF" text-anchor="middle">Провери сигналите →</text>
     </g>
   </g>
 </svg>

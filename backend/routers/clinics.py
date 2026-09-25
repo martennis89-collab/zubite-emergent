@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Request, Response, UploadFile, File
 from datetime import datetime, timezone, timedelta
+import asyncio
 import os
 import uuid
 import secrets
@@ -9,7 +10,8 @@ import resend
 
 from database import db
 from schemas import (
-    ClinicApplicationCreate, ClinicIntakeInviteCreate, ClinicWebsitePrefillRequest,
+    ClinicApplicationCreate, ClinicIntakeInviteCreate, ClinicIntakeInviteSend,
+    ClinicWebsitePrefillRequest,
     ClinicLogin, ClinicUserOut, ClinicTokenResponse,
     ClinicProfileUpdate, ClinicPasswordChange, ClinicLeadStatusUpdate, AdminUser
 )
@@ -18,10 +20,12 @@ from auth import (
     create_clinic_token, revoke_session_by_jti, revoke_all_sessions_for_user,
 )
 from config import (
-    RESEND_API_KEY, SENDER_EMAIL, ADMIN_EMAIL, APP_NAME,
+    RESEND_API_KEY, SENDER_EMAIL, ADMIN_EMAIL, APP_NAME, PRODUCTION_URL,
+    CLINIC_ONBOARDING_SENDER_EMAIL,
     AUTH_COOKIE_NAME_CLINIC, AUTH_COOKIE_SECURE, AUTH_COOKIE_SAMESITE,
     AUTH_COOKIE_MAX_AGE_SECONDS,
 )
+from emails import send_clinic_intake_invite_email
 from rate_limit import rate_limit
 from audit import audit_log
 from entitlements import compute_entitlements
@@ -65,8 +69,66 @@ def _safe_invite(invite: dict) -> dict:
             "submitted_at",
             "application_id",
             "revoked_at",
+            "email_sent_at",
+            "email_sent_to",
+            "email_send_count",
         )
     }
+
+
+def _intake_link(token: str) -> str:
+    """Public URL a clinic opens to fill in its intake form.
+
+    Built from PRODUCTION_URL rather than from anything the caller sends, so
+    an official email can never carry a link to somewhere else.
+    """
+    base = (PRODUCTION_URL or "https://zubite.bg").rstrip("/")
+    return f"{base}/clinic-intake/{token}"
+
+
+async def _deliver_intake_invite_email(
+    *,
+    invite: dict,
+    token: str,
+    to_email: str,
+    actor: AdminUser,
+    request: Request | None = None,
+) -> bool:
+    """Email one intake link and record the delivery on the invite.
+
+    Returns True when Resend accepted the message. Failures are recorded as a
+    False return rather than an exception — creating the link must succeed even
+    when mail delivery does not, because the admin can still copy it.
+    """
+    sent = await send_clinic_intake_invite_email(
+        to_email=to_email,
+        clinic_label=invite.get("clinic_label") or "",
+        intake_url=_intake_link(token),
+        expires_at=invite.get("expires_at"),
+    )
+    if not sent:
+        return False
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await db.clinic_intake_invites.update_one(
+        {"id": invite["id"]},
+        {
+            "$set": {"email_sent_at": now_iso, "email_sent_to": to_email},
+            "$inc": {"email_send_count": 1},
+        },
+    )
+    invite["email_sent_at"] = now_iso
+    invite["email_sent_to"] = to_email
+    invite["email_send_count"] = (invite.get("email_send_count") or 0) + 1
+    await audit_log(
+        "clinic_intake_invite.emailed",
+        actor=actor,
+        target_type="clinic_application",
+        target_id=invite["id"],
+        target_summary=invite.get("clinic_label") or "Private clinic intake invite",
+        metadata={"recipient": to_email},
+        request=request,
+    )
+    return True
 
 
 def _application_profile(application: dict) -> dict:
@@ -165,7 +227,86 @@ async def create_clinic_intake_invite(
         metadata={"expires_in_days": body.expires_in_days},
         request=request,
     )
-    return {"invite": _safe_invite(invite), "token": token}
+
+    # Optional delivery. A failed send never fails the request — the admin
+    # still gets the token back and can copy the link or retry the send.
+    email_sent = False
+    email_error: str | None = None
+    if body.send_email:
+        if not invite["contact_email"]:
+            email_error = "missing_contact_email"
+        else:
+            email_sent = await _deliver_intake_invite_email(
+                invite=invite,
+                token=token,
+                to_email=invite["contact_email"],
+                actor=user,
+                request=request,
+            )
+            if not email_sent:
+                email_error = "send_failed"
+
+    return {
+        "invite": _safe_invite(invite),
+        "token": token,
+        "email_sent": email_sent,
+        "email_error": email_error,
+    }
+
+
+@router.post("/admin/clinic-intake-invites/{invite_id}/send")
+async def send_clinic_intake_invite(
+    invite_id: str,
+    body: ClinicIntakeInviteSend,
+    request: Request,
+    user: AdminUser = Depends(get_current_user),
+):
+    """Email (or re-email) an intake link the admin still holds.
+
+    The stored record only has the token hash, so the caller supplies the raw
+    token and it is matched against this invite before anything is sent.
+    """
+    if not isinstance(invite_id, str) or len(invite_id) > 100:
+        raise HTTPException(status_code=400, detail="Invalid invite id")
+    invite = await db.clinic_intake_invites.find_one({"id": invite_id}, {"_id": 0})
+    if not invite:
+        raise HTTPException(status_code=404, detail="Invite not found")
+    if not secrets.compare_digest(
+        _hash_intake_token(body.token), invite.get("token_hash", "")
+    ):
+        raise HTTPException(status_code=403, detail="Token does not match this invite")
+    if invite.get("status") != "pending":
+        raise HTTPException(status_code=409, detail="Intake link is no longer active")
+    if _invite_expired(invite):
+        await db.clinic_intake_invites.update_one(
+            {"id": invite_id, "status": "pending"},
+            {"$set": {"status": "expired"}},
+        )
+        raise HTTPException(status_code=410, detail="Intake link has expired")
+
+    to_email = str(body.contact_email) if body.contact_email else invite.get("contact_email")
+    if not to_email:
+        raise HTTPException(status_code=400, detail="No recipient email for this invite")
+
+    sent = await _deliver_intake_invite_email(
+        invite=invite,
+        token=body.token,
+        to_email=to_email,
+        actor=user,
+        request=request,
+    )
+    if not sent:
+        raise HTTPException(status_code=502, detail="Email could not be sent")
+
+    # A corrected address becomes the invite's contact email, so the record and
+    # the prefilled form agree with where the link actually went.
+    if to_email != invite.get("contact_email"):
+        await db.clinic_intake_invites.update_one(
+            {"id": invite_id}, {"$set": {"contact_email": to_email}}
+        )
+        invite["contact_email"] = to_email
+
+    return {"status": "ok", "invite": _safe_invite(invite)}
 
 
 @router.get("/admin/clinic-intake-invites")
@@ -508,13 +649,31 @@ async def update_clinic_application(app_id: str, body: dict, request: Request, u
     if not application:
         raise HTTPException(status_code=404, detail="Application not found")
 
+    # Checked before anything is written. The old order approved the application
+    # first and then quietly skipped creating the clinic when the email was taken,
+    # leaving an "approved" application with no clinic behind it and nothing on
+    # screen to say so.
+    if update_data.get("status") == "approved" and application.get("status") != "approved":
+        taken = await db.clinics.find_one(
+            {"email": str(application.get("email") or "").strip().lower()},
+            {"_id": 0, "id": 1, "clinic_name": 1, "name": 1})
+        if taken:
+            holder = taken.get("clinic_name") or taken.get("name") or taken["id"]
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"Имейлът {application.get('email')} вече се използва от клиника „{holder}“. "
+                    "Архивирайте я или сменете нейния имейл, преди да одобрите кандидатурата."
+                ),
+            )
+
     await db.clinic_applications.update_one({"id": app_id}, {"$set": update_data})
     response = {"status": "ok"}
 
     new_status = update_data.get("status")
     created_clinic_id: str | None = None
     if new_status == "approved" and application.get("status") != "approved":
-        existing = await db.clinics.find_one({"email": application["email"]})
+        existing = await db.clinics.find_one({"email": str(application["email"]).strip().lower()})
         if not existing:
             temp_password = secrets.token_urlsafe(10)
             # `application` was fetched before update_one() above wrote this
@@ -534,7 +693,7 @@ async def update_clinic_application(app_id: str, body: dict, request: Request, u
                 "clinic_name": application["clinic_name"],
                 "city": application["city"],
                 "district_slug": approved_data.get("district_slug"),
-                "email": application["email"],
+                "email": str(application["email"]).strip().lower(),
                 "phone": application["phone"],
                 "password_hash": hash_password(temp_password),
                 "status": "active",
@@ -572,13 +731,26 @@ async def update_clinic_application(app_id: str, body: dict, request: Request, u
             }
             await db.clinics.insert_one(clinic_doc)
             created_clinic_id = clinic_doc["id"]
+            # An approved application is a new clinic, so it is enrolled in
+            # Clear Advance exactly like one created by an admin. Never allowed
+            # to fail the approval.
+            try:
+                from clear_advance import enrol_clinic, queue_clinic_enrolment
+                if await queue_clinic_enrolment(db, clinic_doc):
+                    asyncio.create_task(enrol_clinic(db, clinic_doc["id"]))
+            except Exception as exc:
+                logging.warning(
+                    f"Clear Advance enrolment could not be queued for {clinic_doc['id']}: {exc}")
             response["clinic_account_created"] = True
             response["clinic_credentials"] = {"email": application["email"], "temporary_password": temp_password}
 
             if RESEND_API_KEY:
                 try:
                     resend.Emails.send({
-                        "from": SENDER_EMAIL, "to": application["email"],
+                        # Onboarding sender: this and the intake invite are the
+                        # two emails that bring a clinic onto the platform.
+                        "from": CLINIC_ONBOARDING_SENDER_EMAIL,
+                        "to": application["email"],
                         "subject": "Добре дошли в Zubite.bg — Вашият акаунт е одобрен",
                         "html": f"""
                         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 0;">
@@ -677,6 +849,8 @@ async def regenerate_clinic_password_by_app(app_id: str, request: Request, user:
     clinic = await db.clinics.find_one({"application_id": app_id}, {"_id": 0})
     if not clinic:
         raise HTTPException(status_code=404, detail="Няма създаден акаунт за тази кандидатура")
+    if clinic.get("archived") is True:
+        raise HTTPException(status_code=409, detail="Клиниката е архивирана. Възстановете я, преди да сменяте паролата.")
     new_password = secrets.token_urlsafe(10)
     await db.clinics.update_one({"id": clinic["id"]}, {"$set": {"password_hash": hash_password(new_password)}})
     email_sent = _send_password_email(clinic, new_password, _get_portal_url(request))
@@ -711,6 +885,8 @@ async def admin_reset_clinic_password(clinic_id: str, request: Request, user: Ad
     clinic = await db.clinics.find_one({"id": clinic_id, "password_hash": {"$exists": True}}, {"_id": 0})
     if not clinic:
         raise HTTPException(status_code=404, detail="Clinic account not found")
+    if clinic.get("archived") is True:
+        raise HTTPException(status_code=409, detail="Клиниката е архивирана. Възстановете я, преди да сменяте паролата.")
     new_password = secrets.token_urlsafe(10)
     await db.clinics.update_one({"id": clinic_id}, {"$set": {"password_hash": hash_password(new_password)}})
     email_sent = _send_password_email(clinic, new_password, _get_portal_url(request))
@@ -834,6 +1010,8 @@ async def clinic_login(data: ClinicLogin, request: Request, response: Response):
         raise HTTPException(status_code=401, detail="Невалидни данни за вход")
     if clinic.get("status") == "paused":
         raise HTTPException(status_code=403, detail="Акаунтът е спрян")
+    if clinic.get("archived") is True:
+        raise HTTPException(status_code=403, detail="Акаунтът е архивиран")
     token, _jti = await create_clinic_token(clinic["id"], clinic["email"])
     # Always set httpOnly clinic session cookie.
     response.set_cookie(

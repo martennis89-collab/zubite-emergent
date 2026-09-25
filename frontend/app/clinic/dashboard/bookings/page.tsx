@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Loader2, Calendar, ChevronRight } from 'lucide-react'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
@@ -40,6 +40,20 @@ export default function ClinicBookingsPage() {
   }, [])
   useEffect(() => { load() }, [load])
 
+  // Pending requests surfaced first so clinics notice what still needs a
+  // response; stable sort keeps the API's own ordering within each group.
+  const sortedBookings = useMemo(() => {
+    return [...bookings].sort((a, b) => {
+      const aPending = a.status === 'pending_confirmation' ? 0 : 1
+      const bPending = b.status === 'pending_confirmation' ? 0 : 1
+      return aPending - bPending
+    })
+  }, [bookings])
+  const pendingCount = useMemo(
+    () => bookings.filter((b) => b.status === 'pending_confirmation').length,
+    [bookings],
+  )
+
   const updateStatus = async (id: string, status: string) => {
     setBusyId(id)
     try {
@@ -59,7 +73,10 @@ export default function ClinicBookingsPage() {
       <header className="flex items-center gap-2 mb-6">
         <Calendar className="w-5 h-5 text-teal-700" />
         <h1 className="font-serif text-2xl font-semibold text-slate-900">Резервирани консултации</h1>
-        <span className="ml-auto text-xs text-slate-400">{bookings.length} общо</span>
+        <span className="ml-auto text-xs text-slate-400">
+          {pendingCount > 0 && <span className="text-amber-700 font-medium">{pendingCount} чакащи · </span>}
+          {bookings.length} общо
+        </span>
       </header>
 
       {bookings.length === 0 ? (
@@ -68,7 +85,7 @@ export default function ClinicBookingsPage() {
         </div>
       ) : (
         <ul className="space-y-2">
-          {bookings.map((b) => (
+          {sortedBookings.map((b) => (
             <li key={b.id} className="rounded-xl bg-white border border-slate-200" data-testid={`booking-row-${b.id}`}>
               <button
                 type="button"

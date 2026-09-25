@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Loader2, Save, Trash2, CheckCircle, XCircle } from 'lucide-react'
 import { LeadAttributionPanel } from '@/components/LeadAttributionPanel'
+import { LeadRevenuePanel, type RevenueEntry } from '@/components/admin/LeadRevenuePanel'
 import { AdminHeader } from '@/components/admin/AdminHeader'
 
 // Quiz questions mapping — covers both legacy (q1-q10) and new MasterQuiz
@@ -51,6 +52,14 @@ const QUESTIONS: Record<string, string> = {
   c6: 'Има ли видима разлика в захапката (горни/долни зъби)?',
   c7: 'Държи ли устата си често отворена през деня?',
   c8: 'Мислиш ли, че има нужда от преглед при ортодонт?',
+  // Intake questions (Phase 1 Smart Consultation Flow) — appended to
+  // MasterQuiz after the diagnostic segment questions, same IDs for
+  // adult/teen/child.
+  treatment_interest: 'Какво лечение обмисляш в момента?',
+  readiness_timeline: 'Кога искаш да направиш следваща стъпка?',
+  budget_mindset: 'Как мислиш за бюджета?',
+  second_opinion: 'Искаш ли да сравниш повече от едно мнение?',
+  has_files: 'Имаш ли снимка, план или оферта от клиника?',
 }
 
 // Answer labels — covers both legacy yes/no/sometimes and MasterQuiz visual values
@@ -63,6 +72,30 @@ const ANSWER_LABELS: Record<string, string> = {
   mild: 'Леко струпани',
   aligned: 'Подредени',
   past: 'Преди да, вече не',
+  // treatment_interest
+  aligners: 'Алайнери / Invisalign',
+  braces: 'Брекети',
+  both: 'И двете',
+  ask_doctor: 'Искам лекар да ми каже',
+  // readiness_timeline
+  asap: 'Възможно най-скоро',
+  within_1_month: 'До 1 месец',
+  in_1_3_months: 'След 1–3 месеца',
+  just_researching: 'Само проучвам',
+  // budget_mindset
+  affordable: 'Търся най-достъпен вариант',
+  balanced: 'Искам баланс цена/качество',
+  premium_if_justified: 'Готов/а съм за премиум решение, ако има смисъл',
+  unknown_pricing: 'Не знам какви са реалните цени',
+  // second_opinion
+  compare_up_to_3: 'Да, искам да сравня до 3 опции',
+  single_clinic: 'Не, искам да избера една клиника',
+  zubite_help_first: 'Първо искам Zubite да ми помогне',
+  // has_files
+  has_opg: 'Да, имам OPG / панорамна снимка',
+  has_plan_or_offer: 'Да, имам план или оферта',
+  has_smile_photos: 'Да, имам снимки на усмивката/зъбите',
+  none: 'Не',
 }
 
 // Reserved keys we never want to render as a question row
@@ -93,6 +126,11 @@ interface Lead {
   created_at: string
   answers?: Record<string, string>
   notes?: string
+  // Written by POST /admin/leads/{id}/revenue. A list rather than a single
+  // field because a treatment plan can be paid in stages.
+  revenue?: RevenueEntry[]
+  assigned_clinic_id?: string | null
+  clear_advance_lead_id?: string | null
 }
 
 export default function LeadDetailPage() {
@@ -158,6 +196,19 @@ export default function LeadDetailPage() {
     fetchLead()
   }, [router, leadId])
   
+  const refreshLead = async () => {
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+      const r = await fetch(`${API_URL}/api/admin/leads/${leadId}`, {
+        credentials: 'include' as RequestCredentials,
+      })
+      if (r.ok) setLead(await r.json())
+    } catch {
+      // A failed refresh leaves the panel showing the previous list, which is
+      // stale but not wrong — the write itself already succeeded.
+    }
+  }
+
   const handleSave = async () => {
     if (!lead) return
     
@@ -453,6 +504,18 @@ export default function LeadDetailPage() {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Revenue — full width, above attribution: what the patient paid is
+            the outcome, the campaign that produced them is the explanation. */}
+        <div className="mt-6">
+          <LeadRevenuePanel
+            leadId={lead.id}
+            revenue={lead.revenue || []}
+            assignedClinicId={lead.assigned_clinic_id}
+            clearAdvanceLeadId={lead.clear_advance_lead_id}
+            onRecorded={refreshLead}
+          />
         </div>
 
         {/* Attribution panel — full width below the two-column layout */}

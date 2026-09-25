@@ -133,6 +133,32 @@ def test_a_lead_assigned_after_connecting_is_reported():
     assert sweep(db) == ["L1"]
 
 
+def test_reported_lead_carries_stable_identity_and_touch_attribution(monkeypatch):
+    rich = lead(
+        "L1", "2026-09-05T10:00:00+00:00",
+        first_utm_source="facebook", first_utm_campaign="spring",
+        latest_utm_source="google", latest_utm_medium="cpc",
+        latest_utm_campaign="brand", latest_utm_campaign_id="cmp-1",
+    )
+    db = FakeDB([integration("clinic-a")], [rich])
+    sent = []
+
+    async def fake_post(_path, _key, payload):
+        sent.append(payload)
+        return {"lead_id": "remote-L1"}
+
+    monkeypatch.setattr(clear_advance, "_post", fake_post)
+    assert asyncio.run(clear_advance.report_pending_leads(db)) == 1
+    assert sent[0]["event_id"] == "L1"
+    assert sent[0]["first_touch"] == {
+        "utm_source": "facebook", "utm_campaign": "spring",
+    }
+    assert sent[0]["last_touch"] == {
+        "utm_source": "google", "utm_medium": "cpc",
+        "utm_campaign": "brand", "campaign_id": "cmp-1",
+    }
+
+
 def test_the_clinics_own_history_is_not_reported_as_new_enquiries():
     """The backlog guard.
 

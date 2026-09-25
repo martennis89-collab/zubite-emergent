@@ -1,0 +1,96 @@
+{
+  "batch": "example-generated",
+  "_comment": "Input format for build-batch.mjs. Run: node scripts/social-kit/build-batch.mjs scripts/social-kit/example-content.json",
+
+  "_defaults": "Filled into every post that does not set the slot itself. A per-post slot always wins. Naming a slot a given template lacks is fine and silently skipped.",
+  "defaults": {
+    "disclaimer": "Ориентир, не диагноза.",
+    "cta": "Прочети повече →"
+  },
+
+  "_slots": "Give a string for a one-line node, or an array for a multi-line block. Arrays keep the template's own leading and its final italic accent line at any line count.",
+  "posts": [
+    {
+      "id": "01-bleeding-gums",
+      "template": "01-educational-portrait",
+      "out": "feed.svg",
+      "slots": {
+        "eyebrow": "ОБЯСНЕНО ЯСНО · 01",
+        "headline": ["Кървящите", "венци не са", "„нормални“."],
+        "body": [
+          "Това е сигнал, който заслужава внимание —",
+          "без паника и без самолечение."
+        ],
+        "step1.title": "Забележи кога се случва",
+        "step1.desc": "При миене, спонтанно или заедно с болка?",
+        "step2.title": "Продължи с нежна хигиена",
+        "step2.desc": "Не спирай миенето заради кървенето.",
+        "step3.title": "Потърси професионална оценка",
+        "step3.desc": "Особено ако сигналът продължава или се усилва."
+      }
+    },
+    {
+      "id": "02-dry-mouth",
+      "template": "01-educational-portrait",
+      "out": "feed.svg",
+      "_note": "Exercises a 4-line headline against a 3-line template — the accent stays on the last line and the leading is preserved.",
+      "slots": {
+        "eyebrow": "ОБЯСНЕНО ЯСНО · 02",
+        "headline": ["Сухота в устата", "може да идва", "от лекарства,", "не от жажда."],
+        "body": ["Слюнкатапази зъбите. По-малко слюнка", "означава по-висок риск от кариес."],
+        "step1.title": "Провери списъка с лекарства",
+        "step1.desc": "Стотици медикаменти намаляват слюнката.",
+        "step2.title": "Пий вода често, на малки глътки",
+        "step2.desc": "Избягвай кофеин и алкохолни води за уста.",
+        "step3.title": "Кажи на зъболекаря си",
+        "step3.desc": "Профилактиката се адаптира според риска.",
+        "cta": "Виж повече →"
+      }
+    },
+    {
+      "id": "03-first-visit",
+      "template": "02-carousel-cover",
+      "out": "frame-01.svg",
+      "_note": "Exercises a 2-line headline against a 3-line template.",
+      "slots": {
+        "eyebrow": "ПОДГОТВИ СЕ · КАРУСЕЛ 01/06",
+        "headline": ["5 въпроса преди", "първата консултация."],
+        "body": ["За да излезеш от кабинета с яснота,", "а не с още въпроси."],
+        "card.label": "ВЪПРОС 01",
+        "card.headline": ["Какви са", "реалните", "варианти?"],
+        "cta": "Плъзни за въпросите"
+      }
+    },
+    {
+      "id": "04-enamel-fact",
+      "template": "09-hyperreal-fact",
+      "out": "feed.svg",
+      "_note": "Photo-backed. No background supplied, so the generator reports it under 'needs artwork' and leaves the master's placeholder image in place.",
+      "slots": {
+        "eyebrow": "ФАКТ · ПРОВЕРЕН ИЗТОЧНИК",
+        "fact": [
+          "Зъбният емайл е",
+          "най-твърдата тъкан",
+          "в човешкото тяло —",
+          "но веднъж увреден,",
+          "не заздравява сам."
+        ],
+        "source": "ИЗТОЧНИК: NIH · NIDCR",
+        "aiDisclosure": "AI-генерирана представителна визуализация",
+        "sourceNote": "Пълният източник и контекст са в описанието.",
+        "url": "zubite.bg"
+      }
+    },
+    {
+      "id": "05-review-poster",
+      "template": "10-review-poster-a3",
+      "out": "poster-a3.svg",
+      "_note": "Per-clinic print asset — the two clinic tspans sit on one line and are swapped as plain text.",
+      "slots": {
+        "eyebrow": "ОБРАТНА ВРЪЗКА ОТ ПАЦИЕНТИ",
+        "clinicName": "Дентален център Астра",
+        "clinicCity": " · София"
+      }
+    }
+  ]
+}

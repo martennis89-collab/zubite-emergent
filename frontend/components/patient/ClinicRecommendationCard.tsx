@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import dynamic from 'next/dynamic'
-import { Building2, MapPin, ShieldCheck, Sparkle, Sparkles, ArrowRight, CheckCircle2, ChevronDown, Video } from 'lucide-react'
+import { Building2, MapPin, ShieldCheck, Sparkle, Sparkles, ArrowRight, CheckCircle2, ChevronDown, Video, CalendarDays } from 'lucide-react'
 import type { RecommendedClinic } from '@/lib/api'
 import { TREATMENT_LABELS } from '@/lib/consultationLabels'
 import { AlignerBrandChips } from '@/components/patient/AlignerBrandChips'
@@ -270,6 +270,31 @@ export function ClinicRecommendationCard({
             Виж профила
             <ArrowRight className="w-4 h-4 transition-transform group-hover/cta:translate-x-0.5" aria-hidden="true" />
           </span>
+        </Link>
+
+        {/* Real booking CTA — reuses the existing /booking/[clinicId] slot
+            flow (not the request-call flow), so it is NOT gated by
+            isSelected: booking a specific time is a separate action from
+            requesting a callback. Wording is "Заяви час за консултация"
+            because the card can't know ahead of time whether this clinic
+            has real bookable slots — /booking/[clinicId] resolves that and
+            falls back to a "no online calendar" state. */}
+        <Link
+          href={`/booking/${encodeURIComponent(clinic.id)}?leadId=${encodeURIComponent(leadId)}&source=clinic_recommendation`}
+          onClick={() => {
+            trackPatientEvent('consultation_booking_started', {
+              lead_id: leadId,
+              clinic_id: clinic.id,
+              source: 'clinic_recommendation',
+              partner_tier: tier || 'standard',
+              rank_position: position,
+            })
+          }}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#B9D3CE] bg-[#E7F6F3] px-5 py-3 text-sm font-medium text-[#073B36] transition-colors hover:border-[#006A61]"
+          data-testid={`clinic-card-book-${clinic.id}`}
+        >
+          <CalendarDays className="w-4 h-4" aria-hidden="true" />
+          Заяви час за консултация
         </Link>
 
         {isSelected ? (

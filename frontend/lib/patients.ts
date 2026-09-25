@@ -23,6 +23,9 @@ export interface ClinicPatientRow {
   booking_count: number
   orientation_count: number
   clinic_internal_note_preview: string | null
+  // Same compact attribution as the requests list -- see
+  // ATTRIBUTION_LIST_VISIBLE_SINCE on the backend for the cutoff.
+  source_badge?: PatientContext['source_context']
 }
 
 export interface ClinicPatientConsultation {

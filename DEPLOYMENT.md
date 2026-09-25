@@ -124,6 +124,14 @@ smoke tests on pull requests and on pushes to `main` or `master`.
    | `R2_ACCESS_KEY_ID` | R2 token access key |
    | `R2_SECRET_ACCESS_KEY` | R2 token secret |
    | `RESEND_API_KEY` | Production Resend key |
+   | `BACKEND_PUBLIC_URL` | `https://<service>.onrender.com` |
+   | `MAKE_CONTENT_AUTOMATION_WEBHOOK_URL` | Make scenario webhook address |
+   | `MAKE_CONTENT_AUTOMATION_SECRET` | Shared secret, both directions |
+   | `MAKE_CONTENT_AUTOMATION_API_KEY` | Optional `x-make-apikey` value |
+
+   The last four drive the article automation and are covered in section 5a.
+   Leaving them unset is valid — the automation reports itself unconfigured
+   and nothing else on the service is affected.
 
 4. The first deployment can fail to reach Atlas until networking is allowed.
    Once the Render service exists, open **Connect > Outbound**, copy every CIDR
@@ -150,6 +158,43 @@ loops are moved to a dedicated worker with distributed locking.
 
 Official references: [Render Blueprints](https://render.com/docs/blueprint-spec),
 [Render outbound IP ranges](https://render.com/docs/outbound-ip-addresses).
+
+## 5a. Connect the Make.com article automation
+
+The pipeline runs entirely between Render and Make; Vercel only proxies the
+admin's browser request. Nothing about it is stored in the repository.
+
+```text
+admin (zubite.bg)
+  -> POST /api/admin/content-automation/start-next      (Vercel rewrite -> Render)
+  -> Render POSTs MAKE_CONTENT_AUTOMATION_WEBHOOK_URL
+     body: { secret, mode, requestedBy, topicHint, source, jobId, callbackUrl }
+     header: x-make-apikey (only when MAKE_CONTENT_AUTOMATION_API_KEY is set)
+  -> Make runs the article pipeline
+  -> Make POSTs the final Markdown to `callbackUrl`, which resolves to
+     https://<service>.onrender.com/api/admin/content-automation/import-from-make
+     body: { secret, makeRunId, articleId, slug, title, markdown }
+  -> backend creates an unpublished draft plus its image requirements
+```
+
+1. Set `MAKE_CONTENT_AUTOMATION_WEBHOOK_URL`, `MAKE_CONTENT_AUTOMATION_SECRET`
+   and `BACKEND_PUBLIC_URL` on Render. Add `MAKE_CONTENT_AUTOMATION_API_KEY`
+   only if the Make webhook enforces an API key.
+2. In the Make scenario, map the final HTTP module's URL to the incoming
+   `callbackUrl` field rather than typing a hostname. A hostname typed into
+   Make survives no migration; the mapped field follows `BACKEND_PUBLIC_URL`.
+3. Make's callback must send `secret` in the JSON body, matching
+   `MAKE_CONTENT_AUTOMATION_SECRET` exactly. It is server-to-server, so no
+   CORS origin and no admin cookie are involved — a mismatched secret is a
+   401, an unset one a 503.
+4. Send `articleId` and `makeRunId` on the callback. The import endpoint keys
+   its idempotency on that pair, so a Make retry returns the existing draft
+   instead of creating a second one.
+5. The Render service is on the free plan and sleeps when idle. A callback
+   arriving cold waits for the container to start, so give the final HTTP
+   module a timeout of at least 60 seconds and leave its retry enabled.
+6. Drafts are never auto-published. The admin reviews them at
+   `/admin/content-automation` and publishes from the blog admin.
 
 ## 6. Deploy Next.js on Vercel
 

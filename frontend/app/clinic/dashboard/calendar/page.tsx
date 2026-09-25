@@ -445,6 +445,13 @@ function EmptyState({
       </div>
       <div className="text-base font-medium text-slate-700">{title}</div>
       <p className="mt-1 text-sm text-slate-500">{body}</p>
+      <p className="mt-2 text-sm text-slate-500">
+        Заявките за час от пациенти се управляват отделно в{' '}
+        <Link href="/clinic/dashboard/bookings" className="text-teal-600 hover:text-teal-700 font-medium underline">
+          „Заявки за час“
+        </Link>
+        .
+      </p>
     </div>
   )
 }

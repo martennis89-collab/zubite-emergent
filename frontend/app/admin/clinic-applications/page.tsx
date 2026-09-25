@@ -109,6 +109,9 @@ interface ClinicIntakeInvite {
   expires_at?: string | null
   submitted_at?: string | null
   application_id?: string | null
+  email_sent_at?: string | null
+  email_sent_to?: string | null
+  email_send_count?: number | null
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
@@ -202,24 +205,35 @@ function IntakeInvitePanel({
   const [clinicLabel, setClinicLabel] = useState('')
   const [contactEmail, setContactEmail] = useState('')
   const [expiresInDays, setExpiresInDays] = useState('30')
+  const [sendEmail, setSendEmail] = useState(true)
   const [creating, setCreating] = useState(false)
   const [createdLink, setCreatedLink] = useState('')
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState('')
+  // The raw token is returned once and never stored server-side, so it is kept
+  // here for as long as the created-link box is on screen. That is what makes
+  // a resend (typo in the address, mail that did not arrive) possible at all.
+  const [createdInvite, setCreatedInvite] = useState<{ id: string; token: string } | null>(null)
+  const [sendTo, setSendTo] = useState('')
+  const [sending, setSending] = useState(false)
+  const [sendNotice, setSendNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null)
 
   const createInvite = async (event: React.FormEvent) => {
     event.preventDefault()
     setCreating(true)
     setError('')
+    setSendNotice(null)
     try {
+      const trimmedEmail = contactEmail.trim()
       const response = await fetch(`${API_URL}/api/admin/clinic-intake-invites`, {
         method: 'POST',
         credentials: 'include' as RequestCredentials,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clinic_label: clinicLabel,
-          contact_email: contactEmail || null,
+          contact_email: trimmedEmail || null,
           expires_in_days: Number(expiresInDays),
+          send_email: sendEmail && Boolean(trimmedEmail),
         }),
       })
       if (!response.ok) {
@@ -228,6 +242,15 @@ function IntakeInvitePanel({
       }
       const data = await response.json()
       setCreatedLink(`${window.location.origin}/clinic-intake/${data.token}`)
+      setCreatedInvite({ id: data.invite.id, token: data.token })
+      setSendTo(trimmedEmail)
+      if (sendEmail && trimmedEmail) {
+        setSendNotice(
+          data.email_sent
+            ? { tone: 'ok', text: `Линкът е изпратен на ${trimmedEmail}.` }
+            : { tone: 'error', text: 'Имейлът не беше изпратен. Копирайте линка или опитайте отново по-долу.' },
+        )
+      }
       setClinicLabel('')
       setContactEmail('')
       await onChanged()
@@ -235,6 +258,42 @@ function IntakeInvitePanel({
       setError('Възникна грешка при създаването на линка.')
     } finally {
       setCreating(false)
+    }
+  }
+
+  const sendInviteEmail = async () => {
+    if (!createdInvite) return
+    setSending(true)
+    setSendNotice(null)
+    try {
+      const recipient = sendTo.trim()
+      const response = await fetch(
+        `${API_URL}/api/admin/clinic-intake-invites/${createdInvite.id}/send`,
+        {
+          method: 'POST',
+          credentials: 'include' as RequestCredentials,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            token: createdInvite.token,
+            contact_email: recipient || null,
+          }),
+        },
+      )
+      if (!response.ok) {
+        setSendNotice({
+          tone: 'error',
+          text: response.status === 400
+            ? 'Посочете валиден имейл адрес.'
+            : 'Имейлът не беше изпратен. Проверете адреса и опитайте отново.',
+        })
+        return
+      }
+      setSendNotice({ tone: 'ok', text: `Линкът е изпратен на ${recipient}.` })
+      await onChanged()
+    } catch {
+      setSendNotice({ tone: 'error', text: 'Възникна грешка при изпращането.' })
+    } finally {
+      setSending(false)
     }
   }
 
@@ -278,7 +337,7 @@ function IntakeInvitePanel({
           />
         </label>
         <label className="text-xs font-medium text-slate-600">
-          Имейл за предварително попълване
+          Имейл на клиниката
           <input
             type="email"
             value={contactEmail}
@@ -312,6 +371,17 @@ function IntakeInvitePanel({
           {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
           Създай линк
         </button>
+        <label className="flex items-center gap-2 text-xs text-slate-600 md:col-span-4">
+          <input
+            type="checkbox"
+            checked={sendEmail}
+            onChange={(event) => setSendEmail(event.target.checked)}
+            className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+            data-testid="invite-send-email"
+          />
+          Изпрати линка на посочения имейл веднага след създаването
+          <span className="text-slate-400">(изисква попълнен имейл)</span>
+        </label>
       </form>
 
       {error && <p className="px-5 py-3 text-sm text-rose-700" role="alert">{error}</p>}
@@ -325,6 +395,42 @@ function IntakeInvitePanel({
               {copied ? <Check className="h-4 w-4 text-emerald-300" /> : <Copy className="h-4 w-4" />}
               {copied ? 'Копиран' : 'Копирай'}
             </button>
+          </div>
+
+          <div className="mt-4 border-t border-teal-200/70 pt-4">
+            <p className="text-xs font-semibold text-teal-800">Изпрати официален имейл с линка</p>
+            <p className="mt-1 text-xs text-teal-700/80">
+              Възможно е само докато линкът е на екрана — след презареждане token-ът вече не е достъпен.
+            </p>
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+              <input
+                type="email"
+                value={sendTo}
+                onChange={(event) => setSendTo(event.target.value)}
+                placeholder="clinic@example.com"
+                className="h-11 min-w-0 flex-1 rounded-lg bg-white px-3 text-sm text-slate-700 ring-1 ring-teal-200 outline-none focus:ring-2 focus:ring-teal-400"
+                data-testid="send-intake-email-to"
+              />
+              <button
+                type="button"
+                onClick={sendInviteEmail}
+                disabled={sending || !sendTo.trim()}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-teal-600 px-5 text-sm font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
+                data-testid="send-intake-email"
+              >
+                {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                Изпрати
+              </button>
+            </div>
+            {sendNotice && (
+              <p
+                className={`mt-2 text-xs font-medium ${sendNotice.tone === 'ok' ? 'text-emerald-700' : 'text-rose-700'}`}
+                role="status"
+                data-testid="send-intake-email-notice"
+              >
+                {sendNotice.text}
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -348,6 +454,13 @@ function IntakeInvitePanel({
                   {invite.expires_at ? ` · до ${new Date(invite.expires_at).toLocaleDateString('bg-BG')}` : ''}
                   {invite.token_hint ? ` · token …${invite.token_hint}` : ''}
                 </p>
+                {invite.email_sent_at && (
+                  <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-emerald-700">
+                    <Mail className="h-3 w-3" />
+                    Изпратен на {invite.email_sent_to || invite.contact_email} · {new Date(invite.email_sent_at).toLocaleDateString('bg-BG')}
+                    {(invite.email_send_count || 0) > 1 ? ` · ${invite.email_send_count} изпращания` : ''}
+                  </p>
+                )}
               </div>
               {invite.status === 'pending' && (
                 <button
@@ -1129,6 +1242,11 @@ export default function ClinicApplicationsPage() {
         }
         return result
       }
+      // A refused change -- approving an application whose email already
+      // belongs to a clinic, for one -- used to fall through here with no
+      // message at all, so the click looked like it had simply done nothing.
+      const body = await res.json().catch(() => ({}))
+      setMessage({ type: 'error', text: typeof body.detail === 'string' ? body.detail : 'Грешка при обновяване' })
     } catch {
       setMessage({ type: 'error', text: 'Грешка при обновяване' })
     }

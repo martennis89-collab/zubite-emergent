@@ -521,6 +521,10 @@ async def get_current_clinic(
         raise HTTPException(status_code=401, detail="Clinic not found")
     if clinic.get("status") == "paused":
         raise HTTPException(status_code=403, detail="Account is paused")
+    # Archiving removes a clinic from Zubite. A session opened before the clinic
+    # was archived must end with it, not survive until the token expires.
+    if clinic.get("archived") is True:
+        raise HTTPException(status_code=403, detail="Account is archived")
 
     if via_cookie:
         await _enforce_csrf_for_cookie_auth(request, actor_type="clinic")

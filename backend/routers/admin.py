@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Request, Response
 from fastapi.responses import StreamingResponse
 from typing import Optional, List
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import asyncio
 import csv
 import os
@@ -13,11 +13,12 @@ from schemas import (
     AdminLogin, AdminUser, TokenResponse, LeadStatusUpdate, LeadUpdate,
     ConfirmationBody, CleanupLeadsBody, ClinicIntegration, LeadRevenue,
     RESET_ANALYTICS_TOKEN, RESET_BLOG_VIEWS_TOKEN, CLEANUP_LEADS_TOKEN,
+    ClearAdvanceStatusMappings, ClearAdvanceReconcileRequest,
 )
 from auth import (
     verify_password, create_token, get_current_user,
     revoke_session_by_jti, revoke_all_sessions_for_user,
-    cleanup_expired_auth_sessions,
+    cleanup_expired_auth_sessions, get_current_clinic,
 )
 from config import (
     IS_PRODUCTION, logger,
@@ -26,7 +27,10 @@ from config import (
 )
 from rate_limit import rate_limit
 from audit import audit_log, diff_fields
-from clear_advance import report_status, report_revenue, encrypt_api_key
+from clear_advance import (
+    DEFAULT_STATUS_MAPPINGS, encrypt_api_key, import_pending_leads,
+    process_pending_outcomes, report_pending_leads, report_revenue, report_status,
+)
 
 
 def _mask_username(value: str | None) -> str | None:
@@ -279,8 +283,128 @@ async def admin_clear_advance_status(clinic_id: str,
     """Whether a clinic is connected, and enough of the key to tell which one."""
     record = await db.clinic_integrations.find_one(
         {"clinic_id": clinic_id, "provider": "clear_advance"},
-        {"_id": 0, "key_hint": 1, "updated_at": 1, "connected_at": 1})
-    return {"connected": bool(record), **(record or {})}
+        {"_id": 0, "key_hint": 1, "updated_at": 1, "connected_at": 1,
+         "clear_advance_last_sync_at": 1, "clear_advance_last_sync_kind": 1,
+         "clear_advance_last_sync_ok": 1, "clear_advance_sync_failure_streak": 1,
+         "status_mappings": 1, "clear_advance_import_cursor": 1})
+    outbox = getattr(db, "clear_advance_outbox", None)
+    pending = await outbox.count_documents(
+        {"clinic_id": clinic_id, "status": {"$in": ["pending", "failed"]}}) if outbox is not None else 0
+    succeeded = await outbox.count_documents(
+        {"clinic_id": clinic_id, "status": "succeeded"}) if outbox is not None else 0
+    enrolment = await db.clear_advance_enrolments.find_one(
+        {"clinic_id": clinic_id},
+        {"_id": 0, "status": 1, "attempts": 1, "last_error": 1, "org_slug": 1, "created_at": 1})
+    return {"connected": bool(record), "pending_outbox": pending,
+            "succeeded_outbox": succeeded,
+            "status_mappings": {**DEFAULT_STATUS_MAPPINGS,
+                                 **((record or {}).get("status_mappings") or {})},
+            "enrolment": enrolment,
+            **(record or {})}
+
+
+async def _clinic_clear_advance_status(clinic: dict) -> dict:
+    record = await db.clinic_integrations.find_one(
+        {"clinic_id": clinic["id"], "provider": "clear_advance"},
+        {"_id": 0, "key_hint": 1, "updated_at": 1, "connected_at": 1,
+         "clear_advance_last_sync_at": 1, "clear_advance_last_sync_kind": 1,
+         "clear_advance_last_sync_ok": 1, "clear_advance_sync_failure_streak": 1,
+         "status_mappings": 1, "clear_advance_import_cursor": 1})
+    outbox = getattr(db, "clear_advance_outbox", None)
+    pending = await outbox.count_documents(
+        {"clinic_id": clinic["id"], "status": {"$in": ["pending", "failed"]}}) if outbox is not None else 0
+    succeeded = await outbox.count_documents(
+        {"clinic_id": clinic["id"], "status": "succeeded"}) if outbox is not None else 0
+    return {"connected": bool(record), "pending_outbox": pending,
+            "succeeded_outbox": succeeded,
+            "status_mappings": {**DEFAULT_STATUS_MAPPINGS,
+                                 **((record or {}).get("status_mappings") or {})},
+            **(record or {})}
+
+
+@router.get("/clinic/clear-advance")
+async def clinic_clear_advance_status(clinic=Depends(get_current_clinic)):
+    """Clinic-safe connection, mapping and delivery-health summary."""
+    return await _clinic_clear_advance_status(clinic)
+
+
+@router.patch("/clinic/clear-advance/mappings")
+async def clinic_update_clear_advance_mappings(
+    data: ClearAdvanceStatusMappings,
+    request: Request,
+    clinic=Depends(get_current_clinic),
+):
+    """Save only this clinic's allowed status-to-outcome mappings."""
+    if not await db.clinic_integrations.find_one(
+        {"clinic_id": clinic["id"], "provider": "clear_advance"}, {"_id": 1}
+    ):
+        raise HTTPException(status_code=409, detail="Clear Advance is not connected")
+    await db.clinic_integrations.update_one(
+        {"clinic_id": clinic["id"], "provider": "clear_advance"},
+        {"$set": {"status_mappings": data.mappings,
+                   "status_mappings_updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    await audit_log(
+        "clinic.clear_advance_mappings_updated", actor_type="clinic",
+        target_type="clinic", target_id=clinic["id"],
+        metadata={"mapping_keys": sorted(data.mappings.keys())}, severity="info",
+        request=request,
+    )
+    return await _clinic_clear_advance_status(clinic)
+
+
+@router.post("/clinic/clear-advance/sync")
+async def clinic_run_clear_advance_sync(
+    request: Request,
+    clinic=Depends(get_current_clinic),
+):
+    """Run one bounded sync for this clinic and return its health snapshot."""
+    if not await db.clinic_integrations.find_one(
+        {"clinic_id": clinic["id"], "provider": "clear_advance"}, {"_id": 1}
+    ):
+        raise HTTPException(status_code=409, detail="Clear Advance is not connected")
+    reported = await report_pending_leads(db, clinic_id=clinic["id"])
+    imported = await import_pending_leads(db, clinic_id=clinic["id"])
+    outcomes = await process_pending_outcomes(db, clinic_id=clinic["id"])
+    await audit_log(
+        "clinic.clear_advance_sync_triggered", actor_type="clinic",
+        target_type="clinic", target_id=clinic["id"],
+        metadata={"reported": reported, "imported": imported,
+                  "outcomes_processed": outcomes["processed"],
+                  "outcomes_succeeded": outcomes["succeeded"],
+                  "outcomes_failed": outcomes["failed"]}, severity="info",
+        request=request,
+    )
+    return {"reported": reported, "imported": imported,
+            "outcomes": outcomes,
+            "sync": await _clinic_clear_advance_status(clinic)}
+
+
+@router.post("/clinic/clear-advance/reconcile")
+async def clinic_reconcile_clear_advance(
+    data: ClearAdvanceReconcileRequest,
+    request: Request,
+    clinic=Depends(get_current_clinic),
+):
+    """Replay a bounded historical window without moving the live cursor."""
+    if not await db.clinic_integrations.find_one(
+        {"clinic_id": clinic["id"], "provider": "clear_advance"}, {"_id": 1}
+    ):
+        raise HTTPException(status_code=409, detail="Clear Advance is not connected")
+    now = datetime.now(timezone.utc)
+    since = data.since if data.since.tzinfo else data.since.replace(tzinfo=timezone.utc)
+    if since > now or since < now - timedelta(days=730):
+        raise HTTPException(status_code=400, detail="since must be within the last 730 days")
+    imported = await import_pending_leads(
+        db, limit=data.limit, clinic_id=clinic["id"], since=since.isoformat())
+    await audit_log(
+        "clinic.clear_advance_reconciled", actor_type="clinic",
+        target_type="clinic", target_id=clinic["id"],
+        metadata={"since": since.isoformat(), "limit": data.limit, "imported": imported},
+        severity="info", request=request,
+    )
+    return {"ok": True, "imported": imported, "since": since.isoformat(),
+            "limit": data.limit, "sync": await _clinic_clear_advance_status(clinic)}
 
 
 @router.post("/admin/leads/{lead_id}/revenue")
@@ -323,8 +447,11 @@ async def admin_record_revenue(lead_id: str, data: LeadRevenue, request: Request
             request=request,
         )
 
-    asyncio.create_task(
-        report_revenue(db, lead, minor, data.currency.upper(), data.reference))
+    queued = await report_revenue(
+        db, lead, minor, data.currency.upper(), data.reference, deliver=False)
+    if queued and lead.get("assigned_clinic_id"):
+        asyncio.create_task(process_pending_outcomes(
+            db, clinic_id=lead["assigned_clinic_id"]))
 
     return {"ok": True, "amount_minor": minor, "currency": data.currency.upper(),
             "deduplicated": bool(existing)}
@@ -364,10 +491,12 @@ async def admin_update_lead(lead_id: str, data: LeadStatusUpdate, request: Reque
                 severity="info",
                 request=request,
             )
-            # Fire-and-forget: Clear Advance being slow or down must never make
-            # a receptionist's status change fail or hang. A lead with no
-            # assigned clinic is reported to nobody -- see clear_advance.py.
-            asyncio.create_task(report_status(db, lead, update_dict["status"]))
+            # Persist before responding; only network delivery is backgrounded.
+            queued = await report_status(
+                db, lead, update_dict["status"], deliver=False)
+            if queued and lead.get("assigned_clinic_id"):
+                asyncio.create_task(process_pending_outcomes(
+                    db, clinic_id=lead["assigned_clinic_id"]))
         # Audit notes change with length-only metadata; NEVER store note bodies.
         if "notes" in update_dict:
             old_len = len(before.get("notes") or "") if isinstance(before.get("notes"), str) else 0
@@ -510,10 +639,11 @@ async def update_lead(lead_id: str, update: LeadUpdate, request: Request, user: 
                 severity="info",
                 request=request,
             )
-            # Fire-and-forget: Clear Advance being slow or down must never make
-            # a receptionist's status change fail or hang. A lead with no
-            # assigned clinic is reported to nobody -- see clear_advance.py.
-            asyncio.create_task(report_status(db, updated, update_data["status"]))
+            queued = await report_status(
+                db, updated, update_data["status"], deliver=False)
+            if queued and updated.get("assigned_clinic_id"):
+                asyncio.create_task(process_pending_outcomes(
+                    db, clinic_id=updated["assigned_clinic_id"]))
 
     return updated
 

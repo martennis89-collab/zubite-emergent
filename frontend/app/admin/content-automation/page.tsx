@@ -76,6 +76,11 @@ const STATUS_META: Record<
     cls: 'bg-red-50 text-red-700 ring-1 ring-red-200',
     icon: XCircle,
   },
+  timed_out: {
+    label: 'Без отговор от Make',
+    cls: 'bg-slate-100 text-slate-700 ring-1 ring-slate-200',
+    icon: Clock,
+  },
 }
 
 function StatusBadge({ status }: { status: string }) {

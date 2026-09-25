@@ -6,6 +6,7 @@ import { Search, Filter, Users, AlertCircle } from 'lucide-react'
 import { ClinicShell } from '@/components/ClinicShell'
 import { timeSince, formatDate } from '@/lib/consultationLabels'
 import { listClinicPatients, ClinicPatientRow, CarePassStatus } from '@/lib/patients'
+import { SourceBadge } from '@/components/PatientContextSection'
 
 const CARE_PASS_BADGE: Record<CarePassStatus, { label: string; cls: string }> = {
   unlocked: { label: 'Care Pass отключен', cls: 'bg-emerald-100 text-emerald-700' },
@@ -149,6 +150,7 @@ export default function ClinicPatientsPage() {
                     <th className="px-4 py-3 text-left">№</th>
                     <th className="px-4 py-3 text-left">Пациент</th>
                     <th className="px-4 py-3 text-left hidden lg:table-cell">Care Pass</th>
+                    <th className="px-4 py-3 text-left hidden lg:table-cell">Източник</th>
                     <th className="px-4 py-3 text-left hidden lg:table-cell">Активност</th>
                     <th className="px-4 py-3 text-left">Насочен</th>
                     <th className="px-4 py-3 text-right">Действия</th>
@@ -170,6 +172,9 @@ export default function ClinicPatientsPage() {
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${cp.cls}`}>
                             {cp.label}
                           </span>
+                        </td>
+                        <td className="px-4 py-3 hidden lg:table-cell">
+                          {p.source_badge && <SourceBadge source={p.source_badge} />}
                         </td>
                         <td className="px-4 py-3 hidden lg:table-cell text-slate-600 text-xs">
                           {p.consultation_count} консултации · {p.booking_count} резервации · {p.orientation_count} онлайн
@@ -220,6 +225,11 @@ function PatientCard({ p }: { p: ClinicPatientRow }) {
           {cp.label}
         </span>
       </div>
+      {p.source_badge && (
+        <div className="mt-2">
+          <SourceBadge source={p.source_badge} />
+        </div>
+      )}
       <div className="mt-3 text-xs text-slate-500">
         {p.consultation_count} консултации · {p.booking_count} резервации · {p.orientation_count} онлайн
       </div>

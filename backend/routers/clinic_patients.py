@@ -29,6 +29,8 @@ from auth import get_current_clinic
 from routers.consultations import (
     _backfill_legacy_assigned_leads,
     _build_patient_context,
+    _list_source_badge,
+    SOURCE_CONTEXT_LEAD_FIELDS,
 )
 from routers.orientation_bookings import _public_booking
 
@@ -119,6 +121,7 @@ def _row_for_list(
         "booking_count": booking_counts.get(lid, 0),
         "orientation_count": orientation_counts.get(lid, 0),
         "clinic_internal_note_preview": (note[:80] if note else None),
+        "source_badge": _list_source_badge(lead, lead.get("created_at")),
     }
 
 
@@ -137,6 +140,7 @@ async def clinic_list_patients(clinic=Depends(get_current_clinic)):
             "email": 1, "city_slug": 1, "created_at": 1,
             "care_pass_eligible": 1, "care_pass_unlocked": 1,
             "clinic_internal_note": 1,
+            **SOURCE_CONTEXT_LEAD_FIELDS,
         },
     ).sort("created_at", -1).to_list(2000)
 

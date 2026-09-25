@@ -57,7 +57,36 @@ services:
         sync: false
       - key: CLEAR_ADVANCE_KEY_SECRET
         sync: false
+      # Creates organisations in Clear Advance for new clinics. The most
+      # sensitive value on this service: it makes tenants, not just leads.
+      # Unset means new clinics wait, their enrolment marked not_configured.
+      - key: CLEAR_ADVANCE_PARTNER_KEY
+        sync: false
+      # Make.com article automation. The webhook URL and both secrets are set
+      # in the dashboard, never here: the secret authenticates Make's callback
+      # in both directions and the API key is a credential. Unset means the
+      # admin's "generate" button returns 503 make_not_configured and Make's
+      # callback returns 503 -- unconfigured is valid, nothing else breaks.
+      - key: MAKE_CONTENT_AUTOMATION_WEBHOOK_URL
+        sync: false
+      - key: MAKE_CONTENT_AUTOMATION_SECRET
+        sync: false
+      # Optional. Sent as `x-make-apikey` on the outbound call when set.
+      - key: MAKE_CONTENT_AUTOMATION_API_KEY
+        sync: false
+      # Backend's own public origin, sent to Make as `callbackUrl` so the
+      # scenario posts the finished Markdown back here without storing a
+      # hostname. Set to the https://<service>.onrender.com URL.
+      - key: BACKEND_PUBLIC_URL
+        sync: false
       - key: SENDER_EMAIL
         value: hello@zubite.bg
+      # Only the two emails that bring a new clinic onto the platform: the
+      # private intake invitation and the approval email with its first
+      # credentials. Everything else — patient mail, clinic password resets,
+      # chat and booking notifications — stays on SENDER_EMAIL. Unset falls
+      # back to SENDER_EMAIL.
+      - key: CLINIC_ONBOARDING_SENDER_EMAIL
+        value: onboarding@zubite.bg
       - key: ZUBITE_ADMIN_NOTIFICATION_EMAIL
         value: info@zubite.bg

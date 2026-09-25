@@ -6,6 +6,7 @@ import {
   ConsultationRequest, statusBadge, timeSince,
   TREATMENT_LABELS, readinessLabel, urgencyLabel,
 } from '@/lib/consultationLabels'
+import { SourceBadge } from '@/components/PatientContextSection'
 
 /** Mobile-first card representation of a consultation request. */
 export function RequestCard({ r }: { r: ConsultationRequest }) {
@@ -44,7 +45,7 @@ export function RequestCard({ r }: { r: ConsultationRequest }) {
         )}
       </div>
 
-      {(r.readiness || r.urgency) && (
+      {(r.readiness || r.urgency || r.source_badge) && (
         <div className="mt-2 flex flex-wrap gap-1.5 text-[11px]">
           {r.readiness && (
             <span className="px-2 py-0.5 rounded-full bg-teal-50 text-teal-700">{readinessLabel(r.readiness)}</span>
@@ -52,6 +53,7 @@ export function RequestCard({ r }: { r: ConsultationRequest }) {
           {r.urgency && r.urgency !== 'none' && (
             <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">{urgencyLabel(r.urgency)}</span>
           )}
+          {r.source_badge && <SourceBadge source={r.source_badge} />}
         </div>
       )}
 

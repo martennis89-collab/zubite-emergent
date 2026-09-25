@@ -15,13 +15,13 @@
 
   <g transform="translate(72 72)">
     <text class="brand" x="0" y="34" font-size="38" fill="#0A0A0A">Zubite<tspan fill="#007956">.bg</tspan></text>
-    <g transform="translate(0 76)"><rect width="278" height="42" rx="21" fill="#FFFFFF" stroke="#B9DDCF" stroke-width="2"/><circle cx="24" cy="21" r="6" fill="#00D294"/><text class="label" x="44" y="27" font-size="17" fill="#007956">СЛЕД КОНСУЛТАЦИЯТА</text></g>
+    <g transform="translate(0 76)"><rect width="278" height="42" rx="21" fill="#FFFFFF" stroke="#B9DDCF" stroke-width="2"/><circle cx="24" cy="21" r="6" fill="#00D294"/><text class="label" data-slot="eyebrow" x="44" y="27" font-size="17" fill="#007956">СЛЕД КОНСУЛТАЦИЯТА</text></g>
 
-    <text class="display" x="0" y="264" font-size="88" fill="#0A0A0A">
+    <text class="display" data-slot="headline" x="0" y="264" font-size="88" fill="#0A0A0A">
       <tspan x="0">Zubite</tspan>
       <tspan class="accent" x="0" dy="92" fill="#007956" letter-spacing="-1.6">Care Pass.</tspan>
     </text>
-    <text class="body" x="0" y="466" font-size="29" fill="#525252">
+    <text class="body" data-slot="body" x="0" y="466" font-size="29" fill="#525252">
       <tspan x="0">Партньорски ползи за продукти за</tspan>
       <tspan x="0" dy="44">ежедневна орална грижа.</tspan>
     </text>
@@ -39,16 +39,16 @@
     <g transform="translate(0 952)">
       <rect width="936" height="182" rx="30" fill="#FFFFFF" stroke="#E5E5E5" stroke-width="2"/>
       <circle cx="58" cy="58" r="28" fill="#D0FAE5"/><path d="m46 58 8 8 18-22" fill="none" stroke="#007956" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-      <text class="body" x="108" y="52" font-size="24" font-weight="700" fill="#0A0A0A">Кога го получаваш?</text>
-      <text class="body" x="108" y="89" font-size="20" fill="#737373">След реална консултация, заявена през Zubite.bg.</text>
+      <text class="body" data-slot="note.title" x="108" y="52" font-size="24" font-weight="700" fill="#0A0A0A">Кога го получаваш?</text>
+      <text class="body" data-slot="note.desc" x="108" y="89" font-size="20" fill="#737373">След реална консултация, заявена през Zubite.bg.</text>
       <rect x="34" y="120" width="404" height="42" rx="21" fill="#FFF0E5"/>
-      <text class="label" x="236" y="147" font-size="16" fill="#CC5400" text-anchor="middle">НЕ Е ОТСТЪПКА ОТ ЛЕЧЕНИЕ</text>
+      <text class="label" data-slot="note.badge" x="236" y="147" font-size="16" fill="#CC5400" text-anchor="middle">НЕ Е ОТСТЪПКА ОТ ЛЕЧЕНИЕ</text>
     </g>
 
     <g transform="translate(0 1194)">
-      <text class="body" x="0" y="25" font-size="20" font-weight="700" fill="#007956">Полза след посещението.</text>
+      <text class="body" data-slot="disclaimer" x="0" y="25" font-size="20" font-weight="700" fill="#007956">Полза след посещението.</text>
       <rect x="642" width="294" height="58" rx="29" fill="#0A0A0A"/>
-      <text class="body" x="789" y="37" font-size="20" font-weight="700" fill="#FFFFFF" text-anchor="middle">Как работи →</text>
+      <text class="body" data-slot="cta" x="789" y="37" font-size="20" font-weight="700" fill="#FFFFFF" text-anchor="middle">Как работи →</text>
     </g>
   </g>
 </svg>

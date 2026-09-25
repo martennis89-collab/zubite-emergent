@@ -109,6 +109,14 @@ async def startup():
             [("clinic_id", 1), ("provider", 1)], unique=True)
     except Exception as exc:  # pre-existing duplicates must not block startup
         print(f"[clear_advance] clinic_integrations index skipped: {exc}")
+    try:
+        await db.clear_advance_outbox.create_index("event_id", unique=True)
+        await db.clear_advance_outbox.create_index([
+            ("status", 1), ("next_attempt_at", 1), ("created_at", 1),
+        ])
+        await db.clear_advance_outbox.create_index([("clinic_id", 1), ("created_at", -1)])
+    except Exception as exc:
+        print(f"[clear_advance] outbox indexes skipped: {exc}")
     # Clinic "Пациенти" section — global numeric patient ID. Every lead doc
     # carries `patient_number` explicitly as `null` until assigned (Pydantic
     # model_dump() writes all fields), so a plain `sparse` index does NOT
@@ -253,8 +261,36 @@ async def startup():
     except Exception as exc:
         print(f"[migration] base_package backfill skipped: {exc}")
 
+    # Archiving now gives a clinic's email back (admin_archive_clinic). Clinics
+    # archived before that still hold theirs, which keeps the address blocked
+    # for new clinics and leaves the old login working. Move it aside once;
+    # the query matches nothing on every later start.
+    try:
+        freed = 0
+        async for c in db.clinics.find(
+            {"archived": True, "email": {"$exists": True}}, {"_id": 0, "id": 1, "email": 1}
+        ):
+            await db.clinics.update_one(
+                {"id": c["id"], "archived": True},
+                {"$set": {"archived_email": c.get("email")}, "$unset": {"email": ""}},
+            )
+            freed += 1
+        if freed:
+            print(f"[migration] freed the email of {freed} archived clinics")
+    except Exception as exc:
+        print(f"[migration] archived clinic email move skipped: {exc}")
+
     init_storage()
     asyncio.create_task(auto_verification_loop())
+    try:
+        await db.clear_advance_enrolments.create_index("clinic_id", unique=True)
+        await db.clear_advance_enrolments.create_index([("status", 1), ("next_attempt_at", 1)])
+        # Enrolment relies on this index to keep a manual connection
+        # authoritative, so it is ensured here rather than assumed.
+        await db.clinic_integrations.create_index(
+            [("clinic_id", 1), ("provider", 1)], unique=True)
+    except Exception as exc:  # pre-existing duplicates must not block startup
+        print(f"[clear_advance] enrolment indexes skipped: {exc}")
     asyncio.create_task(clear_advance_loop())
 
     from auth import auth_session_cleanup_loop
@@ -294,7 +330,7 @@ async def startup():
 
 
 async def clear_advance_loop():
-    """Background: hand newly assigned leads over to Clear Advance.
+    """Background: synchronize lead facts in both directions.
 
     A lead can be assigned long after it arrives, by any of a dozen code paths,
     so this sweeps for the end state rather than hooking each writer -- the same
@@ -303,13 +339,22 @@ async def clear_advance_loop():
     lead appear while it is still looking; nothing here is time-critical, since
     Meta's attribution window is seven days wide.
     """
-    from clear_advance import report_pending_leads
+    from clear_advance import process_pending_outcomes, report_pending_leads
     while True:
         try:
             await asyncio.sleep(600)
+            from clear_advance import import_pending_leads, process_pending_enrolments
+            # Enrol first, so a clinic connected in this pass has its leads
+            # reported in the same pass rather than ten minutes later.
+            enrolled = await process_pending_enrolments(db)
             reported = await report_pending_leads(db)
-            if reported:
-                logger.info(f"Clear Advance: reported {reported} newly assigned leads")
+            imported = await import_pending_leads(db)
+            outcomes = await process_pending_outcomes(db)
+            if enrolled or reported or imported or outcomes["processed"]:
+                logger.info(
+                    "Clear Advance sync: enrolled=%s reported=%s imported=%s outcomes=%s",
+                    enrolled, reported, imported, outcomes,
+                )
         except Exception as e:
             # A reporting problem must never take the API down with it.
             logger.error(f"Clear Advance sweep error: {e}")

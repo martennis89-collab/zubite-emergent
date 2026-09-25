@@ -103,11 +103,32 @@ When an application is approved:
 The admin page `/admin/clinic-applications` can create a private link for a
 specific clinic:
 
-1. Admin enters the clinic name, optional prefilled email and expiry period.
+1. Admin enters the clinic name, the clinic's email and the expiry period.
 2. The server generates a high-entropy token and stores only its SHA-256 hash.
 3. The full `/clinic-intake/{token}` link is shown once for copying.
-4. The page is `noindex`, `nofollow`, `noarchive`, `nosnippet` and `no-store`.
-5. The token is single-use and can be revoked before submission.
-6. On submission, the invite becomes `submitted` and the complete form appears
+4. With "Изпрати линка на посочения имейл" ticked, the same request emails the
+   link to that address (`send_email: true`). A delivery failure is reported
+   back but never fails the request — the admin still holds the token.
+5. While the created link is still on screen, `POST
+   /admin/clinic-intake-invites/{id}/send` re-sends it, optionally to a
+   corrected address. The caller must supply the raw token; the server matches
+   it against the invite's hash and refuses anything else. The link in the
+   email is built from `PRODUCTION_URL` server-side, never from the request.
+6. The page is `noindex`, `nofollow`, `noarchive`, `nosnippet` and `no-store`.
+7. The token is single-use and can be revoked before submission.
+8. On submission, the invite becomes `submitted` and the complete form appears
    in the existing clinic-applications table with source `private_intake`.
-7. Creating, revoking and submitting a link creates an admin audit event.
+9. Creating, emailing, revoking and submitting a link each create an admin
+   audit event (`clinic_intake_invite.created` / `.emailed` / `.revoked` /
+   `.submitted`).
+
+Emailing requires `RESEND_API_KEY`. Without it the send is skipped and reported
+as failed; link creation is unaffected.
+
+The invitation is sent from `CLINIC_ONBOARDING_SENDER_EMAIL`
+(`onboarding@zubite.bg`), which covers exactly two emails — this invitation and
+the approval email carrying a new clinic's first credentials. Everything else,
+including clinic password resets, chat and booking notifications and all
+patient-facing mail, stays on `SENDER_EMAIL` (`hello@zubite.bg`). Unset, the
+onboarding sender falls back to `SENDER_EMAIL`. Both addresses are on the same
+Resend-verified domain, so changing either needs no new verification.

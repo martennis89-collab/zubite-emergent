@@ -40,10 +40,13 @@ export default function PersonalizedClinicShowcase({ leadId }: { leadId: string 
     setState('loading')
     try {
       const lead = await getLead(leadId)
+      // Only an explicit "no" hides the shortlist. The unlock form now
+      // collects the city itself, so leads that never saw the separate
+      // recommendation-preference step still have the flag unset.
       const canSeeRecommendations =
         lead?.full_result_unlocked === true &&
         lead?.contact_details_submitted === true &&
-        lead?.wants_clinic_recommendations === true
+        lead?.wants_clinic_recommendations !== false
 
       if (!canSeeRecommendations) {
         setState('invalid')
@@ -256,6 +259,22 @@ export default function PersonalizedClinicShowcase({ leadId }: { leadId: string 
               Няма да запълваме подбора с нерелевантни клиники. Разгледай каталога
               по-долу или промени града и специализацията чрез филтрите.
             </p>
+            {selection?.has_requested_zubite_help ? (
+              <span className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#E7F6F3] px-4 py-3 text-sm font-semibold text-[#006A61]">
+                <CheckCircle2 className="h-4 w-4" />
+                Zubite ще ти помогне
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setAssistedModalOpen(true)}
+                className="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#006A61] px-4 py-3 text-sm font-semibold text-white hover:bg-[#005850]"
+                data-testid="personalized-empty-assisted-choice"
+              >
+                <Sparkles className="h-4 w-4" />
+                Искам Zubite да ми помогне
+              </button>
+            )}
           </div>
         )}
 
