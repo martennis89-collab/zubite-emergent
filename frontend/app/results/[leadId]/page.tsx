@@ -229,25 +229,27 @@ export default function ResultsPage() {
       <p className="mt-2 text-lg leading-relaxed text-[#45514F]">
         Разгледай топ 3 или всички партньорски клиники и се свържи с която искаш:
       </p>
-      <ul className="mt-5 grid gap-3">
+      <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {CONTACT_OPTIONS.map(({ icon: Icon, label }) => (
-          <li key={label} className="flex items-center gap-3 text-lg font-medium text-[#1B1C1B]">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-[#E7F3F1]">
+          <li key={label} className="flex items-center gap-3 rounded-lg bg-[#F3F7F6] px-3 py-3 text-lg font-medium text-[#1B1C1B]">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-white">
               <Icon className="h-5 w-5 text-[#006A61]" />
             </span>
             {label}
           </li>
         ))}
       </ul>
-      <p className="mt-4 text-[15px] text-[#6B7875]">Каналите зависят от клиниката.</p>
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+      <p className="text-[15px] text-[#6B7875]">Каналите зависят от клиниката.</p>
       <Link
         href="/clinics"
-        className="mt-5 inline-flex items-center gap-2 text-lg font-semibold text-[#006A61] underline-offset-4 hover:underline"
+        className="inline-flex items-center gap-2 text-lg font-semibold text-[#006A61] underline-offset-4 hover:underline"
         data-testid="result-all-clinics-link"
       >
         Всички партньорски клиники
         <ArrowRight className="h-5 w-5" />
       </Link>
+      </div>
     </div>
   )
 
@@ -257,7 +259,8 @@ export default function ResultsPage() {
 
       {/* ─── Result hero ─────────────────────────────────────────── */}
       <section className="bg-[#073B36] text-white" data-testid={isUnlocked ? 'full-partial-result' : 'partial-result-teaser'}>
-        <div className="mx-auto max-w-[1180px] px-5 pb-28 pt-10 sm:px-6 sm:pb-32 sm:pt-14">
+        <div className="mx-auto grid max-w-[1180px] gap-8 px-5 pb-10 pt-8 sm:px-6 sm:pt-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start lg:gap-12 lg:pb-14">
+          <div>
           <div className="flex flex-wrap items-center gap-3">
             <p className="flex items-center gap-2 text-base font-semibold text-[#89E0D4]">
               <Sparkles className="h-4 w-4" />
@@ -282,18 +285,19 @@ export default function ResultsPage() {
           </p>
 
           {topics.length > 0 && (
-            <div className="mt-7">
+            <div className="mt-6">
               <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#89E0D4]">Какво да обсъдиш</p>
               <ul className="mt-3 flex flex-wrap gap-2" data-testid="result-findings">
                 {topics.map((t) => (
-                  <li key={t} className={`${CHIP} border-[#89E0D4] bg-[#0B4A43] font-semibold text-[#FFFFFF]`}>{t}</li>
+                  <li key={t} className={`${CHIP} border-[#89E0D4] bg-[#89E0D4] font-semibold text-[#073B36]`}>{t}</li>
                 ))}
               </ul>
             </div>
           )}
 
+          {/* Preferences are secondary — hidden on phones so the form comes up sooner. */}
           {profile.length > 0 && (
-            <div className="mt-5">
+            <div className="mt-5 hidden sm:block">
               <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#89E0D4]">Твоите предпочитания</p>
               <ul className="mt-3 flex flex-wrap gap-2" data-testid="result-profile">
                 {profile.map((p) => (
@@ -303,25 +307,23 @@ export default function ResultsPage() {
             </div>
           )}
 
-          <p className="mt-7 flex items-center gap-2 text-[15px] text-[#BDE9E2]" data-testid="result-trust-note">
+          <p className="mt-6 flex items-center gap-2 text-[15px] text-[#BDE9E2]" data-testid="result-trust-note">
             <ShieldCheck className="h-4 w-4 shrink-0" />
             Ориентир, не диагноза. Точната оценка изисква преглед.
           </p>
-        </div>
-      </section>
+          </div>
 
-      {/* ─── Action cards, overlapping the hero ──────────────────── */}
-      <section className="mx-auto -mt-20 max-w-[1180px] px-5 pb-28 sm:px-6 lg:pb-24">
+          {/* Form (or shortlist CTA) sits in the hero so it's above the fold. */}
+          <div>
         {showLockedNotice && (
           <div
-            className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-base leading-relaxed text-amber-900"
+            className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-base leading-relaxed text-amber-900"
             data-testid="locked-redirect-notice"
           >
             Избери град и остави контакт, за да видиш топ 3 клиники.
           </div>
         )}
 
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:items-start lg:gap-6">
           {!isUnlocked ? (
             <ResultUnlockGate
               ref={gateRef}
@@ -374,8 +376,13 @@ export default function ResultsPage() {
             </div>
           )}
 
-          {contactCard}
+          </div>
         </div>
+      </section>
+
+      {/* ─── How contact works ───────────────────────────────────── */}
+      <section className="mx-auto max-w-[1180px] px-5 pb-28 pt-8 sm:px-6 lg:pb-20 lg:pt-12">
+        {contactCard}
       </section>
 
       {/* Mobile sticky CTA — scrolls to the form while it's off-screen. */}
