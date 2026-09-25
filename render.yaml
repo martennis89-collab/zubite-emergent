@@ -62,6 +62,23 @@ services:
       # Unset means new clinics wait, their enrolment marked not_configured.
       - key: CLEAR_ADVANCE_PARTNER_KEY
         sync: false
+      # Make.com article automation. The webhook URL and both secrets are set
+      # in the dashboard, never here: the secret authenticates Make's callback
+      # in both directions and the API key is a credential. Unset means the
+      # admin's "generate" button returns 503 make_not_configured and Make's
+      # callback returns 503 -- unconfigured is valid, nothing else breaks.
+      - key: MAKE_CONTENT_AUTOMATION_WEBHOOK_URL
+        sync: false
+      - key: MAKE_CONTENT_AUTOMATION_SECRET
+        sync: false
+      # Optional. Sent as `x-make-apikey` on the outbound call when set.
+      - key: MAKE_CONTENT_AUTOMATION_API_KEY
+        sync: false
+      # Backend's own public origin, sent to Make as `callbackUrl` so the
+      # scenario posts the finished Markdown back here without storing a
+      # hostname. Set to the https://<service>.onrender.com URL.
+      - key: BACKEND_PUBLIC_URL
+        sync: false
       - key: SENDER_EMAIL
         value: hello@zubite.bg
       # Only the two emails that bring a new clinic onto the platform: the
