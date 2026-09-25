@@ -24,6 +24,8 @@ import Link from 'next/link'
 import { Lock, ShieldCheck, ArrowRight, Loader2, AlertTriangle, MapPin } from 'lucide-react'
 import { CITIES } from '@/lib/cityData'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
+import { trackEvent as gaTrackEvent } from '@/lib/analytics/gtag'
+import { trackLeadSubmit } from '@/components/MetaPixel'
 import { trackOutbrainLead } from '@/components/OutbrainPixel'
 
 // Largest cities get one-tap pills; the rest live in the "Друг град" select.
@@ -111,6 +113,8 @@ export const ResultUnlockGate = forwardRef<HTMLDivElement, ResultUnlockGateProps
       }
       try { trackPatientEvent('post_quiz_lead_submitted', { lead_id_present: true }) } catch { /* ignore */ }
       try { trackPatientEvent('full_result_unlocked', { lead_id_present: true }) } catch { /* ignore */ }
+      try { gaTrackEvent('lead_submit', { source: 'result_unlock', city, has_email: true }) } catch { /* ignore */ }
+      try { trackLeadSubmit(city, 'result_unlock') } catch { /* ignore */ }
       try { trackOutbrainLead() } catch { /* ignore */ }
       onUnlocked({ name: name.trim(), phone: phone.trim(), email: email.trim() })
     } catch (err) {

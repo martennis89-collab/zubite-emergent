@@ -8,7 +8,7 @@ import { Footer } from '@/components/Footer'
 import { ResultUnlockGate } from '@/components/patient/ResultUnlockGate'
 import { AssistedChoiceModal } from '@/components/patient/AssistedChoiceModal'
 import { getLead } from '@/lib/api'
-import { getStoredLeadContact } from '@/lib/leadContact'
+import { getStoredLeadContact, setStoredLeadContact, type LeadContact } from '@/lib/leadContact'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
 import {
   Loader2, Home, ShieldCheck, ArrowRight, Gift, Compass, CheckCircle2,
@@ -216,7 +216,10 @@ export default function ResultsPage() {
 
   // After successful unlock → straight to the personalised clinic shortlist:
   //   Quiz → /results/[leadId] (partial + capture) → /results/[leadId]/clinics
-  const handleUnlocked = () => {
+  const handleUnlocked = (contact: LeadContact) => {
+    // Cache the contact so the booking, request-call and assisted-choice
+    // forms further down the funnel can prefill it.
+    setStoredLeadContact(leadId, contact)
     router.push(`/results/${leadId}/clinics`)
   }
 
@@ -370,7 +373,7 @@ export default function ResultsPage() {
                   leadId={lead.id}
                   defaultName={lead.name}
                   citySlug={lead.city_slug}
-                  onUnlocked={() => handleUnlocked()}
+                  onUnlocked={handleUnlocked}
                 />
               </div>
             ) : (

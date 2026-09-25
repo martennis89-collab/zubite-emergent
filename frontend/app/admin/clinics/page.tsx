@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Plus, Building2, X, Loader2, Archive, ArchiveRestore, AlertTriangle } from 'lucide-react'
+import { Plus, Building2, X, Loader2, Archive, ArchiveRestore, AlertTriangle, KeyRound } from 'lucide-react'
 import { AdminHeader } from '@/components/admin/AdminHeader'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
@@ -37,6 +37,10 @@ interface PartnerClinic {
   patient_journey_eligible?: boolean
   partner_access?: boolean
   legacy_tier?: string | null
+  // Whether a portal account exists at all -- a clinic can be listed here
+  // (directory entry) before it has one, and the reset endpoint 404s for
+  // those. Drives whether "Нова парола" renders.
+  has_account?: boolean
 }
 
 type ArchiveFilter = 'active' | 'archived'
@@ -58,10 +62,13 @@ export default function AdminClinicsPage() {
   const [clinics, setClinics] = useState<PartnerClinic[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
-  const [createdInfo, setCreatedInfo] = useState<{ name: string; email: string; password: string } | null>(null)
+  const [createdInfo, setCreatedInfo] = useState<
+    { name: string; email: string; password: string; title?: string; emailSent?: boolean } | null
+  >(null)
   const [filter, setFilter] = useState<ArchiveFilter>('active')
   const [packageFilter, setPackageFilter] = useState<PackageFilter>('all')
   const [archiveTarget, setArchiveTarget] = useState<PartnerClinic | null>(null)
+  const [resetTarget, setResetTarget] = useState<PartnerClinic | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   // Why an archive or restore was refused. Both used to ignore the reply, so a
   // refused restore looked exactly like a click that did nothing.
@@ -144,6 +151,34 @@ export default function AdminClinicsPage() {
         setNotice(typeof body.detail === 'string' ? body.detail : 'Клиниката не беше възстановена.')
       }
       await load()
+    } finally { setBusyId(null) }
+  }
+
+  const [resetError, setResetError] = useState<string | null>(null)
+  const confirmReset = async () => {
+    if (!resetTarget) return
+    setBusyId(resetTarget.id)
+    setResetError(null)
+    try {
+      const r = await fetch(`${API_URL}/api/admin/clinic-accounts/${resetTarget.id}/reset-password`, {
+        method: 'POST',
+        credentials: 'include' as RequestCredentials,
+      })
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok) {
+        setResetError(typeof j.detail === 'string' ? j.detail : 'Грешка при изпращане на паролата.')
+        return
+      }
+      setResetTarget(null)
+      // Shown once, exactly like a newly created clinic's credentials --
+      // the plaintext password is never stored or returned again after this.
+      setCreatedInfo({
+        title: 'Нова парола е генерирана',
+        name: resetTarget.clinic_name,
+        email: j.credentials.email,
+        password: j.credentials.password,
+        emailSent: j.email_sent,
+      })
     } finally { setBusyId(null) }
   }
 
@@ -329,6 +364,19 @@ export default function AdminClinicsPage() {
                             >
                               Редактирай
                             </Link>
+                            {c.has_account && (
+                              <button
+                                type="button"
+                                onClick={() => setResetTarget(c)}
+                                disabled={busyId === c.id}
+                                className="inline-flex items-center gap-1 text-slate-500 hover:text-teal-600 text-sm font-medium disabled:opacity-50"
+                                data-testid={`admin-clinic-reset-password-${c.id}`}
+                                title="Изпрати нова парола"
+                              >
+                                <KeyRound className="w-4 h-4" />
+                                Нова парола
+                              </button>
+                            )}
                             <button
                               type="button"
                               onClick={() => setArchiveTarget(c)}
@@ -379,6 +427,15 @@ export default function AdminClinicsPage() {
       )}
       {createdInfo && (
         <CredentialsModal info={createdInfo} onClose={() => setCreatedInfo(null)} />
+      )}
+      {resetTarget && (
+        <ResetPasswordModal
+          clinic={resetTarget}
+          busy={busyId === resetTarget.id}
+          error={resetError}
+          onCancel={() => { setResetTarget(null); setResetError(null) }}
+          onConfirm={confirmReset}
+        />
       )}
       {archiveTarget && (
         <ConfirmArchiveModal
@@ -558,9 +615,13 @@ function CreateClinicModal({
 function CredentialsModal({
   info, onClose,
 }: {
-  info: { name: string; email: string; password: string }
+  info: { name: string; email: string; password: string; title?: string; emailSent?: boolean }
   onClose: () => void
 }) {
+  // Shared by clinic creation (title omitted, no emailSent) and password
+  // reset (title + emailSent set) -- same one-time-display shape, only the
+  // framing text differs.
+  const title = info.title ?? 'Clinic created'
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 grid place-items-center p-4" onClick={onClose}>
       <div
@@ -568,7 +629,7 @@ function CredentialsModal({
         onClick={(e) => e.stopPropagation()}
         data-testid="admin-clinic-credentials-modal"
       >
-        <h3 className="font-serif text-lg font-semibold">Clinic created</h3>
+        <h3 className="font-serif text-lg font-semibold">{title}</h3>
         <p className="text-sm text-slate-600">
           Send these one-time credentials to <strong>{info.name}</strong>. They will not be shown again.
         </p>
@@ -576,9 +637,74 @@ function CredentialsModal({
           <div>email: {info.email}</div>
           <div>temporary password: {info.password}</div>
         </div>
+        {info.emailSent === false && (
+          <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            Имейлът не беше изпратен автоматично (RESEND_API_KEY липсва или клиниката няма ел. поща). Изпрати данните на ръка на клиниката.
+          </div>
+        )}
         <div className="text-right">
           <button type="button" onClick={onClose} className="h-10 px-5 rounded-full bg-teal-500 hover:bg-teal-600 text-white font-medium">
             OK
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ResetPasswordModal({
+  clinic, busy, error, onCancel, onConfirm,
+}: {
+  clinic: PartnerClinic
+  busy: boolean
+  error: string | null
+  onCancel: () => void
+  onConfirm: () => void
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-slate-900/60 grid place-items-center p-4"
+      onClick={onCancel}
+      data-testid="admin-clinic-reset-password-modal"
+    >
+      <div
+        className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-full bg-teal-50 grid place-items-center flex-shrink-0">
+            <KeyRound className="w-5 h-5 text-teal-600" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-serif text-lg font-semibold text-slate-900">Изпрати нова парола</h3>
+            <p className="text-sm text-slate-600 mt-1">
+              Ще генерираме нова парола за <strong>{clinic.clinic_name}</strong> и
+              ще я изпратим на <strong>{clinic.email}</strong>.
+              Старата парола престава да работи веднага —
+              ако клиниката е влязла в този момент, ще бъде изхвърлена.
+            </p>
+          </div>
+        </div>
+        {error && <div className="text-sm text-rose-600">{error}</div>}
+        <div className="flex items-center justify-end gap-2 pt-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="h-10 px-4 rounded-full border border-slate-200 hover:bg-slate-50 text-sm"
+            data-testid="admin-clinic-reset-password-cancel"
+          >
+            Отказ
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={busy}
+            className="h-10 px-5 rounded-full bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium inline-flex items-center gap-2 disabled:opacity-50"
+            data-testid="admin-clinic-reset-password-confirm"
+          >
+            {busy && <Loader2 className="w-4 h-4 animate-spin" />}
+            <KeyRound className="w-4 h-4" />
+            Изпрати
           </button>
         </div>
       </div>
