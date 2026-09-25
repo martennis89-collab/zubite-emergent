@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ResultsHeader } from '@/components/ResultsHeader'
+import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { ResultUnlockGate } from '@/components/patient/ResultUnlockGate'
 import { AssistedChoiceModal } from '@/components/patient/AssistedChoiceModal'
@@ -11,20 +11,9 @@ import { getLead } from '@/lib/api'
 import { getStoredLeadContact, setStoredLeadContact, type LeadContact } from '@/lib/leadContact'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
 import {
-  Loader2, Home, ShieldCheck, ArrowRight, Gift, Compass, CheckCircle2,
+  Loader2, Home, ShieldCheck, ArrowRight, CheckCircle2, Sparkles,
+  PhoneCall, Phone, MessagesSquare, MessageCircle, CalendarCheck,
 } from 'lucide-react'
-
-// Safe, non-diagnostic orientation note — band-agnostic, shown alongside
-// (not instead of) the existing per-band `explanation` copy below.
-const SAFE_ORIENTATION_NOTE =
-  'Според отговорите ти има смисъл да се обсъди ортодонтска консултация. ' +
-  'Възможно е да се сравнят алайнери, брекети или комбиниран подход, но точната ' +
-  'преценка зависи от преглед, снимки и лекарска оценка.'
-
-const GLOBAL_DISCLAIMER =
-  'Zubite.bg не поставя диагноза и не замества преглед, образна диагностика или ' +
-  'лекарска преценка. Платформата помага с ориентация, подготовка за консултация ' +
-  'и свързване с подходящи клиники според избраните критерии.'
 
 interface Lead {
   id: string
@@ -36,32 +25,24 @@ interface Lead {
   answers?: Record<string, unknown>
   contact_details_submitted?: boolean
   full_result_unlocked?: boolean
-  care_pass_eligible?: boolean
-  care_pass_unlocked?: boolean
-  consultation_booked_through_zubite?: boolean
-  clinic_confirmed_consultation?: boolean
 }
 
 type Segment = 'adult' | 'teen' | 'child'
 type Band = 'GREEN' | 'YELLOW' | 'RED'
 
 // ─── Copy maps ─────────────────────────────────────────────────
-// Headline is segment-aware. The orientation phrasing is intentionally
-// non-diagnostic: we only suggest direction, never label a condition.
+// Deliberately short and non-diagnostic: we suggest a direction, never
+// label a condition.
 const HEADLINE_BY_SEGMENT: Record<Segment, string> = {
-  adult: 'Твоят ориентир: консултация с ортодонт',
-  teen: 'Твоят ориентир: преглед при ортодонт',
-  child: 'Твоят ориентир: ранна оценка при ортодонт',
+  adult: 'Консултация с ортодонт',
+  teen: 'Преглед при ортодонт',
+  child: 'Ранна оценка при ортодонт',
 }
 
-// Per-band general explanation. Avoids treatment promises.
 const EXPLANATION_BY_BAND: Record<Band, string> = {
-  GREEN:
-    'Отговорите ти показват малко сигнали. Това не изключва напълно тема за обсъждане, но е добра отправна точка за спокоен първи разговор със специалист.',
-  YELLOW:
-    'Отговорите ти насочват към няколко сигнала, които заслужават професионален поглед. Не е диагноза — но е достатъчно, за да има смисъл консултация.',
-  RED:
-    'Комбинацията от отговорите показва няколко сигнала наведнъж. Това не е диагноза, но е ясен ориентир да обсъдиш ситуацията със специалист скоро.',
+  GREEN: 'Малко сигнали — добра основа за спокоен първи разговор със специалист.',
+  YELLOW: 'Няколко сигнала, които заслужават професионален поглед.',
+  RED: 'Няколко сигнала наведнъж — добре е да ги обсъдиш със специалист скоро.',
 }
 
 const BAND_LABEL: Record<Band, string> = {
@@ -70,67 +51,52 @@ const BAND_LABEL: Record<Band, string> = {
   RED: 'Повече сигнали',
 }
 
-// Flag-aware bullets — only added when the corresponding quiz flag fired.
-// Wording follows the rule: насочват / може да има смисъл — не „имаш…".
-const FLAG_FINDINGS: Record<string, string> = {
-  crowding:
-    'Възможно е да има смисъл да обсъдиш варианти за подреждане — алайнери или брекети.',
-  bite_issue:
-    'Отговорите ти насочват към тема за захапка — заслужава професионален поглед.',
-  airway:
-    'Има сигнали за дишане през устата или сън — добре е да се обсъди със специалист.',
-  tension:
-    'Сигнали за напрежение в челюстта или мускулите — заслужават оценка.',
-  wear:
-    'Признаци за износване на зъбите — точна оценка изисква преглед.',
-  development:
-    'Сигнали за развитие на захапката — ранната оценка е полезна.',
+// Quiz flags → short "what to discuss" topics.
+const FLAG_TOPICS: Record<string, string> = {
+  crowding: 'Подреждане на зъбите',
+  bite_issue: 'Захапка',
+  airway: 'Дишане и сън',
+  tension: 'Напрежение в челюстта',
+  wear: 'Износване на зъбите',
+  development: 'Развитие на захапката',
 }
 
-// Generic bullet anchors per segment — always shown as the first finding
-// so the section never feels empty.
-const GENERIC_BY_SEGMENT: Record<Segment, string> = {
-  adult:
-    'Отговорите ти насочват към консултация с ортодонт. Точна оценка изисква преглед и, при нужда, снимки.',
-  teen:
-    'В тийнейджърска възраст професионалният преглед е особено полезен — растежът все още работи в полза на лечението.',
-  child:
-    'При деца ранната оценка помага да се проследи развитието. Целта не е лечение веднага, а навременно наблюдение.',
-}
-
-// Intake answers (non-scoring quiz questions) → short profile chips, so
-// the patient sees their own preferences reflected back before the gate.
+// Intake answers (non-scoring quiz questions) → short profile chips.
 const PROFILE_LABELS: Record<string, Record<string, string>> = {
   treatment_interest: {
-    aligners: 'Интерес: алайнери',
-    braces: 'Интерес: брекети',
-    both: 'Интерес: алайнери или брекети',
-    unsure: 'Отворен/а към различни подходи',
-    ask_doctor: 'Искаш лекарят да препоръча подход',
+    aligners: 'Алайнери',
+    braces: 'Брекети',
+    both: 'Алайнери или брекети',
+    unsure: 'Отворен/а за варианти',
+    ask_doctor: 'Лекарят да препоръча',
   },
   readiness_timeline: {
-    asap: 'Следваща стъпка: възможно най-скоро',
-    within_1_month: 'Следваща стъпка: до 1 месец',
-    in_1_3_months: 'Следваща стъпка: след 1–3 месеца',
-    just_researching: 'Етап: проучване',
+    asap: 'Възможно най-скоро',
+    within_1_month: 'До 1 месец',
+    in_1_3_months: 'След 1–3 месеца',
+    just_researching: 'Проучвам',
   },
   budget_mindset: {
-    affordable: 'Търсиш достъпен вариант',
+    affordable: 'Достъпен вариант',
     balanced: 'Баланс цена / качество',
     premium_if_justified: 'Премиум, ако е обосновано',
-    unknown_pricing: 'Искаш яснота за цените',
+    unknown_pricing: 'Яснота за цените',
   },
   has_files: {
-    has_opg: 'Имаш OPG / панорамна снимка',
-    has_plan_or_offer: 'Имаш план или оферта',
-    has_smile_photos: 'Имаш снимки на усмивката',
+    has_opg: 'Имам OPG снимка',
+    has_plan_or_offer: 'Имам план / оферта',
+    has_smile_photos: 'Имам снимки',
   },
 }
 
-const NEXT_STEPS = [
-  { t: 'Виждаш до 3 клиники', d: 'Подбрани според града и отговорите ти.' },
-  { t: 'Избираш сам/а', d: 'Разглеждаш профилите и решаваш дали и с коя да продължиш.' },
-  { t: 'Клиниката се свързва с теб', d: 'Само ако поискаш — за удобен час за консултация.' },
+// Every channel exists on the platform, but availability is per clinic
+// (chat / Viber are package-gated, booking needs `booking_enabled`).
+const CONTACT_OPTIONS = [
+  { icon: PhoneCall, label: 'Заяви обаждане' },
+  { icon: Phone, label: 'Обади се директно' },
+  { icon: MessagesSquare, label: 'Онлайн чат' },
+  { icon: MessageCircle, label: 'Пиши във Viber' },
+  { icon: CalendarCheck, label: 'Запази час онлайн' },
 ]
 
 function deriveSegment(answers?: Record<string, unknown>): Segment {
@@ -150,10 +116,13 @@ function deriveBand(lead: Lead): Band {
   return lead.band === 'YELLOW' || lead.band === 'RED' ? lead.band : 'GREEN'
 }
 
-function deriveFlags(answers?: Record<string, unknown>): string[] {
+function deriveTopics(answers?: Record<string, unknown>): string[] {
   const raw = (answers || {})['quiz_flags']
   if (!Array.isArray(raw)) return []
-  return raw.filter((f): f is string => typeof f === 'string' && f in FLAG_FINDINGS)
+  return raw
+    .filter((f): f is string => typeof f === 'string' && f in FLAG_TOPICS)
+    .slice(0, 3)
+    .map((f) => FLAG_TOPICS[f])
 }
 
 function deriveProfile(answers?: Record<string, unknown>): string[] {
@@ -163,19 +132,8 @@ function deriveProfile(answers?: Record<string, unknown>): string[] {
     .filter((v): v is string => !!v)
 }
 
-function buildKeyFindings(segment: Segment, flags: string[]): string[] {
-  // Always start with the generic anchor (so default view never empty).
-  const bullets: string[] = [GENERIC_BY_SEGMENT[segment]]
-  // Up to 2 flag-aware bullets, keeping the list short and scannable.
-  for (const f of flags.slice(0, 2)) {
-    const txt = FLAG_FINDINGS[f]
-    if (txt) bullets.push(txt)
-  }
-  return bullets
-}
-
-const CARD = 'rounded-2xl bg-white border border-[#E5E5E5]'
-const EYEBROW = 'text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6B6B6B]'
+const CARD = 'rounded-xl border border-[#C8D8D4] bg-white shadow-[0_24px_60px_-40px_rgba(7,59,54,0.45)]'
+const CHIP = 'inline-flex items-center rounded-full border px-3.5 py-2 text-base'
 
 export default function ResultsPage() {
   const params = useParams()
@@ -214,32 +172,34 @@ export default function ResultsPage() {
     return () => io.disconnect()
   }, [lead, isUnlocked])
 
-  // After successful unlock → straight to the personalised clinic shortlist:
-  //   Quiz → /results/[leadId] (partial + capture) → /results/[leadId]/clinics
+  const shortlistHref = `/clinics?leadId=${encodeURIComponent(leadId)}`
+
+  // After unlock → straight to the top-3 shortlist on the clinic directory
+  // (/results/[leadId]/clinics only redirects there).
   const handleUnlocked = (contact: LeadContact) => {
     // Cache the contact so the booking, request-call and assisted-choice
     // forms further down the funnel can prefill it.
     setStoredLeadContact(leadId, contact)
-    router.push(`/results/${leadId}/clinics`)
+    router.push(shortlistHref)
   }
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#F5F4F2] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-[#007956] animate-spin" />
+      <main className="flex min-h-screen items-center justify-center bg-[#FBF9F7]">
+        <Loader2 className="h-8 w-8 animate-spin text-[#006A61]" />
       </main>
     )
   }
 
   if (error || !lead) {
     return (
-      <main className="min-h-screen bg-[#F5F4F2]">
-        <ResultsHeader />
-        <section className="pt-32 pb-16">
-          <div className="max-w-2xl mx-auto px-4 text-center">
-            <p className="text-rose-700">{error || 'Резултатите не бяха намерени.'}</p>
-            <Link href="/" className="mt-4 inline-flex items-center gap-2 text-[#007956] font-medium">
-              <Home className="w-4 h-4" />
+      <main className="min-h-screen bg-[#FBF9F7]">
+        <Header />
+        <section className="px-5 pb-16 pt-24">
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-lg text-rose-700">{error || 'Резултатите не бяха намерени.'}</p>
+            <Link href="/" className="mt-4 inline-flex items-center gap-2 text-lg font-semibold text-[#006A61]">
+              <Home className="h-5 w-5" />
               Към началото
             </Link>
           </div>
@@ -250,212 +210,192 @@ export default function ResultsPage() {
   }
 
   const segment = deriveSegment(lead.answers)
-  const flags = deriveFlags(lead.answers)
   const band = deriveBand(lead)
-  const headline = HEADLINE_BY_SEGMENT[segment]
-  const explanation = EXPLANATION_BY_BAND[band]
-  const findings = buildKeyFindings(segment, flags)
+  const topics = deriveTopics(lead.answers)
   const profile = deriveProfile(lead.answers)
 
-  // Surfaced when the user lands here from the /clinics locked-redirect.
+  // Surfaced when the user lands here from a locked shortlist redirect.
   const noticeFromQuery =
     typeof window !== 'undefined'
       ? new URLSearchParams(window.location.search).get('notice')
       : null
   const showLockedNotice = noticeFromQuery === 'locked' && !isUnlocked
 
-  const resultCard = (
-    <article
-      className={`${CARD} p-6 sm:p-8`}
-      data-testid={isUnlocked ? 'full-partial-result' : 'partial-result-teaser'}
-    >
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#D0FAE5] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#007956]">
-          <ShieldCheck className="w-3 h-3" /> Твоят резултат
-        </span>
-        <span className="rounded-full border border-[#E5E5E5] px-3 py-1 text-[11px] font-semibold text-[#525252]" data-testid="result-band-label">
-          {BAND_LABEL[band]}
-        </span>
-      </div>
-
-      <h1
-        className="mt-4 text-[28px] sm:text-[34px] font-semibold leading-[1.1] text-[#0A0A0A]"
-        data-testid={isUnlocked ? 'result-headline' : 'partial-headline'}
-      >
-        {headline}
-      </h1>
-      <p
-        className="mt-3 text-[15px] sm:text-base leading-relaxed text-[#525252]"
-        data-testid={isUnlocked ? 'result-explanation' : 'partial-explanation'}
-      >
-        {explanation}
+  const contactCard = (
+    <div className={`${CARD} p-6 sm:p-8`} data-testid="result-contact-options">
+      <h2 className="font-display text-2xl font-semibold leading-tight tracking-[-0.03em] text-[#073B36] sm:text-3xl">
+        После избираш ти
+      </h2>
+      <p className="mt-2 text-lg leading-relaxed text-[#45514F]">
+        Разгледай топ 3 или всички партньорски клиники и се свържи с която искаш:
       </p>
-
-      <div className="mt-6">
-        <p className={EYEBROW}>Какво показват отговорите ти</p>
-        <ul className="mt-3 space-y-2.5" data-testid="result-findings">
-          {findings.map((b, i) => (
-            <li key={i} className="flex items-start gap-2.5 text-[14.5px] leading-relaxed text-[#171717]" data-testid={`result-finding-${i}`}>
-              <Compass className="w-4 h-4 mt-0.5 flex-shrink-0 text-[#007956]" />
-              <span>{b}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {profile.length > 0 && (
-        <div className="mt-6">
-          <p className={EYEBROW}>Твоят профил</p>
-          <ul className="mt-3 flex flex-wrap gap-2" data-testid="result-profile">
-            {profile.map((p) => (
-              <li key={p} className="rounded-full bg-[#F5F4F2] px-3 py-1.5 text-[12.5px] font-medium text-[#171717]">
-                {p}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {isUnlocked && (
-        <p className="mt-6 text-[13.5px] leading-relaxed text-[#525252]" data-testid="result-safe-orientation-note">
-          {SAFE_ORIENTATION_NOTE}
-        </p>
-      )}
-      <p className="mt-6 border-t border-[#E5E5E5] pt-4 text-[12px] leading-relaxed text-[#6B6B6B]" data-testid="result-trust-note">
-        {GLOBAL_DISCLAIMER}
-      </p>
-    </article>
-  )
-
-  const nextSteps = (
-    <div className={`${CARD} p-6 sm:p-7`} data-testid="result-next-steps">
-      <p className={EYEBROW}>Какво следва</p>
-      <ol className="mt-4 space-y-4">
-        {NEXT_STEPS.map((s, i) => (
-          <li key={s.t} className="flex items-start gap-3">
-            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#0A0A0A] text-[13px] font-bold text-[#F5F4F2]">
-              {i + 1}
+      <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        {CONTACT_OPTIONS.map(({ icon: Icon, label }) => (
+          <li key={label} className="flex items-center gap-3 rounded-lg bg-[#F3F7F6] px-3 py-3 text-lg font-medium text-[#1B1C1B]">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-white">
+              <Icon className="h-5 w-5 text-[#006A61]" />
             </span>
-            <div>
-              <p className="text-[15px] font-semibold text-[#0A0A0A]">{s.t}</p>
-              <p className="text-[13.5px] leading-relaxed text-[#525252]">{s.d}</p>
-            </div>
+            {label}
           </li>
         ))}
-      </ol>
+      </ul>
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+      <p className="text-[15px] text-[#6B7875]">Каналите зависят от клиниката.</p>
+      <Link
+        href="/clinics"
+        className="inline-flex items-center gap-2 text-lg font-semibold text-[#006A61] underline-offset-4 hover:underline"
+        data-testid="result-all-clinics-link"
+      >
+        Всички партньорски клиники
+        <ArrowRight className="h-5 w-5" />
+      </Link>
+      </div>
     </div>
   )
 
   return (
-    <main className="min-h-screen bg-[#F5F4F2] relative" data-testid="results-page">
-      <ResultsHeader />
+    <main className="min-h-screen bg-[#FBF9F7] text-[#1B1C1B]" data-testid="results-page">
+      <Header />
 
-      <section className="relative pt-20 pb-28 md:pt-28 lg:pb-24">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          {showLockedNotice && (
-            <div
-              className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-relaxed text-amber-900"
-              data-testid="locked-redirect-notice"
-            >
-              Избери град и остави контакт, за да видиш персонализираните препоръки.
+      {/* ─── Result hero ─────────────────────────────────────────── */}
+      <section className="bg-[#073B36] text-white" data-testid={isUnlocked ? 'full-partial-result' : 'partial-result-teaser'}>
+        <div className="mx-auto grid max-w-[1180px] gap-8 px-5 pb-10 pt-8 sm:px-6 sm:pt-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start lg:gap-12 lg:pb-14">
+          <div>
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="flex items-center gap-2 text-base font-semibold text-[#89E0D4]">
+              <Sparkles className="h-4 w-4" />
+              Твоят резултат
+            </p>
+            <span className="rounded-full border border-[#3F746E] px-3 py-1 text-sm font-semibold text-[#D7EEEA]" data-testid="result-band-label">
+              {BAND_LABEL[band]}
+            </span>
+          </div>
+
+          <h1
+            className="mt-4 max-w-4xl text-balance font-display text-4xl font-semibold leading-[1.03] tracking-[-0.035em] !text-[#FFFFFF] sm:text-5xl lg:text-6xl"
+            data-testid={isUnlocked ? 'result-headline' : 'partial-headline'}
+          >
+            {HEADLINE_BY_SEGMENT[segment]}
+          </h1>
+          <p
+            className="mt-4 max-w-3xl text-pretty text-lg leading-8 text-[#D7EEEA] sm:text-xl"
+            data-testid={isUnlocked ? 'result-explanation' : 'partial-explanation'}
+          >
+            {EXPLANATION_BY_BAND[band]}
+          </p>
+
+          {topics.length > 0 && (
+            <div className="mt-6">
+              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#89E0D4]">Какво да обсъдиш</p>
+              <ul className="mt-3 flex flex-wrap gap-2" data-testid="result-findings">
+                {topics.map((t) => (
+                  <li key={t} className={`${CHIP} border-[#89E0D4] bg-[#89E0D4] font-semibold text-[#073B36]`}>{t}</li>
+                ))}
+              </ul>
             </div>
           )}
 
-          {/* Mobile order: result → form → next steps. Desktop: result and
-              next steps on the left, form sticky on the right (above the fold). */}
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-8 lg:items-start">
-            <div className="lg:col-start-1 lg:row-start-1">{resultCard}</div>
+          {/* Preferences are secondary — hidden on phones so the form comes up sooner. */}
+          {profile.length > 0 && (
+            <div className="mt-5 hidden sm:block">
+              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#89E0D4]">Твоите предпочитания</p>
+              <ul className="mt-3 flex flex-wrap gap-2" data-testid="result-profile">
+                {profile.map((p) => (
+                  <li key={p} className={`${CHIP} border-[#3F746E] text-[#D7EEEA]`}>{p}</li>
+                ))}
+              </ul>
+            </div>
+          )}
 
-            {!isUnlocked ? (
-              <div className="lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-24">
-                <ResultUnlockGate
-                  ref={gateRef}
-                  leadId={lead.id}
-                  defaultName={lead.name}
-                  citySlug={lead.city_slug}
-                  onUnlocked={handleUnlocked}
-                />
-              </div>
-            ) : (
-              <div className="lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-24 space-y-5">
-                {/* Next-step card — primary CTA to the clinic shortlist +
-                    secondary assisted-choice CTA (AssistedChoiceModal). */}
-                <article className={`${CARD} p-6 sm:p-7`} data-testid="next-step-card">
-                  <p className={EYEBROW}>Следваща стъпка</p>
-                  <h2 className="mt-2 text-2xl font-semibold leading-snug text-[#0A0A0A]">
-                    Виж подходящите клиники за теб
-                  </h2>
-                  <p className="mt-2 mb-5 text-[15px] leading-relaxed text-[#525252]">
-                    Подбрахме ограничен брой клиники, които са релевантни спрямо локацията и избраната категория. Това не е каталог — а кратък списък за по-смислен първи разговор.
-                  </p>
-                  <Link
-                    href={`/results/${leadId}/clinics`}
-                    className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#FF6B00] px-6 py-4 text-[15px] font-bold text-[#0A0A0A] hover:bg-[#CC5400] transition-colors"
-                    data-testid="see-clinics-cta"
-                  >
-                    Виж до 3 подходящи клиники
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
+          <p className="mt-6 flex items-center gap-2 text-[15px] text-[#BDE9E2]" data-testid="result-trust-note">
+            <ShieldCheck className="h-4 w-4 shrink-0" />
+            Ориентир, не диагноза. Точната оценка изисква преглед.
+          </p>
+          </div>
 
-                  {assistedRequested ? (
-                    <div
-                      className="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#D0FAE5] px-5 py-3 text-sm font-medium text-[#007956]"
-                      data-testid="results-assisted-choice-submitted"
-                    >
-                      <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
-                      Заявката е изпратена
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        trackPatientEvent('assisted_choice_modal_opened', {
-                          lead_id: leadId,
-                          source: 'matching_page',
-                        })
-                        setAssistedModalOpen(true)
-                      }}
-                      className="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-full border border-[#E5E5E5] bg-white px-5 py-3 text-sm font-medium text-[#0A0A0A] hover:border-[#A3A3A3] transition-colors"
-                      data-testid="results-assisted-choice-cta"
-                    >
-                      Искам Zubite да ми помогне първо
-                    </button>
-                  )}
-                </article>
+          {/* Form (or shortlist CTA) sits in the hero so it's above the fold. */}
+          <div>
+        {showLockedNotice && (
+          <div
+            className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-base leading-relaxed text-amber-900"
+            data-testid="locked-redirect-notice"
+          >
+            Избери град и остави контакт, за да видиш топ 3 клиники.
+          </div>
+        )}
 
-                <aside className="rounded-2xl bg-[#0A0A0A] p-6 flex items-start gap-4" data-testid="care-pass-reminder">
-                  <div className="shrink-0 grid h-10 w-10 place-items-center rounded-xl bg-white/10">
-                    <Gift className="w-5 h-5 text-[#00D294]" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[15px] font-semibold leading-snug text-[#F5F4F2]" data-testid="care-pass-reminder-headline">
-                      Zubite Care Pass е включен за всеки наш пациент при посещение в партньорска клиника.
-                    </p>
-                    <p className="mt-1.5 text-[12.5px] leading-relaxed text-[#A3A3A3]">
-                      Не е застраховка и не е автоматична отстъпка от лечение.{' '}
-                      <Link href="/care-pass" className="underline underline-offset-2 text-[#F5F4F2]">Научи повече</Link>
-                    </p>
-                  </div>
-                </aside>
-              </div>
-            )}
+          {!isUnlocked ? (
+            <ResultUnlockGate
+              ref={gateRef}
+              leadId={lead.id}
+              defaultName={lead.name}
+              citySlug={lead.city_slug}
+              onUnlocked={handleUnlocked}
+            />
+          ) : (
+            <div className={`${CARD} p-6 sm:p-8`} data-testid="next-step-card">
+              <h2 className="font-display text-3xl font-semibold leading-tight tracking-[-0.03em] text-[#073B36] sm:text-4xl">
+                Твоите топ 3 клиники са готови
+              </h2>
+              <p className="mt-2 text-lg leading-relaxed text-[#45514F]">
+                Подбрани според отговорите и града ти.
+              </p>
+              <Link
+                href={shortlistHref}
+                className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#FF6B00] px-6 py-4 text-lg font-bold text-[#0A0A0A] transition-colors hover:bg-[#CC5400]"
+                data-testid="see-clinics-cta"
+              >
+                Виж топ 3 клиники
+                <ArrowRight className="h-5 w-5" />
+              </Link>
 
-            <div className="lg:col-start-1 lg:row-start-2">{nextSteps}</div>
+              {assistedRequested ? (
+                <div
+                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#E7F3F1] px-5 py-3.5 text-base font-semibold text-[#006A61]"
+                  data-testid="results-assisted-choice-submitted"
+                >
+                  <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
+                  Заявката е изпратена
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    trackPatientEvent('assisted_choice_modal_opened', {
+                      lead_id: leadId,
+                      source: 'matching_page',
+                    })
+                    setAssistedModalOpen(true)
+                  }}
+                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#C8D8D4] bg-white px-5 py-3.5 text-base font-semibold text-[#073B36] transition-colors hover:border-[#006A61]"
+                  data-testid="results-assisted-choice-cta"
+                >
+                  Искам Zubite да ми помогне да избера
+                </button>
+              )}
+            </div>
+          )}
+
           </div>
         </div>
       </section>
 
+      {/* ─── How contact works ───────────────────────────────────── */}
+      <section className="mx-auto max-w-[1180px] px-5 pb-28 pt-8 sm:px-6 lg:pb-20 lg:pt-12">
+        {contactCard}
+      </section>
+
       {/* Mobile sticky CTA — scrolls to the form while it's off-screen. */}
       {!isUnlocked && !gateInView && (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#E5E5E5] bg-white/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:hidden">
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#C8D8D4] bg-white/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 lg:hidden">
           <button
             type="button"
             onClick={() => gateRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#FF6B00] px-5 py-3.5 text-[15px] font-bold text-[#0A0A0A]"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#FF6B00] px-5 py-4 text-lg font-bold text-[#0A0A0A]"
             data-testid="results-sticky-cta"
           >
-            Виж клиниките за теб
-            <ArrowRight className="w-4 h-4" />
+            Виж топ 3 клиники
+            <ArrowRight className="h-5 w-5" />
           </button>
         </div>
       )}

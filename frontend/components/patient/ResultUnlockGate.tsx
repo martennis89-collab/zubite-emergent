@@ -4,24 +4,21 @@
  * ResultUnlockGate
  *
  * Lead capture gate on /results/[leadId] when `full_result_unlocked === false`.
- * Submitting unlocks the personalised clinic shortlist.
+ * Submitting unlocks the patient's top-3 clinic shortlist on /clinics?leadId=.
  *
  * Hard rules (per product spec):
  *   • City is REQUIRED. `/recommended-clinics` returns an honest empty list
  *     for a lead without a city, and the diagnostic quiz never asks for one —
  *     so this form is the only place the city gets set for those leads.
  *   • Never "free guarantee" wording; never promise free orientation.
- *   • Care Pass: one calm line — not insurance, not an automatic discount.
  *   • Consent checkbox is mandatory before submit.
- *   • Disclaimer that Zubite does not diagnose online.
  *
  * Calls POST /api/leads/{leadId}/unlock-result (email required, name/phone/
  * city_slug optional server-side; the city is enforced here).
  */
 
 import { forwardRef, useState } from 'react'
-import Link from 'next/link'
-import { Lock, ShieldCheck, ArrowRight, Loader2, AlertTriangle, MapPin } from 'lucide-react'
+import { ArrowRight, Loader2, AlertTriangle, MapPin, ShieldCheck } from 'lucide-react'
 import { CITIES } from '@/lib/cityData'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
 import { trackEvent as gaTrackEvent } from '@/lib/analytics/gtag'
@@ -43,8 +40,12 @@ interface ResultUnlockGateProps {
 
 type Field = 'city' | 'name' | 'phone' | 'email' | 'consent'
 
+// Brand tokens (shared with /clinics PersonalizedClinicShowcase).
+const INK = 'text-[#073B36]'
+const LABEL = 'text-base font-semibold text-[#073B36]'
 const inputCls =
-  'mt-1.5 w-full rounded-[10px] bg-white border px-3.5 py-3 text-[15px] text-[#0A0A0A] placeholder:text-[#9A9A9A] focus:outline-none focus:border-[#0A0A0A] transition-colors'
+  'mt-2 w-full rounded-lg bg-white border px-4 py-3.5 text-lg text-[#1B1C1B] placeholder:text-[#8A9A97] focus:outline-none focus:border-[#006A61] transition-colors'
+const ERR = 'mt-1.5 block text-sm text-[#BE123C]'
 
 export const ResultUnlockGate = forwardRef<HTMLDivElement, ResultUnlockGateProps>(function ResultUnlockGate(
   { leadId, defaultName, citySlug, onUnlocked },
@@ -67,6 +68,7 @@ export const ResultUnlockGate = forwardRef<HTMLDivElement, ResultUnlockGateProps
   }
 
   const cityLabel = CITIES.find((c) => c.value === city)?.label
+  const otherCitySelected = OTHER_CITIES.some((c) => c.value === city)
   const invalid: Record<Field, boolean> = {
     city: !city,
     name: name.trim().length < 1,
@@ -76,6 +78,7 @@ export const ResultUnlockGate = forwardRef<HTMLDivElement, ResultUnlockGateProps
   }
   const firstInvalid = (Object.keys(invalid) as Field[]).find((f) => invalid[f])
   const err = (f: Field) => showErrors && invalid[f]
+  const border = (f: Field) => (err(f) ? 'border-[#E11D48]' : 'border-[#C8D8D4]')
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -123,80 +126,49 @@ export const ResultUnlockGate = forwardRef<HTMLDivElement, ResultUnlockGateProps
     }
   }
 
+  const pill = (active: boolean, f: Field) =>
+    active
+      ? 'border-[#073B36] bg-[#073B36] text-[#FFFFFF]'
+      : `${err(f) ? 'border-[#E11D48]' : 'border-[#C8D8D4]'} bg-white ${INK} hover:border-[#006A61]`
+
   return (
     <div
       ref={ref}
       id="unlock-form"
-      className="relative scroll-mt-24 rounded-2xl bg-white border border-[#E5E5E5] p-6 sm:p-8"
+      className="scroll-mt-24 rounded-xl border border-[#C8D8D4] bg-white p-6 shadow-[0_24px_60px_-40px_rgba(7,59,54,0.45)] sm:p-8"
       data-testid="result-unlock-gate"
     >
-      <h2 className="text-2xl font-semibold leading-tight text-[#0A0A0A]" data-testid="result-unlock-title">
-        Виж клиниките за твоя случай
+      <h2 className="font-display text-3xl font-semibold leading-tight tracking-[-0.03em] text-[#073B36] sm:text-4xl" data-testid="result-unlock-title">
+        Виж твоите топ 3 клиники
       </h2>
-      <p className="mt-2 text-[15px] leading-relaxed text-[#525252]">
-        Избери град и остави контакт. Ще ти покажем до 3 партньорски клиники
-        и ще ти изпратим резултата по имейл.
+      <p className="mt-2 text-lg leading-relaxed text-[#45514F]">
+        Подбрани според отговорите и града ти.
       </p>
 
-      {/* Locked shortlist preview — generic shapes only, no invented
-          clinic names, ratings or counts. */}
-      <div aria-hidden className="relative mt-4 rounded-xl bg-[#F5F4F2] p-2 overflow-hidden">
-        <div className="space-y-1.5 blur-[2.5px] select-none">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="flex items-center gap-2.5 rounded-lg bg-white px-2.5 py-1.5">
-              <div className="h-6 w-6 rounded-md bg-[#E5E5E5]" />
-              <div className="h-2.5 rounded bg-[#D4D4D4]" style={{ width: `${52 - i * 8}%` }} />
-              <div className="ml-auto h-4 w-12 rounded-full bg-[#D0FAE5]" />
-            </div>
-          ))}
-        </div>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0A0A0A] px-3.5 py-1.5 text-[12px] font-semibold text-[#F5F4F2]">
-            <Lock className="w-3.5 h-3.5" />
-            До 3 клиники, подбрани за теб
-          </span>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} noValidate className="mt-5 space-y-4" data-testid="result-unlock-form">
+      <form onSubmit={handleSubmit} noValidate className="mt-6 space-y-5" data-testid="result-unlock-form">
         {/* City — required; drives clinic matching. */}
         <fieldset>
-          <legend className="text-[13px] font-semibold text-[#171717]">Къде търсиш клиника?</legend>
-          <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2" data-testid="result-unlock-city">
-            {PRIMARY_CITIES.map((c, i) => {
-              const active = city === c.value
-              return (
-                <button
-                  key={c.value}
-                  id={i === 0 ? 'unlock-city' : undefined}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => setCity(c.value)}
-                  className={`inline-flex items-center justify-center gap-1.5 rounded-[10px] border px-3 py-2.5 text-[14px] font-medium transition-colors ${
-                    active
-                      ? 'border-[#0A0A0A] bg-[#0A0A0A] text-[#F5F4F2]'
-                      : err('city')
-                        ? 'border-[#E11D48] bg-white text-[#171717]'
-                        : 'border-[#E5E5E5] bg-white text-[#171717] hover:border-[#A3A3A3]'
-                  }`}
-                  data-testid={`result-unlock-city-${c.value}`}
-                >
-                  {active && <MapPin className="w-3.5 h-3.5" />}
-                  {c.label}
-                </button>
-              )
-            })}
+          <legend className={LABEL}>Град</legend>
+          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3" data-testid="result-unlock-city">
+            {PRIMARY_CITIES.map((c, i) => (
+              <button
+                key={c.value}
+                id={i === 0 ? 'unlock-city' : undefined}
+                type="button"
+                aria-pressed={city === c.value}
+                onClick={() => setCity(c.value)}
+                className={`inline-flex items-center justify-center gap-1.5 rounded-lg border px-3 py-3 text-base font-semibold transition-colors ${pill(city === c.value, 'city')}`}
+                data-testid={`result-unlock-city-${c.value}`}
+              >
+                {city === c.value && <MapPin className="h-4 w-4" />}
+                {c.label}
+              </button>
+            ))}
             <select
-              value={OTHER_CITIES.some((c) => c.value === city) ? city : ''}
+              value={otherCitySelected ? city : ''}
               onChange={(e) => setCity(e.target.value)}
               aria-label="Друг град"
-              className={`col-span-2 sm:col-span-2 rounded-[10px] border px-3 py-2.5 text-[14px] font-medium focus:outline-none ${
-                OTHER_CITIES.some((c) => c.value === city)
-                  ? 'border-[#0A0A0A] bg-[#0A0A0A] text-[#F5F4F2]'
-                  : err('city')
-                    ? 'border-[#E11D48] bg-white text-[#171717]'
-                    : 'border-[#E5E5E5] bg-white text-[#171717]'
-              }`}
+              className={`col-span-2 rounded-lg border px-3 py-3 text-base font-semibold focus:outline-none ${pill(otherCitySelected, 'city')}`}
               data-testid="result-unlock-city-other"
             >
               <option value="">Друг град…</option>
@@ -205,12 +177,12 @@ export const ResultUnlockGate = forwardRef<HTMLDivElement, ResultUnlockGateProps
               ))}
             </select>
           </div>
-          {err('city') && <p className="mt-1.5 text-[12.5px] text-[#BE123C]">Избери град, за да подберем клиники близо до теб.</p>}
+          {err('city') && <p className={ERR}>Избери град.</p>}
         </fieldset>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-5 sm:grid-cols-2">
           <label className="block">
-            <span className="text-[13px] font-semibold text-[#171717]">Име</span>
+            <span className={LABEL}>Име</span>
             <input
               id="unlock-name"
               type="text"
@@ -219,12 +191,12 @@ export const ResultUnlockGate = forwardRef<HTMLDivElement, ResultUnlockGateProps
               onChange={(e) => setName(e.target.value)}
               placeholder="Името ти"
               aria-invalid={err('name')}
-              className={`${inputCls} ${err('name') ? 'border-[#E11D48]' : 'border-[#E5E5E5]'}`}
+              className={`${inputCls} ${border('name')}`}
               data-testid="result-unlock-name"
             />
           </label>
           <label className="block">
-            <span className="text-[13px] font-semibold text-[#171717]">Телефон</span>
+            <span className={LABEL}>Телефон</span>
             <input
               id="unlock-phone"
               type="tel"
@@ -234,15 +206,15 @@ export const ResultUnlockGate = forwardRef<HTMLDivElement, ResultUnlockGateProps
               onChange={(e) => setPhone(e.target.value)}
               placeholder="08X XXX XXXX"
               aria-invalid={err('phone')}
-              className={`${inputCls} ${err('phone') ? 'border-[#E11D48]' : 'border-[#E5E5E5]'}`}
+              className={`${inputCls} ${border('phone')}`}
               data-testid="result-unlock-phone"
             />
-            {err('phone') && <span className="mt-1 block text-[12.5px] text-[#BE123C]">Въведи валиден телефон.</span>}
+            {err('phone') && <span className={ERR}>Въведи валиден телефон.</span>}
           </label>
         </div>
 
         <label className="block">
-          <span className="text-[13px] font-semibold text-[#171717]">Имейл <span className="font-normal text-[#6B6B6B]">— там ще получиш резултата</span></span>
+          <span className={LABEL}>Имейл</span>
           <input
             id="unlock-email"
             type="email"
@@ -252,30 +224,30 @@ export const ResultUnlockGate = forwardRef<HTMLDivElement, ResultUnlockGateProps
             onChange={(e) => setEmail(e.target.value)}
             placeholder="ime@primer.bg"
             aria-invalid={err('email')}
-            className={`${inputCls} ${err('email') ? 'border-[#E11D48]' : 'border-[#E5E5E5]'}`}
+            className={`${inputCls} ${border('email')}`}
             data-testid="result-unlock-email"
           />
-          {err('email') && <span className="mt-1 block text-[12.5px] text-[#BE123C]">Въведи валиден имейл.</span>}
+          {err('email') && <span className={ERR}>Въведи валиден имейл.</span>}
         </label>
 
-        <label className="flex items-start gap-2.5 cursor-pointer select-none">
+        <label className="flex cursor-pointer select-none items-start gap-3">
           <input
             id="unlock-consent"
             type="checkbox"
             checked={consent}
             onChange={(e) => setConsent(e.target.checked)}
-            className="mt-0.5 w-4 h-4 rounded border-[#A3A3A3] accent-[#0A0A0A] flex-shrink-0"
+            className="mt-1 h-5 w-5 flex-shrink-0 rounded border-[#8A9A97] accent-[#073B36]"
             data-testid="result-unlock-consent"
           />
-          <span className={`text-[12.5px] leading-relaxed ${err('consent') ? 'text-[#BE123C]' : 'text-[#525252]'}`}>
+          <span className={`text-[15px] leading-relaxed ${err('consent') ? 'text-[#BE123C]' : 'text-[#45514F]'}`}>
             Съгласявам се Zubite.bg да обработи данните ми във връзка със заявката
             и Zubite.bg и избраната партньорска клиника да се свържат с мен.
           </span>
         </label>
 
         {error && (
-          <div role="alert" className="flex items-start gap-2 rounded-lg bg-[#FFF1F2] border border-[#FECDD3] px-3 py-2 text-[13px] text-[#BE123C]" data-testid="result-unlock-error">
-            <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <div role="alert" className="flex items-start gap-2 rounded-lg border border-[#FECDD3] bg-[#FFF1F2] px-3 py-2.5 text-[15px] text-[#BE123C]" data-testid="result-unlock-error">
+            <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
             <span>{error}</span>
           </div>
         )}
@@ -283,27 +255,17 @@ export const ResultUnlockGate = forwardRef<HTMLDivElement, ResultUnlockGateProps
         <button
           type="submit"
           disabled={submitting}
-          className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#FF6B00] px-5 py-4 text-[15px] font-bold text-[#0A0A0A] hover:bg-[#CC5400] transition-colors disabled:opacity-70 disabled:cursor-wait"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#FF6B00] px-5 py-4 text-lg font-bold text-[#0A0A0A] transition-colors hover:bg-[#CC5400] disabled:cursor-wait disabled:opacity-70"
           data-testid="result-unlock-submit"
         >
-          {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-          {submitting ? 'Подбираме клиники…' : cityLabel ? `Покажи клиниките в ${cityLabel}` : 'Покажи подходящите клиники'}
-          {!submitting && <ArrowRight className="w-4 h-4" />}
+          {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
+          {submitting ? 'Подбираме клиники…' : cityLabel ? `Покажи топ 3 в ${cityLabel}` : 'Покажи топ 3 клиники'}
+          {!submitting && <ArrowRight className="h-5 w-5" />}
         </button>
 
-        <p className="text-center text-[12px] leading-relaxed text-[#6B6B6B]">
-          <ShieldCheck className="w-3.5 h-3.5 inline -mt-0.5 mr-1 text-[#007956]" />
-          Без задължение. Ти избираш дали и с коя клиника да се свържеш.
-        </p>
-        <p
-          className="text-center text-[11.5px] leading-relaxed text-[#6B6B6B]"
-          data-testid="care-pass-contact-clarification"
-        >
-          Zubite Care Pass е включен при посещение в партньорска клиника — не е
-          застраховка или автоматична отстъпка.{' '}
-          <Link href="/care-pass" className="underline underline-offset-2 hover:text-[#0A0A0A]">
-            Какво е Care Pass
-          </Link>
+        <p className="flex items-center justify-center gap-1.5 text-[15px] text-[#45514F]">
+          <ShieldCheck className="h-4 w-4 text-[#006A61]" />
+          Без задължение. Резултатът идва и на имейла ти.
         </p>
       </form>
     </div>
