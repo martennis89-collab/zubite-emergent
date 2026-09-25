@@ -3,25 +3,26 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Building2, MapPin, ShieldCheck, Sparkle, Sparkles, ArrowRight, CheckCircle2, ChevronDown, Gift, Video, CalendarDays } from 'lucide-react'
+import dynamic from 'next/dynamic'
+import { Building2, MapPin, ShieldCheck, Sparkle, Sparkles, ArrowRight, CheckCircle2, ChevronDown, Video, CalendarDays } from 'lucide-react'
 import type { RecommendedClinic } from '@/lib/api'
 import { TREATMENT_LABELS } from '@/lib/consultationLabels'
-import { RequestCallModal } from '@/components/patient/RequestCallModal'
 import { AlignerBrandChips } from '@/components/patient/AlignerBrandChips'
 import { trackPatientEvent } from '@/lib/patientAnalytics'
 import { getStoredLeadContact } from '@/lib/leadContact'
+import { CLINIC_CONTACT_ACTION_COPY } from '@/lib/publicClinics'
+
+const RequestCallModal = dynamic(
+  () => import('@/components/patient/RequestCallModal').then((module) => module.RequestCallModal),
+  { ssr: false },
+)
 
 interface Props {
   clinic: RecommendedClinic
   position: number  // 1-based for accessibility
   leadId: string    // required so the card can deep-link to the profile page
-  // P4/P5 selection state — drives 3-way CTA rendering:
-  //   1. this clinic is the pinned selection → green "Заявката е изпратена"
-  //   2. another clinic is pinned OR lead asked Zubite help → disabled label
-  //   3. nothing pinned → original "Искам обаждане"
-  selectedClinicId?: string | null
-  hasAssistedChoice?: boolean
-  // The personalized showcase can keep several clinic requests active at once.
+  // Each clinic keeps its own submitted state; contacting one clinic never
+  // disables the others.
   requestedClinicIds?: string[]
   onSubmitted?: (selectedClinicId: string, clinicName: string) => void
 }
@@ -46,11 +47,11 @@ function PlacementBadge({
   // match Zubite's editorial palette (amber for premium, slate for featured).
   const styles =
     tier === 'premium'
-      ? 'bg-amber-50/85 text-amber-800 ring-1 ring-amber-100'
-      : 'bg-slate-50/85 text-slate-700 ring-1 ring-slate-200'
+      ? 'border border-amber-200 bg-amber-50 text-amber-800'
+      : 'border border-slate-200 bg-slate-50 text-slate-700'
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium tracking-wide backdrop-blur-md ${styles}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${styles}`}
       title={disclosure || undefined}
       data-testid={`clinic-card-placement-${tier}`}
     >
@@ -64,19 +65,12 @@ export function ClinicRecommendationCard({
   clinic,
   position,
   leadId,
-  selectedClinicId,
-  hasAssistedChoice,
-  requestedClinicIds,
+  requestedClinicIds = [],
   onSubmitted,
 }: Props) {
   const [modalOpen, setModalOpen] = useState(false)
 
-  const requestedIds = requestedClinicIds ?? (selectedClinicId ? [selectedClinicId] : [])
-  const hasAnySelection = requestedIds.length > 0
-  const isSelected = requestedIds.includes(clinic.id)
-  // When the lead has asked for Zubite help, every clinic CTA is locked
-  // with a different label ("Вече поискахте помощ от Zubite").
-  const lockedByAssisted = !requestedClinicIds && !!hasAssistedChoice && !hasAnySelection
+  const isSelected = requestedClinicIds.includes(clinic.id)
 
   // BG label fallback: prefer the centralized treatment label map, else raw.
   // Prefer canonical `treatments_supported` (Feb 2026 cleanup); fall back to
@@ -88,7 +82,7 @@ export function ClinicRecommendationCard({
   const treatmentBadges = treatmentList.slice(0, 3).map((t) => (
     <span
       key={t}
-      className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-700 ring-1 ring-teal-100 text-xs"
+      className="inline-flex items-center rounded-full border border-teal-100 bg-teal-50 px-2.5 py-0.5 text-xs text-teal-700"
     >
       {TREATMENT_LABELS[t] || t}
     </span>
@@ -100,7 +94,7 @@ export function ClinicRecommendationCard({
 
   return (
     <article
-      className="group relative rounded-2xl bg-white/80 backdrop-blur-xl ring-1 ring-white/80 overflow-hidden flex flex-col h-full shadow-[0_10px_30px_-22px_rgba(15,23,42,0.20)] hover:-translate-y-1 hover:bg-white/90 hover:shadow-[0_22px_50px_-22px_rgba(13,148,136,0.28)] hover:ring-teal-200/60 transition-all duration-300"
+      className="taste-recommendation-card group relative flex h-full flex-col overflow-hidden rounded-xl border border-[#B9D3CE] bg-white transition duration-200 hover:-translate-y-1 hover:border-[#4F9F95]"
       data-testid={`clinic-card-${clinic.id}`}
       data-tier={tier || 'standard'}
       aria-label={`Препоръка ${position}: ${clinic.name}`}
@@ -110,22 +104,23 @@ export function ClinicRecommendationCard({
           else gets the same teal-gradient placeholder as the public card
           (consistent silhouette across the two card systems). Lead-context
           features (position number, placement badge) overlay on top. */}
-      <div className="relative h-32 sm:h-36 w-full overflow-hidden flex-shrink-0">
+      <div className="relative h-40 w-full flex-shrink-0 overflow-hidden">
         {clinic.clinic_profile?.hero_image_url ? (
           <Image
             src={clinic.clinic_profile.hero_image_url}
             alt={clinic.name}
             width={480}
-            height={144}
+            height={160}
+            sizes="(max-width: 767px) calc(100vw - 40px), (max-width: 1180px) 50vw, 380px"
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
             unoptimized
           />
         ) : (
           <div
             aria-hidden
-            className="w-full h-full bg-gradient-to-br from-teal-100 via-cyan-50 to-white grid place-items-center"
+            className="grid h-full w-full place-items-center bg-[#E7F6F3]"
           >
-            <Sparkles className="w-9 h-9 text-teal-200" />
+            <Sparkles className="h-10 w-10 text-[#79BDB3]" />
           </div>
         )}
         {/* Bottom gradient so the placement badge always reads */}
@@ -135,10 +130,10 @@ export function ClinicRecommendationCard({
         />
         {/* Position pill — quiet top-right, mono numerals */}
         <span
-          className="absolute top-3 right-3 inline-flex items-center px-2 py-0.5 rounded-full bg-white/85 backdrop-blur-md ring-1 ring-white/90 text-[10px] tracking-[0.18em] uppercase text-slate-600 font-mono"
+          className="absolute right-3 top-3 inline-flex items-center rounded-full border border-white/80 bg-white px-2.5 py-1 font-mono text-[10px] text-slate-600"
           data-testid={`clinic-card-position-${clinic.id}`}
         >
-          #{String(position).padStart(2, '0')}
+          Подбор {String(position).padStart(2, '0')}
         </span>
         {/* Placement badge — overlaid bottom-left when available */}
         {showPlacement && (
@@ -151,9 +146,6 @@ export function ClinicRecommendationCard({
           </div>
         )}
       </div>
-
-      {/* Soft inner top gloss for liquid-glass feel (under content) */}
-      <span aria-hidden className="pointer-events-none absolute inset-x-6 top-[8.5rem] sm:top-[9.5rem] h-1/4 rounded-full bg-white/45 blur-md opacity-70" />
 
       {/* Content area */}
       <div className="relative p-5 sm:p-6 flex flex-col flex-1">
@@ -168,36 +160,43 @@ export function ClinicRecommendationCard({
           </p>
         </div>
 
-      {/* Treatments + city/Care Pass chip row.
+      {/* Treatments + city/district chip row.
 
-          The Care Pass chip renders ONLY when `clinic.care_pass_partner === true`
-          (Feb 2026 brief): we never imply that every clinic participates.
-          A separate "В твоя град" chip surfaces when the backend has confirmed
-          the same-city match (all recommended clinics pass this filter today,
-          but we gate on the explicit flag in case the contract evolves). */}
+          "В твоя квартал" is more specific than "В твоя град" and implies
+          it, so at most one of the two ever shows — never both. */}
       <div className="flex flex-wrap gap-1.5 mb-3">
-        {clinic.same_city === true && (
+        {clinic.same_district === true ? (
           <span
-            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-800 ring-1 ring-teal-200 text-[11px] font-medium"
+            className="inline-flex items-center gap-1 rounded-full border border-teal-200 bg-teal-50 px-2.5 py-0.5 text-[11px] font-medium text-teal-800"
+            data-testid={`clinic-card-same-district-${clinic.id}`}
+          >
+            <MapPin className="w-3 h-3" /> В твоя квартал
+          </span>
+        ) : clinic.same_city === true ? (
+          <span
+            className="inline-flex items-center gap-1 rounded-full border border-teal-200 bg-teal-50 px-2.5 py-0.5 text-[11px] font-medium text-teal-800"
             data-testid={`clinic-card-same-city-${clinic.id}`}
           >
             <MapPin className="w-3 h-3" /> В твоя град
           </span>
-        )}
+        ) : null}
         {treatmentBadges}
-        {clinic.care_pass_partner === true && (
-          <span
-            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-700 ring-1 ring-teal-100 text-[11px] font-medium"
-            data-testid={`clinic-card-carepass-chip-${clinic.id}`}
-            title="Възможни ползи след физическа консултация."
-          >
-            <Gift className="w-3 h-3" /> Care Pass
-          </span>
-        )}
       </div>
 
       {/* Aligner brand chips — compact form, omitted when no brands. */}
       <AlignerBrandChips chips={clinic.aligner_brands_supported} layout="card" />
+
+      {(clinic.assessment_approach_match_labels || []).length > 0 && (
+        <div className="mb-3 rounded-xl border border-teal-100 bg-teal-50/70 p-3" data-testid={`clinic-card-approach-match-${clinic.id}`}>
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-teal-800">
+            <Sparkles className="h-3.5 w-3.5" /> Подход, свързан с отговорите ти
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-slate-600">
+            {clinic.assessment_approach_match_labels?.join(' · ')}
+          </p>
+          <p className="mt-1.5 text-[10px] leading-snug text-slate-500">Критерий за релевантност, не оценка за качество.</p>
+        </div>
+      )}
 
       {/* Reason — short visible first line + expand details */}
       <p className="text-sm text-slate-700 leading-relaxed mb-3 flex-1 line-clamp-2" data-testid={`clinic-card-reason-${clinic.id}`}>
@@ -241,9 +240,6 @@ export function ClinicRecommendationCard({
               <li className="flex items-start gap-1.5"><span className="text-teal-500 mt-1">•</span><span>Работи с тази категория случаи</span></li>
               <li className="flex items-start gap-1.5"><span className="text-teal-500 mt-1">•</span><span>Релевантна е спрямо посоката от въпросника</span></li>
               <li className="flex items-start gap-1.5"><span className="text-teal-500 mt-1">•</span><span>В твоя град / близо до избраната локация</span></li>
-              {clinic.care_pass_partner === true && (
-                <li className="flex items-start gap-1.5"><span className="text-teal-500 mt-1">•</span><span>Участваща в Care Pass — ползи може да се отключат след физическа консултация</span></li>
-              )}
             </ul>
           </div>
         </div>
@@ -266,26 +262,23 @@ export function ClinicRecommendationCard({
               rank_position: position,
             })
           }}
-          className="group/cta relative w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full text-white text-sm font-medium transition-all hover:-translate-y-0.5 shadow-[0_14px_30px_-12px_rgba(13,148,136,0.50),inset_0_1px_0_rgba(255,255,255,0.20)] overflow-hidden"
-          style={{ backgroundImage: 'linear-gradient(135deg,#14b8a6 0%,#0d9488 60%,#0f766e 100%)' }}
+            className="group/cta inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#006A61] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#005850]"
           data-testid={`clinic-card-view-profile-${clinic.id}`}
           aria-label={`Виж профила на ${clinic.name}`}
         >
-          <span aria-hidden className="absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-white/25 blur-sm pointer-events-none" />
-          <span className="relative inline-flex items-center gap-2">
+            <span className="relative inline-flex items-center gap-2">
             Виж профила
             <ArrowRight className="w-4 h-4 transition-transform group-hover/cta:translate-x-0.5" aria-hidden="true" />
           </span>
         </Link>
 
         {/* Real booking CTA — reuses the existing /booking/[clinicId] slot
-            flow (not the request-call P4 flow), so it is NOT gated by
-            isSelected/lockedByAssisted/hasAnySelection: booking a specific
-            time is a separate action from requesting a callback. Wording is
-            always "Заяви час за консултация" rather than "Запази консултация"
-            because the card has no way to know ahead of time whether this
-            clinic has real bookable slots — /booking/[clinicId] itself
-            resolves that and falls back to a "no online calendar" state. */}
+            flow (not the request-call flow), so it is NOT gated by
+            isSelected: booking a specific time is a separate action from
+            requesting a callback. Wording is "Заяви час за консултация"
+            because the card can't know ahead of time whether this clinic
+            has real bookable slots — /booking/[clinicId] resolves that and
+            falls back to a "no online calendar" state. */}
         <Link
           href={`/booking/${encodeURIComponent(clinic.id)}?leadId=${encodeURIComponent(leadId)}&source=clinic_recommendation`}
           onClick={() => {
@@ -297,7 +290,7 @@ export function ClinicRecommendationCard({
               rank_position: position,
             })
           }}
-          className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-teal-50/80 backdrop-blur-md ring-1 ring-teal-100 text-teal-800 text-sm font-medium rounded-full hover:bg-teal-100/80 hover:-translate-y-0.5 transition-all"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#B9D3CE] bg-[#E7F6F3] px-5 py-3 text-sm font-medium text-[#073B36] transition-colors hover:border-[#006A61]"
           data-testid={`clinic-card-book-${clinic.id}`}
         >
           <CalendarDays className="w-4 h-4" aria-hidden="true" />
@@ -306,48 +299,12 @@ export function ClinicRecommendationCard({
 
         {isSelected ? (
           <div
-            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-emerald-50/85 backdrop-blur-md ring-1 ring-emerald-100 text-emerald-800 text-sm font-medium rounded-full"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-medium text-emerald-800"
             data-testid={`clinic-card-submitted-${clinic.id}`}
           >
             <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
             Заявката е изпратена
           </div>
-        ) : lockedByAssisted ? (
-          <button
-            type="button"
-            disabled
-            aria-disabled="true"
-            onClick={() => {
-              trackPatientEvent('matching_choice_blocked', {
-                lead_id: leadId,
-                clinic_id: clinic.id,
-                reason: 'already_requested_zubite_help',
-                attempted_action: 'request_call',
-              })
-            }}
-            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-slate-100/80 text-slate-400 text-sm font-medium rounded-full cursor-not-allowed"
-            data-testid={`clinic-card-locked-by-assisted-${clinic.id}`}
-          >
-            Вече поискахте помощ от Zubite
-          </button>
-        ) : hasAnySelection ? (
-          <button
-            type="button"
-            disabled
-            aria-disabled="true"
-            onClick={() => {
-              trackPatientEvent('matching_choice_blocked', {
-                lead_id: leadId,
-                clinic_id: clinic.id,
-                reason: 'already_selected_clinic',
-                attempted_action: 'request_call',
-              })
-            }}
-            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-slate-100/80 text-slate-400 text-sm font-medium rounded-full cursor-not-allowed"
-            data-testid={`clinic-card-disabled-${clinic.id}`}
-          >
-            Вече избрахте клиника
-          </button>
         ) : (
           <button
             type="button"
@@ -361,10 +318,10 @@ export function ClinicRecommendationCard({
               })
               setModalOpen(true)
             }}
-            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-white/65 backdrop-blur-xl ring-1 ring-white/80 text-slate-800 text-sm font-medium rounded-full hover:bg-white hover:-translate-y-0.5 transition-all shadow-[0_8px_24px_-14px_rgba(15,23,42,0.18)]"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#B9D3CE] bg-white px-5 py-3 text-slate-800 transition-colors hover:border-[#006A61] hover:text-[#006A61]"
             data-testid={`clinic-card-cta-${clinic.id}`}
           >
-            Заяви контакт
+            <span className="text-left"><strong className="block text-sm font-medium">{CLINIC_CONTACT_ACTION_COPY.label}</strong><small className="mt-0.5 block text-[11px] font-normal text-slate-500">{CLINIC_CONTACT_ACTION_COPY.description}</small></span>
           </button>
         )}
       </div>

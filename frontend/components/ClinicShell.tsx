@@ -5,8 +5,9 @@ import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import {
   LayoutDashboard, ListChecks, Calendar, BarChart3, MessageSquare, LogOut, Building2,
-  CalendarClock, Clock,
+  Settings, MessageCircle, MessageCircleQuestion, Stethoscope, Users, CalendarClock, Clock,
 } from 'lucide-react'
+import { listClinicChats } from '@/lib/clinicChat'
 
 interface ClinicUser {
   id: string
@@ -19,11 +20,16 @@ const NAV = [
   { href: '/clinic/dashboard', label: 'Преглед', icon: LayoutDashboard, exact: true },
   { href: '/clinic/dashboard/requests', label: 'Заявки', icon: ListChecks },
   { href: '/clinic/dashboard/bookings', label: 'Заявки за час', icon: CalendarClock },
+  { href: '/clinic/dashboard/patients', label: 'Пациенти', icon: Users },
+  { href: '/clinic/dashboard/chats', label: 'Съобщения', icon: MessageCircle },
   { href: '/clinic/dashboard/online-orientation', label: 'Онлайн ориентация', icon: Calendar },
   { href: '/clinic/dashboard/calendar', label: 'Календар', icon: Calendar },
   { href: '/clinic/dashboard/availability', label: 'Наличности', icon: Clock },
+  { href: '/clinic/dashboard/doctors', label: 'Лекари', icon: Stethoscope },
   { href: '/clinic/dashboard/performance', label: 'Резултати', icon: BarChart3 },
   { href: '/clinic/dashboard/reviews', label: 'Ревюта', icon: MessageSquare },
+  { href: '/clinic/dashboard/questions', label: 'Въпроси', icon: MessageCircleQuestion },
+  { href: '/clinic/dashboard/settings', label: 'Настройки', icon: Settings },
 ]
 
 export function ClinicShell({ children }: { children: React.ReactNode }) {
@@ -31,6 +37,7 @@ export function ClinicShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [user, setUser] = useState<ClinicUser | null>(null)
   const [ready, setReady] = useState(false)
+  const [unreadChats, setUnreadChats] = useState(0)
 
   useEffect(() => {
     // Cookie-based session probe. Fetch the clinic profile to populate
@@ -57,6 +64,29 @@ export function ClinicShell({ children }: { children: React.ReactNode }) {
       .catch(() => router.replace('/clinic'))
   }, [router])
 
+  // Nav-level unread badge — a lighter poll than the open chat panel's
+  // own 7s cadence (this runs on every dashboard page, not just the
+  // messages one), just enough to make an incoming message noticeable
+  // without having to click into Съобщения to find out.
+  useEffect(() => {
+    if (!ready) return
+    let cancelled = false
+    const poll = async () => {
+      try {
+        const chats = await listClinicChats()
+        if (!cancelled) setUnreadChats(chats.reduce((sum, c) => sum + (c.unread || 0), 0))
+      } catch {
+        /* noop — a failed poll just leaves the last known badge count */
+      }
+    }
+    poll()
+    const id = setInterval(poll, 20000)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
+  }, [ready])
+
   const logout = async () => {
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
@@ -69,8 +99,8 @@ export function ClinicShell({ children }: { children: React.ReactNode }) {
   if (!ready) return null
 
   return (
-    <main className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
+    <main className="taste-clinic-portal min-h-screen bg-slate-50">
+      <header className="taste-portal-header bg-white border-b border-slate-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/clinic/dashboard" className="font-serif text-xl font-semibold text-slate-900">
@@ -104,7 +134,7 @@ export function ClinicShell({ children }: { children: React.ReactNode }) {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-6">
         <aside className="lg:sticky lg:top-20 lg:self-start" data-testid="clinic-sidebar">
-          <nav className="bg-white border border-slate-200 rounded-xl p-2 flex lg:flex-col gap-1 overflow-x-auto">
+          <nav className="taste-portal-nav bg-white border border-slate-200 rounded-xl p-2 flex lg:flex-col gap-1 overflow-x-auto">
             {NAV.map((item) => {
               const Icon = item.icon
               const active = item.exact ? pathname === item.href : pathname.startsWith(item.href)
@@ -121,6 +151,16 @@ export function ClinicShell({ children }: { children: React.ReactNode }) {
                 >
                   <Icon className="w-4 h-4" />
                   {item.label}
+                  {item.href === '/clinic/dashboard/chats' && unreadChats > 0 && (
+                    <span
+                      className={`ml-auto inline-flex items-center justify-center min-w-[1.25rem] h-5 rounded-full text-[11px] font-semibold px-1.5 ${
+                        active ? 'bg-white text-teal-600' : 'bg-rose-500 text-white'
+                      }`}
+                      data-testid="clinic-nav-chats-unread"
+                    >
+                      {unreadChats > 9 ? '9+' : unreadChats}
+                    </span>
+                  )}
                 </Link>
               )
             })}
