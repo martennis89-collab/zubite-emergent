@@ -19,6 +19,7 @@ import routers.clinics as clinics  # noqa: E402
 from schemas import (  # noqa: E402
     AdminUser,
     ClinicIntakeInviteCreate,
+    ClinicIntakeInviteResend,
     ClinicIntakeInviteSend,
 )
 
@@ -383,3 +384,117 @@ async def test_invite_email_is_skipped_without_resend_configured(monkeypatch):
         intake_url="https://zubite.bg/clinic-intake/tok123",
     )
     assert sent is False
+
+
+# ─── Re-issuing a link from the invite list ──────────────────────
+# The admin no longer holds the token here (page reloaded, days later), so the
+# only safe "resend" is a new token on the same invite.
+
+
+async def _resend(invite_id, **kwargs):
+    return await clinics.resend_clinic_intake_invite(
+        invite_id,
+        ClinicIntakeInviteResend(**kwargs),
+        request=None,
+        user=ADMIN,
+    )
+
+
+@pytest.mark.asyncio
+async def test_reissue_emails_a_new_link_and_kills_the_old_one(wired):
+    invites, mailer = wired
+    created = await _create(send_email=False)
+    old_hash = invites.docs[0]["token_hash"]
+
+    result = await _resend(created["invite"]["id"])
+
+    assert result["email_sent"] is True
+    assert result["token"] != created["token"]
+    assert mailer.calls[0]["to_email"] == "clinic@example.com"
+    assert mailer.calls[0]["intake_url"].endswith(f"/clinic-intake/{result['token']}")
+    stored = invites.docs[0]
+    assert stored["token_hash"] == clinics._hash_intake_token(result["token"])
+    assert stored["token_hash"] != old_hash
+    assert stored["token_hint"] == result["token"][-6:]
+    assert stored["email_send_count"] == 1
+    assert "token_hash" not in result["invite"]
+
+
+@pytest.mark.asyncio
+async def test_reissue_renews_an_expired_invite(wired):
+    invites, mailer = wired
+    created = await _create(send_email=False)
+    past = (datetime.now(timezone.utc) - timedelta(days=2)).isoformat()
+    invites.docs[0]["expires_at"] = past
+
+    result = await _resend(created["invite"]["id"], expires_in_days=14)
+
+    stored = invites.docs[0]
+    assert stored["status"] == "pending"
+    expires = datetime.fromisoformat(stored["expires_at"])
+    assert expires > datetime.now(timezone.utc) + timedelta(days=13)
+    assert result["email_sent"] is True
+
+
+@pytest.mark.asyncio
+async def test_reissue_keeps_the_expiry_of_a_valid_invite(wired):
+    invites, _mailer = wired
+    created = await _create(send_email=False)
+    original_expiry = invites.docs[0]["expires_at"]
+
+    await _resend(created["invite"]["id"], expires_in_days=7)
+
+    assert invites.docs[0]["expires_at"] == original_expiry
+
+
+@pytest.mark.asyncio
+async def test_reissue_to_a_corrected_address_updates_the_invite(wired):
+    invites, mailer = wired
+    created = await _create(send_email=False)
+
+    await _resend(created["invite"]["id"], contact_email="fixed@example.com")
+
+    assert mailer.calls[0]["to_email"] == "fixed@example.com"
+    assert invites.docs[0]["contact_email"] == "fixed@example.com"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("status", ["submitted", "revoked", "submitting"])
+async def test_reissue_is_refused_for_closed_invites(wired, status):
+    invites, mailer = wired
+    created = await _create(send_email=False)
+    invites.docs[0]["status"] = status
+    old_hash = invites.docs[0]["token_hash"]
+
+    with pytest.raises(HTTPException) as exc:
+        await _resend(created["invite"]["id"])
+
+    assert exc.value.status_code == 409
+    assert mailer.calls == []
+    assert invites.docs[0]["token_hash"] == old_hash
+
+
+@pytest.mark.asyncio
+async def test_reissue_without_any_recipient_is_rejected(wired):
+    invites, mailer = wired
+    created = await _create(send_email=False, contact_email=None)
+    old_hash = invites.docs[0]["token_hash"]
+
+    with pytest.raises(HTTPException) as exc:
+        await _resend(created["invite"]["id"])
+
+    assert exc.value.status_code == 400
+    assert mailer.calls == []
+    assert invites.docs[0]["token_hash"] == old_hash
+
+
+@pytest.mark.asyncio
+async def test_a_failed_reissue_send_still_returns_the_new_link(wired, monkeypatch):
+    invites, _mailer = wired
+    created = await _create(send_email=False)
+    monkeypatch.setattr(clinics, "send_clinic_intake_invite_email", Mailer(succeeds=False))
+
+    result = await _resend(created["invite"]["id"])
+
+    assert result["email_sent"] is False
+    assert invites.docs[0]["token_hash"] == clinics._hash_intake_token(result["token"])
