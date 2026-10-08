@@ -11,6 +11,7 @@ import resend
 from database import db
 from schemas import (
     ClinicApplicationCreate, ClinicIntakeInviteCreate, ClinicIntakeInviteSend,
+    ClinicIntakeInviteResend,
     ClinicWebsitePrefillRequest,
     ClinicLogin, ClinicUserOut, ClinicTokenResponse,
     ClinicProfileUpdate, ClinicPasswordChange, ClinicLeadStatusUpdate, AdminUser
@@ -307,6 +308,76 @@ async def send_clinic_intake_invite(
         invite["contact_email"] = to_email
 
     return {"status": "ok", "invite": _safe_invite(invite)}
+
+
+@router.post("/admin/clinic-intake-invites/{invite_id}/resend")
+async def resend_clinic_intake_invite(
+    invite_id: str,
+    body: ClinicIntakeInviteResend,
+    request: Request,
+    user: AdminUser = Depends(get_current_user),
+):
+    """Re-issue an intake link from the invite list and email it.
+
+    Only the token hash is stored, so the original link cannot be sent again.
+    A fresh token replaces it on the same invite (the old link stops working)
+    and an expired invite is renewed. The new token is returned too, so the
+    admin can still copy the link when mail delivery fails.
+    """
+    if not isinstance(invite_id, str) or len(invite_id) > 100:
+        raise HTTPException(status_code=400, detail="Invalid invite id")
+    invite = await db.clinic_intake_invites.find_one({"id": invite_id}, {"_id": 0})
+    if not invite:
+        raise HTTPException(status_code=404, detail="Invite not found")
+    # Submitted, revoked or mid-submission invites must never get a live link back.
+    if invite.get("status") not in ("pending", "expired"):
+        raise HTTPException(status_code=409, detail="Intake link can no longer be resent")
+
+    to_email = str(body.contact_email) if body.contact_email else invite.get("contact_email")
+    if not to_email:
+        raise HTTPException(status_code=400, detail="No recipient email for this invite")
+
+    token = secrets.token_urlsafe(32)
+    now = datetime.now(timezone.utc)
+    updates = {
+        "status": "pending",
+        "token_hash": _hash_intake_token(token),
+        "token_hint": token[-6:],
+        "contact_email": to_email,
+        "reissued_at": now.isoformat(),
+    }
+    if invite.get("status") == "expired" or _invite_expired(invite, now):
+        updates["expires_at"] = (now + timedelta(days=body.expires_in_days)).isoformat()
+
+    result = await db.clinic_intake_invites.update_one(
+        {"id": invite_id, "status": {"$in": ["pending", "expired"]}},
+        {"$set": updates},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=409, detail="Intake link can no longer be resent")
+    invite.update(updates)
+    await audit_log(
+        "clinic_intake_invite.reissued",
+        actor=user,
+        target_type="clinic_application",
+        target_id=invite_id,
+        target_summary=invite.get("clinic_label") or "Private clinic intake invite",
+        metadata={"recipient": to_email, "renewed": "expires_at" in updates},
+        request=request,
+    )
+
+    email_sent = await _deliver_intake_invite_email(
+        invite=invite,
+        token=token,
+        to_email=to_email,
+        actor=user,
+        request=request,
+    )
+    return {
+        "invite": _safe_invite(invite),
+        "token": token,
+        "email_sent": email_sent,
+    }
 
 
 @router.get("/admin/clinic-intake-invites")

@@ -694,6 +694,19 @@ class ClinicIntakeInviteSend(BaseModel):
     contact_email: Optional[EmailStr] = None
 
 
+class ClinicIntakeInviteResend(BaseModel):
+    """Re-issue and email an intake link the admin no longer holds.
+
+    The original token cannot be recovered, so a new one replaces it on the
+    same invite — the old link stops working. An expired invite is renewed for
+    `expires_in_days`; a still-valid one keeps its expiry.
+    """
+    model_config = ConfigDict(extra="ignore")
+
+    contact_email: Optional[EmailStr] = None
+    expires_in_days: int = Field(default=30, ge=1, le=90)
+
+
 # ─── Blog Models ───────────────────────────────────────────
 
 class FaqItem(BaseModel):

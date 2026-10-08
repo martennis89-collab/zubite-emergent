@@ -8,7 +8,7 @@ import {
   CheckCircle, XCircle, X, Clock, Search, ChevronLeft,
   Globe, MapPin, Phone, Mail, Calendar, Shield, Target,
   MessageSquare, Save, ArrowLeft, KeyRound, Copy, Check,
-  Layers, BadgeCheck, Plus, Ban, ShieldCheck, Sparkles, AlertTriangle,
+  Layers, BadgeCheck, Plus, Ban, ShieldCheck, Sparkles, AlertTriangle, RotateCw,
 } from 'lucide-react'
 import { AdminHeader } from '@/components/admin/AdminHeader'
 
@@ -217,6 +217,12 @@ function IntakeInvitePanel({
   const [sendTo, setSendTo] = useState('')
   const [sending, setSending] = useState(false)
   const [sendNotice, setSendNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null)
+  // Re-issue from the list: the original token is gone, so the server swaps in
+  // a new one on the same invite (the old link stops working) and emails it.
+  const [reissueFor, setReissueFor] = useState<string | null>(null)
+  const [reissueTo, setReissueTo] = useState('')
+  const [reissuing, setReissuing] = useState(false)
+  const [rowNotice, setRowNotice] = useState<{ id: string; tone: 'ok' | 'error'; text: string } | null>(null)
 
   const createInvite = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -294,6 +300,51 @@ function IntakeInvitePanel({
       setSendNotice({ tone: 'error', text: 'Възникна грешка при изпращането.' })
     } finally {
       setSending(false)
+    }
+  }
+
+  const reissueInvite = async (inviteId: string) => {
+    setReissuing(true)
+    setRowNotice(null)
+    try {
+      const recipient = reissueTo.trim()
+      const response = await fetch(`${API_URL}/api/admin/clinic-intake-invites/${inviteId}/resend`, {
+        method: 'POST',
+        credentials: 'include' as RequestCredentials,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contact_email: recipient || null }),
+      })
+      if (!response.ok) {
+        setRowNotice({
+          id: inviteId,
+          tone: 'error',
+          text: response.status === 400 || response.status === 422
+            ? 'Посочете валиден имейл адрес.'
+            : response.status === 409
+              ? 'Този линк вече не може да се изпрати отново.'
+              : 'Линкът не беше изпратен. Опитайте отново.',
+        })
+        return
+      }
+      const data = await response.json()
+      // Surface the new link in the copy box above, like a freshly created one.
+      setCreatedLink(`${window.location.origin}/clinic-intake/${data.token}`)
+      setCreatedInvite({ id: inviteId, token: data.token })
+      setSendTo(recipient)
+      setSendNotice(null)
+      setRowNotice({
+        id: inviteId,
+        tone: data.email_sent ? 'ok' : 'error',
+        text: data.email_sent
+          ? `Нов линк е изпратен на ${recipient}. Старият вече не работи.`
+          : 'Новият линк е създаден, но имейлът не тръгна — копирайте го от полето горе.',
+      })
+      setReissueFor(null)
+      await onChanged()
+    } catch {
+      setRowNotice({ id: inviteId, tone: 'error', text: 'Възникна грешка при изпращането.' })
+    } finally {
+      setReissuing(false)
     }
   }
 
@@ -400,7 +451,7 @@ function IntakeInvitePanel({
           <div className="mt-4 border-t border-teal-200/70 pt-4">
             <p className="text-xs font-semibold text-teal-800">Изпрати официален имейл с линка</p>
             <p className="mt-1 text-xs text-teal-700/80">
-              Възможно е само докато линкът е на екрана — след презареждане token-ът вече не е достъпен.
+              След презареждане този линк не може да се покаже отново — използвайте „Изпрати отново“ в списъка, за да изпратите нов.
             </p>
             <div className="mt-2 flex flex-col gap-2 sm:flex-row">
               <input
@@ -461,7 +512,66 @@ function IntakeInvitePanel({
                     {(invite.email_send_count || 0) > 1 ? ` · ${invite.email_send_count} изпращания` : ''}
                   </p>
                 )}
+                {reissueFor === invite.id && (
+                  <div className="mt-3 rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200" data-testid={`reissue-form-${invite.id}`}>
+                    <p className="text-xs text-slate-600">
+                      Ще изпратим нов линк — предишният спира да работи.
+                      {invite.status === 'expired' ? ' Новият е валиден 30 дни.' : ''}
+                    </p>
+                    <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                      <input
+                        type="email"
+                        value={reissueTo}
+                        onChange={(event) => setReissueTo(event.target.value)}
+                        placeholder="clinic@example.com"
+                        className="h-10 min-w-0 flex-1 rounded-lg bg-white px-3 text-sm text-slate-700 ring-1 ring-slate-200 outline-none focus:ring-2 focus:ring-teal-400"
+                        data-testid={`reissue-email-${invite.id}`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => reissueInvite(invite.id)}
+                        disabled={reissuing || !reissueTo.trim()}
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-teal-600 px-4 text-sm font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        data-testid={`reissue-send-${invite.id}`}
+                      >
+                        {reissuing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                        Изпрати нов линк
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setReissueFor(null)}
+                        className="inline-flex h-10 items-center justify-center rounded-full px-3 text-sm text-slate-600 hover:bg-slate-100"
+                      >
+                        Отказ
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {rowNotice?.id === invite.id && (
+                  <p
+                    className={`mt-2 text-xs font-medium ${rowNotice.tone === 'ok' ? 'text-emerald-700' : 'text-rose-700'}`}
+                    role="status"
+                    data-testid={`reissue-notice-${invite.id}`}
+                  >
+                    {rowNotice.text}
+                  </p>
+                )}
               </div>
+              {(invite.status === 'pending' || invite.status === 'expired') && reissueFor !== invite.id && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReissueFor(invite.id)
+                    setReissueTo(invite.contact_email || '')
+                    setRowNotice(null)
+                  }}
+                  className="inline-flex h-9 items-center justify-center gap-2 rounded-full px-3 text-xs font-medium text-teal-700 hover:bg-teal-50"
+                  data-testid={`reissue-open-${invite.id}`}
+                >
+                  <RotateCw className="h-3.5 w-3.5" />
+                  Изпрати отново
+                </button>
+              )}
               {invite.status === 'pending' && (
                 <button
                   type="button"
