@@ -1,7 +1,7 @@
 """Dashboard links to a clinic's public profile on zubite.bg.
 
 The path must match the frontend's `clinicProfileHref`
-(`/clinics/[city]/[specialty]/[slug]`), and it must only be returned when the
+(`/clinics/[city]/[slug]`), and it must only be returned when the
 profile is actually publicly listed — admin and clinic dashboards must never
 link to a page that 404s.
 """
@@ -97,16 +97,16 @@ def use_db(monkeypatch):
 
 def test_path_matches_the_public_route_shape():
     path = public_clinics.public_profile_path(_clinic())
-    assert path == "/clinics/sofia/orthodontics/dentalen-tsentar-svetlina"
+    assert path == "/clinics/sofia/dentalen-tsentar-svetlina"
 
 
 def test_path_falls_back_like_the_frontend_does():
-    # Free-text city only and no treatments: city resolved from the name,
-    # specialty falls back to `klinika`, slug derived from the clinic name
-    # (the same slug `/public/clinics/{slug}` resolves).
-    doc = _clinic(city_slug=None, city="Пловдив", treatments_supported=[])
+    # Free-text city only: city resolved from the name, slug derived from the
+    # clinic name (the same slug `/public/clinics/{slug}` resolves). The
+    # clinic's treatments never appear in the URL.
+    doc = _clinic(city_slug=None, city="Пловдив", treatments_supported=["Детска стоматология"])
     path = public_clinics.public_profile_path(doc)
-    assert path == "/clinics/plovdiv/klinika/dentalen-tsentar-svetlina"
+    assert path == "/clinics/plovdiv/dentalen-tsentar-svetlina"
 
 
 def test_no_path_without_a_city():
@@ -134,7 +134,7 @@ async def test_only_publicly_listed_clinics_get_a_link(use_db):
 async def test_clinic_sees_its_own_link_once_live(use_db):
     use_db(FakeDb([_clinic()]))
     out = await clinics.clinic_profile(clinic=_clinic())
-    assert out["public_profile_path"] == "/clinics/sofia/orthodontics/dentalen-tsentar-svetlina"
+    assert out["public_profile_path"] == "/clinics/sofia/dentalen-tsentar-svetlina"
     assert out["clinic_name"] == "Дентален център Светлина"
 
 

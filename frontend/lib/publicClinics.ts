@@ -277,7 +277,7 @@ export async function listPublicClinics(
 }
 
 export async function getPublicClinic(slugOrId: string): Promise<PublicClinic> {
-  const res = await fetch(`${API_URL}/api/public/clinics/${slugOrId}`, {
+  const res = await fetch(`${API_URL}/api/public/clinics/${encodeURIComponent(slugOrId)}`, {
     cache: 'no-store',
   })
   if (res.status === 404) {
@@ -385,13 +385,12 @@ export function treatmentLabel(slug: string): string {
   return TREATMENT_LABELS[slug] || slug.replace(/_/g, ' ')
 }
 
-/** Build the canonical profile URL for a clinic — `/clinics/[city]/[specialty]/[slug]`.
- *  `specialty` is the FIRST treatment slug from the clinic's list, or a
- *  generic `klinika` fallback if treatments is empty (still SEO-safe). */
-export function clinicProfileHref(c: PublicClinic): string {
+/** Build the canonical profile URL for a clinic — `/clinics/[city]/[slug]`.
+ *  The slug is derived from the clinic name. Older three-segment URLs
+ *  (`/clinics/[city]/[specialty]/[slug]`) permanently redirect here. */
+export function clinicProfileHref(c: Pick<PublicClinic, 'city_slug' | 'slug' | 'id'>): string {
   const city = c.city_slug || 'all'
-  const specialty = c.treatments[0] || 'klinika'
-  return `/clinics/${city}/${specialty}/${c.slug || c.id}`
+  return `/clinics/${city}/${c.slug || c.id}`
 }
 
 /** City slug → Bulgarian display name. Falls back to capitalising the
