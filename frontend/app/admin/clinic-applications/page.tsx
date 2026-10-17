@@ -1342,7 +1342,12 @@ export default function ClinicApplicationsPage() {
       if (res.ok) {
         const result = await res.json()
         if (result.clinic_account_created) {
-          setMessage({ type: 'success', text: `Акаунт за клиника е създаден. Парола: ${result.clinic_credentials.temporary_password}` })
+          const creds = result.clinic_credentials
+          setMessage(
+            result.email_sent
+              ? { type: 'success', text: `Акаунтът е създаден и данните за вход са изпратени на ${creds.email}. При първото влизане клиниката ще зададе своя парола.` }
+              : { type: 'error', text: `Акаунтът е създаден, но имейлът не беше изпратен. Предайте временната парола ръчно: ${creds.temporary_password} — клиниката ще зададе своя при първото влизане.` },
+          )
         } else {
           setMessage({ type: 'success', text: data.status ? `Статусът е обновен на "${STATUS_CONFIG[data.status]?.label}"` : 'Бележката е запазена' })
         }

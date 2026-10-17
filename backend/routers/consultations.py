@@ -454,6 +454,8 @@ async def admin_create_clinic(
         "notification_email": data.notification_email or email,
         "status": "active",  # legacy flag for clinic_login compatibility
         "password_hash": hash_password(temp_password),
+        # Admin hands this password over; the clinic replaces it on first login.
+        "must_change_password": True,
         "created_at": now,
         "updated_at": now,
     }

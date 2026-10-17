@@ -481,13 +481,36 @@ async def get_current_user(
     return AdminUser(id=payload.get("sub"), username=payload.get("username"))
 
 
+# A clinic whose password was issued by an admin (approval email, reset,
+# regenerate, admin-created account) must set its own before using the
+# portal. Every clinic endpoint refuses it with this code until then.
+PASSWORD_CHANGE_REQUIRED = {
+    "code": "password_change_required",
+    "message": "Задайте своя парола, за да продължите.",
+}
+
+
 async def get_current_clinic(
     request: Request,
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
 ):
     """Clinic auth dependency. Same `AUTH_REQUIRE_COOKIE` semantics as admin.
 
-    Admin tokens / admin cookies are rejected.
+    Admin tokens / admin cookies are rejected, and so is a clinic that still
+    has to replace its admin-issued password (403 `password_change_required`).
+    """
+    clinic = await get_current_clinic_pending_password(request, credentials)
+    if clinic.get("must_change_password") is True:
+        raise HTTPException(status_code=403, detail=PASSWORD_CHANGE_REQUIRED)
+    return clinic
+
+
+async def get_current_clinic_pending_password(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+):
+    """Like `get_current_clinic`, but also admits a clinic that still has to
+    change its admin-issued password. Only for the change-password endpoint.
     """
     import os as _os
     cookie_required = (_os.environ.get('AUTH_REQUIRE_COOKIE', '0') == '1')

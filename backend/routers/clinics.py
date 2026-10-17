@@ -5,6 +5,7 @@ import os
 import uuid
 import secrets
 import hashlib
+import html
 import logging
 import resend
 
@@ -17,7 +18,8 @@ from schemas import (
     ClinicProfileUpdate, ClinicPasswordChange, ClinicLeadStatusUpdate, AdminUser
 )
 from auth import (
-    get_current_user, get_current_clinic, hash_password, verify_password,
+    get_current_user, get_current_clinic, get_current_clinic_pending_password,
+    hash_password, verify_password,
     create_clinic_token, revoke_session_by_jti, revoke_all_sessions_for_user,
 )
 from config import (
@@ -543,6 +545,7 @@ def _clinic_to_out(clinic: dict) -> ClinicUserOut:
         viber_enabled=bool(clinic.get("viber_enabled")),
         viber_phone=clinic.get("viber_phone"),
         logo_url=f"/api/files/{logo_file_id}" if logo_file_id else None,
+        must_change_password=clinic.get("must_change_password") is True,
     )
 
 
@@ -767,6 +770,8 @@ async def update_clinic_application(app_id: str, body: dict, request: Request, u
                 "email": str(application["email"]).strip().lower(),
                 "phone": application["phone"],
                 "password_hash": hash_password(temp_password),
+                # The emailed password is temporary: first login must replace it.
+                "must_change_password": True,
                 "status": "active",
                 "application_id": app_id,
                 "address": application.get("address", ""),
@@ -815,32 +820,12 @@ async def update_clinic_application(app_id: str, body: dict, request: Request, u
             response["clinic_account_created"] = True
             response["clinic_credentials"] = {"email": application["email"], "temporary_password": temp_password}
 
-            if RESEND_API_KEY:
-                try:
-                    resend.Emails.send({
-                        # Onboarding sender: this and the intake invite are the
-                        # two emails that bring a clinic onto the platform.
-                        "from": CLINIC_ONBOARDING_SENDER_EMAIL,
-                        "to": application["email"],
-                        "subject": "Добре дошли в Zubite.bg — Вашият акаунт е одобрен",
-                        "html": f"""
-                        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 0;">
-                            <h1 style="font-size: 22px; color: #0f172a; margin-bottom: 8px;">Добре дошли в Zubite.bg</h1>
-                            <p style="color: #64748b; font-size: 15px; margin-bottom: 24px;">Вашата кандидатура за <strong>{application['clinic_name']}</strong> беше одобрена.</p>
-                            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
-                                <p style="color: #475569; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 12px;">Данни за вход</p>
-                                <p style="color: #0f172a; font-size: 15px; margin: 0 0 8px;"><strong>Имейл:</strong> {application['email']}</p>
-                                <p style="color: #0f172a; font-size: 15px; margin: 0;"><strong>Парола:</strong> <code style="background: #e2e8f0; padding: 2px 8px; border-radius: 4px;">{temp_password}</code></p>
-                            </div>
-                            <p style="color: #64748b; font-size: 14px; margin-bottom: 24px;">Влезте в партньорския портал и сменете паролата си от секция "Профил".</p>
-                            <a href="https://zubite.bg/clinic" style="display: inline-block; background: #0ea5e9; color: white; text-decoration: none; padding: 12px 28px; border-radius: 24px; font-weight: 500; font-size: 14px;">Влез в портала</a>
-                            <p style="color: #94a3b8; font-size: 13px; margin-top: 32px;">С уважение,<br>Екипът на Zubite.bg</p>
-                        </div>
-                        """
-                    })
-                    logging.info(f"Welcome email sent to {application['email']}")
-                except Exception as e:
-                    logging.error(f"Failed to send welcome email: {e}")
+            response["email_sent"] = _send_clinic_credentials_email(
+                clinic_name=application["clinic_name"],
+                email=application["email"],
+                password=temp_password,
+                kind="welcome",
+            )
 
     # ── Audit (Phase 3 D2b) ────────────────────────────────────────
     prev_status = application.get("status")
@@ -881,38 +866,72 @@ async def update_clinic_application(app_id: str, body: dict, request: Request, u
     return response
 
 
-def _send_password_email(clinic: dict, new_password: str, portal_url: str):
-    """Helper to send password reset email"""
-    if not RESEND_API_KEY or not clinic.get("email"):
+def _portal_url() -> str:
+    """Clinic portal login URL for emails.
+
+    Built from PRODUCTION_URL, never from request headers, so a spoofed Host
+    header can't put a link to somewhere else into a credentials email.
+    """
+    return f"{(PRODUCTION_URL or 'https://zubite.bg').rstrip('/')}/clinic"
+
+
+_CREDENTIAL_EMAILS = {
+    "welcome": {
+        "subject": "Добре дошли в Zubite.bg — вашият акаунт е одобрен",
+        "title": "Добре дошли в Zubite.bg",
+        "intro": "Кандидатурата на <strong>{name}</strong> е одобрена. Ето данните за първото влизане в партньорския портал.",
+    },
+    "reset": {
+        "subject": "Нова временна парола за Zubite.bg",
+        "title": "Нова временна парола",
+        "intro": "Екипът на Zubite.bg издаде нова временна парола за акаунта на <strong>{name}</strong>.",
+    },
+}
+
+
+def _clinic_credentials_email_html(*, kind: str, clinic_name: str, email: str, password: str) -> str:
+    copy = _CREDENTIAL_EMAILS[kind]
+    name = html.escape(clinic_name or "")
+    return f"""
+    <div style="font-family: Manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 0; color: #1B1C1B;">
+        <p style="font-size: 20px; font-weight: 700; letter-spacing: -0.04em; margin: 0 0 24px; color: #0A0A0A;">Zubite<span style="color: #007956;">.bg</span></p>
+        <h1 style="font-size: 24px; color: #073B36; margin: 0 0 8px;">{copy["title"]}</h1>
+        <p style="color: #45514F; font-size: 15px; line-height: 1.6; margin: 0 0 24px;">{copy["intro"].format(name=name)}</p>
+        <div style="background: #F3F7F6; border: 1px solid #C8D8D4; border-radius: 12px; padding: 20px 24px; margin-bottom: 20px;">
+            <p style="color: #45514F; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 12px;">Данни за вход</p>
+            <p style="font-size: 15px; margin: 0 0 8px;"><strong>Имейл:</strong> {html.escape(email or "")}</p>
+            <p style="font-size: 15px; margin: 0;"><strong>Временна парола:</strong> <code style="background: #FFFFFF; border: 1px solid #C8D8D4; padding: 3px 8px; border-radius: 6px; font-size: 15px;">{html.escape(password)}</code></p>
+        </div>
+        <p style="color: #1B1C1B; font-size: 15px; line-height: 1.6; margin: 0 0 24px;">При първото влизане ще ви помолим да зададете своя парола. Временната спира да работи веднага щом го направите.</p>
+        <a href="{_portal_url()}" style="display: inline-block; background: #073B36; color: #FFFFFF; text-decoration: none; padding: 13px 28px; border-radius: 10px; font-weight: 700; font-size: 15px;">Влез и задай парола</a>
+        <p style="color: #6B7875; font-size: 13px; line-height: 1.6; margin-top: 32px;">Не споделяйте временната парола. Ако не сте очаквали този имейл, отговорете ни и ще проверим.<br><br>С уважение,<br>Екипът на Zubite.bg</p>
+    </div>
+    """
+
+
+def _send_clinic_credentials_email(*, kind: str, clinic_name: str, email: str, password: str) -> bool:
+    """Email a clinic its temporary login. Returns True when Resend accepted it.
+
+    Never raises: a mail outage must not fail approval or a reset — the admin
+    still sees the password on screen and can pass it on.
+    """
+    if not RESEND_API_KEY or not email:
         return False
     try:
         resend.Emails.send({
-            "from": SENDER_EMAIL, "to": clinic["email"],
-            "subject": "Нова парола за Zubite.bg",
-            "html": f"""
-            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 0;">
-                <h1 style="font-size: 22px; color: #0f172a; margin-bottom: 8px;">Нова парола</h1>
-                <p style="color: #64748b; font-size: 15px; margin-bottom: 24px;">Паролата за акаунта на <strong>{clinic['clinic_name']}</strong> беше обновена.</p>
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
-                    <p style="color: #475569; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 12px;">Данни за вход</p>
-                    <p style="color: #0f172a; font-size: 15px; margin: 0 0 8px;"><strong>Имейл:</strong> {clinic['email']}</p>
-                    <p style="color: #0f172a; font-size: 15px; margin: 0;"><strong>Парола:</strong> <code style="background: #e2e8f0; padding: 2px 8px; border-radius: 4px;">{new_password}</code></p>
-                </div>
-                <a href="{portal_url}" style="display: inline-block; background: #0ea5e9; color: white; text-decoration: none; padding: 12px 28px; border-radius: 24px; font-weight: 500; font-size: 14px;">Влез в портала</a>
-                <p style="color: #94a3b8; font-size: 13px; margin-top: 32px;">С уважение,<br>Екипът на Zubite.bg</p>
-            </div>
-            """
+            # Onboarding sender: credentials and the intake invite are the
+            # emails that bring a clinic onto the platform.
+            "from": CLINIC_ONBOARDING_SENDER_EMAIL,
+            "to": email,
+            "subject": _CREDENTIAL_EMAILS[kind]["subject"],
+            "html": _clinic_credentials_email_html(
+                kind=kind, clinic_name=clinic_name, email=email, password=password),
         })
+        logging.info(f"Clinic credentials email ({kind}) sent to {email}")
         return True
     except Exception as e:
-        logging.error(f"Failed to send password reset email: {e}")
+        logging.error(f"Failed to send clinic credentials email ({kind}): {e}")
         return False
-
-
-def _get_portal_url(request: Request) -> str:
-    forwarded = request.headers.get('x-forwarded-host') or request.headers.get('host')
-    scheme = request.headers.get('x-forwarded-proto', 'https')
-    return f"{scheme}://{forwarded}/clinic" if forwarded else "https://zubite.bg/clinic"
 
 
 @router.post("/admin/clinic-applications/{app_id}/regenerate-password")
@@ -923,8 +942,12 @@ async def regenerate_clinic_password_by_app(app_id: str, request: Request, user:
     if clinic.get("archived") is True:
         raise HTTPException(status_code=409, detail="Клиниката е архивирана. Възстановете я, преди да сменяте паролата.")
     new_password = secrets.token_urlsafe(10)
-    await db.clinics.update_one({"id": clinic["id"]}, {"$set": {"password_hash": hash_password(new_password)}})
-    email_sent = _send_password_email(clinic, new_password, _get_portal_url(request))
+    await db.clinics.update_one(
+        {"id": clinic["id"]},
+        {"$set": {"password_hash": hash_password(new_password), "must_change_password": True}},
+    )
+    email_sent = _send_clinic_credentials_email(
+        kind="reset", clinic_name=clinic.get("clinic_name"), email=clinic.get("email"), password=new_password)
     # Audit: warning severity. Generated password is NEVER stored in audit row
     # (we only pass flags + clinic_id — never new_password / password_hash).
     await audit_log(
@@ -959,8 +982,12 @@ async def admin_reset_clinic_password(clinic_id: str, request: Request, user: Ad
     if clinic.get("archived") is True:
         raise HTTPException(status_code=409, detail="Клиниката е архивирана. Възстановете я, преди да сменяте паролата.")
     new_password = secrets.token_urlsafe(10)
-    await db.clinics.update_one({"id": clinic_id}, {"$set": {"password_hash": hash_password(new_password)}})
-    email_sent = _send_password_email(clinic, new_password, _get_portal_url(request))
+    await db.clinics.update_one(
+        {"id": clinic_id},
+        {"$set": {"password_hash": hash_password(new_password), "must_change_password": True}},
+    )
+    email_sent = _send_clinic_credentials_email(
+        kind="reset", clinic_name=clinic.get("clinic_name"), email=clinic.get("email"), password=new_password)
     # Audit: warning severity; generated password NEVER stored in audit row.
     await audit_log(
         "clinic.password_reset",
@@ -1312,7 +1339,11 @@ async def _apply_viber_update(
 
 
 @router.post("/clinic/change-password")
-async def clinic_change_password(data: ClinicPasswordChange, clinic=Depends(get_current_clinic)):
+async def clinic_change_password(
+    data: ClinicPasswordChange,
+    request: Request,
+    clinic=Depends(get_current_clinic_pending_password),
+):
     # `get_current_clinic` already validates the JWT, role, and account status.
     # It returns the clinic dict without password_hash, so re-fetch for verification.
     full_clinic = await db.clinics.find_one({"id": clinic["id"]}, {"_id": 0})
@@ -1321,7 +1352,25 @@ async def clinic_change_password(data: ClinicPasswordChange, clinic=Depends(get_
     if not verify_password(data.current_password, full_clinic["password_hash"]):
         raise HTTPException(status_code=400, detail="Текущата парола е грешна")
     # Minimum length now enforced by Pydantic (8 chars)
-    await db.clinics.update_one({"id": clinic["id"]}, {"$set": {"password_hash": hash_password(data.new_password)}})
+    if data.new_password == data.current_password:
+        raise HTTPException(status_code=400, detail="Новата парола трябва да е различна от текущата")
+    was_temporary = full_clinic.get("must_change_password") is True
+    await db.clinics.update_one(
+        {"id": clinic["id"]},
+        {"$set": {
+            "password_hash": hash_password(data.new_password),
+            "must_change_password": False,
+            "password_changed_at": datetime.now(timezone.utc).isoformat(),
+        }},
+    )
+    await audit_log(
+        "clinic.password_changed",
+        actor=clinic, actor_type="clinic",
+        target_type="clinic", target_id=clinic["id"],
+        target_summary=full_clinic.get("clinic_name"),
+        metadata={"replaced_temporary_password": was_temporary},
+        severity="info", request=request,
+    )
     return {"status": "ok", "message": "Паролата е променена успешно"}
 
 

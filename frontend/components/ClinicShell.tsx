@@ -45,6 +45,17 @@ export function ClinicShell({ children }: { children: React.ReactNode }) {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
     fetch(`${API_URL}/api/clinic/profile`, { credentials: 'include' as RequestCredentials })
       .then(async (r) => {
+        if (r.status === 403) {
+          // Still on an admin-issued password: the API refuses everything
+          // until the clinic sets its own.
+          try {
+            const body = await r.json()
+            if (body?.detail?.code === 'password_change_required') {
+              router.replace('/clinic/set-password')
+              return
+            }
+          } catch { /* fall through to login */ }
+        }
         if (!r.ok) {
           try { localStorage.removeItem('clinic_token'); localStorage.removeItem('clinic_user') } catch { /* noop */ }
           router.replace('/clinic')
