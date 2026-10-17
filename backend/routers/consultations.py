@@ -266,6 +266,8 @@ async def admin_list_clinics(
         resolve_base_package, resolve_founding_status, public_partner_label,
         compute_entitlements,
     )
+    from routers.public_clinics import public_profile_paths
+    public_paths = await public_profile_paths(ids)
 
     # Augment with simple counts for the listing table
     for c in clinics:
@@ -295,6 +297,9 @@ async def admin_list_clinics(
         c["patient_journey_eligible"] = bool(ents.get("patient_journey_eligibility"))
         c["partner_access"] = bool(ents.get("partner_access"))
         c["has_account"] = cid in accounts_with_password
+        # Null until the clinic is publicly listed — the admin UI links only
+        # to a profile that actually renders.
+        c["public_profile_path"] = public_paths.get(cid)
     return {"clinics": clinics}
 
 
@@ -516,6 +521,8 @@ async def admin_get_clinic(
     clinic_out["founding_status"] = resolve_founding_status(clinic)
     clinic_out["public_partner_label"] = public_partner_label(clinic)
     clinic_out["has_account"] = has_account
+    from routers.public_clinics import public_profile_paths
+    clinic_out["public_profile_path"] = (await public_profile_paths([cid])).get(cid)
     entitlements = compute_entitlements(clinic, addons=addons)
     return {
         "clinic": clinic_out,

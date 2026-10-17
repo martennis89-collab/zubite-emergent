@@ -6,6 +6,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import {
   LayoutDashboard, ListChecks, Calendar, BarChart3, MessageSquare, LogOut, Building2,
   Settings, MessageCircle, MessageCircleQuestion, Stethoscope, Users, CalendarClock, Clock,
+  ExternalLink,
 } from 'lucide-react'
 import { listClinicChats } from '@/lib/clinicChat'
 
@@ -14,6 +15,8 @@ interface ClinicUser {
   clinic_name: string
   email: string
   city: string
+  // Public profile on zubite.bg; null until the clinic is publicly listed.
+  public_profile_path?: string | null
 }
 
 const NAV = [
@@ -68,6 +71,7 @@ export function ClinicShell({ children }: { children: React.ReactNode }) {
             clinic_name: data.clinic_name,
             email: data.email,
             city: data.city,
+            public_profile_path: data.public_profile_path || null,
           })
         } catch { /* noop */ }
         setReady(true)
@@ -121,6 +125,19 @@ export function ClinicShell({ children }: { children: React.ReactNode }) {
             <span className="text-slate-600 font-medium hidden sm:inline">Клинично табло</span>
           </div>
           <div className="flex items-center gap-3">
+            {user?.public_profile_path && (
+              <a
+                href={user.public_profile_path}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-teal-700 hover:text-teal-800 hover:bg-teal-50 px-3 py-1.5 rounded-full border border-teal-200 transition-colors"
+                data-testid="clinic-public-profile-link"
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span className="hidden sm:inline">Моят профил в Zubite.bg</span>
+                <span className="sm:hidden">Профил</span>
+              </a>
+            )}
             {user && (
               <div className="hidden md:flex items-center gap-2 text-sm">
                 <Building2 className="w-4 h-4 text-slate-500" />

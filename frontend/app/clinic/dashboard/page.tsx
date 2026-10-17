@@ -9,6 +9,7 @@ import {
 import { ClinicShell } from '@/components/ClinicShell'
 import { WeeklyTrendChart, type TrendPoint } from '@/components/clinic/WeeklyTrendChart'
 import { ClinicOrientationStatusCard } from '@/components/clinic/ClinicOrientationStatusCard'
+import { ClinicPublicProfileCard } from '@/components/clinic/ClinicPublicProfileCard'
 import {
   statusBadge, timeSince, formatDuration, TREATMENT_LABELS,
 } from '@/lib/consultationLabels'
@@ -74,6 +75,8 @@ export default function ClinicOverviewPage() {
             Към всички заявки <ArrowRight className="w-4 h-4" />
           </Link>
         </header>
+
+        <ClinicPublicProfileCard />
 
         {loading ? (
           <DashboardSkeleton />
