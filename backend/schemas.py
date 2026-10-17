@@ -467,6 +467,9 @@ class ClinicUserOut(BaseModel):
     # Co-branding for clinic-facing exports (the review poster). Resolved
     # from logo_file_id server-side — never stored/returned as a raw path.
     logo_url: Optional[str] = None
+    # True while the clinic still uses a password an admin issued; the portal
+    # sends it to the set-password step and the API refuses everything else.
+    must_change_password: bool = False
 
 
 class ClinicTokenResponse(BaseModel):

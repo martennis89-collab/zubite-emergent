@@ -6,6 +6,7 @@ import Link from 'next/link'
 import {
   Loader2, Building2, Lock, Mail, ShieldCheck, Sparkles, BarChart3,
 } from 'lucide-react'
+import { ClinicSetPasswordForm } from '@/components/clinic/ClinicSetPasswordForm'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -14,6 +15,9 @@ export default function ClinicLoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  // Set when the account is still on an admin-issued password: the login
+  // card turns into the mandatory set-password step.
+  const [mustChangePassword, setMustChangePassword] = useState(false)
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,6 +44,10 @@ export default function ClinicLoginPage() {
       // in the response body and do NOT persist any auth data to localStorage.
       // Cleanup any stale tokens from a prior version.
       try { localStorage.removeItem('clinic_token'); localStorage.removeItem('clinic_user') } catch { /* noop */ }
+      if (data?.user?.must_change_password) {
+        setMustChangePassword(true)
+        return
+      }
       router.push('/clinic/dashboard')
     } catch {
       setError('Грешка при свързване със сървъра')
@@ -105,6 +113,13 @@ export default function ClinicLoginPage() {
             <p className="text-sm text-slate-500 mt-1">Партньорски портал на Zubite.bg</p>
           </div>
 
+          {mustChangePassword ? (
+            <ClinicSetPasswordForm
+              currentPassword={password}
+              onDone={() => router.push('/clinic/dashboard')}
+              onSessionExpired={() => { setMustChangePassword(false); setPassword('') }}
+            />
+          ) : (
           <form
             onSubmit={handleSubmit}
             className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 space-y-5 shadow-sm"
@@ -196,6 +211,7 @@ export default function ClinicLoginPage() {
               </a>
             </p>
           </form>
+          )}
 
           <p className="text-center text-sm text-slate-400 mt-6">
             <Link href="/" className="hover:text-teal-500 transition-colors">
