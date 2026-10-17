@@ -135,7 +135,7 @@ export function TasteHome({ trustSignals }: { trustSignals: HomeTrustSignalsData
               </h1>
 
               <p className="taste-hero-body taste-hero-fade taste-delay-3">
-                Отговори на 8–10 кратки въпроса. Получаваш ориентир за симптомите, подходящия специалист и до 3 релевантни клиники — само ако поискаш.
+                Отговори на 8–10 кратки въпроса. Получаваш ориентир за симптомите, подходящия специалист и топ 3 клиники според отговорите и локацията ти — а можеш да избереш и всяка друга партньорска клиника.
               </p>
 
               <div className="taste-hero-actions taste-hero-fade taste-delay-4">
@@ -160,7 +160,7 @@ export function TasteHome({ trustSignals }: { trustSignals: HomeTrustSignalsData
                 <ul>
                   <li><Check aria-hidden /><span><strong>Кратко обобщение</strong> на вероятната посока</span></li>
                   <li><Check aria-hidden /><span><strong>Ясна следваща стъпка</strong> и подходящ тип специалист</span></li>
-                  <li><Check aria-hidden /><span><strong>До 3 релевантни клиники</strong>, ако искаш съдействие</span></li>
+                  <li><Check aria-hidden /><span><strong>Топ 3 клиники</strong> според отговорите и локацията ти — или избери друга от всички партньорски клиники</span></li>
                 </ul>
                 <p><ShieldCheck aria-hidden /> Ориентир, не онлайн диагноза</p>
               </div>
