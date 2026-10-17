@@ -37,6 +37,7 @@ from storage import put_object, ALLOWED_IMAGE_TYPES
 from routers.public import _is_clinic_visible
 from aligner_brands import ALIGNER_BRAND_LABELS
 from clinic_website_prefill import crawl_clinic_site, draft_profile_from_site, prefill_enabled
+from clinic_photo_import import SLOTS as PHOTO_SLOTS, suggest_photos
 
 router = APIRouter()
 
@@ -549,6 +550,157 @@ def _clinic_to_out(clinic: dict) -> ClinicUserOut:
     )
 
 
+# ─── Photos from the links a clinic pasted ─────────────────
+#
+# Clinics often paste a page of their site into a photo field. The importer
+# (clinic_photo_import.py) turns each link into a stored photo *suggestion*;
+# an admin accepts or rejects it per slot before it reaches the profile.
+
+_PHOTO_IMPORT_STALE_SECONDS = 300
+
+
+def _photo_links(application: dict) -> dict[str, str]:
+    """Photo fields that still hold an external link (ours are /api/files/)."""
+    links = {}
+    for slot in PHOTO_SLOTS:
+        value = application.get(slot)
+        if isinstance(value, str) and value.strip() and not value.startswith("/api/files/"):
+            links[slot] = value.strip()
+    return links
+
+
+async def _run_photo_import(app_id: str) -> None:
+    application = await db.clinic_applications.find_one({"id": app_id}, {"_id": 0})
+    if not application:
+        return
+    links = _photo_links(application)
+    now = datetime.now(timezone.utc).isoformat()
+    if not links:
+        await db.clinic_applications.update_one(
+            {"id": app_id}, {"$set": {"photo_import": {"status": "done", "finished_at": now, "slots": 0}}})
+        return
+    await db.clinic_applications.update_one(
+        {"id": app_id}, {"$set": {"photo_import": {"status": "running", "started_at": now}}})
+    try:
+        suggestions = await suggest_photos(links)
+    except Exception as exc:  # suggest_photos is per-slot safe; this is a last resort
+        logging.error(f"Photo import crashed for application {app_id}: {exc}")
+        await db.clinic_applications.update_one({"id": app_id}, {"$set": {"photo_import": {
+            "status": "failed", "error": str(exc)[:300],
+            "finished_at": datetime.now(timezone.utc).isoformat()}}})
+        return
+    # Keep decisions already made on slots this run did not touch.
+    previous = application.get("photo_suggestions") or {}
+    merged = {**{k: v for k, v in previous.items() if k not in suggestions}, **suggestions}
+    await db.clinic_applications.update_one({"id": app_id}, {"$set": {
+        "photo_suggestions": merged,
+        "photo_import": {"status": "done", "finished_at": datetime.now(timezone.utc).isoformat(),
+                         "slots": len(suggestions)},
+    }})
+
+
+def _schedule_photo_import(application: dict) -> None:
+    """Fire-and-forget after an application is saved. Never fails the save."""
+    if not _photo_links(application):
+        return
+    try:
+        asyncio.create_task(_run_photo_import(application["id"]))
+    except Exception as exc:
+        logging.warning(f"Photo import could not be scheduled for {application.get('id')}: {exc}")
+
+
+def _import_is_running(application: dict) -> bool:
+    state = application.get("photo_import") or {}
+    if state.get("status") != "running" or not state.get("started_at"):
+        return False
+    try:
+        started = datetime.fromisoformat(state["started_at"])
+    except ValueError:
+        return False
+    return (datetime.now(timezone.utc) - started).total_seconds() < _PHOTO_IMPORT_STALE_SECONDS
+
+
+@router.post("/admin/clinic-applications/{app_id}/photo-import")
+async def start_photo_import(app_id: str, request: Request, user: AdminUser = Depends(get_current_user)):
+    """(Re)pull photos from the links on an application. Runs in the background;
+    poll GET .../photo-import for the result."""
+    if not isinstance(app_id, str) or len(app_id) > 100:
+        raise HTTPException(status_code=400, detail="Invalid application id")
+    application = await db.clinic_applications.find_one({"id": app_id}, {"_id": 0})
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+    if not _photo_links(application):
+        raise HTTPException(status_code=400, detail="Кандидатурата няма линкове в полетата за снимки.")
+    if _import_is_running(application):
+        raise HTTPException(status_code=409, detail="Извличането вече тече.")
+    await db.clinic_applications.update_one({"id": app_id}, {"$set": {"photo_import": {
+        "status": "running", "started_at": datetime.now(timezone.utc).isoformat()}}})
+    asyncio.create_task(_run_photo_import(app_id))
+    await audit_log(
+        "clinic_application.photo_import_started", actor=user, actor_type="admin",
+        target_type="clinic_application", target_id=app_id,
+        target_summary=application.get("clinic_name"), severity="info", request=request,
+    )
+    return {"status": "running"}
+
+
+@router.get("/admin/clinic-applications/{app_id}/photo-import")
+async def get_photo_import(app_id: str, user: AdminUser = Depends(get_current_user)):
+    application = await db.clinic_applications.find_one(
+        {"id": app_id}, {"_id": 0, "photo_import": 1, "photo_suggestions": 1})
+    if application is None:
+        raise HTTPException(status_code=404, detail="Application not found")
+    return {
+        "photo_import": application.get("photo_import") or None,
+        "photo_suggestions": application.get("photo_suggestions") or {},
+    }
+
+
+@router.post("/admin/clinic-applications/{app_id}/photo-suggestions/{slot}/{decision}")
+async def decide_photo_suggestion(
+    app_id: str, slot: str, decision: str, request: Request, user: AdminUser = Depends(get_current_user),
+):
+    """Accept a suggested photo into the slot (application and, once approved,
+    the clinic's profile), or reject it."""
+    if slot not in PHOTO_SLOTS:
+        raise HTTPException(status_code=400, detail="Unknown photo slot")
+    if decision not in ("accept", "reject"):
+        raise HTTPException(status_code=400, detail="Decision must be accept or reject")
+    application = await db.clinic_applications.find_one({"id": app_id}, {"_id": 0})
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+    suggestion = (application.get("photo_suggestions") or {}).get(slot)
+    if not suggestion or not suggestion.get("image_url"):
+        raise HTTPException(status_code=404, detail="Няма предложена снимка за това място.")
+
+    accepted = decision == "accept"
+    now = datetime.now(timezone.utc).isoformat()
+    prefix = f"photo_suggestions.{slot}"
+    update = {
+        f"{prefix}.status": "accepted" if accepted else "rejected",
+        f"{prefix}.decided_at": now,
+        f"{prefix}.decided_by": user.username,
+    }
+    clinic_updated = False
+    if accepted:
+        update[f"{prefix}.replaced_value"] = application.get(slot)
+        update[slot] = suggestion["image_url"]
+        # An approved application already has a clinic: its profile reads
+        # clinic_profile, not the application, so write the photo there too.
+        result = await db.clinics.update_one(
+            {"application_id": app_id}, {"$set": {f"clinic_profile.{slot}": suggestion["image_url"]}})
+        clinic_updated = bool(getattr(result, "matched_count", 0))
+    await db.clinic_applications.update_one({"id": app_id}, {"$set": update})
+    await audit_log(
+        "clinic_application.photo_accepted" if accepted else "clinic_application.photo_rejected",
+        actor=user, actor_type="admin", target_type="clinic_application", target_id=app_id,
+        target_summary=application.get("clinic_name"),
+        metadata={"slot": slot, "file_id": suggestion.get("file_id"), "clinic_updated": clinic_updated},
+        severity="info", request=request,
+    )
+    return {"status": "ok", "slot": slot, "decision": decision, "clinic_updated": clinic_updated}
+
+
 # ─── Public Application ───────────────────────────────────
 
 @router.post("/clinic-applications", dependencies=[Depends(rate_limit("clinic_apply", 3, 600))])
@@ -561,6 +713,7 @@ async def create_clinic_application(application: ClinicApplicationCreate):
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.clinic_applications.insert_one(doc)
+    _schedule_photo_import(doc)
 
     services = []
     if application.offers_aligners: services.append("Алайнери")
@@ -708,6 +861,7 @@ async def admin_create_clinic_application(
     if not doc.get("source"):
         doc["source"] = "admin_manual"
     await db.clinic_applications.insert_one(doc)
+    _schedule_photo_import(doc)
     await audit_log(
         "clinic_application.created_by_admin",
         actor=user,

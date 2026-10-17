@@ -28,6 +28,7 @@ from schemas import (
     ORIENTATION_BOOKING_ACTIVE_LOCK_STATUSES,
 )
 from orientation_access import get_online_orientation_access_status
+from clinic_photo_import import public_image_url
 from orientation_slots import (
     expire_pending_bookings,
     generate_slots_for_clinic,
@@ -475,14 +476,16 @@ def _public_clinic_payload(clinic: dict, online_ids: Optional[set] = None) -> di
             and not isinstance(row.get("completed_cases"), bool)
             and 0 < row.get("completed_cases") <= 1_000_000
         ] if _ent.get("enhanced_clinic_profile") else [],
-        "hero_image_url": profile.get("hero_image_url"),
+        # public_image_url drops pasted page links that would render as a
+        # broken <img> (clinics often paste a page of their site here).
+        "hero_image_url": public_image_url(profile.get("hero_image_url")),
         "doctor_spotlight_image_url": (
-            profile.get("doctor_spotlight_image_url")
+            public_image_url(profile.get("doctor_spotlight_image_url"))
             if _ent.get("enhanced_clinic_profile")
             else None
         ),
-        "team_image_url": profile.get("team_image_url"),
-        "environment_image_url": profile.get("environment_image_url"),
+        "team_image_url": public_image_url(profile.get("team_image_url")),
+        "environment_image_url": public_image_url(profile.get("environment_image_url")),
         "best_for": clinic.get("best_for") or profile.get("treatment_focus") or [],
         "not_ideal_for": clinic.get("not_ideal_for") or [],
         "why_this_clinic_appears": why,
