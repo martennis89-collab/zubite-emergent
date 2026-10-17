@@ -101,6 +101,8 @@ export interface RecommendedClinic {
   name: string;
   city_name: string;
   city_slug: string;
+  /** Neighbourhood, e.g. "Лозенец" — shown as "София, Лозенец". */
+  area?: string | null;
   treatments: string[];
   // Canonical going forward (Feb 2026 cleanup). When present, frontend
   // consumers should prefer this over `treatments` (which is kept as a

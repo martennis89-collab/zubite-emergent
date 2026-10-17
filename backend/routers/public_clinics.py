@@ -35,6 +35,7 @@ from orientation_slots import (
     SLOT_HORIZON_DAYS,
 )
 from rate_limit import rate_limit
+from config import SOFIA_DISTRICTS
 
 logger = logging.getLogger(__name__)
 
@@ -335,6 +336,23 @@ _CITY_NAME_TO_SLUG: dict[str, str] = {
 }
 
 
+def clinic_area(clinic: dict) -> Optional[str]:
+    """Neighbourhood shown next to the city ("София, Лозенец") so a patient
+    can tell whether a clinic is close by.
+
+    An admin-typed `area` wins (the only option outside Sofia, which has no
+    neighbourhood list); otherwise the label of the Sofia `district_slug`
+    chosen on the application or in the admin clinic editor.
+    """
+    area = clinic.get("area")
+    if isinstance(area, str) and area.strip():
+        return area.strip()
+    district = clinic.get("district_slug")
+    if isinstance(district, str) and district in SOFIA_DISTRICTS:
+        return SOFIA_DISTRICTS[district]
+    return None
+
+
 def resolve_city_slug(clinic: dict) -> Optional[str]:
     """Return the clinic's `city_slug` if present, otherwise map the
     free-text `city` (BG or Latin) to a canonical slug. Returns None
@@ -443,7 +461,7 @@ def _public_clinic_payload(clinic: dict, online_ids: Optional[set] = None) -> di
         "name": name,
         "city_slug": city_slug_resolved,
         "city_name": clinic.get("city_name") or clinic.get("city"),
-        "area": clinic.get("area"),
+        "area": clinic_area(clinic),
         "treatments": treatments,
         "specialties": clinic.get("specialties") or [],
         "assessment_approaches": assessment_approaches,
