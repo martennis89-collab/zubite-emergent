@@ -1157,6 +1157,9 @@ class ClinicAdminUpdate(BaseModel):
     address: Optional[str] = Field(default=None, max_length=500)
     # Clinic's own Sofia neighbourhood — see SOFIA_DISTRICTS in config.py.
     district_slug: Optional[str] = Field(default=None, max_length=50)
+    # Free-text neighbourhood shown on /clinics; overrides the Sofia district
+    # label and is the only option outside Sofia. "" clears it.
+    area: Optional[str] = Field(default=None, max_length=80)
     phone: Optional[str] = Field(default=None, max_length=50)
     email: Optional[EmailStr] = None
     website: Optional[str] = Field(default=None, max_length=500)

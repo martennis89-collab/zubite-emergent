@@ -1575,6 +1575,7 @@ def _safe_clinic_payload(
     lead_district: Optional[str] = None,
     lead_flags: Optional[set[str]] = None,
 ) -> dict:
+    from routers.public_clinics import clinic_area  # local: avoids an import cycle
     slug = _clinic_city_slug(clinic)
     created_at_raw = clinic.get("created_at")
     partner_since_year: Optional[int] = None
@@ -1614,6 +1615,7 @@ def _safe_clinic_payload(
         "slug": clinic.get("slug"),
         "name": _clinic_name(clinic),
         "city_name": _city_name_for(slug, clinic.get("city_name")),
+        "area": clinic_area(clinic),
         "city_slug": slug,
         # Recommendation eligibility invariant — every clinic returned by
         # /recommended-clinics passed the same-city filter in `_score_clinic`

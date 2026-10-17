@@ -334,6 +334,7 @@ export default function AdminClinicEditPage() {
   // "emptied by the admin" -- the first is normal, the second destroys data.
   const originalContact = useRef<ContactDetails>(EMPTY_CONTACT)
   const [district, setDistrict] = useState('')
+  const [area, setArea] = useState('')
 
   const [profile, setProfile] = useState<ClinicProfile>({ profile_status: 'draft' })
   const [focusInput, setFocusInput] = useState('')
@@ -387,6 +388,7 @@ export default function AdminClinicEditPage() {
       setTierBeforeSave(rawTier)
       setCarePassPartner(c.care_pass_partner === true)
       setDistrict(c.district_slug || '')
+      setArea(c.area || '')
       setSupportedTreatments(
         Array.isArray(c.treatments_supported)
           ? c.treatments_supported
@@ -504,6 +506,8 @@ export default function AdminClinicEditPage() {
         ...contactPatch(contact, originalContact.current),
         partner_tier: tier,
         ...(district ? { district_slug: district } : {}),
+        // "" clears it on the backend; the Sofia district label is the fallback.
+        area: area.trim(),
         aligner_brands_supported: brands.map((b) => ({
           brand: b.brand,
           relationship: b.relationship,
@@ -729,7 +733,10 @@ export default function AdminClinicEditPage() {
 
         {/* Section 0.5 — Локация */}
         <Section title="Локация" testid="section-location">
-          <div className="max-w-xs">
+          <p className="text-xs text-slate-500 leading-relaxed mb-3">
+            Кварталът се показва до града на /clinics (напр. „София, Лозенец“), за да преценят пациентите дали клиниката е близо.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2 max-w-xl">
             <Field label="Квартал (само за София)">
               <select
                 value={district}
@@ -742,6 +749,16 @@ export default function AdminClinicEditPage() {
                   <option key={d.value} value={d.value}>{d.label}</option>
                 ))}
               </select>
+            </Field>
+            <Field label="Квартал / район (свободен текст)">
+              <input
+                value={area}
+                onChange={(e) => setArea(e.target.value)}
+                maxLength={80}
+                placeholder="напр. Кършияка — за градове извън София"
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"
+                data-testid="clinic-area-input"
+              />
             </Field>
           </div>
         </Section>

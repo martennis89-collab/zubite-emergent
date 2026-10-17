@@ -157,6 +157,7 @@ export function ClinicRecommendationCard({
           <p className="text-sm text-slate-500 mt-0.5 inline-flex items-center gap-1.5">
             <MapPin className="w-3.5 h-3.5" />
             {clinic.city_name}
+            {clinic.area ? `, ${clinic.area}` : ''}
           </p>
         </div>
 

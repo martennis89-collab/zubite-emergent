@@ -80,6 +80,7 @@ from auth import (
 )
 from audit import audit_log
 from config import APP_NAME, CITIES, VAPID_PUBLIC_KEY
+from routers.public_clinics import clinic_area
 from community_safety import scan_red_flags, scrub_pii, strip_urls
 from community_topics import COMMUNITY_TOPICS, get_topic, is_valid_topic, topics_for_clinic
 from community_seed_content import PERSONAS, SEED_BATCH_ID, SEED_ITEMS
@@ -394,7 +395,7 @@ async def get_spotlight():
             "name": name,
             "city_slug": resolve_city_slug(clinic),
             "city_name": clinic.get("city_name") or clinic.get("city"),
-            "area": clinic.get("area"),
+            "area": clinic_area(clinic),
             "specialty_slug": specialty_slug,
             "short_description": profile.get("short_description"),
             "patient_intro": profile.get("patient_intro"),
