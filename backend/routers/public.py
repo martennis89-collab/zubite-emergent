@@ -1094,7 +1094,7 @@ _BROAD_TREATMENT_TYPES = frozenset({"diagnostic_quiz", "master_quiz", "general"}
 # only accept these statuses. New unrecognised values do NOT leak through.
 _VISIBLE_LEGACY_IS_ACTIVE = True
 _VISIBLE_ADMIN_STATUSES = frozenset({"active"})
-_VISIBLE_CLINIC_STATUSES = frozenset({"active_partner", "evaluation_partner"})
+_VISIBLE_CLINIC_STATUSES = frozenset({"active_partner", "evaluation_partner", "premium_partner"})
 
 # BG city_slug -> display name mapping. Lazily resolved against CITIES at
 # read time so a missing entry falls back to the slug itself.
@@ -1381,7 +1381,7 @@ def _is_clinic_visible(clinic: dict) -> bool:
 
     Positive signals (need at least one -> visible):
       • is_active == True
-      • clinic_status in {active_partner, evaluation_partner}
+      • clinic_status in {active_partner, evaluation_partner, premium_partner}
       • status == "active"
     """
     # Hard negatives.

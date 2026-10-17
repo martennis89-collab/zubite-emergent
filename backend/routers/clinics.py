@@ -778,9 +778,17 @@ async def update_clinic_application(app_id: str, body: dict, request: Request, u
             ):
                 if enabled and treatment not in treatments_supported:
                     treatments_supported.append(treatment)
+            from routers.public_clinics import resolve_city_slug
             clinic_doc = {
                 "id": str(uuid.uuid4()),
                 "clinic_name": application["clinic_name"],
+                # Public catalog fields, as admin-created clinics get them:
+                # without clinic_status an approved clinic never appeared on
+                # /clinics, and the admin had no control to change that.
+                "name": application["clinic_name"],
+                "clinic_status": "evaluation_partner",
+                "is_active": True,
+                "city_slug": resolve_city_slug({"city": application["city"]}),
                 "city": application["city"],
                 "district_slug": approved_data.get("district_slug"),
                 "email": str(application["email"]).strip().lower(),
