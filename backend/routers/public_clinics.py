@@ -246,8 +246,9 @@ def _public_viber_phone(clinic: dict) -> Optional[str]:
 
 # Statuses considered safe for public display. `active_partner` is a fully
 # onboarded clinic. `evaluation_partner` is a vetted pilot clinic and is
-# included by design (per agreed scope §1).
-_PUBLIC_STATUSES = ("active_partner", "evaluation_partner")
+# included by design (per agreed scope §1). `premium_partner` is an active
+# partner on a higher tier — it was missing here, which hid it entirely.
+_PUBLIC_STATUSES = ("active_partner", "evaluation_partner", "premium_partner")
 
 
 def _public_visibility_query() -> dict[str, Any]:

@@ -293,6 +293,7 @@ export default function AdminClinicsPage() {
                   <th className="px-4 py-3 text-left">Град</th>
                   <th className="px-4 py-3 text-left">Package</th>
                   <th className="px-4 py-3 text-left">Founding</th>
+                  <th className="px-4 py-3 text-left" title="Evaluation, Active и Premium се показват на /clinics">Каталог</th>
                   <th className="px-4 py-3 text-left">Billing</th>
                   <th className="px-4 py-3 text-center">Add-ons</th>
                   <th className="px-4 py-3 text-center">PJ</th>
@@ -342,6 +343,22 @@ export default function AdminClinicsPage() {
                       {c.founding_status && c.founding_status !== 'none'
                         ? <span className={`inline-flex px-1.5 py-0.5 rounded-full text-[10px] ${c.founding_status === 'strategic_private' ? 'bg-violet-50 text-violet-700' : 'bg-amber-50 text-amber-800'}`}>{c.founding_status === 'founding_growth' ? 'Founding' : 'Strategic'}</span>
                         : <span className="text-slate-300">—</span>}
+                    </td>
+                    <td className="px-4 py-3">
+                      {/* Partner status decides /clinics visibility: Evaluation,
+                          Active and Premium are public; the rest are hidden. */}
+                      <select
+                        value={c.clinic_status || ''}
+                        onChange={(e) => updateStatus(c.id, 'clinic_status', e.target.value)}
+                        disabled={filter === 'archived'}
+                        className={`px-2 py-1 rounded-lg text-xs font-medium border border-slate-200 ${statusCls(c.clinic_status)} ${filter === 'archived' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        data-testid={`clinic-status-${c.id}`}
+                      >
+                        {!c.clinic_status && <option value="">Не е в каталога</option>}
+                        {CLINIC_STATUS.map((s) => (
+                          <option key={s.value} value={s.value}>{s.label}</option>
+                        ))}
+                      </select>
                     </td>
                     <td className="px-4 py-3">
                       <select
