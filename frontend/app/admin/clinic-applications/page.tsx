@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { PublicProfileLink } from '@/components/clinic/PublicProfileLink'
 import { AdminHeader } from '@/components/admin/AdminHeader'
+import { PhotoSuggestionsPanel, type PhotoSuggestion, type PhotoImportState } from '@/components/admin/PhotoSuggestionsPanel'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -85,6 +86,8 @@ interface ClinicApplication {
   case_library_summary?: string | null
   case_media_url?: string | null
   patient_consent_available?: boolean | null
+  photo_suggestions?: Record<string, PhotoSuggestion> | null
+  photo_import?: PhotoImportState | null
   years_experience: number | null
   number_of_cases_per_month: string | null
   do_you_use_digital_scans: boolean | null
@@ -1259,6 +1262,20 @@ function DetailView({ app, onClose, onUpdate }: {
               </div>
             </>
           )}
+
+          <PhotoSuggestionsPanel
+            key={app.id}
+            appId={app.id}
+            links={{
+              hero_image_url: app.hero_image_url,
+              doctor_spotlight_image_url: app.doctor_spotlight_image_url,
+              team_image_url: app.team_image_url,
+              environment_image_url: app.environment_image_url,
+            }}
+            initialSuggestions={app.photo_suggestions}
+            initialImport={app.photo_import}
+            approved={app.status === 'approved'}
+          />
 
           {/* Qualification */}
           <div>

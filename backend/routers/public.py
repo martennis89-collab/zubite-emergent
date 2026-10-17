@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
+from clinic_photo_import import public_image_url
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Dict, Any
 import asyncio
@@ -1524,10 +1525,10 @@ def _public_profile_for_tier(clinic: dict, tier: str) -> Optional[dict]:
         out["patient_intro"] = blob.get("patient_intro") or None
 
     if tier == "premium":
-        out["hero_image_url"] = blob.get("hero_image_url") or None
-        out["doctor_spotlight_image_url"] = blob.get("doctor_spotlight_image_url") or None
-        out["team_image_url"] = blob.get("team_image_url") or None
-        out["environment_image_url"] = blob.get("environment_image_url") or None
+        out["hero_image_url"] = public_image_url(blob.get("hero_image_url"))
+        out["doctor_spotlight_image_url"] = public_image_url(blob.get("doctor_spotlight_image_url"))
+        out["team_image_url"] = public_image_url(blob.get("team_image_url"))
+        out["environment_image_url"] = public_image_url(blob.get("environment_image_url"))
         out["clinic_video_url"] = blob.get("clinic_video_url") or None
         out["doctor_video_url"] = blob.get("doctor_video_url") or None
         out["doctor_spotlight_name"] = blob.get("doctor_spotlight_name") or None

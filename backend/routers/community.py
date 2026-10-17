@@ -59,6 +59,7 @@ Design (mirrors clinic_reviews):
   that gate entirely so moderators can review pending photos.
 """
 from __future__ import annotations
+from clinic_photo_import import public_image_url
 
 import asyncio
 import hashlib
@@ -397,7 +398,7 @@ async def get_spotlight():
             "specialty_slug": specialty_slug,
             "short_description": profile.get("short_description"),
             "patient_intro": profile.get("patient_intro"),
-            "hero_image_url": profile.get("hero_image_url"),
+            "hero_image_url": public_image_url(profile.get("hero_image_url")),
             "treatment_focus": profile.get("treatment_focus") or [],
             "years_in_business": current_year - founded_year if founded_year is not None else None,
             "online_consultation": bool(clinic.get("online_consultation")),
