@@ -202,20 +202,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     const slug = c.slug
     const city = c.city_slug
-    const treatments = c.treatments || c.treatments_supported || []
-    if (!slug || !city || treatments.length === 0) { skippedClinics++; continue }
-
-    // The public profile route requires a specialty path segment. We use the
-    // first treatment that maps to an SEO-friendly URL slug; fall back to
-    // `klinika` to avoid inventing a slug that isn't a real specialty.
-    const firstTreatment = treatments[0]
-    const specialtySlug =
-      typeof firstTreatment === 'string' && firstTreatment.length > 0
-        ? firstTreatment
-        : 'klinika'
+    if (!slug || !city) { skippedClinics++; continue }
 
     clinicProfilePages.push({
-      url: `${baseUrl}/clinics/${city}/${specialtySlug}/${slug}`,
+      url: `${baseUrl}/clinics/${city}/${slug}`,
       lastModified: now,
       changeFrequency: 'weekly' as const,
       priority: 0.6,

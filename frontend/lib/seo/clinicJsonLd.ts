@@ -148,7 +148,7 @@ export function buildClinicBreadcrumbJsonLd(opts: {
   if (opts.city) {
     items.push({ name: cityDisplay(opts.city), href: `/clinics/${opts.city}` })
   }
-  if (opts.city && opts.specialty) {
+  if (opts.city && opts.specialty && !opts.clinic) {
     // Breadcrumb is intentionally terse — "Invisalign", not "Invisalign клиники",
     // so it reads naturally inside `Клиники > София > Invisalign`.
     items.push({
@@ -156,10 +156,10 @@ export function buildClinicBreadcrumbJsonLd(opts: {
       href: `/clinics/${opts.city}/${opts.specialty}`,
     })
   }
-  if (opts.clinic && opts.city && opts.specialty) {
+  if (opts.clinic && opts.city) {
     items.push({
       name: opts.clinic.name,
-      href: `/clinics/${opts.city}/${opts.specialty}/${opts.clinic.slug || opts.clinic.id}`,
+      href: `/clinics/${opts.city}/${opts.clinic.slug || opts.clinic.id}`,
     })
   }
   return {

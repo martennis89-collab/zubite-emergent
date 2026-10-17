@@ -604,7 +604,8 @@ def _ranking_score(clinic: dict, specialty: str | None) -> tuple:
 
 def public_profile_path(clinic: dict) -> Optional[str]:
     """Site path of a clinic's public profile, built exactly like the
-    frontend's `clinicProfileHref` (`/clinics/[city]/[specialty]/[slug]`).
+    frontend's `clinicProfileHref` (`/clinics/[city]/[slug]`, slug derived
+    from the clinic name).
 
     Does NOT check visibility — use `public_profile_paths` for "is it live".
     Returns None when the route can't be built (no name or city), which is
@@ -613,8 +614,7 @@ def public_profile_path(clinic: dict) -> Optional[str]:
     payload = _public_clinic_payload(clinic)
     if not payload.get("name") or not payload.get("city_slug"):
         return None
-    specialty = (payload.get("treatments") or ["klinika"])[0]
-    return f"/clinics/{payload['city_slug']}/{specialty}/{payload.get('slug') or payload['id']}"
+    return f"/clinics/{payload['city_slug']}/{payload.get('slug') or payload['id']}"
 
 
 async def public_profile_paths(clinic_ids: list) -> dict:
