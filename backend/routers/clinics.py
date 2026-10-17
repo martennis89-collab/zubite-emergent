@@ -613,6 +613,22 @@ async def create_clinic_application(application: ClinicApplicationCreate):
 @router.get("/admin/clinic-applications")
 async def get_clinic_applications(user: AdminUser = Depends(get_current_user)):
     apps = await db.clinic_applications.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
+    # Approved applications link to the clinic they created, and to its public
+    # profile once that is live.
+    approved_ids = [a["id"] for a in apps if a.get("status") == "approved" and a.get("id")]
+    if approved_ids:
+        from routers.public_clinics import public_profile_paths
+        clinic_by_app = {
+            c["application_id"]: c["id"]
+            async for c in db.clinics.find(
+                {"application_id": {"$in": approved_ids}}, {"_id": 0, "id": 1, "application_id": 1})
+        }
+        paths = await public_profile_paths(list(clinic_by_app.values()))
+        for a in apps:
+            cid = clinic_by_app.get(a.get("id"))
+            if cid:
+                a["clinic_id"] = cid
+                a["clinic_public_profile_path"] = paths.get(cid)
     return {"applications": apps}
 
 
@@ -1197,7 +1213,11 @@ async def clinic_logout_all(
 
 @router.get("/clinic/profile")
 async def clinic_profile(clinic=Depends(get_current_clinic)):
-    return _clinic_to_out(clinic)
+    from routers.public_clinics import public_profile_paths
+    out = _clinic_to_out(clinic).model_dump()
+    # The clinic's own page on zubite.bg; null until it is publicly listed.
+    out["public_profile_path"] = (await public_profile_paths([clinic["id"]])).get(clinic["id"])
+    return out
 
 
 @router.patch("/clinic/profile")

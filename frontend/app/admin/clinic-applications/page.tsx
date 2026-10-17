@@ -10,6 +10,7 @@ import {
   MessageSquare, Save, ArrowLeft, KeyRound, Copy, Check,
   Layers, BadgeCheck, Plus, Ban, ShieldCheck, Sparkles, AlertTriangle, RotateCw,
 } from 'lucide-react'
+import { PublicProfileLink } from '@/components/clinic/PublicProfileLink'
 import { AdminHeader } from '@/components/admin/AdminHeader'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
@@ -93,6 +94,10 @@ interface ClinicApplication {
   wants_viber_contact?: boolean | null
   viber_phone?: string | null
   status: string
+  // Set on approved applications: the clinic they created, and its public
+  // profile path once the clinic is publicly listed (null before that).
+  clinic_id?: string
+  clinic_public_profile_path?: string | null
   notes: string
   created_at: string
   source?: string | null
@@ -1045,6 +1050,24 @@ function DetailView({ app, onClose, onUpdate }: {
                 <p>Парола: <code className="font-mono bg-emerald-100 px-1.5 py-0.5 rounded">{credentials.temporary_password}</code></p>
               </div>
               <p className="text-xs text-emerald-600 mt-2">Изпратете тези данни на клиниката. Вход: /clinic</p>
+            </div>
+          )}
+
+          {/* Created clinic + its public profile (approved applications) */}
+          {currentStatus === 'approved' && app.clinic_id && (
+            <div className="flex flex-wrap items-center gap-3" data-testid="approved-clinic-links">
+              <Link
+                href={`/admin/clinics/${app.clinic_id}`}
+                className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-sm font-medium"
+                data-testid="approved-clinic-admin-link"
+              >
+                <Building2 className="w-4 h-4" />
+                Профил в админ
+              </Link>
+              <PublicProfileLink
+                path={app.clinic_public_profile_path}
+                testId="approved-clinic-public-link"
+              />
             </div>
           )}
 

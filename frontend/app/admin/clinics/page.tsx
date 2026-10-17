@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Plus, Building2, X, Loader2, Archive, ArchiveRestore, AlertTriangle, KeyRound } from 'lucide-react'
+import { PublicProfileLink } from '@/components/clinic/PublicProfileLink'
 import { AdminHeader } from '@/components/admin/AdminHeader'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
@@ -41,6 +42,8 @@ interface PartnerClinic {
   // (directory entry) before it has one, and the reset endpoint 404s for
   // those. Drives whether "Нова парола" renders.
   has_account?: boolean
+  // Public profile path on zubite.bg; null until the clinic is publicly listed.
+  public_profile_path?: string | null
 }
 
 type ArchiveFilter = 'active' | 'archived'
@@ -308,6 +311,17 @@ export default function AdminClinicsPage() {
                         {c.clinic_name}
                       </div>
                       <div className="text-xs text-slate-500">{c.email || c.archived_email}</div>
+                      {!c.archived && (
+                        <div className="mt-1">
+                          <PublicProfileLink
+                            path={c.public_profile_path}
+                            variant="compact"
+                            label="Виж в Zubite.bg"
+                            notLiveLabel="Не е публичен"
+                            testId={`admin-clinic-public-link-${c.id}`}
+                          />
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-slate-700">{c.city}</td>
                     <td className="px-4 py-3">

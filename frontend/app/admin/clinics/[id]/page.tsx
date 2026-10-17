@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { Save, Plus, Trash2, CheckCircle2, AlertCircle, Eye, EyeOff, KeyRound } from 'lucide-react'
+import { PublicProfileLink } from '@/components/clinic/PublicProfileLink'
 import { AdminHeader } from '@/components/admin/AdminHeader'
 import { CaseLibraryEditor, type CaseRow as EditorCaseRow } from '@/components/admin/CaseLibraryEditor'
 import { ClinicPackageSection } from '@/components/admin/ClinicPackageSection'
@@ -324,6 +325,7 @@ export default function AdminClinicEditPage() {
   const [carePassPartner, setCarePassPartner] = useState(false)
   const [clinicName, setClinicName] = useState('')
   const [hasAccount, setHasAccount] = useState(false)
+  const [publicProfilePath, setPublicProfilePath] = useState<string | null>(null)
   const [resettingPassword, setResettingPassword] = useState(false)
   // Editable contact details, kept separate from `clinicName` so the page
   // heading keeps showing the saved name while the field is being typed in.
@@ -361,6 +363,7 @@ export default function AdminClinicEditPage() {
       const c = j.clinic || {}
       setClinicName(c.clinic_name || c.name || '—')
       setHasAccount(Boolean(c.has_account))
+      setPublicProfilePath(c.public_profile_path || null)
       const loadedContact: ContactDetails = {
         clinic_name: c.clinic_name || c.name || '',
         city: c.city || c.city_name || '',
@@ -601,7 +604,8 @@ export default function AdminClinicEditPage() {
         backHref="/admin/clinics"
         backLabel="Към списъка"
       />
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-end gap-3">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-wrap items-center justify-end gap-3">
+        <PublicProfileLink path={publicProfilePath} testId="admin-clinic-public-link" />
         {hasAccount && (
           <button
             type="button"
